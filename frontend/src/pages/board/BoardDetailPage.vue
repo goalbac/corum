@@ -1,8 +1,6 @@
 <template>
   <div class="board-detail" v-loading="loading">
     <template v-if="post">
-
-      <!-- 게시글 헤더 -->
       <div class="post-header">
         <el-tag v-if="post.isNotice" type="danger" effect="plain" size="small">공지</el-tag>
         <h1 class="post-title">{{ post.title }}</h1>
@@ -15,7 +13,6 @@
         </div>
       </div>
 
-      <!-- 첨부파일 -->
       <div v-if="post.files?.length" class="attach-area">
         <div class="attach-title">
           <el-icon><Paperclip /></el-icon> 첨부파일 ({{ post.files.length }})
@@ -35,10 +32,8 @@
         </div>
       </div>
 
-      <!-- 본문 -->
       <div class="post-content" v-html="post.content" />
 
-      <!-- 액션 영역 -->
       <div class="post-actions">
         <el-button
           :type="post.liked ? 'primary' : 'default'"
@@ -51,7 +46,7 @@
         <el-button size="small" @click="handlePrint">
           <el-icon><Printer /></el-icon> 인쇄
         </el-button>
-        <div style="margin-left: auto; display: flex; gap: 8px;">
+        <div class="right-actions">
           <el-button
             v-if="canEdit"
             size="small"
@@ -67,9 +62,7 @@
         </div>
       </div>
 
-      <!-- 댓글 -->
-      <CommentSection :post-id="postId" />
-
+      <CommentSection :board-id="boardId" :post-id="postId" />
     </template>
   </div>
 </template>
@@ -83,14 +76,14 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 import CommentSection from '@/components/board/CommentSection.vue'
 
-const route    = useRoute()
-const router   = useRouter()
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
-const boardId  = computed(() => route.params.boardId)
-const postId   = computed(() => route.params.postId)
-const post     = ref(null)
-const loading  = ref(false)
+const boardId = computed(() => route.params.boardId)
+const postId = computed(() => route.params.postId)
+const post = ref(null)
+const loading = ref(false)
 
 const canEdit = computed(() => {
   if (!authStore.isLoggedIn) return false
@@ -149,94 +142,114 @@ onMounted(fetchPost)
 
 <style scoped>
 .board-detail {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
   overflow: hidden;
+  color: var(--t1);
+  box-shadow: var(--shadow);
 }
 
 .post-header {
-  padding: 24px 28px 20px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 26px 30px 22px;
+  border-bottom: 1px solid var(--border2);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .post-title {
-  font-size: 20px;
+  font-size: 23px;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.45;
+  color: var(--t1);
 }
 
 .post-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  gap: 7px;
+  font-size: 15px;
+  color: var(--t2);
 }
 
-.meta-divider {
-  color: var(--color-border);
-}
+.meta-divider { color: var(--t3); }
 
 .attach-area {
-  padding: 12px 28px;
-  background: var(--color-bg-base);
-  border-bottom: 1px solid var(--color-border);
+  padding: 14px 30px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border2);
 }
 
 .attach-title {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
+  gap: 5px;
+  font-size: 15px;
   font-weight: 600;
   margin-bottom: 8px;
+  color: var(--t1);
 }
 
 .attach-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .attach-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: var(--color-primary);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  font-size: 15px;
+  color: var(--accent-t);
+  padding: 5px 8px;
+  border-radius: var(--radius-xs);
   transition: var(--transition);
   width: fit-content;
 }
 
-.attach-item:hover {
-  background: var(--color-primary-bg);
-}
-
-.file-size {
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
+.attach-item:hover { background: var(--accent-bg); }
+.file-size { color: var(--t3); font-size: 14px; }
 
 .post-content {
-  padding: 28px;
-  min-height: 200px;
-  font-size: 14px;
-  line-height: 1.8;
-  border-bottom: 1px solid var(--color-border);
+  padding: 30px;
+  min-height: 220px;
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--t1);
+  border-bottom: 1px solid var(--border2);
+}
+
+.post-content :deep(*) {
+  color: inherit;
+}
+
+.post-content :deep(a) {
+  color: var(--accent-t);
 }
 
 .post-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 16px 28px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-base);
+  padding: 16px 30px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface2);
+}
+
+.right-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .post-header,
+  .attach-area,
+  .post-content,
+  .post-actions { padding-left: 18px; padding-right: 18px; }
+  .post-actions { flex-wrap: wrap; }
+  .right-actions { width: 100%; justify-content: flex-end; }
 }
 </style>

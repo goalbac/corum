@@ -1,7 +1,6 @@
 <template>
   <div class="board-write">
     <el-form :model="form" label-position="top">
-
       <el-form-item label="제목">
         <el-input v-model="form.title" placeholder="제목을 입력하세요." size="large" />
       </el-form-item>
@@ -17,7 +16,6 @@
           :rows="15"
           placeholder="내용을 입력하세요."
           resize="none"
-          style="font-size: 14px;"
         />
       </el-form-item>
 
@@ -30,7 +28,7 @@
         >
           <el-button size="small">파일 선택</el-button>
           <template #tip>
-            <div class="upload-tip">파일을 선택하면 저장 시 함께 업로드됩니다.</div>
+            <div class="upload-tip">파일을 선택하면 저장할 때 함께 업로드됩니다.</div>
           </template>
         </el-upload>
       </el-form-item>
@@ -41,7 +39,6 @@
           {{ isEdit ? '수정' : '등록' }}
         </el-button>
       </div>
-
     </el-form>
   </div>
 </template>
@@ -53,18 +50,18 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 
-const route    = useRoute()
-const router   = useRouter()
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const boardId = computed(() => route.params.boardId)
-const postId  = computed(() => route.params.postId)
-const isEdit  = computed(() => !!postId.value)
-const isAdmin = computed(() => authStore.member?.isAdmin)
+const postId = computed(() => route.params.postId)
+const isEdit = computed(() => !!postId.value)
+const isAdmin = computed(() => authStore.member?.admin)
 
-const loading  = ref(false)
+const loading = ref(false)
 const fileList = ref([])
-const files    = ref([])
+const files = ref([])
 
 const form = ref({
   title: '',
@@ -92,7 +89,6 @@ async function handleSubmit() {
       savedPostId = res.data.data.id
     }
 
-    // 파일 업로드
     if (files.value.length > 0) {
       const formData = new FormData()
       files.value.forEach(f => formData.append('files', f))
@@ -123,22 +119,28 @@ onMounted(async () => {
 
 <style scoped>
 .board-write {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 28px;
+  background: var(--surface);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 30px;
+  color: var(--t1);
+  box-shadow: var(--shadow);
 }
 
 .write-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .upload-tip {
-  font-size: 12px;
-  color: var(--color-text-muted);
+  font-size: 14px;
+  color: var(--t3);
   margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .board-write { padding: 20px; }
 }
 </style>

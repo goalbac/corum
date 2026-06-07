@@ -4,7 +4,6 @@
       댓글 <span class="comment-count">{{ comments.length }}</span>
     </div>
 
-    <!-- 댓글 작성 -->
     <div v-if="authStore.isLoggedIn" class="comment-write">
       <el-input
         v-model="newComment"
@@ -16,12 +15,12 @@
       <el-button type="primary" size="small" @click="submitComment(null)">등록</el-button>
     </div>
 
-    <!-- 댓글 목록 -->
     <div class="comment-list">
       <CommentItem
         v-for="comment in comments"
         :key="comment.id"
         :comment="comment"
+        :board-id="boardId"
         :post-id="postId"
         @refresh="fetchComments"
       />
@@ -40,13 +39,16 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 import CommentItem from './CommentItem.vue'
 
-const props = defineProps({ postId: { type: [String, Number], required: true } })
+const props = defineProps({
+  boardId: { type: [String, Number], required: true },
+  postId: { type: [String, Number], required: true }
+})
 const authStore = useAuthStore()
 const comments = ref([])
 const newComment = ref('')
 
 async function fetchComments() {
-  const res = await api.get(`/boards/0/posts/${props.postId}/comments`)
+  const res = await api.get(`/boards/${props.boardId}/posts/${props.postId}/comments`)
   comments.value = res.data.data || []
 }
 
@@ -55,7 +57,7 @@ async function submitComment(parentId) {
     ElMessage.warning('댓글 내용을 입력해주세요.')
     return
   }
-  await api.post(`/boards/0/posts/${props.postId}/comments`, {
+  await api.post(`/boards/${props.boardId}/posts/${props.postId}/comments`, {
     content: newComment.value,
     parentId
   })
@@ -68,18 +70,18 @@ onMounted(fetchComments)
 
 <style scoped>
 .comment-section {
-  padding: 20px 28px;
+  padding: 22px 30px;
+  background: var(--surface);
+  color: var(--t1);
 }
 
 .comment-header {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   margin-bottom: 16px;
 }
 
-.comment-count {
-  color: var(--color-primary);
-}
+.comment-count { color: var(--accent-t); }
 
 .comment-write {
   display: flex;
@@ -88,20 +90,18 @@ onMounted(fetchComments)
   margin-bottom: 20px;
 }
 
-.comment-write .el-textarea {
-  flex: 1;
-}
-
-.comment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
+.comment-write .el-textarea { flex: 1; }
+.comment-list { display: flex; flex-direction: column; gap: 0; }
 
 .no-comment {
   text-align: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: 24px 0;
+  color: var(--t3);
+  font-size: 15px;
+  padding: 26px 0;
+}
+
+@media (max-width: 768px) {
+  .comment-section { padding: 20px 18px; }
+  .comment-write { flex-direction: column; align-items: stretch; }
 }
 </style>
