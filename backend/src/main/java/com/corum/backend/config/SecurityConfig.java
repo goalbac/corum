@@ -47,7 +47,9 @@ public class SecurityConfig {
                     "/api/auth/login",
                     "/api/auth/register",
                     "/api/auth/verify-email",
-                    "/api/menus"          // 메뉴 트리는 비로그인도 조회 (공개 메뉴 필터링)
+                    "/api/menus",
+                    "/api/inquiries",
+                    "/api/calendars/**"
                 ).permitAll()
                 // 나머지 인증 필요
                 .anyRequest().authenticated()
