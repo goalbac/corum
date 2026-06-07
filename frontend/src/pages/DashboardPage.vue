@@ -1,45 +1,44 @@
 <template>
   <div class="dashboard">
 
-    <!-- 환영 카드 -->
-    <el-card class="welcome-card" shadow="never">
-      <div class="welcome-inner">
-        <div>
-          <h2 class="welcome-title">안녕하세요, {{ authStore.member?.name || '방문자' }}님 👋</h2>
-          <p class="welcome-sub">오늘도 좋은 하루 되세요.</p>
-        </div>
-        <div class="welcome-date">{{ today }}</div>
+    <!-- 웰컴 카드 -->
+    <div class="welcome-card">
+      <div class="welcome-left">
+        <div class="welcome-name">안녕하세요, {{ authStore.member?.name || '방문자' }}님 👋</div>
+        <div class="welcome-sub">오늘도 좋은 하루 되세요.</div>
       </div>
-    </el-card>
+      <div class="welcome-date">{{ today }}</div>
+    </div>
 
-    <!-- 최신글 위젯 -->
-    <div class="widget-grid">
-      <el-card
-        v-for="board in recentBoards"
-        :key="board.id"
-        class="widget-card"
-        shadow="never"
-      >
-        <template #header>
-          <div class="widget-header">
-            <span class="widget-title">{{ board.name }}</span>
-            <router-link :to="`/board/${board.id}`" class="widget-more">더보기</router-link>
-          </div>
-        </template>
-
+    <!-- 최신글 위젯 그리드 -->
+    <div class="widget-grid" v-if="recentBoards.length">
+      <div class="widget-card" v-for="board in recentBoards" :key="board.id">
+        <div class="widget-head">
+          <span class="widget-name">{{ board.name }}</span>
+          <router-link :to="`/board/${board.id}`" class="widget-more">더보기</router-link>
+        </div>
         <div v-if="board.posts?.length" class="post-list">
           <router-link
             v-for="post in board.posts"
             :key="post.id"
             :to="`/board/${board.id}/posts/${post.id}`"
-            class="post-item"
+            class="post-row"
           >
-            <span class="post-title">{{ post.title }}</span>
+            <span class="post-title">
+              {{ post.title }}
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </span>
             <span class="post-date">{{ formatDate(post.createdAt) }}</span>
           </router-link>
         </div>
-        <div v-else class="empty-msg">등록된 글이 없습니다.</div>
-      </el-card>
+        <div v-else class="empty">등록된 글이 없습니다.</div>
+      </div>
+    </div>
+
+    <!-- 게시판 없을 때 -->
+    <div class="empty-state" v-else-if="!loading">
+      <i class="ti ti-layout-dashboard" style="font-size:40px;color:var(--t3)"></i>
+      <p>아직 게시판이 없습니다.</p>
     </div>
 
   </div>
@@ -52,144 +51,125 @@ import api from '@/api/axios'
 
 const authStore = useAuthStore()
 const recentBoards = ref([])
+const loading = ref(true)
 
 const today = new Date().toLocaleDateString('ko-KR', {
   year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
 })
 
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}.${d.getDate()}`
+function formatDate(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  const now = new Date()
+  const diff = (now - dt) / 1000
+  if (diff < 86400 && dt.toDateString() === now.toDateString()) return dt.toTimeString().slice(0,5)
+  const gap = Math.floor((now - dt) / 86400000)
+  if (gap === 0) return '오늘'
+  if (gap === 1) return '1일전'
+  if (gap <= 3) return `${gap}일전`
+  return `${dt.getMonth()+1}.${String(dt.getDate()).padStart(2,'0')}`
+}
+
+function isNew(d) {
+  if (!d) return false
+  return Date.now() - new Date(d).getTime() < 3 * 86400000
 }
 
 onMounted(async () => {
   try {
-    const boardsRes = await api.get('/boards')
-    const boards = boardsRes.data.data?.slice(0, 4) || []
-    recentBoards.value = await Promise.all(
-      boards.map(async (b) => {
-        try {
-          const postsRes = await api.get(`/boards/${b.id}/posts?size=5`)
-          return { ...b, posts: postsRes.data.data?.content || [] }
-        } catch {
-          return { ...b, posts: [] }
-        }
-      })
-    )
-  } catch (e) {
-    console.error(e)
-  }
+    const res = await api.get('/boards')
+    const boards = (res.data.data || []).slice(0, 4)
+    recentBoards.value = await Promise.all(boards.map(async b => {
+      try {
+        const pr = await api.get(`/boards/${b.id}/posts?size=5`)
+        return { ...b, posts: pr.data.data?.content || [] }
+      } catch { return { ...b, posts: [] } }
+    }))
+  } catch(e) { console.error(e) }
+  finally { loading.value = false }
 })
 </script>
 
 <style scoped>
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+.dashboard { display: flex; flex-direction: column; gap: 16px; }
 
 .welcome-card {
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-  border: none;
-  color: #fff;
-}
-
-.welcome-card :deep(.el-card__body) {
-  padding: 24px 28px;
-}
-
-.welcome-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--accent);
+  border-radius: var(--radius);
+  padding: 20px 24px;
 }
-
-.welcome-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.welcome-sub {
-  font-size: 13px;
-  color: rgba(255,255,255,0.8);
-  margin-top: 4px;
-}
-
-.welcome-date {
-  font-size: 13px;
-  color: rgba(255,255,255,0.7);
-}
+.welcome-name { font-size: 16px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+.welcome-sub { font-size: 13px; color: rgba(255,255,255,0.72); margin-top: 4px; }
+.welcome-date { font-size: 13px; color: rgba(255,255,255,0.6); text-align: right; line-height: 1.7; }
 
 .widget-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .widget-card {
-  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 0.5px solid var(--border2);
+  padding: 18px 18px 10px;
+  transition: background 0.25s;
 }
 
-.widget-header {
+.widget-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 12px;
 }
+.widget-name { font-size: 13px; font-weight: 600; color: var(--t1); letter-spacing: -0.3px; }
+.widget-more { font-size: 12px; color: var(--accent); }
 
-.widget-title {
-  font-size: 14px;
-  font-weight: 600;
-}
+.post-list { display: flex; flex-direction: column; }
 
-.widget-more {
-  font-size: 12px;
-  color: var(--color-primary);
-}
-
-.post-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.post-item {
+.post-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid var(--color-border);
-  gap: 12px;
+  border-bottom: 0.5px solid var(--border2);
+  gap: 10px;
   transition: var(--transition);
 }
-
-.post-item:last-child { border-bottom: none; }
-
-.post-item:hover .post-title {
-  color: var(--color-primary);
-}
+.post-row:last-child { border-bottom: none; padding-bottom: 0; }
+.post-row:first-child { padding-top: 0; }
+.post-row:hover .post-title { color: var(--accent); }
 
 .post-title {
   font-size: 13px;
+  color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
-  transition: var(--transition);
+  transition: color 0.15s;
+}
+.post-date { font-size: 11.5px; color: var(--t3); flex-shrink: 0; }
+
+.empty { font-size: 13px; color: var(--t3); padding: 12px 0; text-align: center; }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 0;
+  color: var(--t3);
+  font-size: 14px;
 }
 
-.post-date {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.empty-msg {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  text-align: center;
-  padding: 16px 0;
+@media (max-width: 768px) {
+  .widget-grid { grid-template-columns: 1fr; }
+  .welcome-card { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .welcome-date { text-align: left; font-size: 12px; }
 }
 </style>

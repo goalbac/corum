@@ -8,12 +8,9 @@ import 'element-plus/dist/index.css'
 import './style.css'
 
 const app = createApp(App)
-
-// Element Plus 아이콘 전역 등록
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
-
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus)
