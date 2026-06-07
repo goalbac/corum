@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew compileJava)",
+      "Bash(gradle --version)",
+      "Bash(java -version)",
+      "Bash(curl -s https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradlew -o /home/haemi/corum/backend/gradlew)",
+      "Bash(chmod +x /home/haemi/corum/backend/gradlew)",
+      "Bash(curl -sL \"https://github.com/gradle/gradle/raw/v8.7.0/gradle/wrapper/gradle-wrapper.jar\" -o /home/haemi/corum/backend/gradle/wrapper/gradle-wrapper.jar)",
+      "Bash(./gradlew build *)"
+    ]
+  }
+}
