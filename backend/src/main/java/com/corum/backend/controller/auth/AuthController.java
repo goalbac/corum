@@ -6,6 +6,9 @@ import com.corum.backend.dto.auth.LoginRequest;
 import com.corum.backend.dto.auth.LoginResponse;
 import com.corum.backend.dto.auth.MemberResponse;
 import com.corum.backend.dto.auth.RegisterRequest;
+import com.corum.backend.dto.auth.UpdatePasswordRequest;
+import com.corum.backend.dto.auth.UpdateProfileRequest;
+import com.corum.backend.dto.auth.WithdrawRequest;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.auth.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,7 +52,33 @@ public class AuthController {
     // 내 정보 조회
     @GetMapping("/me")
     public ApiResponse<MemberResponse> me(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        Member member = authService.getMe(userDetails.getMemberId());
-        return ApiResponse.ok(new MemberResponse(member));
+        return ApiResponse.ok(authService.getMe(userDetails.getMemberId()));
+    }
+
+    // 내 정보 수정
+    @PutMapping("/me")
+    public ApiResponse<MemberResponse> updateProfile(
+            @RequestBody UpdateProfileRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.ok(authService.updateProfile(userDetails.getMemberId(), request));
+    }
+
+    // 비밀번호 변경
+    @PutMapping("/me/password")
+    public ApiResponse<Void> updatePassword(
+            @Valid @RequestBody UpdatePasswordRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        authService.updatePassword(userDetails.getMemberId(), request);
+        return ApiResponse.ok("비밀번호가 변경되었습니다.");
+    }
+
+    // 회원 탈퇴
+    @DeleteMapping("/me")
+    public ApiResponse<Void> withdraw(
+            @Valid @RequestBody WithdrawRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletRequest httpRequest) {
+        authService.withdraw(userDetails.getMemberId(), request, httpRequest);
+        return ApiResponse.ok("탈퇴 처리되었습니다.");
     }
 }

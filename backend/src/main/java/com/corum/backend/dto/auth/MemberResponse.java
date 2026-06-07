@@ -27,8 +27,9 @@ public class MemberResponse {
     private final LocalDateTime joinedAt;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+    private final boolean isAdmin;
 
-    public MemberResponse(Member member) {
+    public MemberResponse(Member member, boolean isAdmin) {
         this.id = member.getId();
         this.username = member.getUsername();
         this.email = member.getEmail();
@@ -47,5 +48,6 @@ public class MemberResponse {
         this.joinedAt = member.getJoinedAt();
         this.createdAt = member.getCreatedAt();
         this.updatedAt = member.getUpdatedAt();
+        this.isAdmin = isAdmin;
     }
 }

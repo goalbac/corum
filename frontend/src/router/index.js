@@ -10,6 +10,14 @@ const routes = [
     meta: { guest: true }
   },
 
+  // 회원가입
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/pages/RegisterPage.vue'),
+    meta: { guest: true }
+  },
+
   // 메인 레이아웃
   {
     path: '/',
@@ -20,6 +28,13 @@ const routes = [
         name: 'Dashboard',
         component: () => import('@/pages/DashboardPage.vue'),
         meta: { title: '대시보드' }
+      },
+
+      {
+        path: 'mypage',
+        name: 'MyPage',
+        component: () => import('@/pages/MyPage.vue'),
+        meta: { requiresAuth: true, title: '마이페이지' }
       },
 
       // 게시판

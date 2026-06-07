@@ -1,5 +1,6 @@
 package com.corum.backend.service.auth;
 
+import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.common.BusinessException;
 import com.corum.backend.domain.member.Member;
 import com.corum.backend.domain.member.MemberLoginLog;
@@ -7,7 +8,11 @@ import com.corum.backend.domain.member.MemberLoginLogRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.dto.auth.LoginRequest;
 import com.corum.backend.dto.auth.LoginResponse;
+import com.corum.backend.dto.auth.MemberResponse;
 import com.corum.backend.dto.auth.RegisterRequest;
+import com.corum.backend.dto.auth.UpdatePasswordRequest;
+import com.corum.backend.dto.auth.UpdateProfileRequest;
+import com.corum.backend.dto.auth.WithdrawRequest;
 import com.corum.backend.dto.group.GroupResponse;
 import com.corum.backend.security.JwtProvider;
 import com.corum.backend.service.group.GroupService;
@@ -32,6 +37,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final GroupService groupService;
+    private final MemberGroupRepository memberGroupRepository;
 
     @Value("${jwt.login-fail-limit:5}")
     private int loginFailLimit;
@@ -105,6 +111,43 @@ public class AuthService {
         return new LoginResponse(token, member, groups);
     }
 
+    // ===== 프로필 수정 =====
+    @Transactional
+    public MemberResponse updateProfile(Long memberId, UpdateProfileRequest request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
+        member.updateProfile(
+                request.getName(), request.getPhone(), request.getAddress(),
+                request.getBirthDate(), request.getHomePhone(),
+                request.getOccupation(), request.getWorkPhone(),
+                request.getNewsletterYn(), member.getProfileImageUrl()
+        );
+        boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
+        return new MemberResponse(member, isAdmin);
+    }
+
+    // ===== 비밀번호 변경 =====
+    @Transactional
+    public void updatePassword(Long memberId, UpdatePasswordRequest request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
+        if (!passwordEncoder.matches(request.getCurrentPassword(), member.getPasswordHash())) {
+            throw new BusinessException("현재 비밀번호가 올바르지 않습니다.");
+        }
+        member.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+    }
+
+    // ===== 회원 탈퇴 =====
+    @Transactional
+    public void withdraw(Long memberId, WithdrawRequest request, HttpServletRequest httpRequest) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
+        if (!passwordEncoder.matches(request.getPassword(), member.getPasswordHash())) {
+            throw new BusinessException("비밀번호가 올바르지 않습니다.");
+        }
+        member.withdraw(getClientIp(httpRequest));
+    }
+
     // ===== 로그아웃 로그 =====
     @Transactional
     public void logout(Long memberId, HttpServletRequest httpRequest) {
@@ -115,9 +158,11 @@ public class AuthService {
 
     // ===== 내 정보 조회 =====
     @Transactional(readOnly = true)
-    public Member getMe(Long memberId) {
-        return memberRepository.findById(memberId)
+    public MemberResponse getMe(Long memberId) {
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
+        boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
+        return new MemberResponse(member, isAdmin);
     }
 
     // ===== 내부 메서드 =====
