@@ -3,7 +3,6 @@
     <AppHeader @toggle-mobile-menu="mobileOpen = !mobileOpen" />
 
     <div class="admin-body">
-      <!-- 사이드바 -->
       <aside class="admin-sidebar" :class="{ open: mobileOpen }">
         <div class="sidebar-section">
           <div class="section-title">회원</div>
@@ -14,6 +13,7 @@
             <i class="ti ti-shield"></i> 그룹 관리
           </router-link>
         </div>
+
         <div class="sidebar-section">
           <div class="section-title">콘텐츠</div>
           <router-link to="/admin/boards" class="sidebar-item" active-class="active">
@@ -23,6 +23,7 @@
             <i class="ti ti-menu-2"></i> 메뉴 관리
           </router-link>
         </div>
+
         <div class="sidebar-section">
           <div class="section-title">운영</div>
           <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
@@ -34,10 +35,8 @@
         </div>
       </aside>
 
-      <!-- 모바일 오버레이 -->
       <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false" />
 
-      <!-- 메인 -->
       <main class="admin-main">
         <div class="admin-container">
           <router-view />
@@ -49,16 +48,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useThemeStore } from '@/stores/theme'
 import { useMenuStore } from '@/stores/menu'
-import { useRouter } from 'vue-router'
 
-const authStore  = useAuthStore()
-const themeStore = useThemeStore()
-const menuStore  = useMenuStore()
-const router     = useRouter()
+const authStore = useAuthStore()
+const menuStore = useMenuStore()
+const router = useRouter()
 const mobileOpen = ref(false)
 
 onMounted(async () => {
@@ -66,12 +63,10 @@ onMounted(async () => {
   if (authStore.isLoggedIn && !authStore.member) {
     await authStore.fetchMe()
   }
-  // 로그인 안 된 경우
   if (!authStore.isLoggedIn) {
     router.push('/login')
     return
   }
-  // 관리자가 아닌 경우 (member 로딩 완료 후 체크)
   if (authStore.member && !authStore.member.admin) {
     router.push('/')
   }
@@ -106,7 +101,6 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 600;
   color: var(--t3);
-  letter-spacing: 0.5px;
   text-transform: uppercase;
   padding: 0 16px;
   margin-bottom: 4px;
@@ -134,7 +128,9 @@ onMounted(async () => {
 .sidebar-item.active::before {
   content: '';
   position: absolute;
-  left: 0; top: 4px; bottom: 4px;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
   width: 3px;
   background: var(--accent);
   border-radius: 0 3px 3px 0;
@@ -144,7 +140,8 @@ onMounted(async () => {
 .admin-container { padding: 24px; max-width: 1100px; }
 
 .mobile-overlay {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   background: rgba(0,0,0,0.4);
   z-index: 99;
   display: none;
@@ -153,7 +150,9 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .admin-sidebar {
     position: fixed;
-    left: 0; top: var(--header-height); bottom: 0;
+    left: 0;
+    top: var(--header-height);
+    bottom: 0;
     z-index: 100;
     transform: translateX(-100%);
     transition: transform .25s;
