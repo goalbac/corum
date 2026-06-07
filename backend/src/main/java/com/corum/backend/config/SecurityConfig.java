@@ -46,10 +46,9 @@ public class SecurityConfig {
                     "/api/health",
                     "/api/auth/login",
                     "/api/auth/register",
-                    "/api/auth/verify-email"
+                    "/api/auth/verify-email",
+                    "/api/menus"          // 메뉴 트리는 비로그인도 조회 (공개 메뉴 필터링)
                 ).permitAll()
-                // 그룹 조회는 로그인 사용자 전체 허용
-                .requestMatchers("/api/groups").authenticated()
                 // 나머지 인증 필요
                 .anyRequest().authenticated()
             )

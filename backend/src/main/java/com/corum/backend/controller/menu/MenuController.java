@@ -1,0 +1,79 @@
+package com.corum.backend.controller.menu;
+
+import com.corum.backend.common.ApiResponse;
+import com.corum.backend.domain.group.MemberGroupRepository;
+import com.corum.backend.dto.menu.MenuCreateRequest;
+import com.corum.backend.dto.menu.MenuResponse;
+import com.corum.backend.dto.menu.MenuUpdateRequest;
+import com.corum.backend.security.CustomUserDetails;
+import com.corum.backend.service.menu.MenuService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/menus")
+@RequiredArgsConstructor
+public class MenuController {
+
+    private final MenuService menuService;
+    private final MemberGroupRepository memberGroupRepository;
+
+    // 사용자용 메뉴 트리 (권한 필터링)
+    @GetMapping
+    public ApiResponse<List<MenuResponse>> getMenuTree(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        boolean isLoggedIn = userDetails != null;
+        List<Long> groupIds = isLoggedIn
+                ? memberGroupRepository.findGroupIdsByMemberId(userDetails.getMemberId())
+                : List.of();
+
+        return ApiResponse.ok(menuService.getMenuTreeForMember(groupIds, isLoggedIn));
+    }
+
+    // 관리자용 전체 메뉴 트리 (숨김 포함)
+    @GetMapping("/admin")
+    public ApiResponse<List<MenuResponse>> getFullMenuTree() {
+        return ApiResponse.ok(menuService.getFullMenuTree());
+    }
+
+    // 메뉴 단건 조회
+    @GetMapping("/{id}")
+    public ApiResponse<MenuResponse> getMenu(@PathVariable Long id) {
+        return ApiResponse.ok(menuService.getMenu(id));
+    }
+
+    // 메뉴 생성
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<MenuResponse> createMenu(@Valid @RequestBody MenuCreateRequest request) {
+        return ApiResponse.ok(menuService.createMenu(request));
+    }
+
+    // 메뉴 수정
+    @PutMapping("/{id}")
+    public ApiResponse<MenuResponse> updateMenu(
+            @PathVariable Long id,
+            @Valid @RequestBody MenuUpdateRequest request) {
+        return ApiResponse.ok(menuService.updateMenu(id, request));
+    }
+
+    // 메뉴 삭제
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteMenu(@PathVariable Long id) {
+        menuService.deleteMenu(id);
+        return ApiResponse.ok("메뉴가 삭제되었습니다.");
+    }
+
+    // 메뉴 순서 일괄 변경
+    @PutMapping("/sort")
+    public ApiResponse<Void> updateSortOrder(@RequestBody List<Long> menuIds) {
+        menuService.updateSortOrder(menuIds);
+        return ApiResponse.ok("순서가 변경되었습니다.");
+    }
+}
