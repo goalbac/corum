@@ -37,6 +37,28 @@ const routes = [
         meta: { requiresAuth: true, title: '마이페이지' }
       },
 
+      // 쪽지
+      {
+        path: 'messages',
+        name: 'Message',
+        component: () => import('@/pages/message/MessagePage.vue'),
+        meta: { requiresAuth: true }
+      },
+
+      // 문의하기
+      {
+        path: 'inquiry',
+        name: 'Inquiry',
+        component: () => import('@/pages/inquiry/InquiryPage.vue'),
+      },
+
+      // 캘린더
+      {
+        path: 'calendar',
+        name: 'Calendar',
+        component: () => import('@/pages/calendar/CalendarPage.vue'),
+      },
+
       // 게시판
       {
         path: 'board/:boardId',
