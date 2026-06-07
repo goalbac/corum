@@ -94,6 +94,7 @@ const loading  = ref(false)
 
 const canEdit = computed(() => {
   if (!authStore.isLoggedIn) return false
+  if (authStore.member?.isAdmin) return true
   return authStore.member?.id === post.value?.memberId
 })
 
