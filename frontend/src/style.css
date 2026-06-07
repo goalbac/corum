@@ -191,6 +191,63 @@ input, textarea, select { font-family: inherit; }
   background: var(--surface2) !important;
   box-shadow: 0 0 0 1px var(--border) inset !important;
 }
+[data-theme="dark"] .el-button {
+  --el-button-bg-color: var(--surface2);
+  --el-button-border-color: var(--border);
+  --el-button-text-color: var(--t1);
+  --el-button-hover-bg-color: var(--accent-bg);
+  --el-button-hover-border-color: var(--accent);
+  --el-button-hover-text-color: var(--accent-t);
+  --el-button-active-bg-color: var(--surface2);
+  --el-button-active-border-color: var(--accent);
+  background: var(--el-button-bg-color) !important;
+  border-color: var(--el-button-border-color) !important;
+  color: var(--el-button-text-color) !important;
+}
+[data-theme="dark"] .el-button:hover,
+[data-theme="dark"] .el-button:focus {
+  background: var(--el-button-hover-bg-color) !important;
+  border-color: var(--el-button-hover-border-color) !important;
+  color: var(--el-button-hover-text-color) !important;
+}
+[data-theme="dark"] .el-button--primary {
+  --el-button-bg-color: var(--accent);
+  --el-button-border-color: var(--accent);
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: var(--accent-t);
+  --el-button-hover-border-color: var(--accent-t);
+  --el-button-hover-text-color: #fff;
+}
+[data-theme="dark"] .el-button--danger {
+  --el-button-bg-color: var(--new-bg);
+  --el-button-border-color: rgba(248,113,113,0.32);
+  --el-button-text-color: var(--new);
+  --el-button-hover-bg-color: rgba(248,113,113,0.2);
+  --el-button-hover-border-color: var(--new);
+  --el-button-hover-text-color: #FCA5A5;
+}
+[data-theme="dark"] .el-button.is-disabled,
+[data-theme="dark"] .el-button.is-disabled:hover {
+  background: rgba(148,163,184,0.08) !important;
+  border-color: var(--border2) !important;
+  color: var(--t3) !important;
+}
+[data-theme="dark"] .el-input-number__decrease,
+[data-theme="dark"] .el-input-number__increase {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-input-number__decrease:hover,
+[data-theme="dark"] .el-input-number__increase:hover {
+  color: var(--accent-t) !important;
+}
+[data-theme="dark"] .el-switch__label {
+  color: var(--t2) !important;
+}
+[data-theme="dark"] .el-switch__label.is-active {
+  color: var(--accent-t) !important;
+}
 
 /* ===== 공통 카드 ===== */
 .c-card {

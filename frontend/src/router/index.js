@@ -81,6 +81,7 @@ const routes = [
       { path: 'members', name: 'AdminMembers', component: () => import('@/pages/admin/members/AdminMembersPage.vue') },
       { path: 'boards', name: 'AdminBoards', component: () => import('@/pages/admin/boards/AdminBoardsPage.vue') },
       { path: 'menus', name: 'AdminMenus', component: () => import('@/pages/admin/menus/AdminMenusPage.vue') },
+      { path: 'display', name: 'AdminDisplay', component: () => import('@/pages/admin/display/AdminDisplayPage.vue') },
       { path: 'inquiries', name: 'AdminInquiries', component: () => import('@/pages/admin/inquiries/AdminInquiriesPage.vue') },
       { path: 'groups', name: 'AdminGroups', component: () => import('@/pages/admin/groups/AdminGroupsPage.vue') },
       { path: 'settings', name: 'AdminSettings', component: () => import('@/pages/admin/settings/AdminSettingsPage.vue') }

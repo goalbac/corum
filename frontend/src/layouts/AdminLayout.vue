@@ -26,6 +26,9 @@
 
         <div class="sidebar-section">
           <div class="section-title">운영</div>
+          <router-link to="/admin/display" class="sidebar-item" active-class="active">
+            <i class="ti ti-speakerphone"></i> 팝업/배너 관리
+          </router-link>
           <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
             <i class="ti ti-mail"></i> 문의 관리
           </router-link>
