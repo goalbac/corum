@@ -55,6 +55,13 @@ public class BoardController {
         return ApiResponse.ok(boardService.createBoard(request));
     }
 
+    @PutMapping("/api/boards/{boardId}")
+    public ApiResponse<BoardResponse> updateBoard(
+            @PathVariable Long boardId,
+            @RequestBody BoardCreateRequest request) {
+        return ApiResponse.ok(boardService.updateBoard(boardId, request));
+    }
+
     @DeleteMapping("/api/boards/{boardId}")
     public ApiResponse<Void> deleteBoard(@PathVariable Long boardId) {
         boardService.deleteBoard(boardId);

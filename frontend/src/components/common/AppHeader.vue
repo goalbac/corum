@@ -60,6 +60,14 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item @click="$router.push('/mypage')">마이페이지</el-dropdown-item>
+                <el-dropdown-item
+                  v-if="authStore.member?.admin"
+                  @click="$router.push('/admin')"
+                >
+                  <span style="color: var(--accent); font-weight: 500;">
+                    <i class="ti ti-settings" style="margin-right:4px"></i>관리
+                  </span>
+                </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">로그아웃</el-dropdown-item>
               </el-dropdown-menu>
             </template>

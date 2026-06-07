@@ -27,6 +27,8 @@ public class MemberResponse {
     private final LocalDateTime joinedAt;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("isAdmin")
     private final boolean isAdmin;
 
     public MemberResponse(Member member, boolean isAdmin) {

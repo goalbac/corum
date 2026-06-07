@@ -63,6 +63,19 @@ public class BoardService {
         return new BoardResponse(saved, permissions);
     }
 
+    // ===== 게시판 수정 =====
+    @Transactional
+    public BoardResponse updateBoard(Long id, BoardCreateRequest request) {
+        Board board = boardRepository.findById(id)
+                .orElseThrow(() -> BusinessException.notFound("게시판을 찾을 수 없습니다."));
+        board.update(request.getName(), request.getBoardType(), request.getUseComment(),
+                request.getUseLike(), request.getUseAnonymous(), request.getUseNotice(),
+                request.getNoticeCountLimit(), request.getFileMaxSizeMb(),
+                request.getFileAllowedExtensions(), request.getFileMaxCount(), request.getIsActive());
+        List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(id);
+        return new BoardResponse(board, permissions);
+    }
+
     // ===== 게시판 삭제 =====
     @Transactional
     public void deleteBoard(Long id) {

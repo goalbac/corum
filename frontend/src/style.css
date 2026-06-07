@@ -21,10 +21,11 @@
   --radius: 16px;
   --radius-sm: 10px;
   --radius-xs: 6px;
-  --header-height: 54px;
+  --header-height: 62px;
   --sidebar-width: 200px;
   --content-max: 1200px;
   --transition: all 0.2s ease;
+  --font-size-base: 15px;
 }
 
 [data-theme="dark"] {
@@ -32,29 +33,27 @@
   --surface: #161B27;
   --surface2: #1C2333;
   --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.04);
+  --border2: rgba(255,255,255,0.05);
   --t1: #F1F5F9;
   --t2: #94A3B8;
   --t3: #4B5563;
   --accent: #3B82F6;
-  --accent-bg: rgba(59,130,246,0.1);
+  --accent-bg: rgba(59,130,246,0.12);
   --accent-t: #60A5FA;
   --new: #F87171;
-  --new-bg: rgba(239,68,68,0.1);
+  --new-bg: rgba(239,68,68,0.12);
   --green: #34D399;
-  --green-bg: rgba(16,185,129,0.1);
+  --green-bg: rgba(16,185,129,0.12);
   --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
   --shadow-hdr: 0 1px 0 rgba(255,255,255,0.05);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html, body { height: 100%; }
 
 body {
-  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
-  font-size: 14px;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: var(--font-size-base);
   line-height: 1.6;
   color: var(--t1);
   background: var(--bg);
@@ -66,21 +65,134 @@ a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
 input, textarea, select { font-family: inherit; }
 
-/* Element Plus 커스터마이징 */
-.el-button--primary {
-  --el-button-bg-color: var(--accent);
-  --el-button-border-color: var(--accent);
-  --el-button-hover-bg-color: var(--accent-t);
+/* ===== Element Plus 다크모드 전역 덮어쓰기 ===== */
+[data-theme="dark"] .el-table {
+  --el-table-bg-color: var(--surface);
+  --el-table-tr-bg-color: var(--surface);
+  --el-table-row-hover-bg-color: var(--surface2);
+  --el-table-header-bg-color: var(--surface2);
+  --el-table-border-color: var(--border2);
+  --el-table-text-color: var(--t1);
+  --el-table-header-text-color: var(--t2);
+  background: var(--surface);
+  color: var(--t1);
 }
-.el-card { border-radius: var(--radius) !important; box-shadow: var(--shadow) !important; border: 0.5px solid var(--border2) !important; }
-.el-table { --el-table-border-color: var(--border2); }
+[data-theme="dark"] .el-table th.el-table__cell {
+  background: var(--surface2) !important;
+  color: var(--t2) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+[data-theme="dark"] .el-table td.el-table__cell {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border2) !important;
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-table__row:hover td {
+  background: var(--surface2) !important;
+}
+[data-theme="dark"] .el-card {
+  background: var(--surface) !important;
+  border-color: var(--border2) !important;
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-card__header {
+  border-bottom-color: var(--border2) !important;
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-input__wrapper {
+  background: var(--surface2) !important;
+  box-shadow: 0 0 0 1px var(--border) inset !important;
+}
+[data-theme="dark"] .el-input__inner {
+  color: var(--t1) !important;
+  background: transparent !important;
+}
+[data-theme="dark"] .el-input__inner::placeholder { color: var(--t3) !important; }
+[data-theme="dark"] .el-textarea__inner {
+  background: var(--surface2) !important;
+  color: var(--t1) !important;
+  box-shadow: 0 0 0 1px var(--border) inset !important;
+}
+[data-theme="dark"] .el-textarea__inner::placeholder { color: var(--t3) !important; }
+[data-theme="dark"] .el-select__wrapper {
+  background: var(--surface2) !important;
+  box-shadow: 0 0 0 1px var(--border) inset !important;
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-select-dropdown {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .el-select-dropdown__item {
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-select-dropdown__item:hover,
+[data-theme="dark"] .el-select-dropdown__item.is-hovering {
+  background: var(--surface2) !important;
+}
+[data-theme="dark"] .el-form-item__label { color: var(--t2) !important; }
+[data-theme="dark"] .el-dialog {
+  background: var(--surface) !important;
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-dialog__header { border-bottom-color: var(--border2) !important; }
+[data-theme="dark"] .el-dialog__title { color: var(--t1) !important; }
+[data-theme="dark"] .el-dialog__footer { border-top-color: var(--border2) !important; }
+[data-theme="dark"] .el-dropdown-menu {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .el-dropdown-menu__item {
+  color: var(--t1) !important;
+}
+[data-theme="dark"] .el-dropdown-menu__item:hover {
+  background: var(--surface2) !important;
+  color: var(--accent) !important;
+}
+[data-theme="dark"] .el-tabs__nav-wrap::after { background: var(--border2) !important; }
+[data-theme="dark"] .el-tabs__item { color: var(--t2) !important; }
+[data-theme="dark"] .el-tabs__item.is-active { color: var(--accent) !important; }
+[data-theme="dark"] .el-tabs__active-bar { background: var(--accent) !important; }
+[data-theme="dark"] .el-tab-pane { color: var(--t1) !important; }
+[data-theme="dark"] .el-pagination button,
+[data-theme="dark"] .el-pagination .el-pager li {
+  background: var(--surface2) !important;
+  color: var(--t2) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .el-pagination .el-pager li.is-active {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+[data-theme="dark"] .el-checkbox__label { color: var(--t1) !important; }
+[data-theme="dark"] .el-radio__label { color: var(--t1) !important; }
+[data-theme="dark"] .el-tag {
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .el-alert {
+  background: var(--surface2) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .el-message-box {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .el-message-box__title { color: var(--t1) !important; }
+[data-theme="dark"] .el-message-box__message { color: var(--t2) !important; }
+[data-theme="dark"] .el-date-picker,
+[data-theme="dark"] .el-date-table,
+[data-theme="dark"] .el-picker__popper {
+  background: var(--surface) !important;
+  color: var(--t1) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .el-date-table td.today .el-date-table-cell__text { color: var(--accent) !important; }
+[data-theme="dark"] .el-input-number__wrapper {
+  background: var(--surface2) !important;
+  box-shadow: 0 0 0 1px var(--border) inset !important;
+}
 
-/* 스크롤바 */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-/* 공통 카드 */
+/* ===== 공통 카드 ===== */
 .c-card {
   background: var(--surface);
   border-radius: var(--radius);
@@ -89,11 +201,11 @@ input, textarea, select { font-family: inherit; }
   transition: background 0.25s, box-shadow 0.25s;
 }
 
-/* NEW 뱃지 */
+/* ===== NEW 뱃지 ===== */
 .new-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 8px;
@@ -105,7 +217,19 @@ input, textarea, select { font-family: inherit; }
   flex-shrink: 0;
 }
 
-/* 모바일 */
+/* ===== Element Plus 기본 폰트 크기 ===== */
+.el-button { font-size: 14px !important; }
+.el-input__inner { font-size: 14px !important; }
+.el-table { font-size: 14px !important; }
+.el-form-item__label { font-size: 14px !important; }
+.el-select { font-size: 14px !important; }
+.el-dropdown-menu__item { font-size: 14px !important; }
+
+/* ===== 스크롤바 ===== */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
 @media (max-width: 768px) {
-  :root { --header-height: 50px; }
+  :root { --header-height: 54px; --font-size-base: 14px; }
 }

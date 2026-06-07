@@ -94,7 +94,7 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 
 const authStore  = useAuthStore()
-const canWrite   = computed(() => authStore.member?.isAdmin)
+const canWrite   = computed(() => authStore.member?.admin)
 const calRef     = ref()
 const calApi     = computed(() => calRef.value?.getApi())
 const loading    = ref(false)

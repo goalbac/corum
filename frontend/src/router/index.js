@@ -91,11 +91,13 @@ const routes = [
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true },
     children: [
-      {
-        path: '',
-        name: 'AdminDashboard',
-        component: () => import('@/pages/admin/AdminDashboardPage.vue'),
-      }
+      { path: '',         name: 'AdminDashboard', component: () => import('@/pages/admin/AdminDashboardPage.vue') },
+      { path: 'members',   name: 'AdminMembers',  component: () => import('@/pages/admin/members/AdminMembersPage.vue') },
+      { path: 'boards',    name: 'AdminBoards',   component: () => import('@/pages/admin/boards/AdminBoardsPage.vue') },
+      { path: 'menus',     name: 'AdminMenus',    component: () => import('@/pages/admin/menus/AdminMenusPage.vue') },
+      { path: 'inquiries', name: 'AdminInquiries', component: () => import('@/pages/admin/inquiries/AdminInquiriesPage.vue') },
+      { path: 'groups',    name: 'AdminGroups',   component: () => import('@/pages/admin/AdminDashboardPage.vue') },
+      { path: 'settings',  name: 'AdminSettings', component: () => import('@/pages/admin/AdminDashboardPage.vue') },
     ]
   },
 

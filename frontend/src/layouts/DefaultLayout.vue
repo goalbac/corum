@@ -1,5 +1,5 @@
 <template>
-  <div class="layout" :data-theme="themeStore.isDark ? 'dark' : undefined">
+  <div class="layout">
 
     <AppHeader @toggle-mobile-menu="mobileMenuOpen = !mobileMenuOpen" />
 
@@ -150,6 +150,21 @@ function isOpen(id) {
   return openMenuIds.value.includes(id)
 }
 
+function resolveMenuUrl(menu) {
+  if (menu.menuType === 'LINK') return menu.url || null
+  if (menu.menuType === 'GROUP') return null
+  // PAGE 유형별 라우팅
+  switch (menu.pageType) {
+    case 'BOARD':     return menu.targetId ? `/board/${menu.targetId}` : null
+    case 'CALENDAR':  return '/calendar'
+    case 'DASHBOARD': return '/'
+    case 'CONTENT':   return menu.targetId ? `/page/${menu.targetId}` : (menu.url || `/${menu.id}`)
+    default:
+      if (menu.url && !menu.urlAuto) return menu.url
+      return `/${menu.id}`
+  }
+}
+
 function handleSideClick(menu) {
   if (menu.children?.length) {
     const idx = openMenuIds.value.indexOf(menu.id)
@@ -157,12 +172,10 @@ function handleSideClick(menu) {
     else openMenuIds.value.push(menu.id)
     return
   }
-  if (menu.menuType === 'LINK' && menu.url) {
-    if (menu.newWindow) window.open(menu.url, '_blank')
-    else router.push(menu.url)
-    return
-  }
-  if (menu.url) router.push(menu.url)
+  const url = resolveMenuUrl(menu)
+  if (!url) return
+  if (menu.newWindow) window.open(url, '_blank')
+  else router.push(url)
 }
 
 function handleMobileTopMenu(menu) {
@@ -171,7 +184,10 @@ function handleMobileTopMenu(menu) {
 
 function handleMobileSubMenu(menu) {
   mobileMenuOpen.value = false
-  if (menu.url) router.push(menu.url)
+  const url = resolveMenuUrl(menu)
+  if (!url) return
+  if (menu.newWindow) window.open(url, '_blank')
+  else router.push(url)
 }
 
 onMounted(async () => {
