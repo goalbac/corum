@@ -4,6 +4,7 @@ import com.corum.backend.common.ApiResponse;
 import com.corum.backend.domain.member.Member;
 import com.corum.backend.dto.auth.LoginRequest;
 import com.corum.backend.dto.auth.LoginResponse;
+import com.corum.backend.dto.auth.MemberResponse;
 import com.corum.backend.dto.auth.RegisterRequest;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.auth.AuthService;
@@ -47,8 +48,8 @@ public class AuthController {
 
     // 내 정보 조회
     @GetMapping("/me")
-    public ApiResponse<Member> me(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ApiResponse<MemberResponse> me(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Member member = authService.getMe(userDetails.getMemberId());
-        return ApiResponse.ok(member);
+        return ApiResponse.ok(new MemberResponse(member));
     }
 }
