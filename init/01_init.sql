@@ -562,32 +562,28 @@ CREATE INDEX idx_smtp_send_logs_created_at  ON smtp_send_logs(created_at);
 -- 기본 데이터 삽입
 -- =============================================
 
--- 사이트 설정 (단일 행)
 INSERT INTO site_settings (
     site_name, site_description, login_fail_limit,
     session_timeout_min, allow_concurrent_login,
     file_max_size_mb, smtp_port, smtp_use_tls
 ) VALUES (
-    '사단법인 홈페이지', '사단법인 홈페이지입니다.', 5,
+    'Corum', '단체/협회 홈페이지', 5,
     60, TRUE,
     10, 587, TRUE
 );
 
--- 최상위 그룹
 INSERT INTO groups (name, description, type, sort_order, is_system)
 VALUES
-    ('운영', '운영 그룹 — 관리자 패널 접근 가능', 'ADMIN', 1, TRUE),
-    ('일반', '일반 그룹 — 일반 페이지 접근', 'NORMAL', 2, TRUE);
+    ('운영', '관리자 패널 접근 권한을 가진 운영 그룹', 'ADMIN', 1, TRUE),
+    ('일반', '일반 페이지 접근 권한을 가진 일반 그룹', 'NORMAL', 2, TRUE);
 
--- 기본 하위 그룹
 INSERT INTO groups (parent_id, name, description, type, sort_order, is_system)
 VALUES
     (1, '최고관리자', '모든 권한 보유', 'ADMIN', 1, TRUE),
-    (2, '정회원',    '정식 가입 회원', 'NORMAL', 1, FALSE),
-    (2, '일반인',    '가입 기본값',    'NORMAL', 2, FALSE);
+    (2, '정회원', '정식 가입 회원', 'NORMAL', 1, FALSE),
+    (2, '일반회원', '가입 기본값', 'NORMAL', 2, FALSE);
 
--- 약관 초기 데이터
 INSERT INTO terms (type, version, content, is_active, require_reagree)
 VALUES
-    ('SERVICE',  1, '이용약관 내용을 입력해주세요.', TRUE, FALSE),
-    ('PRIVACY',  1, '개인정보처리방침 내용을 입력해주세요.', TRUE, FALSE);
+    ('SERVICE', 1, '이용약관 내용을 입력해주세요.', TRUE, FALSE),
+    ('PRIVACY', 1, '개인정보처리방침 내용을 입력해주세요.', TRUE, FALSE);

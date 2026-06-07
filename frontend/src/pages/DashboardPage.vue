@@ -1,16 +1,13 @@
 <template>
   <div class="dashboard">
-
-    <!-- 웰컴 카드 -->
     <div class="welcome-card">
       <div class="welcome-left">
-        <div class="welcome-name">안녕하세요, {{ authStore.member?.name || '방문자' }}님 👋</div>
-        <div class="welcome-sub">오늘도 좋은 하루 되세요.</div>
+        <div class="welcome-name">안녕하세요, {{ authStore.member?.name || '방문자' }}님</div>
+        <div class="welcome-sub">오늘도 좋은 하루 보내세요.</div>
       </div>
       <div class="welcome-date">{{ today }}</div>
     </div>
 
-    <!-- 최신글 위젯 그리드 -->
     <div class="widget-grid" v-if="recentBoards.length">
       <div class="widget-card" v-for="board in recentBoards" :key="board.id">
         <div class="widget-head">
@@ -35,12 +32,10 @@
       </div>
     </div>
 
-    <!-- 게시판 없을 때 -->
     <div class="empty-state" v-else-if="!loading">
       <i class="ti ti-layout-dashboard" style="font-size:40px;color:var(--t3)"></i>
       <p>아직 게시판이 없습니다.</p>
     </div>
-
   </div>
 </template>
 
@@ -54,7 +49,10 @@ const recentBoards = ref([])
 const loading = ref(true)
 
 const today = new Date().toLocaleDateString('ko-KR', {
-  year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  weekday: 'long'
 })
 
 function formatDate(d) {
@@ -62,12 +60,12 @@ function formatDate(d) {
   const dt = new Date(d)
   const now = new Date()
   const diff = (now - dt) / 1000
-  if (diff < 86400 && dt.toDateString() === now.toDateString()) return dt.toTimeString().slice(0,5)
+  if (diff < 86400 && dt.toDateString() === now.toDateString()) return dt.toTimeString().slice(0, 5)
   const gap = Math.floor((now - dt) / 86400000)
   if (gap === 0) return '오늘'
-  if (gap === 1) return '1일전'
-  if (gap <= 3) return `${gap}일전`
-  return `${dt.getMonth()+1}.${String(dt.getDate()).padStart(2,'0')}`
+  if (gap === 1) return '1일 전'
+  if (gap <= 3) return `${gap}일 전`
+  return `${dt.getMonth() + 1}.${String(dt.getDate()).padStart(2, '0')}`
 }
 
 function isNew(d) {
@@ -83,10 +81,15 @@ onMounted(async () => {
       try {
         const pr = await api.get(`/boards/${b.id}/posts?size=5`)
         return { ...b, posts: pr.data.data?.content || [] }
-      } catch { return { ...b, posts: [] } }
+      } catch {
+        return { ...b, posts: [] }
+      }
     }))
-  } catch(e) { console.error(e) }
-  finally { loading.value = false }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -101,7 +104,7 @@ onMounted(async () => {
   border-radius: var(--radius);
   padding: 20px 24px;
 }
-.welcome-name { font-size: 16px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+.welcome-name { font-size: 16px; font-weight: 600; color: #fff; }
 .welcome-sub { font-size: 13px; color: rgba(255,255,255,0.72); margin-top: 4px; }
 .welcome-date { font-size: 13px; color: rgba(255,255,255,0.6); text-align: right; line-height: 1.7; }
 
@@ -126,7 +129,7 @@ onMounted(async () => {
   justify-content: space-between;
   margin-bottom: 12px;
 }
-.widget-name { font-size: 13px; font-weight: 600; color: var(--t1); letter-spacing: -0.3px; }
+.widget-name { font-size: 13px; font-weight: 600; color: var(--t1); }
 .widget-more { font-size: 12px; color: var(--accent); }
 
 .post-list { display: flex; flex-direction: column; }
@@ -154,6 +157,7 @@ onMounted(async () => {
   transition: color 0.15s;
 }
 .post-date { font-size: 11.5px; color: var(--t3); flex-shrink: 0; }
+.new-badge { color: var(--red); font-weight: 700; font-size: 11px; margin-left: 4px; }
 
 .empty { font-size: 13px; color: var(--t3); padding: 12px 0; text-align: center; }
 
