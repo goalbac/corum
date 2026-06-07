@@ -8,7 +8,9 @@ import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.dto.auth.LoginRequest;
 import com.corum.backend.dto.auth.LoginResponse;
 import com.corum.backend.dto.auth.RegisterRequest;
+import com.corum.backend.dto.group.GroupResponse;
 import com.corum.backend.security.JwtProvider;
+import com.corum.backend.service.group.GroupService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -28,6 +31,7 @@ public class AuthService {
     private final MemberLoginLogRepository loginLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final GroupService groupService;
 
     @Value("${jwt.login-fail-limit:5}")
     private int loginFailLimit;
@@ -97,7 +101,8 @@ public class AuthService {
         saveLoginLog(member.getId(), "LOGIN", ip, userAgent, true);
 
         String token = jwtProvider.createAccessToken(member.getId(), member.getUsername());
-        return new LoginResponse(token, member);
+        List<GroupResponse> groups = groupService.getMemberGroups(member.getId());
+        return new LoginResponse(token, member, groups);
     }
 
     // ===== 로그아웃 로그 =====
