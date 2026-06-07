@@ -17,8 +17,8 @@
       />
       <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
       <div class="write-area">
-        <el-button size="small" type="primary" @click="$router.push(`/board/${boardId}/write`)">
-          <i class="ti ti-pencil" style="margin-right:4px"></i>글쓰기
+        <el-button size="small" type="primary" @click="goWrite">
+          <i class="ti ti-pencil"></i>글쓰기
         </el-button>
       </div>
     </div>
@@ -28,9 +28,9 @@
       v-loading="loading"
       row-class-name="post-row"
       style="width:100%"
-      @row-click="r => $router.push(`/board/${boardId}/posts/${r.id}`)"
+      @row-click="goDetail"
     >
-      <el-table-column width="68" align="center">
+      <el-table-column width="72" align="center">
         <template #default="{ row }">
           <el-tag v-if="row.isNotice" type="danger" size="small" effect="plain">공지</el-tag>
           <span v-else class="row-id">{{ row.id }}</span>
@@ -46,13 +46,13 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="작성자" width="110" align="center">
+      <el-table-column label="작성자" width="120" align="center">
         <template #default="{ row }"><span class="meta-text">{{ row.writerName }}</span></template>
       </el-table-column>
-      <el-table-column label="작성일" width="120" align="center">
+      <el-table-column label="작성일" width="130" align="center">
         <template #default="{ row }"><span class="meta-text">{{ formatDate(row.createdAt) }}</span></template>
       </el-table-column>
-      <el-table-column label="조회" width="76" align="center">
+      <el-table-column label="조회" width="82" align="center">
         <template #default="{ row }"><span class="meta-text">{{ row.viewCount }}</span></template>
       </el-table-column>
     </el-table>
@@ -72,12 +72,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 
 const route = useRoute()
-const boardId = ref(route.params.boardId)
+const router = useRouter()
+const menuStore = useMenuStore()
+
+const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
+const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
+const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
+
 const posts = ref([])
 const loading = ref(false)
 const total = ref(0)
@@ -87,6 +94,7 @@ const keyword = ref('')
 const searchType = ref('title')
 
 async function fetchPosts() {
+  if (!boardId.value) return
   loading.value = true
   try {
     const params = { page: page.value - 1, size: size.value }
@@ -107,6 +115,14 @@ function handleSearch() {
   fetchPosts()
 }
 
+function goWrite() {
+  router.push(`${basePath.value}/write`)
+}
+
+function goDetail(row) {
+  router.push(`${basePath.value}/posts/${row.id}`)
+}
+
 function formatDate(d) {
   if (!d) return ''
   const dt = new Date(d)
@@ -119,17 +135,26 @@ function isNew(d) {
   return d && Date.now() - new Date(d).getTime() < 3 * 86400000
 }
 
-watch(() => route.params.boardId, id => {
-  boardId.value = id
+watch(boardId, () => {
   page.value = 1
   keyword.value = ''
   fetchPosts()
 })
-onMounted(fetchPosts)
+
+onMounted(async () => {
+  if (route.params.menuId) await menuStore.fetchMenus()
+  fetchPosts()
+})
 </script>
 
 <style scoped>
-.board-list { display: flex; flex-direction: column; }
+.board-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 4px;
+  color: var(--t1);
+}
+
 .search-bar {
   display: flex;
   align-items: center;
@@ -139,28 +164,60 @@ onMounted(fetchPosts)
   margin-bottom: 6px;
   flex-wrap: wrap;
 }
-.search-type { width: 96px; }
-.search-input { width: 240px; }
+
+.search-type { width: 100px; }
+.search-input { width: 260px; }
 .write-area { margin-left: auto; }
+.write-area :deep(.el-button i) { margin-right: 4px; }
 :deep(.post-row) { cursor: pointer; }
-.title-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.title-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .title-text {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.title-text.notice { font-weight: 700; color: var(--accent-t); }
-.file-icon { font-size: 15px; color: var(--t3); }
-.comment-cnt { font-size: 14px; color: var(--accent-t); }
-.row-id { font-size: 14px; color: var(--t3); }
-.meta-text { font-size: 14px; color: var(--t2); }
+
+.title-text.notice {
+  font-weight: 800;
+  color: var(--accent-t);
+}
+
+.file-icon {
+  font-size: 15px;
+  color: var(--t3);
+}
+
+.comment-cnt {
+  font-size: 15px;
+  color: var(--accent-t);
+}
+
+.row-id,
+.meta-text {
+  font-size: 15px;
+  color: var(--t2);
+}
+
+.row-id { color: var(--t3); }
 .pagination { display: flex; justify-content: center; padding: 18px 0 0; }
 
 @media (max-width: 600px) {
-  .search-type { width: 88px; }
-  .search-input { width: 160px; }
-  .write-area { margin-left: 0; width: 100%; display: flex; justify-content: flex-end; }
+  .search-type { width: 92px; }
+  .search-input { width: 170px; }
+  .write-area {
+    margin-left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 </style>

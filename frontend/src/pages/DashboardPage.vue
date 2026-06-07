@@ -12,13 +12,13 @@
       <div class="widget-card" v-for="board in recentBoards" :key="board.id">
         <div class="widget-head">
           <span class="widget-name">{{ board.name }}</span>
-          <router-link :to="`/board/${board.id}`" class="widget-more">더보기</router-link>
+          <router-link :to="boardListPath(board)" class="widget-more">더보기</router-link>
         </div>
         <div v-if="board.posts?.length" class="post-list">
           <router-link
             v-for="post in board.posts"
             :key="post.id"
-            :to="`/board/${board.id}/posts/${post.id}`"
+            :to="postPath(board, post)"
             class="post-row"
           >
             <span class="post-title">
@@ -33,18 +33,20 @@
     </div>
 
     <div class="empty-state" v-else-if="!loading">
-      <i class="ti ti-layout-dashboard" style="font-size:40px;color:var(--t3)"></i>
+      <i class="ti ti-layout-dashboard"></i>
       <p>아직 게시판이 없습니다.</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 
 const authStore = useAuthStore()
+const menuStore = useMenuStore()
 const recentBoards = ref([])
 const loading = ref(true)
 
@@ -54,6 +56,14 @@ const today = new Date().toLocaleDateString('ko-KR', {
   day: 'numeric',
   weekday: 'long'
 })
+
+function boardListPath(board) {
+  return board.menuId ? `/menu/${board.menuId}` : `/board/${board.id}`
+}
+
+function postPath(board, post) {
+  return `${boardListPath(board)}/posts/${post.id}`
+}
 
 function formatDate(d) {
   if (!d) return ''
@@ -75,14 +85,16 @@ function isNew(d) {
 
 onMounted(async () => {
   try {
+    await menuStore.fetchMenus()
     const res = await api.get('/boards')
     const boards = (res.data.data || []).slice(0, 4)
-    recentBoards.value = await Promise.all(boards.map(async b => {
+    recentBoards.value = await Promise.all(boards.map(async board => {
+      const menu = menuStore.findBoardMenu(board.id)
       try {
-        const pr = await api.get(`/boards/${b.id}/posts?size=5`)
-        return { ...b, posts: pr.data.data?.content || [] }
+        const pr = await api.get(`/boards/${board.id}/posts?size=5`)
+        return { ...board, menuId: menu?.id, posts: pr.data.data?.content || [] }
       } catch {
-        return { ...b, posts: [] }
+        return { ...board, menuId: menu?.id, posts: [] }
       }
     }))
   } catch (e) {
@@ -101,12 +113,13 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   background: var(--accent);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   padding: 20px 24px;
 }
-.welcome-name { font-size: 16px; font-weight: 600; color: #fff; }
-.welcome-sub { font-size: 13px; color: rgba(255,255,255,0.72); margin-top: 4px; }
-.welcome-date { font-size: 13px; color: rgba(255,255,255,0.6); text-align: right; line-height: 1.7; }
+
+.welcome-name { font-size: 17px; font-weight: 800; color: #fff; }
+.welcome-sub { font-size: 14px; color: rgba(255,255,255,0.76); margin-top: 4px; }
+.welcome-date { font-size: 14px; color: rgba(255,255,255,0.7); text-align: right; line-height: 1.7; }
 
 .widget-grid {
   display: grid;
@@ -116,7 +129,7 @@ onMounted(async () => {
 
 .widget-card {
   background: var(--surface);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   border: 0.5px solid var(--border2);
   padding: 18px 18px 10px;
@@ -129,8 +142,9 @@ onMounted(async () => {
   justify-content: space-between;
   margin-bottom: 12px;
 }
-.widget-name { font-size: 13px; font-weight: 600; color: var(--t1); }
-.widget-more { font-size: 12px; color: var(--accent); }
+
+.widget-name { font-size: 16px; font-weight: 800; color: var(--t1); }
+.widget-more { font-size: 14px; color: var(--accent-t); font-weight: 700; }
 
 .post-list { display: flex; flex-direction: column; }
 
@@ -143,12 +157,13 @@ onMounted(async () => {
   gap: 10px;
   transition: var(--transition);
 }
+
 .post-row:last-child { border-bottom: none; padding-bottom: 0; }
 .post-row:first-child { padding-top: 0; }
-.post-row:hover .post-title { color: var(--accent); }
+.post-row:hover .post-title { color: var(--accent-t); }
 
 .post-title {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -156,10 +171,19 @@ onMounted(async () => {
   flex: 1;
   transition: color 0.15s;
 }
-.post-date { font-size: 11.5px; color: var(--t3); flex-shrink: 0; }
-.new-badge { color: var(--red); font-weight: 700; font-size: 11px; margin-left: 4px; }
 
-.empty { font-size: 13px; color: var(--t3); padding: 12px 0; text-align: center; }
+.post-date {
+  font-size: 13px;
+  color: var(--t3);
+  flex-shrink: 0;
+}
+
+.empty {
+  font-size: 15px;
+  color: var(--t3);
+  padding: 12px 0;
+  text-align: center;
+}
 
 .empty-state {
   display: flex;
@@ -168,12 +192,17 @@ onMounted(async () => {
   gap: 12px;
   padding: 60px 0;
   color: var(--t3);
-  font-size: 14px;
+  font-size: 15px;
+}
+
+.empty-state i {
+  font-size: 40px;
+  color: var(--t3);
 }
 
 @media (max-width: 768px) {
   .widget-grid { grid-template-columns: 1fr; }
   .welcome-card { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .welcome-date { text-align: left; font-size: 12px; }
+  .welcome-date { text-align: left; font-size: 13px; }
 }
 </style>

@@ -28,13 +28,13 @@
         >
           <el-button size="small">파일 선택</el-button>
           <template #tip>
-            <div class="upload-tip">파일을 선택하면 저장할 때 함께 업로드됩니다.</div>
+            <div class="upload-tip">파일을 선택하면 저장 시 함께 업로드됩니다.</div>
           </template>
         </el-upload>
       </el-form-item>
 
       <div class="write-actions">
-        <el-button @click="$router.back()">취소</el-button>
+        <el-button @click="router.push(basePath)">취소</el-button>
         <el-button type="primary" :loading="loading" @click="handleSubmit">
           {{ isEdit ? '수정' : '등록' }}
         </el-button>
@@ -44,18 +44,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const menuStore = useMenuStore()
 
-const boardId = computed(() => route.params.boardId)
+const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
+const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
 const postId = computed(() => route.params.postId)
+const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
 const isEdit = computed(() => !!postId.value)
 const isAdmin = computed(() => authStore.member?.admin)
 
@@ -70,7 +74,7 @@ const form = ref({
 })
 
 function handleFileChange(file) {
-  files.value.push(file.raw)
+  if (file.raw) files.value.push(file.raw)
 }
 
 async function handleSubmit() {
@@ -78,6 +82,11 @@ async function handleSubmit() {
     ElMessage.warning('제목을 입력해주세요.')
     return
   }
+  if (!boardId.value) {
+    ElMessage.error('연결된 게시판을 찾을 수 없습니다.')
+    return
+  }
+
   loading.value = true
   try {
     let savedPostId = postId.value
@@ -98,22 +107,28 @@ async function handleSubmit() {
     }
 
     ElMessage.success(isEdit.value ? '수정되었습니다.' : '등록되었습니다.')
-    router.push(`/board/${boardId.value}/posts/${savedPostId}`)
+    router.push(`${basePath.value}/posts/${savedPostId}`)
   } finally {
     loading.value = false
   }
 }
 
-onMounted(async () => {
-  if (isEdit.value) {
-    const res = await api.get(`/boards/${boardId.value}/posts/${postId.value}`)
-    const p = res.data.data
-    form.value = {
-      title: p.title,
-      content: p.content,
-      isNotice: p.isNotice
-    }
+async function fetchPost() {
+  if (!isEdit.value || !boardId.value) return
+  const res = await api.get(`/boards/${boardId.value}/posts/${postId.value}`)
+  const p = res.data.data
+  form.value = {
+    title: p.title,
+    content: p.content,
+    isNotice: p.isNotice
   }
+}
+
+watch([boardId, postId], fetchPost)
+
+onMounted(async () => {
+  if (route.params.menuId) await menuStore.fetchMenus()
+  fetchPost()
 })
 </script>
 

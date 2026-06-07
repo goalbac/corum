@@ -50,7 +50,7 @@
           <el-button
             v-if="canEdit"
             size="small"
-            @click="$router.push(`/board/${boardId}/posts/${postId}/edit`)"
+            @click="router.push(`${basePath}/posts/${postId}/edit`)"
           >수정</el-button>
           <el-button
             v-if="canEdit"
@@ -58,7 +58,7 @@
             type="danger"
             @click="handleDelete"
           >삭제</el-button>
-          <el-button size="small" @click="$router.back()">목록</el-button>
+          <el-button size="small" @click="router.push(basePath)">목록</el-button>
         </div>
       </div>
 
@@ -68,20 +68,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Paperclip, Document, Star, Printer } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 import CommentSection from '@/components/board/CommentSection.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const menuStore = useMenuStore()
 
-const boardId = computed(() => route.params.boardId)
+const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
+const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
 const postId = computed(() => route.params.postId)
+const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
 const post = ref(null)
 const loading = ref(false)
 
@@ -92,6 +96,7 @@ const canEdit = computed(() => {
 })
 
 async function fetchPost() {
+  if (!boardId.value || !postId.value) return
   loading.value = true
   try {
     const res = await api.get(`/boards/${boardId.value}/posts/${postId.value}`)
@@ -119,7 +124,7 @@ async function handleDelete() {
   })
   await api.delete(`/boards/${boardId.value}/posts/${postId.value}`)
   ElMessage.success('삭제되었습니다.')
-  router.push(`/board/${boardId.value}`)
+  router.push(basePath.value)
 }
 
 function handlePrint() {
@@ -137,7 +142,12 @@ function formatFileSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + 'MB'
 }
 
-onMounted(fetchPost)
+watch([boardId, postId], fetchPost)
+
+onMounted(async () => {
+  if (route.params.menuId) await menuStore.fetchMenus()
+  fetchPost()
+})
 </script>
 
 <style scoped>
@@ -151,7 +161,7 @@ onMounted(fetchPost)
 }
 
 .post-header {
-  padding: 26px 30px 22px;
+  padding: 28px 30px 22px;
   border-bottom: 1px solid var(--border2);
   display: flex;
   flex-direction: column;
@@ -159,8 +169,8 @@ onMounted(fetchPost)
 }
 
 .post-title {
-  font-size: 23px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   line-height: 1.45;
   color: var(--t1);
 }
@@ -171,6 +181,7 @@ onMounted(fetchPost)
   gap: 7px;
   font-size: 15px;
   color: var(--t2);
+  flex-wrap: wrap;
 }
 
 .meta-divider { color: var(--t3); }
@@ -186,7 +197,7 @@ onMounted(fetchPost)
   align-items: center;
   gap: 5px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 8px;
   color: var(--t1);
 }
@@ -221,13 +232,10 @@ onMounted(fetchPost)
   border-bottom: 1px solid var(--border2);
 }
 
-.post-content :deep(*) {
-  color: inherit;
-}
-
-.post-content :deep(a) {
-  color: var(--accent-t);
-}
+.post-content :deep(*) { color: inherit; }
+.post-content :deep(a) { color: var(--accent-t); }
+.post-content :deep(table) { max-width: 100%; border-color: var(--border); }
+.post-content :deep(img) { max-width: 100%; height: auto; }
 
 .post-actions {
   display: flex;
@@ -248,7 +256,12 @@ onMounted(fetchPost)
   .post-header,
   .attach-area,
   .post-content,
-  .post-actions { padding-left: 18px; padding-right: 18px; }
+  .post-actions {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .post-title { font-size: 21px; }
   .post-actions { flex-wrap: wrap; }
   .right-actions { width: 100%; justify-content: flex-end; }
 }

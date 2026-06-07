@@ -1,39 +1,34 @@
 <template>
   <header class="app-header">
     <div class="header-inner">
-
-      <!-- 모바일 햄버거 -->
-      <button class="hamburger" @click="emit('toggle-mobile-menu')" aria-label="메뉴">
+      <button class="hamburger" @click="emit('toggle-mobile-menu')" aria-label="메뉴 열기">
         <i class="ti ti-menu-2"></i>
       </button>
 
-      <!-- 로고 -->
       <router-link to="/" class="logo" @click="menuStore.setActiveTopMenu(null)">
         Corum
       </router-link>
 
-      <!-- 상단 메뉴 (데스크탑) -->
-      <nav class="top-nav">
-        <a
+      <nav class="top-nav" aria-label="주 메뉴">
+        <button
           v-for="menu in menuStore.topMenus"
           :key="menu.id"
+          type="button"
           class="nav-item"
           :class="{ active: menuStore.activeTopMenuId === menu.id }"
           @click="handleTopMenuClick(menu)"
         >
           {{ menu.name }}
           <span v-if="menu.hasNew" class="nav-dot"></span>
-        </a>
+        </button>
       </nav>
 
-      <!-- 우측 -->
       <div class="header-right">
-        <!-- 라이트/다크 토글 -->
         <div class="theme-pill">
           <button
             class="tp-btn"
             :class="{ active: !themeStore.isDark }"
-            @click="!themeStore.isDark || themeStore.toggle()"
+            @click="themeStore.isDark && themeStore.toggle()"
             aria-label="라이트 모드"
           >
             <i class="ti ti-sun"></i>
@@ -42,7 +37,7 @@
           <button
             class="tp-btn"
             :class="{ active: themeStore.isDark }"
-            @click="themeStore.isDark || themeStore.toggle()"
+            @click="!themeStore.isDark && themeStore.toggle()"
             aria-label="다크 모드"
           >
             <i class="ti ti-moon"></i>
@@ -55,7 +50,7 @@
             <div class="user-btn">
               <div class="avatar">{{ authStore.member?.name?.charAt(0) || 'U' }}</div>
               <span class="user-name">{{ authStore.member?.name }}</span>
-              <i class="ti ti-chevron-down" style="font-size:12px;color:var(--t3)"></i>
+              <i class="ti ti-chevron-down user-arrow"></i>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
@@ -64,8 +59,8 @@
                   v-if="authStore.member?.admin"
                   @click="$router.push('/admin')"
                 >
-                  <span style="color: var(--accent); font-weight: 500;">
-                    <i class="ti ti-settings" style="margin-right:4px"></i>관리
+                  <span class="admin-link">
+                    <i class="ti ti-settings"></i> 관리자
                   </span>
                 </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">로그아웃</el-dropdown-item>
@@ -77,7 +72,6 @@
           <button class="login-btn" @click="$router.push('/login')">로그인</button>
         </template>
       </div>
-
     </div>
   </header>
 </template>
@@ -95,11 +89,13 @@ const themeStore = useThemeStore()
 const router = useRouter()
 
 function handleTopMenuClick(menu) {
-  menuStore.setActiveTopMenu(menu.id)
-  if (menu.menuType === 'LINK' && menu.url) {
-    if (menu.newWindow) window.open(menu.url, '_blank')
-    else router.push(menu.url)
+  const url = menuStore.resolveMenuPath(menu)
+  if (!url) {
+    menuStore.setActiveTopMenu(menu.id)
+    return
   }
+  if (menu.newWindow) window.open(url, '_blank')
+  else router.push(url)
 }
 
 async function handleLogout() {
@@ -111,7 +107,9 @@ async function handleLogout() {
 <style scoped>
 .app-header {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: var(--header-height);
   background: var(--surface);
   box-shadow: var(--shadow-hdr);
@@ -124,57 +122,65 @@ async function handleLogout() {
   align-items: center;
   height: 100%;
   padding: 0 20px;
-  gap: 0;
   max-width: 1440px;
   margin: 0 auto;
 }
 
 .hamburger {
   display: none;
-  background: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: transparent;
   border: none;
-  font-size: 20px;
+  font-size: 21px;
   color: var(--t2);
-  padding: 4px;
   margin-right: 8px;
   border-radius: var(--radius-xs);
   transition: var(--transition);
 }
+
 .hamburger:hover { background: var(--surface2); color: var(--t1); }
 
 .logo {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   color: var(--accent);
-  letter-spacing: -0.8px;
-  margin-right: 28px;
+  margin-right: 34px;
   flex-shrink: 0;
 }
 
 .top-nav {
   display: flex;
-  gap: 2px;
+  align-items: center;
+  gap: 4px;
   flex: 1;
 }
 
 .nav-item {
   position: relative;
-  padding: 6px 13px;
+  padding: 8px 15px;
+  border: none;
   border-radius: var(--radius-xs);
-  font-size: 13px;
-  font-weight: 400;
+  background: transparent;
   color: var(--t2);
-  cursor: pointer;
-  transition: var(--transition);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
   white-space: nowrap;
+  transition: var(--transition);
 }
+
 .nav-item:hover { color: var(--t1); background: var(--surface2); }
-.nav-item.active { color: var(--accent); background: var(--accent-bg); font-weight: 500; }
+.nav-item.active { color: var(--accent); background: var(--accent-bg); }
 
 .nav-dot {
   position: absolute;
-  top: 5px; right: 5px;
-  width: 5px; height: 5px;
+  top: 5px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
   background: var(--new);
   border-radius: 50%;
 }
@@ -192,24 +198,23 @@ async function handleLogout() {
   background: var(--surface2);
   border: 0.5px solid var(--border);
   border-radius: 20px;
-  overflow: hidden;
   padding: 2px;
   gap: 1px;
 }
+
 .tp-btn {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 5px 10px;
   border: none;
   background: transparent;
   color: var(--t3);
-  font-size: 12px;
+  font-size: 13px;
   border-radius: 16px;
   transition: var(--transition);
-  cursor: pointer;
-  font-family: inherit;
 }
+
 .tp-btn.active { background: var(--accent); color: #fff; }
 .tp-btn:not(.active):hover { color: var(--t1); }
 
@@ -224,43 +229,51 @@ async function handleLogout() {
   background: var(--surface2);
   transition: var(--transition);
 }
+
 .user-btn:hover { background: var(--surface); box-shadow: var(--shadow); }
 
 .avatar {
-  width: 26px; height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
 .user-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--t1);
 }
 
+.user-arrow { font-size: 13px; color: var(--t3); }
+.admin-link { color: var(--accent); font-weight: 600; }
+.admin-link i { margin-right: 4px; }
+
 .login-btn {
-  padding: 6px 14px;
+  padding: 7px 15px;
   border-radius: var(--radius-xs);
   background: var(--accent);
   color: #fff;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   border: none;
-  font-family: inherit;
   transition: var(--transition);
 }
+
 .login-btn:hover { background: var(--accent-t); }
 
 @media (max-width: 768px) {
   .hamburger { display: flex; }
   .top-nav { display: none; }
   .tp-label { display: none; }
-  .tp-btn { padding: 5px 8px; }
+  .tp-btn { padding: 6px 8px; }
   .user-name { display: none; }
   .logo { margin-right: auto; }
   .header-right { gap: 6px; }

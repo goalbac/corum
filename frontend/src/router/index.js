@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useMenuStore } from '@/stores/menu'
 
 const routes = [
   {
@@ -47,6 +48,28 @@ const routes = [
         name: 'Calendar',
         component: () => import('@/pages/calendar/CalendarPage.vue'),
         meta: { title: '캘린더' }
+      },
+      {
+        path: 'menu/:menuId',
+        name: 'MenuPage',
+        component: () => import('@/pages/MenuPage.vue')
+      },
+      {
+        path: 'menu/:menuId/posts/:postId',
+        name: 'MenuBoardDetail',
+        component: () => import('@/pages/board/BoardDetailPage.vue')
+      },
+      {
+        path: 'menu/:menuId/write',
+        name: 'MenuBoardWrite',
+        component: () => import('@/pages/board/BoardWritePage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'menu/:menuId/posts/:postId/edit',
+        name: 'MenuBoardEdit',
+        component: () => import('@/pages/board/BoardWritePage.vue'),
+        meta: { requiresAuth: true }
       },
       {
         path: 'board/:boardId',
@@ -100,14 +123,41 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 })
 })
 
-router.beforeEach((to, from, next) => {
+function redirectLegacyBoardRoute(to, menuStore) {
+  if (!to.path.startsWith('/board/')) return null
+
+  const boardMenu = menuStore.findBoardMenu(to.params.boardId)
+  if (!boardMenu) return null
+
+  if (to.name === 'BoardDetail') {
+    return { name: 'MenuBoardDetail', params: { menuId: boardMenu.id, postId: to.params.postId }, query: to.query, hash: to.hash }
+  }
+  if (to.name === 'BoardWrite') {
+    return { name: 'MenuBoardWrite', params: { menuId: boardMenu.id }, query: to.query, hash: to.hash }
+  }
+  if (to.name === 'BoardEdit') {
+    return { name: 'MenuBoardEdit', params: { menuId: boardMenu.id, postId: to.params.postId }, query: to.query, hash: to.hash }
+  }
+  return { name: 'MenuPage', params: { menuId: boardMenu.id }, query: to.query, hash: to.hash }
+}
+
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+  const menuStore = useMenuStore()
+
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     return next({ name: 'Login', query: { redirect: to.fullPath } })
   }
   if (to.meta.guest && authStore.isLoggedIn) {
     return next({ name: 'Dashboard' })
   }
+
+  if (to.path.startsWith('/board/')) {
+    await menuStore.fetchMenus()
+    const redirected = redirectLegacyBoardRoute(to, menuStore)
+    if (redirected) return next(redirected)
+  }
+
   next()
 })
 
