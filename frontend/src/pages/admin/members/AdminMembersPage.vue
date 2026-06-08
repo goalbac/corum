@@ -19,14 +19,14 @@
       <el-table-column label="연락처" prop="phone" width="130" />
       <el-table-column label="상태" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" effect="plain">
+          <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" effect="dark">
             {{ row.isActive ? '활성' : '비활성' }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="잠금" width="80" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.isLocked" type="warning" size="small" effect="plain">잠금</el-tag>
+          <el-tag v-if="row.isLocked" type="warning" size="small" effect="dark">잠금</el-tag>
           <span v-else class="text-muted">-</span>
         </template>
       </el-table-column>

@@ -9,14 +9,14 @@
       <el-table-column label="버전" prop="version" width="80" align="center" />
       <el-table-column label="상태" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="plain">
+          <el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="dark">
             {{ row.isActive ? '활성' : '비활성' }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="재동의" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.requireReagree ? 'warning' : 'info'" size="small" effect="plain">
+          <el-tag :type="row.requireReagree ? 'warning' : 'info'" size="small" effect="dark">
             {{ row.requireReagree ? '필요' : '없음' }}
           </el-tag>
         </template>

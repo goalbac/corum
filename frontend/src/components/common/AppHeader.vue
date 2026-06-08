@@ -49,7 +49,13 @@
           <el-dropdown trigger="click">
             <div class="user-btn">
               <div class="avatar">
-                <img v-if="authStore.member?.profileImageUrl" :src="authStore.member.profileImageUrl" class="avatar-img" alt="" />
+                <img
+                  v-if="authStore.member?.profileImageUrl && !headerAvatarError"
+                  :src="authStore.member.profileImageUrl"
+                  class="avatar-img"
+                  alt=""
+                  @error="headerAvatarError = true"
+                />
                 <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
               </div>
               <span class="user-name">{{ authStore.member?.name }}</span>
@@ -80,6 +86,7 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useThemeStore } from '@/stores/theme'
@@ -87,6 +94,9 @@ import { useRouter } from 'vue-router'
 
 const emit = defineEmits(['toggle-mobile-menu'])
 const authStore = useAuthStore()
+const headerAvatarError = ref(false)
+// 프로필 이미지가 바뀌면 오류 상태 초기화
+watch(() => authStore.member?.profileImageUrl, () => { headerAvatarError.value = false })
 const menuStore = useMenuStore()
 const themeStore = useThemeStore()
 const router = useRouter()

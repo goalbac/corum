@@ -11,7 +11,7 @@
       <template v-for="group in groups" :key="group.id">
         <div class="group-row root-row">
           <div class="group-main">
-            <el-tag size="small" :type="group.type === 'ADMIN' ? 'danger' : 'success'" effect="plain">
+            <el-tag size="small" :type="group.type === 'ADMIN' ? 'danger' : 'success'" effect="dark">
               {{ typeLabel(group.type) }}
             </el-tag>
             <div>
@@ -20,7 +20,7 @@
             </div>
           </div>
           <div class="group-actions">
-            <el-tag v-if="group.isSystem" size="small" effect="plain">시스템</el-tag>
+            <el-tag v-if="group.isSystem" size="small" effect="dark">시스템</el-tag>
             <el-button size="small" @click="openCreate(group)">하위 추가</el-button>
             <el-button size="small" @click="openEdit(group)">수정</el-button>
           </div>
@@ -33,7 +33,7 @@
         >
           <div class="group-main">
             <i class="ti ti-corner-down-right"></i>
-            <el-tag size="small" :type="child.type === 'ADMIN' ? 'danger' : 'success'" effect="plain">
+            <el-tag size="small" :type="child.type === 'ADMIN' ? 'danger' : 'success'" effect="dark">
               {{ typeLabel(child.type) }}
             </el-tag>
             <div>
@@ -42,7 +42,7 @@
             </div>
           </div>
           <div class="group-actions">
-            <el-tag v-if="child.isSystem" size="small" effect="plain">시스템</el-tag>
+            <el-tag v-if="child.isSystem" size="small" effect="dark">시스템</el-tag>
             <el-button size="small" @click="openEdit(child)">수정</el-button>
             <el-button
               size="small"

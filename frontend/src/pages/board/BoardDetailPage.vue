@@ -6,7 +6,13 @@
         <h1 class="post-title">{{ post.title }}</h1>
         <div class="post-meta">
           <span class="writer-info">
-            <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" class="writer-avatar" alt="" />
+            <img
+              v-if="post.writerProfileImageUrl && !postAvatarError"
+              :src="post.writerProfileImageUrl"
+              class="writer-avatar"
+              alt=""
+              @error="postAvatarError = true"
+            />
             <span v-else class="writer-avatar-placeholder">{{ post.writerName?.charAt(0) || 'U' }}</span>
             <span class="writer-name">{{ post.writerName }}</span>
           </span>
@@ -92,6 +98,7 @@ const postId = computed(() => route.params.postId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
 const post = ref(null)
 const loading = ref(false)
+const postAvatarError = ref(false)
 
 const canEdit = computed(() => {
   if (!authStore.isLoggedIn) return false
@@ -105,6 +112,7 @@ async function fetchPost() {
   try {
     const res = await api.get(`/boards/${boardId.value}/posts/${postId.value}`)
     post.value = res.data.data
+    postAvatarError.value = false
   } finally {
     loading.value = false
   }

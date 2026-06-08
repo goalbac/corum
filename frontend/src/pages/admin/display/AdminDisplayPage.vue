@@ -15,7 +15,7 @@
           <el-table-column prop="title" label="제목" min-width="180" />
           <el-table-column label="유형" width="90" align="center">
             <template #default="{ row }">
-              <el-tag size="small" effect="plain">{{ row.contentType === 'IMAGE' ? '이미지' : 'HTML' }}</el-tag>
+              <el-tag size="small" effect="dark">{{ row.contentType === 'IMAGE' ? '이미지' : 'HTML' }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="위치" width="90" align="center">
@@ -29,7 +29,7 @@
           </el-table-column>
           <el-table-column label="상태" width="90" align="center">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="plain">
+              <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="dark">
                 {{ row.isActive ? '활성' : '비활성' }}
               </el-tag>
             </template>
@@ -52,7 +52,7 @@
           </el-table-column>
           <el-table-column label="상태" width="90" align="center">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="plain">
+              <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="dark">
                 {{ row.isActive ? '활성' : '비활성' }}
               </el-tag>
             </template>

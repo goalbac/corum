@@ -73,7 +73,13 @@
         <el-card shadow="never" class="tab-card">
           <div class="photo-section">
             <div class="avatar-preview">
-              <img v-if="member?.profileImageUrl" :src="member.profileImageUrl" class="avatar-img" alt="프로필 사진" />
+              <img
+                v-if="member?.profileImageUrl && !myAvatarError"
+                :src="member.profileImageUrl"
+                class="avatar-img"
+                alt="프로필 사진"
+                @error="myAvatarError = true"
+              />
               <div v-else class="avatar-placeholder">{{ member?.name?.charAt(0) || 'U' }}</div>
             </div>
             <div class="photo-actions">
@@ -169,6 +175,7 @@ const withdrawPassword = ref('')
 const fileInputRef = ref(null)
 const selectedFile = ref(null)
 const photoSaving = ref(false)
+const myAvatarError = ref(false)
 
 const infoForm = ref({
   name: '', phone: '', gender: '', birthDate: '',
@@ -285,6 +292,7 @@ async function handleUploadPhoto() {
     form.append('file', selectedFile.value)
     const res = await api.post('/auth/me/profile-image', form, { headers: { 'Content-Type': 'multipart/form-data' } })
     member.value = res.data.data
+    myAvatarError.value = false
     await authStore.fetchMe()
     selectedFile.value = null
     ElMessage.success('프로필 사진이 변경되었습니다.')

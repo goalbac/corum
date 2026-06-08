@@ -32,7 +32,7 @@
     >
       <el-table-column width="72" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.isNotice" type="danger" size="small" effect="plain">공지</el-tag>
+          <el-tag v-if="row.isNotice" type="danger" size="small" effect="dark">공지</el-tag>
           <span v-else class="row-id">{{ row.id }}</span>
         </template>
       </el-table-column>

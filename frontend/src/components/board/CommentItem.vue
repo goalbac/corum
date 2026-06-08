@@ -4,7 +4,13 @@
       <el-icon v-if="comment.depth > 0" class="reply-icon"><ChatLineRound /></el-icon>
 
       <div class="comment-avatar">
-        <img v-if="comment.writerProfileImageUrl" :src="comment.writerProfileImageUrl" class="c-avatar-img" alt="" />
+        <img
+          v-if="comment.writerProfileImageUrl && !avatarError"
+          :src="comment.writerProfileImageUrl"
+          class="c-avatar-img"
+          alt=""
+          @error="avatarError = true"
+        />
         <span v-else class="c-avatar-placeholder">{{ comment.writerName?.charAt(0) || 'U' }}</span>
       </div>
 
@@ -71,6 +77,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh'])
 
 const authStore = useAuthStore()
+const avatarError = ref(false)
 const editMode = ref(false)
 const replyMode = ref(false)
 const editContent = ref('')
