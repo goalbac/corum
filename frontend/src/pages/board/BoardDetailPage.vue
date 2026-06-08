@@ -2,7 +2,7 @@
   <div class="board-detail" v-loading="loading">
     <template v-if="post">
       <div class="post-header">
-        <el-tag v-if="post.isNotice" type="danger" effect="dark" size="small">공지</el-tag>
+        <div v-if="post.isNotice" class="notice-badge">공지</div>
         <h1 class="post-title">{{ post.title }}</h1>
         <div class="post-meta">
           <span class="writer-info">
@@ -201,6 +201,19 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.notice-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 4px;
+  background: var(--new);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  width: fit-content;
 }
 
 .post-title {

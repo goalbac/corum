@@ -62,7 +62,12 @@
         <div class="check-row">
           <el-checkbox v-model="form.useComment">댓글 사용</el-checkbox>
           <el-checkbox v-model="form.useLike">좋아요 사용</el-checkbox>
-          <el-checkbox v-model="form.useNotice">공지 사용</el-checkbox>
+          <el-tooltip
+            content="꺼짐 시 일반 사용자는 공지를 설정할 수 없으며, 관리자(운영자)만 공지글을 등록할 수 있습니다."
+            placement="top"
+          >
+            <el-checkbox v-model="form.useNotice">공지 사용</el-checkbox>
+          </el-tooltip>
           <el-checkbox v-model="form.isActive">활성화</el-checkbox>
         </div>
         <div class="form-row">

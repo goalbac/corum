@@ -5,8 +5,8 @@
         <el-input v-model="form.title" placeholder="제목을 입력하세요." size="large" />
       </el-form-item>
 
-      <el-form-item v-if="isAdmin" label="공지 설정">
-        <el-checkbox v-model="form.isNotice">공지글로 등록</el-checkbox>
+      <el-form-item v-if="isAdmin || board?.useNotice" label="공지 설정">
+        <el-checkbox v-model="form.isNotice" :disabled="!isAdmin && !board?.useNotice">공지글로 등록</el-checkbox>
       </el-form-item>
 
       <el-form-item label="내용">

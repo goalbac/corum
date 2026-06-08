@@ -1,5 +1,5 @@
 <template>
-  <div class="comment-section">
+  <div v-if="showSection" class="comment-section">
     <div class="comment-header">
       댓글 <span class="comment-count">{{ comments.length }}</span>
     </div>
@@ -71,6 +71,13 @@ const showWriteArea = computed(() => {
   if (!authStore.isLoggedIn) return false
   if (props.isAdmin) return true
   return props.useComment && props.canComment
+})
+
+// 권한 없고 댓글도 없으면 섹션 전체 숨김
+const showSection = computed(() => {
+  if (showWriteArea.value) return true
+  if (props.isAdmin) return true
+  return comments.value.length > 0
 })
 
 async function fetchComments() {
