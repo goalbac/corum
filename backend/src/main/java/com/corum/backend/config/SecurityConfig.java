@@ -39,29 +39,29 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authorizeHttpRequests(auth -> auth
-                // 공개 API
-                .requestMatchers(
-                    "/api/health",
-                    "/api/auth/login",
-                    "/api/auth/register",
-                    "/api/auth/verify-email",
-                    "/api/auth/request-password-reset",
-                    "/api/auth/reset-password",
-                    "/api/terms/active",
-                    "/api/menus",
-                    "/api/inquiries",
-                    "/api/calendars/**"
-                ).permitAll()
-                // 나머지 인증 필요
-                .anyRequest().authenticated()
-            )
-            .addFilterAfter(visitLoggingFilter, JwtAuthFilter.class)
-            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -> auth
+                        // 공개 API
+                        .requestMatchers(
+                                "/api/health",
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/verify-email",
+                                "/api/auth/request-password-reset",
+                                "/api/auth/reset-password",
+                                "/api/terms/active",
+                                "/api/menus",
+                                "/api/inquiries",
+                                "/api/calendars/**"
+                        ).permitAll()
+                        // 나머지 인증 필요
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(visitLoggingFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
