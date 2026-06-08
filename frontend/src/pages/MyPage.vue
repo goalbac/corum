@@ -283,9 +283,9 @@ async function handleUploadPhoto() {
   try {
     const form = new FormData()
     form.append('file', selectedFile.value)
-    await api.post('/auth/me/profile-image', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    const res = await api.post('/auth/me/profile-image', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    member.value = res.data.data
     await authStore.fetchMe()
-    member.value = authStore.member
     selectedFile.value = null
     ElMessage.success('프로필 사진이 변경되었습니다.')
   } catch (e) {

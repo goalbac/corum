@@ -1,7 +1,8 @@
 <template>
   <div :data-theme="themeStore.isDark ? 'dark' : undefined">
+    <!-- 점검 모드: 로그인/관리자 경로는 항상 허용 -->
     <MaintenancePage
-      v-if="maintenance.active"
+      v-if="maintenance.active && !isExemptPath"
       :message="maintenance.message"
       :until="maintenance.until"
     />
@@ -13,7 +14,8 @@
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { reactive, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import MaintenancePage from '@/pages/MaintenancePage.vue'
@@ -22,7 +24,15 @@ import api from '@/api/axios'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
+const route = useRoute()
 const maintenance = reactive({ active: false, message: null, until: null })
+
+// 점검 모드에서도 접근 가능한 경로 (로그인, 어드민 패널)
+const isExemptPath = computed(() =>
+  route.path.startsWith('/login') ||
+  route.path.startsWith('/admin') ||
+  authStore.member?.isAdmin
+)
 
 onMounted(async () => {
   // 토큰이 있으면 먼저 사용자 정보를 가져와서 관리자 여부 확인
@@ -32,8 +42,7 @@ onMounted(async () => {
   try {
     const res = await api.get('/site/public')
     const info = res.data.data
-    // 관리자(isAdmin)는 점검 모드 우회
-    if (info.maintenanceMode && !authStore.member?.isAdmin) {
+    if (info.maintenanceMode) {
       maintenance.active = true
       maintenance.message = info.maintenanceMessage
       maintenance.until = info.maintenanceUntil

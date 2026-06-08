@@ -3,6 +3,7 @@ package com.corum.backend.controller.board;
 import com.corum.backend.domain.file.UploadFile;
 import com.corum.backend.service.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,5 +34,23 @@ public class FileController {
         headers.setContentLength(data.length);
 
         return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    @GetMapping("/api/files/profile/{storedName}")
+    public ResponseEntity<byte[]> profileImage(@PathVariable String storedName) {
+        byte[] data = fileStorageService.downloadProfileImage(storedName);
+
+        String ext = storedName.contains(".") ? storedName.substring(storedName.lastIndexOf('.') + 1).toLowerCase() : "jpeg";
+        MediaType mediaType = switch (ext) {
+            case "png" -> MediaType.IMAGE_PNG;
+            case "gif" -> MediaType.IMAGE_GIF;
+            default -> MediaType.IMAGE_JPEG;
+        };
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .cacheControl(CacheControl.maxAge(7, TimeUnit.DAYS))
+                .contentLength(data.length)
+                .body(data);
     }
 }

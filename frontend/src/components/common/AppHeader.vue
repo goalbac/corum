@@ -48,7 +48,10 @@
         <template v-if="authStore.isLoggedIn">
           <el-dropdown trigger="click">
             <div class="user-btn">
-              <div class="avatar">{{ authStore.member?.name?.charAt(0) || 'U' }}</div>
+              <div class="avatar">
+                <img v-if="authStore.member?.profileImageUrl" :src="authStore.member.profileImageUrl" class="avatar-img" alt="" />
+                <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
+              </div>
               <span class="user-name">{{ authStore.member?.name }}</span>
               <i class="ti ti-chevron-down user-arrow"></i>
             </div>
@@ -245,6 +248,14 @@ async function handleLogout() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .user-name {

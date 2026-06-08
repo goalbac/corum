@@ -143,6 +143,21 @@ public class FileStorageService {
                 .orElseThrow(() -> BusinessException.notFound("파일을 찾을 수 없습니다."));
     }
 
+    // ===== 프로필 이미지 서빙 =====
+    public byte[] downloadProfileImage(String storedName) {
+        String storagePath = "profiles/" + storedName;
+        try {
+            return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .build()
+            ).asByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("프로필 이미지를 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
+        }
+    }
+
     // ===== 프로필 이미지 업로드 (S3 직접 저장, DB 미기록) =====
     public String uploadProfileImage(Long memberId, MultipartFile file) {
         String ext = getExtension(file.getOriginalFilename());
