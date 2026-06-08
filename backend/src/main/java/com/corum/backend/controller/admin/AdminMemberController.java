@@ -197,7 +197,7 @@ public class AdminMemberController {
             }
             pdf.append("trailer << /Size ").append(objects.length + 1).append(" /Root 1 0 R >>\n");
             pdf.append("startxref\n").append(xrefOffset).append("\n%%EOF");
-            return pdf.getBytes(StandardCharsets.ISO_8859_1);
+            return pdf.toString().getBytes(StandardCharsets.ISO_8859_1);
         }
 
         private static String escape(String value) {
