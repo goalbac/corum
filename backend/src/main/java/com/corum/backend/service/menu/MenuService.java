@@ -1,6 +1,12 @@
 package com.corum.backend.service.menu;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.board.Board;
+import com.corum.backend.domain.board.BoardGroupPermission;
+import com.corum.backend.domain.board.BoardGroupPermissionRepository;
+import com.corum.backend.domain.board.BoardRepository;
+import com.corum.backend.domain.content.ContentPage;
+import com.corum.backend.domain.content.ContentPageRepository;
 import com.corum.backend.domain.menu.Menu;
 import com.corum.backend.domain.menu.MenuGroupPermission;
 import com.corum.backend.domain.menu.MenuGroupPermissionRepository;
@@ -21,6 +27,9 @@ public class MenuService {
 
     private final MenuRepository menuRepository;
     private final MenuGroupPermissionRepository menuGroupPermissionRepository;
+    private final BoardRepository boardRepository;
+    private final BoardGroupPermissionRepository boardGroupPermissionRepository;
+    private final ContentPageRepository contentPageRepository;
 
     // ===== 전체 메뉴 트리 (관리자용 — 숨김 포함) =====
     @Transactional(readOnly = true)
@@ -76,8 +85,56 @@ public class MenuService {
         // 그룹 권한 저장
         saveGroupPermissions(saved.getId(), request.getAllowedGroupIds());
 
-        return new MenuResponse(saved, request.getAllowedGroupIds() != null
-                ? request.getAllowedGroupIds() : List.of());
+        // PAGE 타입 메뉴 생성 시 관련 리소스 자동 생성
+        if ("PAGE".equals(request.getMenuType())) {
+            if ("BOARD".equals(request.getPageType()) && request.getTargetId() == null) {
+                autoCreateBoard(saved, request.getAllowedGroupIds());
+            } else if ("CONTENT".equals(request.getPageType())) {
+                autoCreateContentPage(saved);
+            }
+        }
+
+        List<Long> groupIds = request.getAllowedGroupIds() != null
+                ? request.getAllowedGroupIds() : List.of();
+        return new MenuResponse(saved, groupIds);
+    }
+
+    private void autoCreateBoard(Menu menu, List<Long> allowedGroupIds) {
+        Board board = boardRepository.save(Board.builder()
+                .menuId(menu.getId())
+                .name(menu.getName())
+                .build());
+
+        // 메뉴 허용 그룹에 게시판 기본 권한(읽기/댓글/다운로드) 부여
+        if (allowedGroupIds != null && !allowedGroupIds.isEmpty()) {
+            List<BoardGroupPermission> perms = allowedGroupIds.stream()
+                    .map(gid -> BoardGroupPermission.builder()
+                            .boardId(board.getId())
+                            .groupId(gid)
+                            .canRead(true)
+                            .canWrite(true)
+                            .canComment(true)
+                            .canDownload(true)
+                            .build())
+                    .collect(Collectors.toList());
+            boardGroupPermissionRepository.saveAll(perms);
+        }
+
+        // 메뉴의 targetId를 생성된 게시판 ID로 설정
+        menu.update(menu.getName(), menu.getDescription(), menu.getMenuType(),
+                menu.getPageType(), board.getId(), menu.getUrl(), menu.getUrlAuto(),
+                menu.getNewWindow(), menu.getSortOrder(), menu.getIsHidden(),
+                menu.getHideIfNoPermission(), menu.getAccessType(), menu.getIsActive());
+    }
+
+    private void autoCreateContentPage(Menu menu) {
+        contentPageRepository.findByMenuId(menu.getId()).orElseGet(() ->
+                contentPageRepository.save(ContentPage.builder()
+                        .menuId(menu.getId())
+                        .title(menu.getName())
+                        .content("")
+                        .build())
+        );
     }
 
     // ===== 메뉴 수정 =====
