@@ -35,11 +35,17 @@ public class MemberResponse {
     @com.fasterxml.jackson.annotation.JsonProperty("isAdmin")
     private final boolean isAdmin;
 
+    private final List<Long> groupIds;
+
     public MemberResponse(Member member, boolean isAdmin) {
-        this(member, isAdmin, List.of());
+        this(member, isAdmin, List.of(), List.of());
     }
 
     public MemberResponse(Member member, boolean isAdmin, List<TermsResponse> requiredTerms) {
+        this(member, isAdmin, requiredTerms, List.of());
+    }
+
+    public MemberResponse(Member member, boolean isAdmin, List<TermsResponse> requiredTerms, List<Long> groupIds) {
         this.id = member.getId();
         this.username = member.getUsername();
         this.email = member.getEmail();
@@ -61,5 +67,6 @@ public class MemberResponse {
         this.isAdmin = isAdmin;
         this.requiredTerms = requiredTerms;
         this.requiresTermsAgreement = requiredTerms != null && !requiredTerms.isEmpty();
+        this.groupIds = groupIds != null ? groupIds : List.of();
     }
 }

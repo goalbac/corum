@@ -171,7 +171,8 @@ public class AuthService {
                 request.getNewsletterYn(), member.getProfileImageUrl()
         );
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
-        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId));
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds);
     }
 
     @Transactional
@@ -211,7 +212,8 @@ public class AuthService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
-        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId));
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds);
     }
 
     @Transactional
@@ -223,7 +225,8 @@ public class AuthService {
                 member.getBirthDate(), member.getHomePhone(), member.getOccupation(),
                 member.getWorkPhone(), member.getNewsletterYn(), imageUrl);
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
-        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId));
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds);
     }
 
     private void sendVerificationEmail(Member member) {

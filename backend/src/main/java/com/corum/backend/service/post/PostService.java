@@ -45,8 +45,13 @@ public class PostService {
 
         List<PostSummaryResponse> content = posts.getContent().stream()
                 .map(p -> {
-                    int fileCount = fileStorageService.getFiles("POST", p.getId()).size();
-                    return new PostSummaryResponse(p, 0, fileCount > 0);
+                    List<FileResponse> files = fileStorageService.getFiles("POST", p.getId());
+                    String thumbnailUrl = files.stream()
+                            .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
+                            .findFirst()
+                            .map(f -> "/api/files/" + f.getId() + "/download")
+                            .orElse(null);
+                    return new PostSummaryResponse(p, 0, !files.isEmpty(), thumbnailUrl);
                 })
                 .collect(Collectors.toList());
 

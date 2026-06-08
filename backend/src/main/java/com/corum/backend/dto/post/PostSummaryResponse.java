@@ -18,8 +18,13 @@ public class PostSummaryResponse {
     private final LocalDateTime createdAt;
     private final int commentCount;
     private final boolean hasFile;
+    private final String thumbnailUrl;
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile) {
+        this(post, commentCount, hasFile, null);
+    }
+
+    public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.title = post.getTitle();
@@ -30,5 +35,6 @@ public class PostSummaryResponse {
         this.createdAt = post.getCreatedAt();
         this.commentCount = commentCount;
         this.hasFile = hasFile;
+        this.thumbnailUrl = thumbnailUrl;
     }
 }
