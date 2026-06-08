@@ -51,6 +51,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE p.boardId = :boardId AND p.isHidden = false AND p.id > :postId ORDER BY p.id ASC")
     List<Post> findNextPost(@Param("boardId") Long boardId, @Param("postId") Long postId, Pageable pageable);
 
+    // 최근 새 글 여부
+    boolean existsByBoardIdAndIsHiddenFalseAndCreatedAtAfter(Long boardId, LocalDateTime createdAt);
+
     // 관리자 created_at / like_count 직접 수정 (updatable=false 우회)
     @Modifying
     @Query(value = "UPDATE posts SET created_at = :createdAt, like_count = :likeCount WHERE id = :id", nativeQuery = true)

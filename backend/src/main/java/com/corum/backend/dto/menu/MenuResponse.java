@@ -28,6 +28,10 @@ public class MenuResponse {
     private final boolean hasNew;      // NEW 뱃지 여부 (추후 구현)
 
     public MenuResponse(Menu menu, List<Long> allowedGroupIds) {
+        this(menu, allowedGroupIds, false);
+    }
+
+    public MenuResponse(Menu menu, List<Long> allowedGroupIds, boolean hasNew) {
         this.id = menu.getId();
         this.parentId = menu.getParentId();
         this.name = menu.getName();
@@ -44,7 +48,7 @@ public class MenuResponse {
         this.isActive = menu.getIsActive();
         this.allowedGroupIds = allowedGroupIds;
         this.children = new ArrayList<>();
-        this.hasNew = false;
+        this.hasNew = hasNew;
     }
 
     public void addChild(MenuResponse child) {

@@ -11,6 +11,7 @@ import com.corum.backend.domain.menu.Menu;
 import com.corum.backend.domain.menu.MenuGroupPermission;
 import com.corum.backend.domain.menu.MenuGroupPermissionRepository;
 import com.corum.backend.domain.menu.MenuRepository;
+import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.menu.MenuCreateRequest;
 import com.corum.backend.dto.menu.MenuResponse;
 import com.corum.backend.dto.menu.MenuUpdateRequest;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,6 +32,7 @@ public class MenuService {
     private final BoardRepository boardRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final ContentPageRepository contentPageRepository;
+    private final PostRepository postRepository;
 
     // ===== 전체 메뉴 트리 (관리자용 — 숨김 포함) =====
     @Transactional(readOnly = true)
@@ -217,10 +220,16 @@ public class MenuService {
                             .add(p.getGroupId()));
         }
 
+        Map<Long, Boolean> newPostMap = getNewPostMap(menus);
+
         Map<Long, MenuResponse> map = menus.stream()
                 .collect(Collectors.toMap(
                         Menu::getId,
-                        m -> new MenuResponse(m, groupPermMap.getOrDefault(m.getId(), List.of()))
+                        m -> new MenuResponse(
+                                m,
+                                groupPermMap.getOrDefault(m.getId(), List.of()),
+                                newPostMap.getOrDefault(m.getId(), false)
+                        )
                 ));
 
         List<MenuResponse> roots = menus.stream()
@@ -238,6 +247,21 @@ public class MenuService {
                 });
 
         return roots;
+    }
+
+    private Map<Long, Boolean> getNewPostMap(List<Menu> menus) {
+        LocalDateTime threshold = LocalDateTime.now().minusDays(3);
+        return menus.stream()
+                .filter(this::isBoardPage)
+                .filter(menu -> menu.getTargetId() != null)
+                .collect(Collectors.toMap(
+                        Menu::getId,
+                        menu -> postRepository.existsByBoardIdAndIsHiddenFalseAndCreatedAtAfter(menu.getTargetId(), threshold)
+                ));
+    }
+
+    private boolean isBoardPage(Menu menu) {
+        return "PAGE".equals(menu.getMenuType()) && "BOARD".equals(menu.getPageType());
     }
 
     private void saveGroupPermissions(Long menuId, List<Long> groupIds) {

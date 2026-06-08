@@ -37,7 +37,7 @@
                 @click="handleMobileMenu(sub)"
               >
                 {{ sub.name }}
-                <span v-if="sub.hasNew" class="new-badge">N</span>
+                <span v-if="hasNewBoardPost(sub)" class="new-badge new-post-badge">새 글</span>
               </button>
             </template>
           </div>
@@ -69,7 +69,7 @@
                   >
                     <span>{{ menu.name }}</span>
                     <i v-if="menu.menuType === 'LINK'" class="ti ti-external-link lnb-link-icon"></i>
-                    <span v-if="menu.hasNew" class="new-badge">N</span>
+                    <span v-if="hasNewBoardPost(menu)" class="new-badge new-post-badge">새 글</span>
                     <i
                       v-if="menu.children?.length"
                       class="ti ti-chevron-right lnb-arrow"
@@ -88,7 +88,7 @@
                     >
                       <span>{{ child.name }}</span>
                       <i v-if="child.menuType === 'LINK'" class="ti ti-external-link lnb-link-icon"></i>
-                      <span v-if="child.hasNew" class="new-badge">N</span>
+                      <span v-if="hasNewBoardPost(child)" class="new-badge new-post-badge">새 글</span>
                     </button>
                   </div>
                 </template>
@@ -184,6 +184,10 @@ function toggleOpen(id) {
 
 function isActiveSideMenu(menu) {
   return activeSideMenuIds.value.has(Number(menu.id))
+}
+
+function hasNewBoardPost(menu) {
+  return menu?.menuType === 'PAGE' && menu?.pageType === 'BOARD' && menu?.hasNew
 }
 
 function navigateMenu(menu) {
@@ -396,6 +400,16 @@ onMounted(async () => {
   padding: 1px 4px;
   font-weight: 700;
   flex-shrink: 0;
+}
+
+.new-post-badge {
+  min-width: 0;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 /* ===== 오른쪽 콘텐츠 ===== */
