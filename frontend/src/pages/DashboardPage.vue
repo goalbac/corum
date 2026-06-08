@@ -1,8 +1,14 @@
 <template>
   <div class="dashboard">
-    <div class="welcome-card">
+    <div
+      class="welcome-card"
+      ref="welcomeRef"
+      @mousemove="handleMouseMove"
+      @mouseleave="handleMouseLeave"
+    >
+      <div class="welcome-glow" :style="glowStyle" />
       <div class="welcome-left">
-        <div class="welcome-name">안녕하세요, {{ authStore.member?.name || '방문자' }}님</div>
+        <div class="welcome-name">안녕하세요, <span class="welcome-highlight">{{ authStore.member?.name || '방문자' }}</span>님</div>
         <div class="welcome-sub">오늘도 좋은 하루 보내세요.</div>
       </div>
       <div class="welcome-date">{{ today }}</div>
@@ -101,7 +107,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, reactive } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
@@ -110,6 +116,28 @@ const authStore = useAuthStore()
 const menuStore = useMenuStore()
 const widgets = ref([])
 const loading = ref(true)
+
+const welcomeRef = ref(null)
+const mouse = reactive({ x: 50, y: 50 })
+
+const glowStyle = ref({})
+
+function handleMouseMove(e) {
+  const rect = welcomeRef.value?.getBoundingClientRect()
+  if (!rect) return
+  const x = ((e.clientX - rect.left) / rect.width) * 100
+  const y = ((e.clientY - rect.top) / rect.height) * 100
+  mouse.x = x
+  mouse.y = y
+  glowStyle.value = {
+    background: `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.22) 0%, transparent 55%)`,
+    opacity: 1
+  }
+}
+
+function handleMouseLeave() {
+  glowStyle.value = { opacity: 0 }
+}
 
 const today = new Date().toLocaleDateString('ko-KR', {
   year: 'numeric',
@@ -163,17 +191,58 @@ onMounted(async () => {
 .dashboard { display: flex; flex-direction: column; gap: 16px; }
 
 .welcome-card {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--accent);
+  background: linear-gradient(135deg, #4f6ef7 0%, #7c4ff7 40%, #e05fc4 80%, #f97040 100%);
   border-radius: var(--radius-sm);
-  padding: 20px 24px;
+  padding: 28px 28px;
+  overflow: hidden;
+  cursor: default;
+  isolation: isolate;
 }
 
-.welcome-name { font-size: 17px; font-weight: 800; color: #fff; }
-.welcome-sub { font-size: 14px; color: rgba(255,255,255,0.76); margin-top: 4px; }
-.welcome-date { font-size: 14px; color: rgba(255,255,255,0.7); text-align: right; line-height: 1.7; }
+/* 배경 패턴 */
+.welcome-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 85%, rgba(255,255,255,0.12) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(255,255,255,0.1) 0%, transparent 40%);
+  z-index: 0;
+}
+
+.welcome-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 1;
+}
+
+.welcome-left, .welcome-date {
+  position: relative;
+  z-index: 2;
+}
+
+.welcome-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+.welcome-highlight {
+  background: rgba(255,255,255,0.22);
+  border-radius: 6px;
+  padding: 1px 8px;
+  margin: 0 1px;
+}
+
+.welcome-sub { font-size: 14px; color: rgba(255,255,255,0.8); margin-top: 6px; }
+.welcome-date { font-size: 14px; color: rgba(255,255,255,0.75); text-align: right; line-height: 1.7; }
 
 .widget-grid {
   display: grid;
@@ -349,8 +418,9 @@ onMounted(async () => {
 
 @media (max-width: 768px) {
   .widget-grid { grid-template-columns: 1fr; }
-  .welcome-card { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .welcome-card { flex-direction: column; align-items: flex-start; gap: 8px; padding: 22px 20px; }
   .welcome-date { text-align: left; font-size: 13px; }
+  .welcome-name { font-size: 17px; }
   .link-list,
   .stats-grid { grid-template-columns: 1fr; }
 }

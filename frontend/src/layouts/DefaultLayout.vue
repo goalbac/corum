@@ -47,7 +47,7 @@
     </transition>
 
     <main class="main-content">
-      <div class="page-container">
+      <div class="page-container" style="min-height:calc(100vh - var(--header-height) - 100px)">
         <template v-if="showsMenuLayout">
           <div class="menu-shell">
             <aside class="lnb" aria-label="하위 메뉴">
@@ -61,6 +61,7 @@
                     @click="handleSideClick(menu)"
                   >
                     <span>{{ menu.name }}</span>
+                    <i v-if="menu.menuType === 'LINK'" class="ti ti-external-link lnb-link-icon"></i>
                     <span v-if="menu.hasNew" class="new-badge">N</span>
                     <i
                       v-if="menu.children?.length"
@@ -79,6 +80,7 @@
                       @click="handleSideClick(child)"
                     >
                       <span>{{ child.name }}</span>
+                      <i v-if="child.menuType === 'LINK'" class="ti ti-external-link lnb-link-icon"></i>
                       <span v-if="child.hasNew" class="new-badge">N</span>
                     </button>
                   </div>
@@ -110,6 +112,7 @@
           <router-view />
         </template>
       </div>
+      <AppFooter />
     </main>
   </div>
 </template>
@@ -119,6 +122,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import AppBanner from '@/components/common/AppBanner.vue'
+import AppFooter from '@/components/common/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 
@@ -332,6 +336,13 @@ onMounted(async () => {
 }
 
 .lnb-arrow.rotated { transform: rotate(90deg); }
+
+.lnb-link-icon {
+  font-size: 12px;
+  color: var(--t4);
+  margin-left: 2px;
+  flex-shrink: 0;
+}
 
 .content-area {
   min-width: 0;

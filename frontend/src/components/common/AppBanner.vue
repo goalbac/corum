@@ -97,7 +97,8 @@ function closeSession(id) {
   display: block;
 }
 
-.banner-text:hover { text-decoration: underline; }
+a.banner-text:hover { text-decoration: underline; }
+span.banner-text:hover { text-decoration: none; cursor: default; }
 
 .banner-actions {
   display: flex;

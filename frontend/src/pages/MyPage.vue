@@ -1,21 +1,64 @@
 <template>
-  <div class="mypage">
-    <el-tabs v-model="activeTab">
+  <div class="mypage" v-loading="loading">
+    <div class="mp-layout">
+      <!-- 왼쪽: 프로필 카드 -->
+      <aside class="mp-profile">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar">
+            <img
+              v-if="member?.profileImageUrl && !myAvatarError"
+              :src="member.profileImageUrl"
+              class="avatar-img"
+              alt="프로필 사진"
+              @error="myAvatarError = true"
+            />
+            <div v-else class="avatar-placeholder">{{ member?.name?.charAt(0) || 'U' }}</div>
+          </div>
+          <label class="avatar-change-btn" title="사진 변경">
+            <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="handleFileChange" />
+            <i class="ti ti-camera"></i>
+          </label>
+        </div>
+        <div v-if="selectedFile" class="avatar-upload-row">
+          <span class="file-name-small">{{ selectedFile.name }}</span>
+          <el-button size="small" type="primary" :loading="photoSaving" @click="handleUploadPhoto">업로드</el-button>
+        </div>
 
-      <!-- 내 정보 -->
-      <el-tab-pane label="내 정보" name="info">
-        <el-card shadow="never" class="tab-card">
-          <el-form
-            ref="infoFormRef"
-            :model="infoForm"
-            label-position="top"
-            v-loading="loading"
+        <div class="profile-name">{{ member?.name || '-' }}</div>
+        <div class="profile-username">@{{ member?.username }}</div>
+        <div class="profile-email">{{ member?.email }}</div>
+
+        <div class="profile-badges">
+          <span v-for="g in member?.groups" :key="g.id" class="profile-badge">{{ g.name }}</span>
+        </div>
+
+        <div class="profile-nav">
+          <button
+            v-for="tab in tabs"
+            :key="tab.name"
+            :class="['pnav-item', { active: activeTab === tab.name }]"
+            @click="activeTab = tab.name"
           >
+            <i :class="`ti ${tab.icon}`"></i>
+            {{ tab.label }}
+          </button>
+        </div>
+      </aside>
+
+      <!-- 오른쪽: 컨텐츠 -->
+      <main class="mp-content">
+        <!-- 내 정보 -->
+        <section v-if="activeTab === 'info'">
+          <div class="section-head">
+            <h2>내 정보</h2>
+            <p>개인 정보를 수정합니다.</p>
+          </div>
+          <el-form :model="infoForm" label-position="top">
             <div class="form-row">
               <el-form-item label="아이디">
                 <el-input :value="member?.username" disabled />
               </el-form-item>
-              <el-form-item label="이름" prop="name">
+              <el-form-item label="이름">
                 <el-input v-model="infoForm.name" />
               </el-form-item>
             </div>
@@ -27,7 +70,7 @@
                 <el-input v-model="infoForm.phone" placeholder="010-0000-0000" />
               </el-form-item>
               <el-form-item label="성별">
-                <el-select v-model="infoForm.gender" placeholder="선택" style="width: 100%">
+                <el-select v-model="infoForm.gender" placeholder="선택" style="width:100%">
                   <el-option value="M" label="남성" />
                   <el-option value="F" label="여성" />
                 </el-select>
@@ -40,7 +83,7 @@
                   type="date"
                   format="YYYY-MM-DD"
                   value-format="YYYY-MM-DD"
-                  style="width: 100%"
+                  style="width:100%"
                 />
               </el-form-item>
               <el-form-item label="자택전화">
@@ -65,48 +108,20 @@
               <el-button type="primary" :loading="saving" @click="handleUpdateInfo">저장</el-button>
             </div>
           </el-form>
-        </el-card>
-      </el-tab-pane>
+        </section>
 
-      <!-- 프로필 사진 -->
-      <el-tab-pane label="프로필 사진" name="photo">
-        <el-card shadow="never" class="tab-card">
-          <div class="photo-section">
-            <div class="avatar-preview">
-              <img
-                v-if="member?.profileImageUrl && !myAvatarError"
-                :src="member.profileImageUrl"
-                class="avatar-img"
-                alt="프로필 사진"
-                @error="myAvatarError = true"
-              />
-              <div v-else class="avatar-placeholder">{{ member?.name?.charAt(0) || 'U' }}</div>
-            </div>
-            <div class="photo-actions">
-              <input ref="fileInputRef" type="file" accept="image/*" hidden @change="handleFileChange" />
-              <el-button @click="fileInputRef?.click()">사진 선택</el-button>
-              <el-button
-                v-if="selectedFile"
-                type="primary"
-                :loading="photoSaving"
-                @click="handleUploadPhoto"
-              >업로드</el-button>
-              <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
-            </div>
-            <p class="photo-hint">JPG, PNG, GIF 형식 / 최대 5MB</p>
+        <!-- 비밀번호 변경 -->
+        <section v-else-if="activeTab === 'password'">
+          <div class="section-head">
+            <h2>비밀번호 변경</h2>
+            <p>현재 비밀번호를 확인한 후 새 비밀번호로 변경합니다.</p>
           </div>
-        </el-card>
-      </el-tab-pane>
-
-      <!-- 비밀번호 변경 -->
-      <el-tab-pane label="비밀번호 변경" name="password">
-        <el-card shadow="never" class="tab-card">
           <el-form
             ref="pwFormRef"
             :model="pwForm"
             :rules="pwRules"
             label-position="top"
-            style="max-width: 400px;"
+            style="max-width:420px"
           >
             <el-form-item label="현재 비밀번호" prop="currentPassword">
               <el-input v-model="pwForm.currentPassword" type="password" show-password />
@@ -121,44 +136,43 @@
               <el-button type="primary" :loading="pwSaving" @click="handleUpdatePassword">변경</el-button>
             </div>
           </el-form>
-        </el-card>
-      </el-tab-pane>
+        </section>
 
-      <!-- 회원 탈퇴 -->
-      <el-tab-pane label="회원 탈퇴" name="withdraw">
-        <el-card shadow="never" class="tab-card">
-          <div class="withdraw-section">
-            <el-alert
-              title="탈퇴 전 꼭 확인해주세요"
-              type="warning"
-              :closable="false"
-              show-icon
-              style="margin-bottom: 20px;"
-            >
-              <template #default>
-                <ul class="withdraw-notice">
-                  <li>탈퇴 후 작성한 게시글과 댓글은 삭제되지 않습니다.</li>
-                  <li>탈퇴 후 동일한 아이디로 재가입이 불가합니다.</li>
-                  <li>탈퇴 처리 후 복구가 불가합니다.</li>
-                </ul>
-              </template>
-            </el-alert>
-            <el-form label-position="top" style="max-width: 400px;">
-              <el-form-item label="비밀번호 확인">
-                <el-input v-model="withdrawPassword" type="password" show-password placeholder="현재 비밀번호를 입력하세요" />
-              </el-form-item>
-              <el-button type="danger" @click="handleWithdraw">회원 탈퇴</el-button>
-            </el-form>
+        <!-- 회원 탈퇴 -->
+        <section v-else-if="activeTab === 'withdraw'">
+          <div class="section-head">
+            <h2>회원 탈퇴</h2>
+            <p>탈퇴 처리 후 복구가 불가합니다.</p>
           </div>
-        </el-card>
-      </el-tab-pane>
-
-    </el-tabs>
+          <el-alert
+            title="탈퇴 전 꼭 확인해주세요"
+            type="warning"
+            :closable="false"
+            show-icon
+            style="margin-bottom:24px"
+          >
+            <template #default>
+              <ul class="withdraw-notice">
+                <li>탈퇴 후 작성한 게시글과 댓글은 삭제되지 않습니다.</li>
+                <li>탈퇴 후 동일한 아이디로 재가입이 불가합니다.</li>
+                <li>탈퇴 처리 후 복구가 불가합니다.</li>
+              </ul>
+            </template>
+          </el-alert>
+          <el-form label-position="top" style="max-width:420px">
+            <el-form-item label="비밀번호 확인">
+              <el-input v-model="withdrawPassword" type="password" show-password placeholder="현재 비밀번호를 입력하세요" />
+            </el-form-item>
+            <el-button type="danger" @click="handleWithdraw">회원 탈퇴</el-button>
+          </el-form>
+        </section>
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
@@ -176,6 +190,12 @@ const fileInputRef = ref(null)
 const selectedFile = ref(null)
 const photoSaving = ref(false)
 const myAvatarError = ref(false)
+
+const tabs = [
+  { name: 'info',     icon: 'ti-user',     label: '내 정보' },
+  { name: 'password', icon: 'ti-lock',     label: '비밀번호 변경' },
+  { name: 'withdraw', icon: 'ti-door-exit', label: '회원 탈퇴' }
+]
 
 const infoForm = ref({
   name: '', phone: '', gender: '', birthDate: '',
@@ -195,9 +215,8 @@ const pwRules = {
     { required: true, message: '비밀번호를 한 번 더 입력해주세요.' },
     {
       validator: (rule, value, callback) => {
-        if (value !== pwForm.value.newPassword) {
-          callback(new Error('비밀번호가 일치하지 않습니다.'))
-        } else callback()
+        if (value !== pwForm.value.newPassword) callback(new Error('비밀번호가 일치하지 않습니다.'))
+        else callback()
       }
     }
   ]
@@ -230,6 +249,7 @@ async function handleUpdateInfo() {
   try {
     await api.put('/auth/me', infoForm.value)
     await authStore.fetchMe()
+    await fetchMember()
     ElMessage.success('정보가 저장되었습니다.')
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '저장에 실패했습니다.')
@@ -282,6 +302,7 @@ function handleFileChange(e) {
   if (!file) return
   if (file.size > 5 * 1024 * 1024) { ElMessage.warning('파일 크기는 5MB 이하여야 합니다.'); return }
   selectedFile.value = file
+  myAvatarError.value = false
 }
 
 async function handleUploadPhoto() {
@@ -307,11 +328,177 @@ onMounted(fetchMember)
 </script>
 
 <style scoped>
-.mypage { max-width: 700px; }
+.mypage { color: var(--t1); }
 
-.tab-card {
-  border-radius: var(--radius-lg);
+.mp-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 0;
+  min-height: 600px;
+}
+
+/* ===== 왼쪽 프로필 ===== */
+.mp-profile {
+  padding: 32px 20px 24px;
+  border-right: 1px solid var(--border2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 10px;
+}
+
+.profile-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid var(--border);
+  background: var(--surface2);
+}
+
+.avatar-img { width: 100%; height: 100%; object-fit: cover; }
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.avatar-change-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  transition: var(--transition);
+}
+
+.avatar-change-btn:hover { background: var(--accent-t); }
+
+.avatar-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.file-name-small {
+  font-size: 11px;
+  color: var(--t3);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--t1);
+  text-align: center;
   margin-top: 4px;
+}
+
+.profile-username {
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.profile-email {
+  font-size: 12px;
+  color: var(--t3);
+  text-align: center;
+  word-break: break-all;
+  margin-bottom: 6px;
+}
+
+.profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.profile-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--accent-bg);
+  color: var(--accent-t);
+  font-weight: 600;
+}
+
+.profile-nav {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 12px;
+}
+
+.pnav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--t2);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.pnav-item:hover { background: var(--surface2); color: var(--t1); }
+.pnav-item.active { background: var(--accent-bg); color: var(--accent-t); }
+
+/* ===== 오른쪽 컨텐츠 ===== */
+.mp-content {
+  padding: 32px 30px;
+}
+
+.section-head {
+  margin-bottom: 24px;
+}
+
+.section-head h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--t1);
+  margin-bottom: 4px;
+}
+
+.section-head p {
+  font-size: 14px;
+  color: var(--t3);
 }
 
 .form-row {
@@ -333,39 +520,12 @@ onMounted(fetchMember)
   line-height: 1.8;
 }
 
-.photo-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
+@media (max-width: 768px) {
+  .mp-layout { grid-template-columns: 1fr; }
+  .mp-profile { border-right: none; border-bottom: 1px solid var(--border2); padding: 24px 20px 16px; }
+  .profile-nav { flex-direction: row; flex-wrap: wrap; }
+  .pnav-item { flex: 1; min-width: 100px; justify-content: center; }
+  .mp-content { padding: 24px 18px; }
+  .form-row { grid-template-columns: 1fr; }
 }
-
-.avatar-preview {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid var(--border);
-  flex-shrink: 0;
-}
-
-.avatar-img { width: 100%; height: 100%; object-fit: cover; }
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent);
-  color: #fff;
-  font-size: 36px;
-  font-weight: 700;
-}
-
-.photo-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-
-.file-name { font-size: 13px; color: var(--t2); }
-
-.photo-hint { font-size: 13px; color: var(--t3); margin: 0; }
 </style>

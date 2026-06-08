@@ -21,11 +21,11 @@ public class SiteInfoController {
     @GetMapping("/public")
     public ApiResponse<SitePublicInfo> getPublicInfo() {
         SiteSetting s = siteSettingRepository.findTopByOrderByIdAsc().orElse(null);
-        if (s == null) return ApiResponse.ok(new SitePublicInfo(null, false, null, null));
+        if (s == null) return ApiResponse.ok(new SitePublicInfo(null, false, null, null, null));
         boolean inMaintenance = Boolean.TRUE.equals(s.getMaintenanceMode()) &&
                 (s.getMaintenanceUntil() == null || s.getMaintenanceUntil().isAfter(LocalDateTime.now()));
         return ApiResponse.ok(new SitePublicInfo(s.getSiteName(), inMaintenance,
-                s.getMaintenanceMessage(), s.getMaintenanceUntil()));
+                s.getMaintenanceMessage(), s.getMaintenanceUntil(), s.getFooterHtml()));
     }
 
     @Getter
@@ -34,13 +34,15 @@ public class SiteInfoController {
         private final boolean maintenanceMode;
         private final String maintenanceMessage;
         private final LocalDateTime maintenanceUntil;
+        private final String footerHtml;
 
         public SitePublicInfo(String siteName, boolean maintenanceMode,
-                              String maintenanceMessage, LocalDateTime maintenanceUntil) {
+                              String maintenanceMessage, LocalDateTime maintenanceUntil, String footerHtml) {
             this.siteName = siteName;
             this.maintenanceMode = maintenanceMode;
             this.maintenanceMessage = maintenanceMessage;
             this.maintenanceUntil = maintenanceUntil;
+            this.footerHtml = footerHtml;
         }
     }
 }

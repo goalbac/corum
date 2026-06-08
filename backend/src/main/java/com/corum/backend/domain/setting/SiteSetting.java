@@ -74,6 +74,9 @@ public class SiteSetting {
     @Column(name = "smtp_use_tls", nullable = false)
     private Boolean smtpUseTls;
 
+    @Column(name = "footer_html", columnDefinition = "TEXT")
+    private String footerHtml;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -97,6 +100,7 @@ public class SiteSetting {
             String smtpUsername,
             String smtpPasswordEnc,
             Boolean smtpUseTls,
+            String footerHtml,
             Long updatedBy
     ) {
         this.siteName = siteName;
@@ -115,6 +119,7 @@ public class SiteSetting {
         this.smtpUsername = smtpUsername;
         this.smtpPasswordEnc = smtpPasswordEnc;
         this.smtpUseTls = smtpUseTls;
+        this.footerHtml = footerHtml;
         this.updatedBy = updatedBy;
         this.updatedAt = LocalDateTime.now();
     }

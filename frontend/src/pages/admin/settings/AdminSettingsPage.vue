@@ -69,6 +69,23 @@
       </section>
 
       <section class="settings-section">
+        <h3>푸터 (Footer)</h3>
+        <p class="section-desc">비워두면 기본 푸터가 표시됩니다. HTML을 직접 입력하거나 아래 미리보기를 참고하세요.</p>
+        <el-form-item label="푸터 HTML">
+          <el-input
+            v-model="form.footerHtml"
+            type="textarea"
+            :rows="6"
+            placeholder="<p>© 2025 단체명. All rights reserved.</p>"
+          />
+        </el-form-item>
+        <div v-if="form.footerHtml" class="footer-preview">
+          <div class="preview-label">미리보기</div>
+          <div class="preview-content" v-html="form.footerHtml" />
+        </div>
+      </section>
+
+      <section class="settings-section">
         <h3>SMTP</h3>
         <div class="form-grid">
           <el-form-item label="Host">
@@ -116,7 +133,8 @@ const form = ref({
   smtpPort: 587,
   smtpUsername: '',
   smtpPasswordEnc: '',
-  smtpUseTls: true
+  smtpUseTls: true,
+  footerHtml: ''
 })
 
 async function fetchSettings() {
@@ -162,6 +180,35 @@ onMounted(fetchSettings)
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+.section-desc {
+  font-size: 13px;
+  color: var(--t3);
+  margin: -8px 0 12px;
+}
+
+.footer-preview {
+  margin-top: 10px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.preview-label {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+  background: var(--surface2);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.preview-content {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--t2);
+  line-height: 1.7;
+}
+
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }
 }

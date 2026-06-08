@@ -43,6 +43,7 @@ public class SiteSettingService {
                 request.getSmtpUsername(),
                 request.getSmtpPasswordEnc(),
                 request.getSmtpUseTls(),
+                request.getFooterHtml(),
                 updatedBy
         );
         return new SiteSettingResponse(setting);
