@@ -229,6 +229,7 @@
             <el-select v-model="boardForm.boardType" style="width:100%">
               <el-option value="POST" label="일반 게시판" />
               <el-option value="GALLERY" label="갤러리" />
+              <el-option value="WEBZINE" label="웹진" />
               <el-option value="DOCUMENT" label="자료실" />
             </el-select>
           </el-form-item>
@@ -392,7 +393,7 @@ function typeIcon(t) {
   return { PAGE: '📄', LINK: '🔗', GROUP: '📁' }[t] || '📄'
 }
 function boardTypeLabel(t) {
-  return { POST: '글', GALLERY: '갤러리', DOCUMENT: '자료실' }[t] || t
+  return { POST: '글', GALLERY: '갤러리', WEBZINE: '웹진', DOCUMENT: '자료실' }[t] || t
 }
 
 function setChildRef(el, id) {

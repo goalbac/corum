@@ -2,7 +2,7 @@
   <div class="board-list">
 
     <!-- ===== 갤러리 뷰 ===== -->
-    <template v-if="board?.boardType === 'GALLERY'">
+    <template v-if="isGalleryBoard">
       <div v-loading="loading" class="gallery-grid">
         <div v-for="post in posts" :key="post.id" class="gallery-card" @click="goDetail(post)">
           <div class="gallery-thumb">
@@ -35,6 +35,78 @@
         <div v-if="!loading && !posts.length" class="gallery-empty">
           <i class="ti ti-photo-off"></i>
           <p>등록된 게시글이 없습니다.</p>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <el-pagination v-model:current-page="page" :page-size="gallerySize" :total="total"
+          layout="prev, pager, next" background small @current-change="fetchPosts" />
+      </div>
+      <div class="list-toolbar">
+        <div class="search-group">
+          <div class="search-type-wrap">
+            <el-select v-model="searchType" size="small" class="search-type">
+              <el-option value="title" label="제목" />
+              <el-option value="content" label="내용" />
+              <el-option value="writer" label="작성자" />
+              <el-option value="all" label="전체" />
+            </el-select>
+          </div>
+          <div class="search-input-wrap">
+            <i class="ti ti-search search-icon"></i>
+            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
+              @keyup.enter="handleSearch" />
+            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <button class="search-btn" @click="handleSearch">검색</button>
+        </div>
+        <button v-if="canWrite" class="write-btn" @click="goWrite">
+          <i class="ti ti-pencil-plus"></i>
+          <span>글쓰기</span>
+        </button>
+      </div>
+    </template>
+
+    <!-- ===== 웹진 뷰 ===== -->
+    <template v-else-if="isWebzineBoard">
+      <div v-loading="loading" class="webzine-list">
+        <article
+          v-for="post in posts"
+          :key="post.id"
+          :class="['webzine-item', { notice: post.isNotice }]"
+          @click="goDetail(post)"
+        >
+          <div class="webzine-thumb">
+            <img
+              v-if="post.thumbnailUrl"
+              :src="post.thumbnailUrl"
+              :alt="post.title"
+              @error="e => e.target.style.display='none'"
+            />
+            <div v-else class="no-thumb"><i class="ti ti-news"></i></div>
+          </div>
+          <div class="webzine-body">
+            <div class="webzine-kicker">
+              <span v-if="post.isNotice" class="notice-tag">Notice</span>
+              <span>{{ formatDate(post.createdAt) }}</span>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </div>
+            <h3 class="webzine-title">{{ post.title }}</h3>
+            <div class="webzine-meta">
+              <span>{{ post.writerName }}</span>
+              <span class="gallery-dot">쨌</span>
+              <span v-if="showViewCount">View {{ post.viewCount }}</span>
+              <span v-if="showLikeCount && board?.useLike">Like {{ post.likeCount }}</span>
+              <span v-if="post.commentCount > 0">Comment {{ post.commentCount }}</span>
+              <span v-if="post.hasFile"><i class="ti ti-paperclip"></i></span>
+            </div>
+          </div>
+        </article>
+        <div v-if="!loading && !posts.length" class="webzine-empty">
+          <i class="ti ti-news-off"></i>
+          <p>No posts yet.</p>
         </div>
       </div>
 
@@ -196,6 +268,9 @@ const searchType = ref('title')
 
 const noticePosts = computed(() => posts.value.filter(p => p.isNotice))
 const normalPosts = computed(() => posts.value.filter(p => !p.isNotice))
+const isGalleryBoard = computed(() => board.value?.boardType === 'GALLERY')
+const isWebzineBoard = computed(() => board.value?.boardType === 'WEBZINE')
+const isVisualBoard = computed(() => isGalleryBoard.value || isWebzineBoard.value)
 
 const canWrite = computed(() => {
   if (!board.value) return false
@@ -221,7 +296,7 @@ async function fetchPosts() {
   if (!boardId.value) return
   loading.value = true
   try {
-    const pageSize = board.value?.boardType === 'GALLERY' ? gallerySize.value : size.value
+    const pageSize = isVisualBoard.value ? gallerySize.value : size.value
     const params = { page: page.value - 1, size: pageSize }
     if (keyword.value) {
       params.keyword = keyword.value
@@ -499,6 +574,92 @@ onMounted(async () => {
 
 .gallery-empty i { font-size: 36px; }
 
+/* ===== Webzine ===== */
+.webzine-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border2);
+}
+
+.webzine-item {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) 1fr;
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 0.5px solid var(--border2);
+  cursor: pointer;
+  background: var(--surface);
+  transition: background 0.15s;
+}
+
+.webzine-item:hover { background: var(--surface2); }
+.webzine-item.notice { background: var(--accent-bg); }
+
+.webzine-thumb {
+  width: 100%;
+  aspect-ratio: 16/10;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.webzine-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.webzine-item:hover .webzine-thumb img { transform: scale(1.03); }
+
+.webzine-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.webzine-kicker,
+.webzine-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.webzine-title {
+  margin: 0;
+  color: var(--t1);
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.webzine-item:hover .webzine-title { color: var(--accent-t); }
+
+.webzine-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 60px 0;
+  color: var(--t4);
+  font-size: 14px;
+}
+
+.webzine-empty i { font-size: 36px; }
+
 /* ===== 툴바 ===== */
 .list-toolbar {
   display: flex;
@@ -611,5 +772,12 @@ onMounted(async () => {
   .pt-col.date { width: 72px; font-size: 12px; }
   .search-input { width: 130px; }
   .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+  .webzine-item {
+    grid-template-columns: 96px 1fr;
+    gap: 12px;
+    padding: 14px 12px;
+  }
+  .webzine-title { font-size: 15px; }
+  .webzine-meta { gap: 5px; font-size: 11px; }
 }
 </style>

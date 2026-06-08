@@ -62,6 +62,7 @@
             <el-select v-model="form.boardType" style="width:100%">
               <el-option value="POST" label="글 게시판" />
               <el-option value="GALLERY" label="갤러리" />
+              <el-option value="WEBZINE" label="웹진" />
               <el-option value="DOCUMENT" label="자료실" />
             </el-select>
           </div>
@@ -144,8 +145,8 @@ async function deleteBoard(id) {
   fetchBoards()
 }
 
-function typeLabel(t) { return { POST: '일반', GALLERY: '갤러리', DOCUMENT: '자료실' }[t] || t }
-function typeBadge(t) { return { POST: 'badge-primary', GALLERY: 'badge-success', DOCUMENT: 'badge-warning' }[t] || '' }
+function typeLabel(t) { return { POST: '일반', GALLERY: '갤러리', WEBZINE: '웹진', DOCUMENT: '자료실' }[t] || t }
+function typeBadge(t) { return { POST: 'badge-primary', GALLERY: 'badge-success', WEBZINE: 'badge-info', DOCUMENT: 'badge-warning' }[t] || '' }
 onMounted(fetchBoards)
 </script>
 

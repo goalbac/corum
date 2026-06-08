@@ -22,7 +22,7 @@ public class Board extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    // POST, GALLERY, DOCUMENT
+    // POST, GALLERY, WEBZINE, DOCUMENT
     @Column(name = "board_type", nullable = false, length = 20)
     @Builder.Default
     private String boardType = "POST";
