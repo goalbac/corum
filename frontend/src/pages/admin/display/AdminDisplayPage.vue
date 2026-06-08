@@ -154,8 +154,8 @@ const defaultPopup = () => ({ title: '', contentType: 'IMAGE', imageUrl: '', con
 const defaultBanner = () => ({ title: '', content: '', linkUrl: '', linkNewWindow: false, startAt: null, endAt: null, isActive: true })
 const popupForm = ref(defaultPopup()); const bannerForm = ref(defaultBanner())
 
-async function fetchPopups() { loading.value = true; try { const r = await api.get('/admin/popups'); popups.value = r.data.data || [] } finally { loading.value = false } }
-async function fetchBanners() { loadingBanner.value = true; try { const r = await api.get('/admin/banners'); banners.value = r.data.data || [] } finally { loadingBanner.value = false } }
+async function fetchPopups() { loading.value = true; try { const r = await api.get('/admin/display/popups'); popups.value = r.data.data || [] } finally { loading.value = false } }
+async function fetchBanners() { loadingBanner.value = true; try { const r = await api.get('/admin/display/banners'); banners.value = r.data.data || [] } finally { loadingBanner.value = false } }
 
 function openPopupCreate() { editingPopup.value = null; popupForm.value = defaultPopup(); showPopupForm.value = true }
 function openPopupEdit(p) { editingPopup.value = p; popupForm.value = { ...p }; showPopupForm.value = true }
@@ -165,19 +165,19 @@ function openBannerEdit(b) { editingBanner.value = b; bannerForm.value = { ...b 
 async function savePopup() {
   saving.value = true
   try {
-    editingPopup.value ? await api.put(`/admin/popups/${editingPopup.value.id}`, popupForm.value) : await api.post('/admin/popups', popupForm.value)
+    editingPopup.value ? await api.put(`/admin/display/popups/${editingPopup.value.id}`, popupForm.value) : await api.post('/admin/display/popups', popupForm.value)
     ElMessage.success('저장되었습니다.'); showPopupForm.value = false; fetchPopups()
   } finally { saving.value = false }
 }
 async function saveBanner() {
   saving.value = true
   try {
-    editingBanner.value ? await api.put(`/admin/banners/${editingBanner.value.id}`, bannerForm.value) : await api.post('/admin/banners', bannerForm.value)
+    editingBanner.value ? await api.put(`/admin/display/banners/${editingBanner.value.id}`, bannerForm.value) : await api.post('/admin/display/banners', bannerForm.value)
     ElMessage.success('저장되었습니다.'); showBannerForm.value = false; fetchBanners()
   } finally { saving.value = false }
 }
-async function deletePopup(id) { await ElMessageBox.confirm('팝업을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/popups/${id}`); ElMessage.success('삭제되었습니다.'); fetchPopups() }
-async function deleteBanner(id) { await ElMessageBox.confirm('배너를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/banners/${id}`); ElMessage.success('삭제되었습니다.'); fetchBanners() }
+async function deletePopup(id) { await ElMessageBox.confirm('팝업을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/display/popups/${id}`); ElMessage.success('삭제되었습니다.'); fetchPopups() }
+async function deleteBanner(id) { await ElMessageBox.confirm('배너를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/display/banners/${id}`); ElMessage.success('삭제되었습니다.'); fetchBanners() }
 
 function posLabel(p) { return { CENTER: '중앙', LEFT: '왼쪽', RIGHT: '오른쪽' }[p] || p }
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) }

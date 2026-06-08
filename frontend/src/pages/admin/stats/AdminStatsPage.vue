@@ -120,9 +120,9 @@ const tab = ref('visit'); const rows = ref([]); const loading = ref(false)
 const page = ref(1); const size = 20; const total = ref(0)
 const stats = ref({}); const testEmail = ref(''); const sending = ref(false)
 
-const endpointMap = { visit: '/admin/stats/visit-logs', search: '/admin/stats/search-logs', audit: '/admin/audit-logs', smtp: '/admin/stats/smtp-logs' }
+const endpointMap = { visit: '/admin/logs/visits', search: '/admin/logs/search', audit: '/admin/logs/audit', smtp: '/admin/logs/smtp' }
 
-async function fetchStats() { try { const r = await api.get('/admin/stats/summary'); stats.value = r.data.data || {} } catch {} }
+async function fetchStats() { try { const r = await api.get('/admin/logs/summary'); stats.value = r.data.data || {} } catch {} }
 async function fetchRows(p = page.value) {
   page.value = p; loading.value = true
   try { const r = await api.get(endpointMap[tab.value], { params: { page: p - 1, size } }); rows.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
@@ -132,7 +132,7 @@ function switchTab(t) { tab.value = t; rows.value = []; page.value = 1; fetchRow
 async function sendTestMail() {
   if (!testEmail.value) return ElMessage.warning('이메일을 입력해주세요.')
   sending.value = true
-  try { await api.post('/admin/settings/smtp/test', { email: testEmail.value }); ElMessage.success('테스트 메일이 발송되었습니다.') }
+  try { await api.post('/admin/logs/smtp/test', { toEmail: testEmail.value }); ElMessage.success('테스트 메일이 발송되었습니다.') }
   finally { sending.value = false }
 }
 function fmtDt(d) { if (!d) return '-'; return new Date(d).toLocaleString('ko-KR') }
