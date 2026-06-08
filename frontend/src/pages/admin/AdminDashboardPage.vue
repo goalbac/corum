@@ -21,9 +21,9 @@
           <i class="ti ti-users"></i>
           <span>회원 관리</span>
         </router-link>
-        <router-link to="/admin/menus" class="ql-item">
-          <i class="ti ti-menu-2"></i>
-          <span>메뉴 관리</span>
+        <router-link to="/admin/terms" class="ql-item">
+          <i class="ti ti-file-check"></i>
+          <span>약관 관리</span>
         </router-link>
         <router-link to="/admin/content-pages" class="ql-item">
           <i class="ti ti-file-text"></i>

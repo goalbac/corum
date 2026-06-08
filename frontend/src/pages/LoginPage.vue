@@ -74,7 +74,11 @@ async function handleLogin() {
     if (!valid) return
     loading.value = true
     try {
-      await authStore.login(form.value.username, form.value.password)
+      const member = await authStore.login(form.value.username, form.value.password)
+      if (member?.requiresTermsAgreement) {
+        router.push('/terms-agreement')
+        return
+      }
       router.push(route.query.redirect || '/')
     } catch(e) {
       ElMessage.error(e.response?.data?.message || '로그인에 실패했습니다.')
@@ -143,6 +147,7 @@ async function requestReset() {
   border: none;
   background: transparent;
   font-size: 14px;
+  cursor: pointer;
 }
 .login-footer a:hover,
 .link-btn:hover { color: var(--accent); }

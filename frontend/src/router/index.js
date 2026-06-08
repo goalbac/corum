@@ -28,6 +28,17 @@ const routes = [
     meta: { guest: true }
   },
   {
+    path: '/terms',
+    name: 'Terms',
+    component: () => import('@/pages/TermsPage.vue')
+  },
+  {
+    path: '/terms-agreement',
+    name: 'TermsAgreement',
+    component: () => import('@/pages/TermsAgreementPage.vue'),
+    meta: { requiresAuth: true, allowPendingTerms: true }
+  },
+  {
     path: '/',
     component: () => import('@/layouts/DefaultLayout.vue'),
     children: [
@@ -114,6 +125,7 @@ const routes = [
     children: [
       { path: '', name: 'AdminDashboard', component: () => import('@/pages/admin/AdminDashboardPage.vue') },
       { path: 'members', name: 'AdminMembers', component: () => import('@/pages/admin/members/AdminMembersPage.vue') },
+      { path: 'terms', name: 'AdminTerms', component: () => import('@/pages/admin/terms/AdminTermsPage.vue') },
       { path: 'boards', name: 'AdminBoards', component: () => import('@/pages/admin/boards/AdminBoardsPage.vue') },
       { path: 'menus', name: 'AdminMenus', component: () => import('@/pages/admin/menus/AdminMenusPage.vue') },
       { path: 'display', name: 'AdminDisplay', component: () => import('@/pages/admin/display/AdminDisplayPage.vue') },
@@ -163,8 +175,14 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     return next({ name: 'Login', query: { redirect: to.fullPath } })
   }
+  if (authStore.isLoggedIn && !authStore.member) {
+    await authStore.fetchMe()
+  }
   if (to.meta.guest && authStore.isLoggedIn) {
     return next({ name: 'Dashboard' })
+  }
+  if (authStore.isLoggedIn && authStore.member?.requiresTermsAgreement && !to.meta.allowPendingTerms) {
+    return next({ name: 'TermsAgreement' })
   }
 
   if (to.path.startsWith('/board/')) {

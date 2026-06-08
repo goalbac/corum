@@ -29,12 +29,16 @@ public class JwtProvider {
     }
 
     public String createAccessToken(Long memberId, String username) {
+        return createAccessToken(memberId, username, accessTokenExpiryMs);
+    }
+
+    public String createAccessToken(Long memberId, String username, long expiryMs) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(String.valueOf(memberId))
                 .claim("username", username)
                 .issuedAt(now)
-                .expiration(new Date(now.getTime() + accessTokenExpiryMs))
+                .expiration(new Date(now.getTime() + expiryMs))
                 .signWith(key)
                 .compact();
     }

@@ -1,5 +1,6 @@
 package com.corum.backend.security;
 
+import com.corum.backend.service.auth.TokenSessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
     private final UserDetailsService userDetailsService;
+    private final TokenSessionService tokenSessionService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -30,7 +32,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (StringUtils.hasText(token) && jwtProvider.validate(token)) {
+        if (StringUtils.hasText(token) && jwtProvider.validate(token) && !tokenSessionService.isInvalidated(token)) {
             String username = jwtProvider.getUsername(token);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             UsernamePasswordAuthenticationToken auth =

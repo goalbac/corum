@@ -1,10 +1,12 @@
 package com.corum.backend.dto.auth;
 
 import com.corum.backend.domain.member.Member;
+import com.corum.backend.dto.terms.TermsResponse;
 import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 public class MemberResponse {
@@ -27,11 +29,17 @@ public class MemberResponse {
     private final LocalDateTime joinedAt;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+    private final boolean requiresTermsAgreement;
+    private final List<TermsResponse> requiredTerms;
 
     @com.fasterxml.jackson.annotation.JsonProperty("isAdmin")
     private final boolean isAdmin;
 
     public MemberResponse(Member member, boolean isAdmin) {
+        this(member, isAdmin, List.of());
+    }
+
+    public MemberResponse(Member member, boolean isAdmin, List<TermsResponse> requiredTerms) {
         this.id = member.getId();
         this.username = member.getUsername();
         this.email = member.getEmail();
@@ -51,5 +59,7 @@ public class MemberResponse {
         this.createdAt = member.getCreatedAt();
         this.updatedAt = member.getUpdatedAt();
         this.isAdmin = isAdmin;
+        this.requiredTerms = requiredTerms;
+        this.requiresTermsAgreement = requiredTerms != null && !requiredTerms.isEmpty();
     }
 }

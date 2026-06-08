@@ -12,6 +12,9 @@
           <router-link to="/admin/groups" class="sidebar-item" active-class="active">
             <i class="ti ti-shield"></i> 그룹 관리
           </router-link>
+          <router-link to="/admin/terms" class="sidebar-item" active-class="active">
+            <i class="ti ti-file-check"></i> 약관 관리
+          </router-link>
         </div>
 
         <div class="sidebar-section">
@@ -79,7 +82,7 @@ onMounted(async () => {
     router.push('/login')
     return
   }
-  if (authStore.member && !authStore.member.admin) {
+  if (authStore.member && !authStore.member.admin && !authStore.member.isAdmin) {
     router.push('/')
   }
 })
@@ -87,13 +90,7 @@ onMounted(async () => {
 
 <style scoped>
 .admin-layout { min-height: 100vh; background: var(--bg); transition: background .25s; }
-
-.admin-body {
-  display: flex;
-  margin-top: var(--header-height);
-  min-height: calc(100vh - var(--header-height));
-}
-
+.admin-body { display: flex; margin-top: var(--header-height); min-height: calc(100vh - var(--header-height)); }
 .admin-sidebar {
   width: 220px;
   flex-shrink: 0;
@@ -106,18 +103,15 @@ onMounted(async () => {
   overflow-y: auto;
   transition: background .25s;
 }
-
 .sidebar-section { margin-bottom: 20px; }
-
 .section-title {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--t3);
   text-transform: uppercase;
   padding: 0 16px;
   margin-bottom: 4px;
 }
-
 .sidebar-item {
   display: flex;
   align-items: center;
@@ -130,15 +124,9 @@ onMounted(async () => {
   position: relative;
   text-decoration: none;
 }
-
 .sidebar-item i { font-size: 16px; }
 .sidebar-item:hover { color: var(--t1); background: var(--surface2); }
-.sidebar-item.active {
-  color: var(--accent);
-  background: var(--accent-bg);
-  font-weight: 700;
-}
-
+.sidebar-item.active { color: var(--accent); background: var(--accent-bg); font-weight: 800; }
 .sidebar-item.active::before {
   content: '';
   position: absolute;
@@ -149,10 +137,8 @@ onMounted(async () => {
   background: var(--accent);
   border-radius: 0 3px 3px 0;
 }
-
 .admin-main { flex: 1; min-width: 0; }
 .admin-container { padding: 24px; max-width: 1160px; }
-
 .mobile-overlay {
   position: fixed;
   inset: 0;
@@ -160,7 +146,6 @@ onMounted(async () => {
   z-index: 99;
   display: none;
 }
-
 @media (max-width: 768px) {
   .admin-sidebar {
     position: fixed;

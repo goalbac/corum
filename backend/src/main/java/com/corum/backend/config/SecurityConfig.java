@@ -2,6 +2,7 @@ package com.corum.backend.config;
 
 import com.corum.backend.security.JwtAuthFilter;
 import com.corum.backend.security.JwtProvider;
+import com.corum.backend.service.auth.TokenSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,7 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final UserDetailsService userDetailsService;
     private final VisitLoggingFilter visitLoggingFilter;
+    private final TokenSessionService tokenSessionService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -31,7 +33,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtProvider, userDetailsService);
+        return new JwtAuthFilter(jwtProvider, userDetailsService, tokenSessionService);
     }
 
     @Bean
@@ -50,6 +52,7 @@ public class SecurityConfig {
                     "/api/auth/verify-email",
                     "/api/auth/request-password-reset",
                     "/api/auth/reset-password",
+                    "/api/terms/active",
                     "/api/menus",
                     "/api/inquiries",
                     "/api/calendars/**"

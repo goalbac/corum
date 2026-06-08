@@ -6,6 +6,8 @@ import com.corum.backend.domain.member.Member;
 import com.corum.backend.domain.member.MemberLoginLog;
 import com.corum.backend.domain.member.MemberLoginLogRepository;
 import com.corum.backend.domain.member.MemberRepository;
+import com.corum.backend.domain.setting.SiteSetting;
+import com.corum.backend.domain.setting.SiteSettingRepository;
 import com.corum.backend.dto.auth.LoginRequest;
 import com.corum.backend.dto.auth.LoginResponse;
 import com.corum.backend.dto.auth.MemberResponse;
@@ -20,6 +22,7 @@ import com.corum.backend.security.JwtProvider;
 import com.corum.backend.service.group.GroupService;
 import com.corum.backend.service.log.OperationLogService;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.terms.TermsService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +47,9 @@ public class AuthService {
     private final MemberGroupRepository memberGroupRepository;
     private final MailService mailService;
     private final OperationLogService operationLogService;
+    private final TermsService termsService;
+    private final SiteSettingRepository siteSettingRepository;
+    private final TokenSessionService tokenSessionService;
 
     @Value("${jwt.login-fail-limit:5}")
     private int loginFailLimit;
@@ -92,8 +98,9 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), member.getPasswordHash())) {
             member.increaseLoginFailCount();
             saveLoginLog(member.getId(), "LOGIN_FAIL", ip, userAgent, false);
-            if (member.getLoginFailCount() >= loginFailLimit) {
+            if (member.getLoginFailCount() >= getLoginFailLimit()) {
                 member.lock(LocalDateTime.now());
+                tokenSessionService.invalidateMember(member.getId());
                 throw BusinessException.unauthorized("로그인 실패 횟수를 초과하여 계정이 잠겼습니다.");
             }
             throw BusinessException.unauthorized("아이디 또는 비밀번호가 올바르지 않습니다.");
@@ -107,9 +114,14 @@ public class AuthService {
         saveLoginLog(member.getId(), "LOGIN", ip, userAgent, true);
         operationLogService.audit(member.getId(), "LOGIN", "members", member.getId(), null, member.getUsername(), httpRequest);
 
-        String token = jwtProvider.createAccessToken(member.getId(), member.getUsername());
+        SiteSetting setting = siteSettingRepository.findTopByOrderByIdAsc().orElse(null);
+        long expiryMs = getSessionTimeoutMin(setting) * 60_000L;
+        boolean allowConcurrentLogin = setting == null || Boolean.TRUE.equals(setting.getAllowConcurrentLogin());
+        String token = jwtProvider.createAccessToken(member.getId(), member.getUsername(), expiryMs);
+        tokenSessionService.registerLogin(member.getId(), token, allowConcurrentLogin);
+
         List<GroupResponse> groups = groupService.getMemberGroups(member.getId());
-        return new LoginResponse(token, member, groups);
+        return new LoginResponse(token, member, groups, termsService.getRequiredTerms(member.getId()));
     }
 
     @Transactional
@@ -128,7 +140,7 @@ public class AuthService {
             String token = jwtProvider.createPurposeToken(member.getId(), member.getUsername(), "PASSWORD_RESET", 1000L * 60 * 30);
             String link = frontendUrl + "/reset-password?token=" + token;
             mailService.send(member.getId(), member.getEmail(), "[Corum] 비밀번호 재설정",
-                    "<p>아래 링크에서 비밀번호를 재설정하세요.</p><p><a href=\"" + link + "\">비밀번호 재설정</a></p>",
+                    "<p>아래 링크에서 비밀번호를 재설정해주세요.</p><p><a href=\"" + link + "\">비밀번호 재설정</a></p>",
                     "PASSWORD_RESET");
         });
     }
@@ -141,6 +153,7 @@ public class AuthService {
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
         member.updatePassword(passwordEncoder.encode(request.getNewPassword()));
         member.unlock();
+        tokenSessionService.invalidateMember(memberId);
         operationLogService.audit(memberId, "UPDATE", "members", memberId, "password_reset_requested", "password_reset_done", httpRequest);
     }
 
@@ -155,7 +168,7 @@ public class AuthService {
                 request.getNewsletterYn(), member.getProfileImageUrl()
         );
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
-        return new MemberResponse(member, isAdmin);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId));
     }
 
     @Transactional
@@ -166,6 +179,7 @@ public class AuthService {
             throw new BusinessException("현재 비밀번호가 올바르지 않습니다.");
         }
         member.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+        tokenSessionService.invalidateMember(memberId);
     }
 
     @Transactional
@@ -176,6 +190,7 @@ public class AuthService {
             throw new BusinessException("비밀번호가 올바르지 않습니다.");
         }
         member.withdraw(getClientIp(httpRequest));
+        tokenSessionService.invalidateMember(memberId);
         operationLogService.audit(memberId, "DELETE", "members", memberId, null, "withdrawn", httpRequest);
     }
 
@@ -183,6 +198,7 @@ public class AuthService {
     public void logout(Long memberId, HttpServletRequest httpRequest) {
         String ip = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
+        tokenSessionService.invalidateToken(resolveToken(httpRequest));
         saveLoginLog(memberId, "LOGOUT", ip, userAgent, true);
         operationLogService.audit(memberId, "LOGOUT", "members", memberId, null, null, httpRequest);
     }
@@ -192,14 +208,14 @@ public class AuthService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
-        return new MemberResponse(member, isAdmin);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId));
     }
 
     private void sendVerificationEmail(Member member) {
         String token = jwtProvider.createPurposeToken(member.getId(), member.getUsername(), "EMAIL_VERIFY", 1000L * 60 * 60 * 24);
         String link = frontendUrl + "/verify-email?token=" + token;
         mailService.send(member.getId(), member.getEmail(), "[Corum] 이메일 인증",
-                "<p>아래 링크를 눌러 이메일 인증을 완료하세요.</p><p><a href=\"" + link + "\">이메일 인증</a></p>",
+                "<p>아래 링크를 눌러 이메일 인증을 완료해주세요.</p><p><a href=\"" + link + "\">이메일 인증</a></p>",
                 "EMAIL_VERIFY");
     }
 
@@ -225,5 +241,27 @@ public class AuthService {
             return ip.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private int getLoginFailLimit() {
+        return siteSettingRepository.findTopByOrderByIdAsc()
+                .map(SiteSetting::getLoginFailLimit)
+                .filter(limit -> limit > 0)
+                .orElse(loginFailLimit);
+    }
+
+    private int getSessionTimeoutMin(SiteSetting setting) {
+        if (setting == null || setting.getSessionTimeoutMin() == null || setting.getSessionTimeoutMin() <= 0) {
+            return 30;
+        }
+        return setting.getSessionTimeoutMin();
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        String bearer = request.getHeader("Authorization");
+        if (bearer != null && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+        return null;
     }
 }

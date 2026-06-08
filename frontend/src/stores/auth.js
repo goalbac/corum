@@ -31,7 +31,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(username, password) {
     const res = await api.post('/auth/login', { username, password })
     setToken(res.data.data.accessToken)
+    member.value = res.data.data.member
     await fetchMe()
+    return member.value
   }
 
   async function logout() {
