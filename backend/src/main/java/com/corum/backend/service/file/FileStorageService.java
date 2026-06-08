@@ -143,6 +143,27 @@ public class FileStorageService {
                 .orElseThrow(() -> BusinessException.notFound("파일을 찾을 수 없습니다."));
     }
 
+    // ===== 프로필 이미지 업로드 (S3 직접 저장, DB 미기록) =====
+    public String uploadProfileImage(Long memberId, MultipartFile file) {
+        String ext = getExtension(file.getOriginalFilename());
+        String storedName = "profile_" + memberId + "_" + UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
+        String storagePath = "profiles/" + storedName;
+        try {
+            s3Client.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .contentType(file.getContentType())
+                    .contentLength(file.getSize())
+                    .build(),
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (IOException e) {
+            throw new BusinessException("프로필 이미지 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return "/api/files/profile/" + storedName;
+    }
+
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
         return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();

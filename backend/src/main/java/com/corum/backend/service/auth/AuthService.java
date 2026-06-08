@@ -19,10 +19,12 @@ import com.corum.backend.dto.auth.UpdateProfileRequest;
 import com.corum.backend.dto.auth.WithdrawRequest;
 import com.corum.backend.dto.group.GroupResponse;
 import com.corum.backend.security.JwtProvider;
+import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.group.GroupService;
 import com.corum.backend.service.log.OperationLogService;
 import com.corum.backend.service.mail.MailService;
 import com.corum.backend.service.terms.TermsService;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +52,7 @@ public class AuthService {
     private final TermsService termsService;
     private final SiteSettingRepository siteSettingRepository;
     private final TokenSessionService tokenSessionService;
+    private final FileStorageService fileStorageService;
 
     @Value("${jwt.login-fail-limit:5}")
     private int loginFailLimit;
@@ -207,6 +210,18 @@ public class AuthService {
     public MemberResponse getMe(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
+        boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId));
+    }
+
+    @Transactional
+    public MemberResponse uploadProfileImage(Long memberId, MultipartFile file) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
+        String imageUrl = fileStorageService.uploadProfileImage(memberId, file);
+        member.updateProfile(member.getName(), member.getPhone(), member.getAddress(),
+                member.getBirthDate(), member.getHomePhone(), member.getOccupation(),
+                member.getWorkPhone(), member.getNewsletterYn(), imageUrl);
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
         return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId));
     }

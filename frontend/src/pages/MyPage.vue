@@ -68,6 +68,30 @@
         </el-card>
       </el-tab-pane>
 
+      <!-- 프로필 사진 -->
+      <el-tab-pane label="프로필 사진" name="photo">
+        <el-card shadow="never" class="tab-card">
+          <div class="photo-section">
+            <div class="avatar-preview">
+              <img v-if="member?.profileImageUrl" :src="member.profileImageUrl" class="avatar-img" alt="프로필 사진" />
+              <div v-else class="avatar-placeholder">{{ member?.name?.charAt(0) || 'U' }}</div>
+            </div>
+            <div class="photo-actions">
+              <input ref="fileInputRef" type="file" accept="image/*" hidden @change="handleFileChange" />
+              <el-button @click="fileInputRef?.click()">사진 선택</el-button>
+              <el-button
+                v-if="selectedFile"
+                type="primary"
+                :loading="photoSaving"
+                @click="handleUploadPhoto"
+              >업로드</el-button>
+              <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+            </div>
+            <p class="photo-hint">JPG, PNG, GIF 형식 / 최대 5MB</p>
+          </div>
+        </el-card>
+      </el-tab-pane>
+
       <!-- 비밀번호 변경 -->
       <el-tab-pane label="비밀번호 변경" name="password">
         <el-card shadow="never" class="tab-card">
@@ -142,6 +166,9 @@ const saving = ref(false)
 const pwSaving = ref(false)
 const member = ref(null)
 const withdrawPassword = ref('')
+const fileInputRef = ref(null)
+const selectedFile = ref(null)
+const photoSaving = ref(false)
 
 const infoForm = ref({
   name: '', phone: '', gender: '', birthDate: '',
@@ -243,6 +270,31 @@ async function handleWithdraw() {
   }
 }
 
+function handleFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) { ElMessage.warning('파일 크기는 5MB 이하여야 합니다.'); return }
+  selectedFile.value = file
+}
+
+async function handleUploadPhoto() {
+  if (!selectedFile.value) return
+  photoSaving.value = true
+  try {
+    const form = new FormData()
+    form.append('file', selectedFile.value)
+    await api.post('/auth/me/profile-image', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    await authStore.fetchMe()
+    member.value = authStore.member
+    selectedFile.value = null
+    ElMessage.success('프로필 사진이 변경되었습니다.')
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || '업로드에 실패했습니다.')
+  } finally {
+    photoSaving.value = false
+  }
+}
+
 onMounted(fetchMember)
 </script>
 
@@ -272,4 +324,40 @@ onMounted(fetchMember)
   font-size: 13px;
   line-height: 1.8;
 }
+
+.photo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.avatar-img { width: 100%; height: 100%; object-fit: cover; }
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.photo-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.file-name { font-size: 13px; color: var(--t2); }
+
+.photo-hint { font-size: 13px; color: var(--t3); margin: 0; }
 </style>

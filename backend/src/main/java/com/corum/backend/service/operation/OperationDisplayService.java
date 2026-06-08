@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -24,6 +25,37 @@ public class OperationDisplayService {
     private final PopupRepository popupRepository;
     private final PopupTargetPageRepository popupTargetPageRepository;
     private final BannerRepository bannerRepository;
+
+    // ===== 공개 API — 현재 활성 팝업 (기간 유효 + isActive) =====
+    @Transactional(readOnly = true)
+    public List<PopupResponse> getActivePopups(Long menuId) {
+        LocalDateTime now = LocalDateTime.now();
+        return popupRepository.findAllByOrderByPriorityAscCreatedAtDesc().stream()
+                .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
+                .filter(p -> p.getStartAt() == null || !p.getStartAt().isAfter(now))
+                .filter(p -> p.getEndAt() == null || !p.getEndAt().isBefore(now))
+                .filter(p -> {
+                    List<PopupTargetPage> targets = popupTargetPageRepository.findByPopupId(p.getId());
+                    String targetType = targets.stream().findFirst().map(PopupTargetPage::getTargetType).orElse("ALL");
+                    if ("ALL".equals(targetType)) return true;
+                    if (menuId == null) return false;
+                    return targets.stream().anyMatch(t -> menuId.equals(t.getTargetMenuId()));
+                })
+                .map(p -> new PopupResponse(p, popupTargetPageRepository.findByPopupId(p.getId())))
+                .toList();
+    }
+
+    // ===== 공개 API — 현재 활성 배너 =====
+    @Transactional(readOnly = true)
+    public List<BannerResponse> getActiveBanners() {
+        LocalDateTime now = LocalDateTime.now();
+        return bannerRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
+                .filter(b -> b.getStartAt() == null || !b.getStartAt().isAfter(now))
+                .filter(b -> b.getEndAt() == null || !b.getEndAt().isBefore(now))
+                .map(BannerResponse::new)
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<PopupResponse> getPopups() {

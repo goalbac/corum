@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,8 +25,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -91,6 +94,13 @@ public class AuthController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         authService.updatePassword(userDetails.getMemberId(), request);
         return ApiResponse.ok("비밀번호가 변경되었습니다.");
+    }
+
+    @PostMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<MemberResponse> uploadProfileImage(
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.ok(authService.uploadProfileImage(userDetails.getMemberId(), file));
     }
 
     @DeleteMapping("/me")

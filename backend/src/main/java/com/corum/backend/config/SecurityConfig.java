@@ -55,7 +55,10 @@ public class SecurityConfig {
                                 "/api/terms/active",
                                 "/api/menus",
                                 "/api/inquiries",
-                                "/api/calendars/**"
+                                "/api/calendars/**",
+                                "/api/display/popups/active",
+                                "/api/display/banners/active",
+                                "/api/site/public"
                         ).permitAll()
                         // 나머지 인증 필요
                         .anyRequest().authenticated()

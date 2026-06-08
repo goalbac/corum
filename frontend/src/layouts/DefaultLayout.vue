@@ -1,6 +1,7 @@
 <template>
   <div class="layout">
     <AppHeader @toggle-mobile-menu="mobileMenuOpen = !mobileMenuOpen" />
+    <AppBanner ref="bannerRef" />
 
     <transition name="fade">
       <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false" />
@@ -109,6 +110,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AppBanner from '@/components/common/AppBanner.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 
@@ -225,6 +227,11 @@ onMounted(async () => {
 .main-content {
   margin-top: var(--header-height);
   min-height: calc(100vh - var(--header-height));
+}
+
+/* 배너가 고정되므로 배너 높이(약 44px)만큼 추가 여백 */
+:global(.app-banner) ~ .layout .main-content {
+  margin-top: calc(var(--header-height) + 44px);
 }
 
 .page-container {
