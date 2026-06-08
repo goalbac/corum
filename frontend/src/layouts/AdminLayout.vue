@@ -5,6 +5,12 @@
     <div class="admin-body">
       <aside class="admin-sidebar" :class="{ open: mobileOpen }">
         <div class="sidebar-section">
+          <router-link to="/admin" class="sidebar-item" exact-active-class="active">
+            <i class="ti ti-layout-dashboard"></i> 대시보드
+          </router-link>
+        </div>
+
+        <div class="sidebar-section">
           <div class="section-title">콘텐츠</div>
           <router-link to="/admin/menus" class="sidebar-item" active-class="active">
             <i class="ti ti-menu-2"></i> 메뉴 관리
@@ -28,9 +34,6 @@
 
         <div class="sidebar-section">
           <div class="section-title">운영</div>
-          <router-link to="/admin" class="sidebar-item" exact-active-class="active">
-            <i class="ti ti-chart-bar"></i> 대시보드
-          </router-link>
           <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
             <i class="ti ti-mail"></i> 문의 관리
           </router-link>
