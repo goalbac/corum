@@ -363,6 +363,7 @@ onMounted(async () => {
   display: flex;
   gap: 20px;
   min-height: 0;
+  padding: 20px 24px 24px;
 }
 
 /* ===== 사이드바 ===== */

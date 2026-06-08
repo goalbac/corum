@@ -37,11 +37,7 @@ watch(activeMenu, menu => {
 .menu-page {
   min-height: 360px;
   padding: 36px;
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
   color: var(--t1);
-  box-shadow: var(--shadow);
 }
 
 .menu-page h1 {

@@ -47,7 +47,7 @@ onMounted(async () => {
 <style scoped>
 .content-page {
   min-height: 360px;
-  padding: 0 0 40px;
+  padding: 30px 30px 40px;
   color: var(--t1);
 }
 
@@ -127,11 +127,6 @@ onMounted(async () => {
 
 .empty-content {
   min-height: 320px;
-  padding: 36px;
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  box-shadow: var(--shadow);
 }
 
 .empty-content p {

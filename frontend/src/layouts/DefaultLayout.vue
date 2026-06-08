@@ -99,7 +99,9 @@
                 <h1 class="page-title">{{ routeMenu.name }}</h1>
                 <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
               </div>
-              <router-view />
+              <div class="content-card">
+                <router-view />
+              </div>
             </section>
           </div>
         </template>
@@ -330,6 +332,14 @@ onMounted(async () => {
 .content-area {
   min-width: 0;
   color: var(--t1);
+}
+
+.content-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
 .page-header {

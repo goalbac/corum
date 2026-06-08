@@ -199,7 +199,7 @@ onMounted(async () => {
 .board-list {
   display: flex;
   flex-direction: column;
-  padding: 0 0 4px;
+  padding: 20px 24px 24px;
   color: var(--t1);
 }
 

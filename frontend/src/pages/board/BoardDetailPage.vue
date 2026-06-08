@@ -187,12 +187,7 @@ onMounted(async () => {
 
 <style scoped>
 .board-detail {
-  background: var(--surface);
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
   color: var(--t1);
-  box-shadow: var(--shadow);
 }
 
 .post-header {
