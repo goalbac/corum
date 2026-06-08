@@ -1,52 +1,75 @@
 <template>
-  <transition name="banner-slide">
-    <div v-if="visible && banners.length" class="app-banner">
-      <div class="banner-inner">
-        <div class="banner-content" v-for="banner in banners" :key="banner.id">
-          <a
-            v-if="banner.linkUrl"
-            :href="banner.linkUrl"
-            :target="banner.linkNewWindow ? '_blank' : '_self'"
-            class="banner-text"
-          >{{ banner.content }}</a>
-          <span v-else class="banner-text">{{ banner.content }}</span>
+  <div v-if="visibleBanners.length" class="app-banners">
+    <transition-group name="banner-slide" tag="div">
+      <div v-for="banner in visibleBanners" :key="banner.id" class="app-banner">
+        <div class="banner-inner">
+          <div class="banner-content">
+            <a
+              v-if="banner.linkUrl"
+              :href="banner.linkUrl"
+              :target="banner.linkNewWindow ? '_blank' : '_self'"
+              class="banner-text"
+            >{{ banner.content }}</a>
+            <span v-else class="banner-text">{{ banner.content }}</span>
+          </div>
+          <div class="banner-actions">
+            <button class="banner-btn" @click="neverShow(banner.id)">다시 보지 않기</button>
+            <button class="banner-btn banner-btn-close" @click="closeSession(banner.id)" aria-label="배너 닫기">
+              끄기
+            </button>
+          </div>
         </div>
-        <button class="banner-close" @click="dismiss" aria-label="배너 닫기">
-          <i class="ti ti-x"></i>
-        </button>
       </div>
-    </div>
-  </transition>
+    </transition-group>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '@/api/axios'
 
-const banners = ref([])
-const visible = ref(false)
-const STORAGE_KEY = 'banner_dismissed'
+const allBanners = ref([])
+// 이 세션에서만 닫은 배너 ID 집합
+const sessionClosed = ref(new Set())
+
+function neverShowKey(id) { return `banner_noshow_${id}` }
+function isNeverShow(id) { return !!localStorage.getItem(neverShowKey(id)) }
+
+const visibleBanners = computed(() =>
+  allBanners.value.filter(b => !isNeverShow(b.id) && !sessionClosed.value.has(b.id))
+)
 
 onMounted(async () => {
-  if (sessionStorage.getItem(STORAGE_KEY)) return
   try {
     const res = await api.get('/display/banners/active')
-    banners.value = res.data.data || []
-    if (banners.value.length) visible.value = true
-  } catch { /* 배너 오류는 무시 */ }
+    // 영구 숨김 처리된 배너만 미리 걸러냄
+    allBanners.value = (res.data.data || []).filter(b => !isNeverShow(b.id))
+  } catch { /* ignore */ }
 })
 
-function dismiss() {
-  visible.value = false
-  sessionStorage.setItem(STORAGE_KEY, '1')
+function neverShow(id) {
+  localStorage.setItem(neverShowKey(id), '1')
+  // computed 재계산을 위해 allBanners에서도 제거
+  allBanners.value = allBanners.value.filter(b => b.id !== id)
 }
 
+function closeSession(id) {
+  sessionClosed.value = new Set([...sessionClosed.value, id])
+}
 </script>
 
 <style scoped>
+.app-banners {
+  overflow: hidden;
+}
+
 .app-banner {
   background: var(--accent);
   color: #fff;
+}
+
+.app-banner + .app-banner {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .banner-inner {
@@ -76,25 +99,39 @@ function dismiss() {
 
 .banner-text:hover { text-decoration: underline; }
 
-.banner-close {
+.banner-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 16px;
+  gap: 8px;
   flex-shrink: 0;
-  transition: background 0.15s;
 }
 
-.banner-close:hover { background: rgba(255,255,255,0.35); }
+.banner-btn {
+  padding: 4px 12px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
 
-.banner-slide-enter-active, .banner-slide-leave-active { transition: max-height 0.25s, opacity 0.25s; overflow: hidden; }
+.banner-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+.banner-btn-close {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.banner-btn-close:hover { background: rgba(255, 255, 255, 0.3); }
+
+.banner-slide-enter-active, .banner-slide-leave-active {
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
 .banner-slide-enter-from, .banner-slide-leave-to { max-height: 0; opacity: 0; }
 .banner-slide-enter-to, .banner-slide-leave-from { max-height: 60px; opacity: 1; }
 </style>
