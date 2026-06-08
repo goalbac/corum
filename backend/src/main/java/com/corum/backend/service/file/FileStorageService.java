@@ -1,6 +1,8 @@
 package com.corum.backend.service.file;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.file.FileDownloadLog;
+import com.corum.backend.domain.file.FileDownloadLogRepository;
 import com.corum.backend.domain.file.UploadFile;
 import com.corum.backend.domain.file.UploadFileRepository;
 import com.corum.backend.dto.file.FileResponse;
@@ -29,6 +31,7 @@ public class FileStorageService {
 
     private final S3Client s3Client;
     private final UploadFileRepository uploadFileRepository;
+    private final FileDownloadLogRepository downloadLogRepository;
 
     @Value("${storage.s3.bucket}")
     private String bucket;
@@ -141,6 +144,15 @@ public class FileStorageService {
     public UploadFile getUploadFile(Long fileId) {
         return uploadFileRepository.findById(fileId)
                 .orElseThrow(() -> BusinessException.notFound("파일을 찾을 수 없습니다."));
+    }
+
+    @Transactional
+    public void logDownload(Long fileId, Long memberId, String ipAddress) {
+        downloadLogRepository.save(FileDownloadLog.builder()
+                .fileId(fileId)
+                .memberId(memberId)
+                .ipAddress(ipAddress)
+                .build());
     }
 
     // ===== 프로필 이미지 서빙 =====

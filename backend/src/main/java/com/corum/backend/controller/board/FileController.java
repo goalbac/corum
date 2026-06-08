@@ -1,13 +1,16 @@
 package com.corum.backend.controller.board;
 
 import com.corum.backend.domain.file.UploadFile;
+import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.file.FileStorageService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,9 +25,17 @@ public class FileController {
     private final FileStorageService fileStorageService;
 
     @GetMapping("/api/files/{fileId}/download")
-    public ResponseEntity<byte[]> download(@PathVariable Long fileId) {
+    public ResponseEntity<byte[]> download(
+            @PathVariable Long fileId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletRequest request) {
         UploadFile uploadFile = fileStorageService.getUploadFile(fileId);
         byte[] data = fileStorageService.downloadFile(fileId);
+
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
+        fileStorageService.logDownload(fileId, memberId, ip);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
