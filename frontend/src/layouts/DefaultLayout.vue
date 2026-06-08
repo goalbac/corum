@@ -1,7 +1,6 @@
 <template>
   <div class="layout">
     <AppHeader @toggle-mobile-menu="mobileMenuOpen = !mobileMenuOpen" />
-    <!-- 고정 헤더 높이만큼 공간 확보 -->
     <div class="header-spacer" />
     <AppBanner />
 
@@ -46,12 +45,26 @@
       </div>
     </transition>
 
+    <!-- flex column으로 footer를 항상 하단에 -->
     <main class="main-content">
-      <div class="page-container" style="min-height:calc(100vh - var(--header-height) - 100px)">
+      <div class="page-container">
         <template v-if="showsMenuLayout">
           <div class="menu-shell">
+
+            <!-- 왼쪽: 마이페이지 스타일 사이드바 -->
             <aside class="lnb" aria-label="하위 메뉴">
-              <div class="lnb-title">{{ activeTopMenu?.name }}</div>
+              <!-- 그라데이션 헤더 (섹션명 + 현재 페이지 제목) -->
+              <div class="lnb-header">
+                <div class="lnb-section-name">{{ activeTopMenu?.name }}</div>
+                <div v-if="routeMenu && routeMenu.id !== activeTopMenu?.id" class="lnb-current-title">
+                  {{ routeMenu.name }}
+                </div>
+                <div v-if="routeMenu?.description" class="lnb-current-desc">
+                  {{ routeMenu.description }}
+                </div>
+              </div>
+
+              <!-- 메뉴 목록 -->
               <div class="lnb-list">
                 <template v-for="menu in sideMenus" :key="menu.id">
                   <button
@@ -88,23 +101,13 @@
               </div>
             </aside>
 
+            <!-- 오른쪽: 흰색 카드 -->
             <section class="content-area">
-              <div v-if="routeMenu" class="page-header">
-                <div v-if="breadcrumbs.length" class="breadcrumb">
-                  <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
-                    <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">
-                      {{ item.name }}
-                    </span>
-                    <i v-if="index < breadcrumbs.length - 1" class="ti ti-chevron-right bc-arrow"></i>
-                  </span>
-                </div>
-                <h1 class="page-title">{{ routeMenu.name }}</h1>
-                <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
-              </div>
               <div class="content-card">
                 <router-view />
               </div>
             </section>
+
           </div>
         </template>
 
@@ -112,6 +115,7 @@
           <router-view />
         </template>
       </div>
+
       <AppFooter />
     </main>
   </div>
@@ -146,18 +150,6 @@ const activeSideMenuIds = computed(() => {
     current = current.parent || null
   }
   return ids
-})
-
-const breadcrumbs = computed(() => {
-  const items = []
-  if (activeTopMenu.value) items.push(activeTopMenu.value)
-  const stack = []
-  let current = routeMenu.value
-  while (current && current.id !== activeTopMenu.value?.id) {
-    stack.unshift(current)
-    current = current.parent || null
-  }
-  return items.concat(stack)
 })
 
 function isOpen(id) {
@@ -230,30 +222,43 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ===== 전체 레이아웃: sticky footer ===== */
 .layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
   transition: background 0.25s;
 }
 
-/* 고정 헤더 높이만큼 공간을 차지해 배너와 콘텐츠를 헤더 아래로 내림 */
 .header-spacer {
   height: var(--header-height);
   flex-shrink: 0;
 }
 
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .page-container {
+  flex: 1;
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 24px 22px 40px;
 }
 
+/* ===== 메뉴 셸 ===== */
 .menu-shell {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 32px;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 28px;
   align-items: start;
 }
 
+/* ===== LNB 사이드바 (마이페이지 스타일) ===== */
 .lnb {
   position: sticky;
   top: calc(var(--header-height) + 24px);
@@ -264,37 +269,83 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.lnb-title {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  background: var(--accent);
+/* 그라데이션 헤더 */
+.lnb-header {
+  padding: 20px 18px 18px;
+  background: linear-gradient(135deg, #4f6ef7 0%, #7c4ff7 50%, #e05fc4 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 헤더 내 미묘한 패턴 */
+.lnb-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 10% 80%, rgba(255,255,255,0.08) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.lnb-section-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.lnb-current-title {
+  font-size: 18px;
+  font-weight: 800;
   color: #fff;
+  line-height: 1.3;
+  position: relative;
+  z-index: 1;
+}
+
+.lnb-current-desc {
+  font-size: 12px;
+  color: rgba(255,255,255,0.72);
+  margin-top: 5px;
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+}
+
+/* 섹션명만 있을 때 (현재 페이지 = top 메뉴인 경우) */
+.lnb-header:not(:has(.lnb-current-title)) .lnb-section-name {
   font-size: 17px;
   font-weight: 800;
-  border-radius: var(--radius-xs);
+  letter-spacing: 0;
+  text-transform: none;
+  color: #fff;
 }
 
 .lnb-list {
-  padding: 8px 8px;
+  padding: 8px;
 }
 
 .lnb-item {
   width: 100%;
-  min-height: 42px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 14px;
+  padding: 8px 12px;
   border: none;
   border-radius: var(--radius-xs);
   background: transparent;
   color: var(--t2);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   text-align: left;
   transition: var(--transition);
+  cursor: pointer;
 }
 
 .lnb-item:hover {
@@ -305,17 +356,15 @@ onMounted(async () => {
 .lnb-item.active {
   background: var(--accent-bg);
   color: var(--accent-t);
-  font-weight: 800;
-}
-
-.lnb-item.parent {
   font-weight: 700;
 }
 
+.lnb-item.parent { font-weight: 700; }
+
 .lnb-item.child {
-  min-height: 38px;
-  padding-left: 28px;
-  font-size: 15px;
+  min-height: 36px;
+  padding-left: 26px;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -331,22 +380,37 @@ onMounted(async () => {
 
 .lnb-arrow {
   color: var(--t3);
-  font-size: 14px;
+  font-size: 13px;
   transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
 .lnb-arrow.rotated { transform: rotate(90deg); }
 
 .lnb-link-icon {
-  font-size: 12px;
-  color: var(--t4);
-  margin-left: 2px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
   flex-shrink: 0;
 }
 
+.lnb-item:not(.active) .lnb-link-icon {
+  color: var(--t4);
+}
+
+/* new 배지 */
+.new-badge {
+  font-size: 10px;
+  background: var(--new);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ===== 오른쪽 콘텐츠 ===== */
 .content-area {
   min-width: 0;
-  color: var(--t1);
 }
 
 .content-card {
@@ -357,55 +421,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.page-header {
-  margin-bottom: 20px;
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-.bc-wrap {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.bc-item {
-  font-size: 13px;
-  color: var(--t3);
-}
-
-.bc-item.last {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.bc-arrow {
-  font-size: 11px;
-  color: var(--t3);
-}
-
-.page-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--t1);
-  line-height: 1.3;
-  margin-bottom: 6px;
-}
-
-.page-desc {
-  font-size: 14px;
-  color: var(--t3);
-  line-height: 1.6;
-  margin-bottom: 4px;
-}
-
+/* ===== 모바일 오버레이/드로어 ===== */
 .mobile-overlay {
   position: fixed;
   inset: 0;
@@ -454,10 +470,7 @@ onMounted(async () => {
   border-radius: var(--radius-xs);
 }
 
-.drawer-close:hover {
-  background: var(--surface2);
-  color: var(--t1);
-}
+.drawer-close:hover { background: var(--surface2); color: var(--t1); }
 
 .drawer-nav { padding: 10px; }
 
@@ -473,6 +486,7 @@ onMounted(async () => {
   color: var(--t2);
   text-align: left;
   transition: var(--transition);
+  cursor: pointer;
 }
 
 .drawer-top-item {
@@ -482,11 +496,7 @@ onMounted(async () => {
   font-weight: 800;
 }
 
-.drawer-top-item i {
-  font-size: 14px;
-  transition: transform 0.2s;
-}
-
+.drawer-top-item i { font-size: 14px; transition: transform 0.2s; }
 .drawer-top-item i.rotated { transform: rotate(180deg); }
 
 .drawer-sub-item {
@@ -496,31 +506,21 @@ onMounted(async () => {
 }
 
 .drawer-top-item:hover,
-.drawer-sub-item:hover {
-  background: var(--surface2);
-  color: var(--t1);
-}
+.drawer-sub-item:hover { background: var(--surface2); color: var(--t1); }
 
 .drawer-top-item.active,
-.drawer-sub-item.active {
-  background: var(--accent-bg);
-  color: var(--accent-t);
-}
+.drawer-sub-item.active { background: var(--accent-bg); color: var(--accent-t); }
 
-.fade-enter-active,
-.fade-leave-active { transition: opacity 0.2s; }
-.fade-enter-from,
-.fade-leave-to { opacity: 0; }
-.slide-left-enter-active,
-.slide-left-leave-active { transition: transform 0.25s cubic-bezier(.4,0,.2,1); }
-.slide-left-enter-from,
-.slide-left-leave-to { transform: translateX(-100%); }
+/* ===== 트랜지션 ===== */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+.slide-left-enter-active, .slide-left-leave-active { transition: transform 0.25s cubic-bezier(.4,0,.2,1); }
+.slide-left-enter-from, .slide-left-leave-to { transform: translateX(-100%); }
 
+/* ===== 반응형 ===== */
 @media (max-width: 768px) {
-  .page-container { padding: 18px 14px 32px; }
+  .page-container { padding: 18px 14px 28px; }
   .menu-shell { display: block; }
   .lnb { display: none; }
-  .page-title { font-size: 18px; }
-  .page-header { margin-bottom: 16px; }
 }
 </style>

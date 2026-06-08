@@ -44,7 +44,6 @@ onMounted(async () => {
 .app-footer {
   background: var(--surface);
   border-top: 0.5px solid var(--border2);
-  margin-top: auto;
 }
 
 .footer-inner {
