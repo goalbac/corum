@@ -1,37 +1,6 @@
 <template>
   <div class="board-list">
 
-    <!-- ===== 공통 툴바 ===== -->
-    <div class="list-toolbar">
-      <div class="search-group">
-        <div class="search-type-wrap">
-          <el-select v-model="searchType" size="small" class="search-type">
-            <el-option value="title" label="제목" />
-            <el-option value="content" label="내용" />
-            <el-option value="writer" label="작성자" />
-            <el-option value="all" label="전체" />
-          </el-select>
-        </div>
-        <div class="search-input-wrap">
-          <i class="ti ti-search search-icon"></i>
-          <input
-            v-model="keyword"
-            class="search-input"
-            placeholder="검색어 입력..."
-            @keyup.enter="handleSearch"
-          />
-          <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
-            <i class="ti ti-x"></i>
-          </button>
-        </div>
-        <button class="search-btn" @click="handleSearch">검색</button>
-      </div>
-      <button v-if="canWrite" class="write-btn" @click="goWrite">
-        <i class="ti ti-pencil-plus"></i>
-        <span>글쓰기</span>
-      </button>
-    </div>
-
     <!-- ===== 갤러리 뷰 ===== -->
     <template v-if="board?.boardType === 'GALLERY'">
       <div v-loading="loading" class="gallery-grid">
@@ -53,7 +22,7 @@
               <span v-if="board?.useLike" class="stat-chip">
                 <i class="ti ti-heart"></i> {{ post.likeCount }}
               </span>
-              <span v-if="post.commentCount > 0" class="stat-chip">
+              <span class="stat-chip">
                 <i class="ti ti-message-circle"></i> {{ post.commentCount }}
               </span>
               <span v-if="post.hasFile" class="stat-chip">
@@ -72,6 +41,31 @@
       <div class="pagination">
         <el-pagination v-model:current-page="page" :page-size="gallerySize" :total="total"
           layout="prev, pager, next" background small @current-change="fetchPosts" />
+      </div>
+      <div class="list-toolbar">
+        <div class="search-group">
+          <div class="search-type-wrap">
+            <el-select v-model="searchType" size="small" class="search-type">
+              <el-option value="title" label="제목" />
+              <el-option value="content" label="내용" />
+              <el-option value="writer" label="작성자" />
+              <el-option value="all" label="전체" />
+            </el-select>
+          </div>
+          <div class="search-input-wrap">
+            <i class="ti ti-search search-icon"></i>
+            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
+              @keyup.enter="handleSearch" />
+            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <button class="search-btn" @click="handleSearch">검색</button>
+        </div>
+        <button v-if="canWrite" class="write-btn" @click="goWrite">
+          <i class="ti ti-pencil-plus"></i>
+          <span>글쓰기</span>
+        </button>
       </div>
     </template>
 
@@ -96,7 +90,7 @@
             </div>
             <div class="pt-col title">
               <span class="pt-title notice-title">{{ post.title }}</span>
-              <span v-if="post.commentCount > 0" class="comment-cnt">[{{ post.commentCount }}]</span>
+              <span class="comment-cnt">[{{ post.commentCount }}]</span>
               <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
               <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             </div>
@@ -118,7 +112,7 @@
             </div>
             <div class="pt-col title">
               <span class="pt-title">{{ post.title }}</span>
-              <span v-if="post.commentCount > 0" class="comment-cnt">[{{ post.commentCount }}]</span>
+              <span class="comment-cnt">[{{ post.commentCount }}]</span>
               <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
               <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             </div>
@@ -139,6 +133,31 @@
       <div class="pagination">
         <el-pagination v-model:current-page="page" :page-size="size" :total="total"
           layout="prev, pager, next" background small @current-change="fetchPosts" />
+      </div>
+      <div class="list-toolbar">
+        <div class="search-group">
+          <div class="search-type-wrap">
+            <el-select v-model="searchType" size="small" class="search-type">
+              <el-option value="title" label="제목" />
+              <el-option value="content" label="내용" />
+              <el-option value="writer" label="작성자" />
+              <el-option value="all" label="전체" />
+            </el-select>
+          </div>
+          <div class="search-input-wrap">
+            <i class="ti ti-search search-icon"></i>
+            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
+              @keyup.enter="handleSearch" />
+            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <button class="search-btn" @click="handleSearch">검색</button>
+        </div>
+        <button v-if="canWrite" class="write-btn" @click="goWrite">
+          <i class="ti ti-pencil-plus"></i>
+          <span>글쓰기</span>
+        </button>
       </div>
     </template>
 
@@ -166,8 +185,8 @@ const posts = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
-const size = ref(20)
-const gallerySize = ref(12)
+const size = ref(15)
+const gallerySize = ref(15)
 const keyword = ref('')
 const searchType = ref('title')
 
@@ -479,8 +498,8 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 10px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--border2);
-  background: var(--surface);
+  border-top: 1px solid var(--border2);
+  background: var(--surface2);
   flex-wrap: wrap;
 }
 
