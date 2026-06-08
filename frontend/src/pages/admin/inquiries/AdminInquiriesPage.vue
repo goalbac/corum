@@ -98,16 +98,16 @@ const detailStatus = ref(''); const newMemo = ref('')
 
 async function fetchInquiries(p = page.value) {
   page.value = p; loading.value = true
-  try { const r = await api.get('/admin/inquiries', { params: { keyword: keyword.value, status: statusFilter.value, page: p - 1, size } }); list.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
+  try { const r = await api.get('/inquiries', { params: { keyword: keyword.value, status: statusFilter.value, page: p - 1, size } }); list.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
   finally { loading.value = false }
 }
 async function openDetail(row) {
-  const r = await api.get(`/admin/inquiries/${row.id}`)
+  const r = await api.get(`/inquiries/${row.id}`)
   detail.value = r.data.data; detailStatus.value = detail.value.status; showDetail.value = true
 }
-async function updateStatus() { await api.put(`/admin/inquiries/${detail.value.id}/status`, { status: detailStatus.value }); ElMessage.success('상태가 변경되었습니다.'); detail.value.status = detailStatus.value; fetchInquiries() }
-async function addMemo() { if (!newMemo.value.trim()) return; await api.post(`/admin/inquiries/${detail.value.id}/memos`, { memo: newMemo.value }); newMemo.value = ''; const r = await api.get(`/admin/inquiries/${detail.value.id}`); detail.value = r.data.data }
-async function deleteInquiry(id) { await ElMessageBox.confirm('문의를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/inquiries/${id}`); ElMessage.success('삭제되었습니다.'); fetchInquiries() }
+async function updateStatus() { await api.patch(`/inquiries/${detail.value.id}/status`, { status: detailStatus.value }); ElMessage.success('상태가 변경되었습니다.'); detail.value.status = detailStatus.value; fetchInquiries() }
+async function addMemo() { if (!newMemo.value.trim()) return; await api.post(`/inquiries/${detail.value.id}/memos`, { memo: newMemo.value }); newMemo.value = ''; const r = await api.get(`/inquiries/${detail.value.id}`); detail.value = r.data.data }
+async function deleteInquiry(id) { await ElMessageBox.confirm('문의를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/inquiries/${id}`); ElMessage.success('삭제되었습니다.'); fetchInquiries() }
 
 function statusLabel(s) { return { RECEIVED: '접수', CHECKING: '확인중', DONE: '처리완료' }[s] || s }
 function statusBadge(s) { return { RECEIVED: 'badge-warning', CHECKING: 'badge-info', DONE: 'badge-success' }[s] || 'badge-muted' }

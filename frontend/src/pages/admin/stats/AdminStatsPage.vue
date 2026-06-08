@@ -122,7 +122,7 @@ const stats = ref({}); const testEmail = ref(''); const sending = ref(false)
 
 const endpointMap = { visit: '/admin/logs/visits', search: '/admin/logs/search', audit: '/admin/logs/audit', smtp: '/admin/logs/smtp' }
 
-async function fetchStats() { try { const r = await api.get('/admin/logs/summary'); stats.value = r.data.data || {} } catch {} }
+async function fetchStats() { /* summary endpoint not yet implemented */ }
 async function fetchRows(p = page.value) {
   page.value = p; loading.value = true
   try { const r = await api.get(endpointMap[tab.value], { params: { page: p - 1, size } }); rows.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
