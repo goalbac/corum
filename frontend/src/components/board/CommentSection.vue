@@ -22,6 +22,7 @@
         :board-id="boardId"
         :post-id="postId"
         :can-comment="canComment && useComment || isAdmin"
+        :is-admin="isAdmin"
         @refresh="fetchComments"
       />
       <div v-if="!comments.length" class="cs-empty">

@@ -90,7 +90,9 @@
             </div>
             <div class="pt-col title">
               <span class="pt-title notice-title">{{ post.title }}</span>
-              <span class="comment-cnt">[{{ post.commentCount }}]</span>
+              <span v-if="post.commentCount > 0" class="comment-chip">
+                <i class="ti ti-message-2"></i>{{ post.commentCount }}
+              </span>
               <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
               <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             </div>
@@ -112,7 +114,9 @@
             </div>
             <div class="pt-col title">
               <span class="pt-title">{{ post.title }}</span>
-              <span class="comment-cnt">[{{ post.commentCount }}]</span>
+              <span v-if="post.commentCount > 0" class="comment-chip">
+                <i class="ti ti-message-2"></i>{{ post.commentCount }}
+              </span>
               <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
               <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             </div>
@@ -359,12 +363,16 @@ onMounted(async () => {
 
 .row-num { font-size: 13px; color: var(--t4); }
 
-.comment-cnt {
-  font-size: 13px;
-  color: var(--accent);
-  font-weight: 700;
+.comment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--t3);
   flex-shrink: 0;
 }
+
+.comment-chip i { font-size: 12px; }
 
 .file-chip {
   font-size: 13px;
@@ -596,7 +604,7 @@ onMounted(async () => {
 .write-btn:hover { opacity: 0.88; }
 
 /* ===== 페이지네이션 ===== */
-.pagination { display: flex; justify-content: center; padding: 18px 0 4px; }
+.pagination { display: flex; justify-content: center; padding: 24px 0 20px; }
 
 @media (max-width: 600px) {
   .pt-col.writer, .pt-col.count { display: none; }
