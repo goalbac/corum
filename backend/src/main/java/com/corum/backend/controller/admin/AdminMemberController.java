@@ -2,10 +2,14 @@ package com.corum.backend.controller.admin;
 
 import com.corum.backend.common.ApiResponse;
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.group.GroupRepository;
+import com.corum.backend.domain.group.MemberGroup;
+import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.AdminMemberMemo;
 import com.corum.backend.domain.member.AdminMemberMemoRepository;
 import com.corum.backend.domain.member.Member;
 import com.corum.backend.domain.member.MemberRepository;
+import com.corum.backend.dto.group.GroupResponse;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.auth.TokenSessionService;
 import com.corum.backend.service.log.OperationLogService;
@@ -19,6 +23,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +48,8 @@ public class AdminMemberController {
 
     private final MemberRepository memberRepository;
     private final AdminMemberMemoRepository adminMemberMemoRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final GroupRepository groupRepository;
     private final TokenSessionService tokenSessionService;
     private final OperationLogService operationLogService;
 
@@ -58,6 +67,23 @@ public class AdminMemberController {
             result = memberRepository.findAll(pageRequest);
         }
         return ApiResponse.ok(result);
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<Map<String, Object>> getMember(@PathVariable Long id) {
+        return ApiResponse.ok(toDetailResponse(findMember(id)));
+    }
+
+    @PutMapping("/{id}/unlock")
+    @Transactional
+    public ApiResponse<Void> unlockMember(@PathVariable Long id,
+                                          @AuthenticationPrincipal CustomUserDetails userDetails,
+                                          HttpServletRequest request) {
+        Member member = findMember(id);
+        member.unlock();
+        memberRepository.save(member);
+        operationLogService.audit(userDetails.getMemberId(), "UPDATE", "members", id, "locked", "unlocked", request);
+        return ApiResponse.ok("계정 잠금을 해제했습니다.");
     }
 
     @PatchMapping("/{id}/lock")
@@ -108,6 +134,58 @@ public class AdminMemberController {
         return ApiResponse.ok("메모가 저장되었습니다.");
     }
 
+    @PostMapping("/{id}/memos")
+    public ApiResponse<AdminMemberMemo> addMemo(@PathVariable Long id,
+                                                @RequestBody Map<String, String> body,
+                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
+        findMember(id);
+        AdminMemberMemo memo = adminMemberMemoRepository.findByMemberId(id)
+                .orElse(AdminMemberMemo.builder()
+                        .memberId(id)
+                        .createdBy(userDetails.getMemberId())
+                        .build());
+        memo.updateMemo(body.get("memo"), userDetails.getMemberId());
+        return ApiResponse.ok(adminMemberMemoRepository.save(memo));
+    }
+
+    @PostMapping("/{id}/groups")
+    public ApiResponse<Void> addGroup(@PathVariable Long id,
+                                      @RequestBody Map<String, Long> body,
+                                      @AuthenticationPrincipal CustomUserDetails userDetails,
+                                      HttpServletRequest request) {
+        findMember(id);
+        Long groupId = body.get("groupId");
+        if (groupId == null) {
+            throw new BusinessException("그룹을 선택해주세요.");
+        }
+        if (!groupRepository.existsById(groupId)) {
+            throw BusinessException.notFound("그룹을 찾을 수 없습니다.");
+        }
+        if (!memberGroupRepository.existsByMemberIdAndGroupId(id, groupId)) {
+            memberGroupRepository.save(MemberGroup.builder()
+                    .memberId(id)
+                    .groupId(groupId)
+                    .assignedBy(userDetails.getMemberId())
+                    .build());
+            operationLogService.audit(userDetails.getMemberId(), "UPDATE", "member_groups", id, null, String.valueOf(groupId), request);
+        }
+        return ApiResponse.ok("그룹을 추가했습니다.");
+    }
+
+    @DeleteMapping("/{id}/groups/{groupId}")
+    public ApiResponse<Void> removeGroup(@PathVariable Long id,
+                                         @PathVariable Long groupId,
+                                         @AuthenticationPrincipal CustomUserDetails userDetails,
+                                         HttpServletRequest request) {
+        findMember(id);
+        if (!memberGroupRepository.existsByMemberIdAndGroupId(id, groupId)) {
+            throw BusinessException.notFound("부여된 그룹이 아닙니다.");
+        }
+        memberGroupRepository.deleteByMemberIdAndGroupId(id, groupId);
+        operationLogService.audit(userDetails.getMemberId(), "UPDATE", "member_groups", id, String.valueOf(groupId), null, request);
+        return ApiResponse.ok("그룹을 제거했습니다.");
+    }
+
     @GetMapping("/export/excel")
     public ResponseEntity<byte[]> exportExcel() {
         List<Member> members = memberRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
@@ -146,6 +224,42 @@ public class AdminMemberController {
     private Member findMember(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("회원을 찾을 수 없습니다."));
+    }
+
+    private Map<String, Object> toDetailResponse(Member member) {
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(member.getId());
+        List<GroupResponse> groups = groupRepository.findAllById(groupIds).stream()
+                .map(GroupResponse::new)
+                .toList();
+        List<AdminMemberMemo> memos = adminMemberMemoRepository.findByMemberId(member.getId())
+                .map(List::of)
+                .orElseGet(List::of);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", member.getId());
+        response.put("username", member.getUsername());
+        response.put("email", member.getEmail());
+        response.put("name", member.getName());
+        response.put("gender", member.getGender());
+        response.put("phone", member.getPhone());
+        response.put("address", member.getAddress());
+        response.put("birthDate", member.getBirthDate());
+        response.put("homePhone", member.getHomePhone());
+        response.put("occupation", member.getOccupation());
+        response.put("workPhone", member.getWorkPhone());
+        response.put("newsletterYn", member.getNewsletterYn());
+        response.put("profileImageUrl", member.getProfileImageUrl());
+        response.put("isActive", member.getIsActive());
+        response.put("isLocked", member.getIsLocked());
+        response.put("loginFailCount", member.getLoginFailCount());
+        response.put("lockedAt", member.getLockedAt());
+        response.put("joinedAt", member.getJoinedAt());
+        response.put("withdrawnAt", member.getWithdrawnAt());
+        response.put("createdAt", member.getCreatedAt());
+        response.put("updatedAt", member.getUpdatedAt());
+        response.put("groups", groups);
+        response.put("memos", memos);
+        return response;
     }
 
     private ResponseEntity<byte[]> download(byte[] bytes, String filename, String contentType) {
