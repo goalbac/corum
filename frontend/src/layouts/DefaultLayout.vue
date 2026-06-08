@@ -53,15 +53,9 @@
 
             <!-- 왼쪽: 마이페이지 스타일 사이드바 -->
             <aside class="lnb" aria-label="하위 메뉴">
-              <!-- 그라데이션 헤더 (섹션명 + 현재 페이지 제목) -->
+              <!-- 그라데이션 헤더 (섹션명만) -->
               <div class="lnb-header">
                 <div class="lnb-section-name">{{ activeTopMenu?.name }}</div>
-                <div v-if="routeMenu && routeMenu.id !== activeTopMenu?.id" class="lnb-current-title">
-                  {{ routeMenu.name }}
-                </div>
-                <div v-if="routeMenu?.description" class="lnb-current-desc">
-                  {{ routeMenu.description }}
-                </div>
               </div>
 
               <!-- 메뉴 목록 -->
@@ -104,6 +98,19 @@
             <!-- 오른쪽: 흰색 카드 -->
             <section class="content-area">
               <div class="content-card">
+                <!-- 브레드크럼 + 페이지 제목 + 설명 -->
+                <div v-if="routeMenu" class="page-header">
+                  <nav v-if="breadcrumbs.length > 1" class="breadcrumb" aria-label="breadcrumb">
+                    <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
+                      <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">
+                        {{ item.name }}
+                      </span>
+                      <i v-if="index < breadcrumbs.length - 1" class="ti ti-chevron-right bc-sep"></i>
+                    </span>
+                  </nav>
+                  <h1 class="page-title">{{ routeMenu.name }}</h1>
+                  <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
+                </div>
                 <router-view />
               </div>
             </section>
@@ -150,6 +157,18 @@ const activeSideMenuIds = computed(() => {
     current = current.parent || null
   }
   return ids
+})
+
+const breadcrumbs = computed(() => {
+  const items = []
+  if (activeTopMenu.value) items.push(activeTopMenu.value)
+  const stack = []
+  let current = routeMenu.value
+  while (current && current.id !== activeTopMenu.value?.id) {
+    stack.unshift(current)
+    current = current.parent || null
+  }
+  return items.concat(stack)
 })
 
 function isOpen(id) {
@@ -289,41 +308,12 @@ onMounted(async () => {
 }
 
 .lnb-section-name {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.7);
-  margin-bottom: 6px;
-  position: relative;
-  z-index: 1;
-}
-
-.lnb-current-title {
   font-size: 18px;
   font-weight: 800;
   color: #fff;
-  line-height: 1.3;
   position: relative;
   z-index: 1;
-}
-
-.lnb-current-desc {
-  font-size: 12px;
-  color: rgba(255,255,255,0.72);
-  margin-top: 5px;
-  line-height: 1.5;
-  position: relative;
-  z-index: 1;
-}
-
-/* 섹션명만 있을 때 (현재 페이지 = top 메뉴인 경우) */
-.lnb-header:not(:has(.lnb-current-title)) .lnb-section-name {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #fff;
+  letter-spacing: -0.2px;
 }
 
 .lnb-list {
@@ -419,6 +409,57 @@ onMounted(async () => {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+
+/* 페이지 헤더 (브레드크럼 + 제목 + 설명) */
+.page-header {
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--border2);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.bc-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.bc-item {
+  font-size: 12px;
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.bc-item.last {
+  color: var(--accent-t);
+  font-weight: 600;
+}
+
+.bc-sep {
+  font-size: 10px;
+  color: var(--t4);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--t1);
+  line-height: 1.3;
+  margin: 0 0 4px;
+}
+
+.page-desc {
+  font-size: 13px;
+  color: var(--t3);
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* ===== 모바일 오버레이/드로어 ===== */
