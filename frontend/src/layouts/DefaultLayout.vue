@@ -87,13 +87,17 @@
             </aside>
 
             <section class="content-area">
-              <div v-if="breadcrumbs.length" class="breadcrumb">
-                <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
-                  <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">
-                    {{ item.name }}
+              <div v-if="routeMenu" class="page-header">
+                <div v-if="breadcrumbs.length" class="breadcrumb">
+                  <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
+                    <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">
+                      {{ item.name }}
+                    </span>
+                    <i v-if="index < breadcrumbs.length - 1" class="ti ti-chevron-right bc-arrow"></i>
                   </span>
-                  <i v-if="index < breadcrumbs.length - 1" class="ti ti-chevron-right bc-arrow"></i>
-                </span>
+                </div>
+                <h1 class="page-title">{{ routeMenu.name }}</h1>
+                <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
               </div>
               <router-view />
             </section>
@@ -328,35 +332,53 @@ onMounted(async () => {
   color: var(--t1);
 }
 
+.page-header {
+  margin-bottom: 20px;
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-bottom: 16px;
-  color: var(--t3);
+  justify-content: flex-start;
+  gap: 4px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
 }
 
 .bc-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .bc-item {
-  font-size: 15px;
-  color: var(--t2);
+  font-size: 13px;
+  color: var(--t3);
 }
 
 .bc-item.last {
-  color: var(--t1);
-  font-weight: 700;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .bc-arrow {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--t3);
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--t1);
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+
+.page-desc {
+  font-size: 14px;
+  color: var(--t3);
+  line-height: 1.6;
+  margin-bottom: 4px;
 }
 
 .mobile-overlay {
@@ -473,6 +495,7 @@ onMounted(async () => {
   .page-container { padding: 18px 14px 32px; }
   .menu-shell { display: block; }
   .lnb { display: none; }
-  .breadcrumb { justify-content: flex-start; margin-bottom: 12px; }
+  .page-title { font-size: 18px; }
+  .page-header { margin-bottom: 16px; }
 }
 </style>
