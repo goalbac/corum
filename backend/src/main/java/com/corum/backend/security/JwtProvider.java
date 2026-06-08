@@ -39,6 +39,18 @@ public class JwtProvider {
                 .compact();
     }
 
+    public String createPurposeToken(Long memberId, String username, String purpose, long expiryMs) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(String.valueOf(memberId))
+                .claim("username", username)
+                .claim("purpose", purpose)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + expiryMs))
+                .signWith(key)
+                .compact();
+    }
+
     public boolean validate(String token) {
         try {
             Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
@@ -57,6 +69,10 @@ public class JwtProvider {
 
     public String getUsername(String token) {
         return getClaims(token).get("username", String.class);
+    }
+
+    public String getPurpose(String token) {
+        return getClaims(token).get("purpose", String.class);
     }
 
     private Claims getClaims(String token) {

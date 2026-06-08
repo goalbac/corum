@@ -9,6 +9,7 @@ import com.corum.backend.domain.message.MessageRecipientRepository;
 import com.corum.backend.domain.message.MessageRepository;
 import com.corum.backend.dto.message.MessageResponse;
 import com.corum.backend.dto.message.MessageSendRequest;
+import com.corum.backend.service.mail.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,6 +28,7 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final MessageRecipientRepository messageRecipientRepository;
     private final MemberRepository memberRepository;
+    private final MailService mailService;
 
     // ===== 쪽지 발송 =====
     @Transactional
@@ -46,6 +48,16 @@ public class MessageService {
                         .build())
                 .collect(Collectors.toList());
         messageRecipientRepository.saveAll(recipients);
+
+        memberRepository.findAllById(request.getRecipientIds()).forEach(member -> {
+            try {
+                mailService.send(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다",
+                        "<p><strong>" + saved.getTitle() + "</strong></p><p>Corum에서 쪽지를 확인해주세요.</p>",
+                        "MESSAGE_NOTIFY");
+            } catch (Exception ignored) {
+                // 메일 실패가 쪽지 발송을 막지 않도록 한다.
+            }
+        });
     }
 
     // ===== 받은 쪽지함 =====

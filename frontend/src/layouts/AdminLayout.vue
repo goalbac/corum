@@ -38,6 +38,9 @@
           <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
             <i class="ti ti-mail"></i> 문의 관리
           </router-link>
+          <router-link to="/admin/stats" class="sidebar-item" active-class="active">
+            <i class="ti ti-chart-bar"></i> 통계 / 로그
+          </router-link>
           <router-link to="/admin/settings" class="sidebar-item" active-class="active">
             <i class="ti ti-settings"></i> 사이트 설정
           </router-link>

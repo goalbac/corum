@@ -13,6 +13,7 @@ import com.corum.backend.dto.file.FileResponse;
 import com.corum.backend.service.board.BoardService;
 import com.corum.backend.service.comment.CommentService;
 import com.corum.backend.service.file.FileStorageService;
+import com.corum.backend.service.log.OperationLogService;
 import com.corum.backend.service.post.PostService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -36,6 +37,7 @@ public class BoardController {
     private final PostService postService;
     private final CommentService commentService;
     private final FileStorageService fileStorageService;
+    private final OperationLogService operationLogService;
 
     // ===== 게시판 =====
 
@@ -76,10 +78,15 @@ public class BoardController {
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String searchType,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletRequest httpRequest) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return ApiResponse.ok(postService.getPosts(boardId, searchType, keyword, pageable));
+        Page<PostSummaryResponse> result = postService.getPosts(boardId, searchType, keyword, pageable);
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        operationLogService.search(memberId, keyword, searchType, (int) result.getTotalElements(), httpRequest);
+        return ApiResponse.ok(result);
     }
 
     @GetMapping("/api/boards/{boardId}/posts/{postId}")

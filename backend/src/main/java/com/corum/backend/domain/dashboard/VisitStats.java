@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -16,6 +18,8 @@ import java.time.LocalDate;
 @Table(name = "visit_stats")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
+@AllArgsConstructor
 public class VisitStats {
 
     @Id
@@ -33,4 +37,10 @@ public class VisitStats {
 
     @Column(name = "login_visits", nullable = false)
     private Integer loginVisits;
+
+    public void increase(boolean unique, boolean loggedIn) {
+        this.totalVisits++;
+        if (unique) this.uniqueVisits++;
+        if (loggedIn) this.loginVisits++;
+    }
 }

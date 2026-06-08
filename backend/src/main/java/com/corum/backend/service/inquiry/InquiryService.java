@@ -7,6 +7,7 @@ import com.corum.backend.domain.inquiry.InquiryMemoRepository;
 import com.corum.backend.domain.inquiry.InquiryRepository;
 import com.corum.backend.dto.inquiry.InquiryCreateRequest;
 import com.corum.backend.dto.inquiry.InquiryResponse;
+import com.corum.backend.service.mail.MailService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,7 @@ public class InquiryService {
 
     private final InquiryRepository inquiryRepository;
     private final InquiryMemoRepository inquiryMemoRepository;
+    private final MailService mailService;
 
     // ===== 문의 접수 (비로그인 가능) =====
     @Transactional
@@ -41,7 +43,15 @@ public class InquiryService {
                 .clientIp(ip)
                 .build();
 
-        return new InquiryResponse(inquiryRepository.save(inquiry), List.of());
+        Inquiry saved = inquiryRepository.save(inquiry);
+        try {
+            mailService.sendToAdmin("[Corum] 새 문의가 접수되었습니다",
+                    "<p><strong>" + saved.getTitle() + "</strong></p><p>" + saved.getContent() + "</p>",
+                    "INQUIRY_NOTIFY");
+        } catch (Exception ignored) {
+            // 메일 실패가 문의 접수를 막지 않도록 한다.
+        }
+        return new InquiryResponse(saved, List.of());
     }
 
     // ===== 문의 목록 (관리자) =====

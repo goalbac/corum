@@ -5,30 +5,26 @@ spring:
   application:
     name: corum-backend
 
-  # JPA
   jpa:
     hibernate:
-      ddl-auto: none          # DDL은 직접 관리 (01_init.sql)
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
         format_sql: true
         default_batch_fetch_size: 100
 
-  # 파일 업로드 크기 제한 (기본값, 게시판별로 추가 제어)
   servlet:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
 
-# JWT 설정
 jwt:
   secret: ${JWT_SECRET:corum-secret-key-must-be-at-least-32-characters-long}
-  access-token-expiry-ms: 1800000       # 30분
-  refresh-token-expiry-ms: 604800000    # 7일
-  login-fail-limit: 5                   # 로그인 실패 허용 횟수
+  access-token-expiry-ms: 1800000
+  refresh-token-expiry-ms: 604800000
+  login-fail-limit: 5
 
-# S3 / MinIO 설정
 storage:
   s3:
     endpoint: ${S3_ENDPOINT:http://localhost:9000}
@@ -37,7 +33,9 @@ storage:
     bucket: ${S3_BUCKET:association-files}
     region: ${S3_REGION:us-east-1}
 
-# 로깅
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
 logging:
   level:
     com.corum: DEBUG

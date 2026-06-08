@@ -16,6 +16,18 @@ const routes = [
     meta: { guest: true }
   },
   {
+    path: '/verify-email',
+    name: 'VerifyEmail',
+    component: () => import('@/pages/VerifyEmailPage.vue'),
+    meta: { guest: true }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/pages/ResetPasswordPage.vue'),
+    meta: { guest: true }
+  },
+  {
     path: '/',
     component: () => import('@/layouts/DefaultLayout.vue'),
     children: [
@@ -109,6 +121,7 @@ const routes = [
       { path: 'dashboard-widgets', name: 'AdminDashboardWidgets', component: () => import('@/pages/admin/dashboard/AdminDashboardWidgetsPage.vue') },
       { path: 'inquiries', name: 'AdminInquiries', component: () => import('@/pages/admin/inquiries/AdminInquiriesPage.vue') },
       { path: 'groups', name: 'AdminGroups', component: () => import('@/pages/admin/groups/AdminGroupsPage.vue') },
+      { path: 'stats', name: 'AdminStats', component: () => import('@/pages/admin/stats/AdminStatsPage.vue') },
       { path: 'settings', name: 'AdminSettings', component: () => import('@/pages/admin/settings/AdminSettingsPage.vue') }
     ]
   },

@@ -1,10 +1,11 @@
 package com.corum.backend.controller.auth;
 
 import com.corum.backend.common.ApiResponse;
-import com.corum.backend.domain.member.Member;
 import com.corum.backend.dto.auth.LoginRequest;
 import com.corum.backend.dto.auth.LoginResponse;
 import com.corum.backend.dto.auth.MemberResponse;
+import com.corum.backend.dto.auth.PasswordResetConfirmRequest;
+import com.corum.backend.dto.auth.PasswordResetRequest;
 import com.corum.backend.dto.auth.RegisterRequest;
 import com.corum.backend.dto.auth.UpdatePasswordRequest;
 import com.corum.backend.dto.auth.UpdateProfileRequest;
@@ -16,7 +17,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -25,23 +34,38 @@ public class AuthController {
 
     private final AuthService authService;
 
-    // 회원가입
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<Void> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
-        return ApiResponse.ok("회원가입이 완료되었습니다.");
+    public ApiResponse<Void> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        authService.register(request, httpRequest);
+        return ApiResponse.ok("회원가입이 완료되었습니다. 이메일 인증을 진행해주세요.");
     }
 
-    // 로그인
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request,
                                             HttpServletRequest httpRequest) {
-        LoginResponse response = authService.login(request, httpRequest);
-        return ApiResponse.ok(response);
+        return ApiResponse.ok(authService.login(request, httpRequest));
     }
 
-    // 로그아웃
+    @GetMapping("/verify-email")
+    public ApiResponse<Void> verifyEmail(@RequestParam String token, HttpServletRequest httpRequest) {
+        authService.verifyEmail(token, httpRequest);
+        return ApiResponse.ok("이메일 인증이 완료되었습니다.");
+    }
+
+    @PostMapping("/request-password-reset")
+    public ApiResponse<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        authService.requestPasswordReset(request);
+        return ApiResponse.ok("비밀번호 재설정 안내 메일을 발송했습니다.");
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetConfirmRequest request,
+                                           HttpServletRequest httpRequest) {
+        authService.resetPassword(request, httpRequest);
+        return ApiResponse.ok("비밀번호가 재설정되었습니다.");
+    }
+
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@AuthenticationPrincipal CustomUserDetails userDetails,
                                     HttpServletRequest httpRequest) {
@@ -49,13 +73,11 @@ public class AuthController {
         return ApiResponse.ok("로그아웃되었습니다.");
     }
 
-    // 내 정보 조회
     @GetMapping("/me")
     public ApiResponse<MemberResponse> me(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return ApiResponse.ok(authService.getMe(userDetails.getMemberId()));
     }
 
-    // 내 정보 수정
     @PutMapping("/me")
     public ApiResponse<MemberResponse> updateProfile(
             @RequestBody UpdateProfileRequest request,
@@ -63,7 +85,6 @@ public class AuthController {
         return ApiResponse.ok(authService.updateProfile(userDetails.getMemberId(), request));
     }
 
-    // 비밀번호 변경
     @PutMapping("/me/password")
     public ApiResponse<Void> updatePassword(
             @Valid @RequestBody UpdatePasswordRequest request,
@@ -72,7 +93,6 @@ public class AuthController {
         return ApiResponse.ok("비밀번호가 변경되었습니다.");
     }
 
-    // 회원 탈퇴
     @DeleteMapping("/me")
     public ApiResponse<Void> withdraw(
             @Valid @RequestBody WithdrawRequest request,
