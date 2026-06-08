@@ -12,6 +12,7 @@ public class PostSummaryResponse {
     private final Long boardId;
     private final String title;
     private final String writerName;
+    private final String excerpt;
     private final Boolean isNotice;
     private final Integer viewCount;
     private final Integer likeCount;
@@ -34,6 +35,7 @@ public class PostSummaryResponse {
         this.boardId = post.getBoardId();
         this.title = post.getTitle();
         this.writerName = post.getWriterName();
+        this.excerpt = createExcerpt(post.getContent());
         this.isNotice = post.getIsNotice();
         this.viewCount = post.getViewCount();
         this.likeCount = post.getLikeCount();
@@ -42,5 +44,23 @@ public class PostSummaryResponse {
         this.hasFile = hasFile;
         this.thumbnailUrl = thumbnailUrl;
         this.rowNum = rowNum;
+    }
+
+    private static String createExcerpt(String content) {
+        if (content == null || content.isBlank()) return "";
+        String text = content
+                .replaceAll("(?is)<script.*?</script>", " ")
+                .replaceAll("(?is)<style.*?</style>", " ")
+                .replaceAll("(?is)<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replaceAll("\\s+", " ")
+                .trim();
+        if (text.length() <= 160) return text;
+        return text.substring(0, 160).trim() + "...";
     }
 }

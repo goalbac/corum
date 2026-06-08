@@ -94,13 +94,13 @@
               <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             </div>
             <h3 class="webzine-title">{{ post.title }}</h3>
+            <p v-if="post.excerpt" class="webzine-excerpt">{{ post.excerpt }}</p>
             <div class="webzine-meta">
-              <span>{{ post.writerName }}</span>
-              <span class="gallery-dot">쨌</span>
-              <span v-if="showViewCount">View {{ post.viewCount }}</span>
-              <span v-if="showLikeCount && board?.useLike">Like {{ post.likeCount }}</span>
-              <span v-if="post.commentCount > 0">Comment {{ post.commentCount }}</span>
-              <span v-if="post.hasFile"><i class="ti ti-paperclip"></i></span>
+              <span class="webzine-meta-chip"><i class="ti ti-user"></i>{{ post.writerName }}</span>
+              <span v-if="showViewCount" class="webzine-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
+              <span v-if="showLikeCount && board?.useLike" class="webzine-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
+              <span class="webzine-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
+              <span v-if="post.hasFile" class="webzine-meta-chip"><i class="ti ti-paperclip"></i></span>
             </div>
           </div>
         </article>
@@ -648,6 +648,30 @@ onMounted(async () => {
 
 .webzine-item:hover .webzine-title { color: var(--accent-t); }
 
+.webzine-excerpt {
+  margin: 0;
+  color: var(--t2);
+  font-size: 13px;
+  line-height: 1.55;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.webzine-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+}
+
+.webzine-meta-chip i {
+  font-size: 13px;
+  color: var(--t3);
+}
+
 .webzine-empty {
   display: flex;
   flex-direction: column;
@@ -778,6 +802,10 @@ onMounted(async () => {
     padding: 14px 12px;
   }
   .webzine-title { font-size: 15px; }
+  .webzine-excerpt {
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+  }
   .webzine-meta { gap: 5px; font-size: 11px; }
 }
 </style>
