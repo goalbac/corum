@@ -45,14 +45,13 @@ public class PostService {
 
         List<PostSummaryResponse> content = posts.getContent().stream()
                 .map(p -> {
-                    FileResponse firstFile = fileStorageService.getFirstFile("POST", p.getId());
-                    return new PostSummaryResponse(
-                            p,
-                            0,
-                            firstFile != null,
-                            firstFile != null && isImage(firstFile.getMimeType()) ? firstFile.getDownloadUrl() : null,
-                            firstFile == null ? null : firstFile.getOriginalName()
-                    );
+                    List<FileResponse> files = fileStorageService.getFiles("POST", p.getId());
+                    String thumbnailUrl = files.stream()
+                            .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
+                            .findFirst()
+                            .map(f -> "/api/files/" + f.getId() + "/download")
+                            .orElse(null);
+                    return new PostSummaryResponse(p, 0, !files.isEmpty(), thumbnailUrl);
                 })
                 .collect(Collectors.toList());
 
@@ -71,7 +70,12 @@ public class PostService {
         boolean liked = memberId != null && postLikeRepository
                 .existsByPostIdAndMemberId(postId, memberId);
 
-        return new PostResponse(post, files, liked, 0);
+        String writerProfileImageUrl = post.getMemberId() != null
+                ? memberRepository.findById(post.getMemberId())
+                        .map(m -> m.getProfileImageUrl()).orElse(null)
+                : null;
+
+        return new PostResponse(post, files, liked, 0, writerProfileImageUrl);
     }
 
     // ===== 게시글 작성 =====
@@ -100,7 +104,9 @@ public class PostService {
             fileResponses = fileStorageService.uploadFiles("POST", saved.getId(), files, memberId);
         }
 
-        return new PostResponse(saved, fileResponses, false, 0);
+        String savedProfileImageUrl = memberRepository.findById(memberId)
+                .map(m -> m.getProfileImageUrl()).orElse(null);
+        return new PostResponse(saved, fileResponses, false, 0, savedProfileImageUrl);
     }
 
     // ===== 게시글 수정 =====
@@ -118,7 +124,9 @@ public class PostService {
 
         List<FileResponse> files = fileStorageService.getFiles("POST", postId);
         boolean liked = postLikeRepository.existsByPostIdAndMemberId(postId, memberId);
-        return new PostResponse(post, files, liked, 0);
+        String updaterProfileImageUrl = memberRepository.findById(memberId)
+                .map(m -> m.getProfileImageUrl()).orElse(null);
+        return new PostResponse(post, files, liked, 0, updaterProfileImageUrl);
     }
 
     // ===== 게시글 삭제 =====
@@ -165,9 +173,5 @@ public class PostService {
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         return (ip == null || ip.isBlank()) ? request.getRemoteAddr() : ip;
-    }
-
-    private boolean isImage(String mimeType) {
-        return mimeType != null && mimeType.startsWith("image/");
     }
 }

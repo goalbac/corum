@@ -5,8 +5,6 @@ import com.corum.backend.domain.board.Board;
 import com.corum.backend.domain.board.BoardGroupPermission;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.board.BoardRepository;
-import com.corum.backend.domain.group.MemberGroupRepository;
-import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.board.BoardCreateRequest;
 import com.corum.backend.dto.board.BoardResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +20,6 @@ public class BoardService {
 
     private final BoardRepository boardRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
-    private final MemberGroupRepository memberGroupRepository;
-    private final PostRepository postRepository;
 
     // ===== 게시판 목록 =====
     @Transactional(readOnly = true)
@@ -76,10 +72,6 @@ public class BoardService {
                 request.getUseLike(), request.getUseAnonymous(), request.getUseNotice(),
                 request.getNoticeCountLimit(), request.getFileMaxSizeMb(),
                 request.getFileAllowedExtensions(), request.getFileMaxCount(), request.getIsActive());
-        if (request.getPermissions() != null) {
-            boardGroupPermissionRepository.deleteByBoardId(id);
-            savePermissions(id, request.getPermissions());
-        }
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(id);
         return new BoardResponse(board, permissions);
     }
@@ -96,14 +88,6 @@ public class BoardService {
     // ===== 권한 확인 =====
     @Transactional(readOnly = true)
     public boolean hasPermission(Long boardId, List<Long> memberGroupIds, String permType) {
-        List<BoardGroupPermission> allPerms = boardGroupPermissionRepository.findByBoardId(boardId);
-        if (allPerms.isEmpty()) {
-            return switch (permType) {
-                case "READ", "DOWNLOAD" -> true;
-                case "WRITE", "COMMENT" -> !memberGroupIds.isEmpty();
-                default -> false;
-            };
-        }
         if (memberGroupIds.isEmpty()) return false;
         List<BoardGroupPermission> perms = boardGroupPermissionRepository
                 .findByBoardIdAndGroupIds(boardId, memberGroupIds);
@@ -114,29 +98,6 @@ public class BoardService {
             case "DOWNLOAD" -> p.getCanDownload();
             default -> false;
         });
-    }
-
-    @Transactional(readOnly = true)
-    public boolean hasPermission(Long boardId, Long memberId, String permType) {
-        if (memberId != null && memberGroupRepository.existsAdminGroupByMemberId(memberId)) {
-            return true;
-        }
-        List<Long> groupIds = memberId == null ? List.of() : memberGroupRepository.findGroupIdsByMemberId(memberId);
-        return hasPermission(boardId, groupIds, permType);
-    }
-
-    @Transactional(readOnly = true)
-    public void requirePermission(Long boardId, Long memberId, String permType) {
-        if (!hasPermission(boardId, memberId, permType)) {
-            throw BusinessException.forbidden("게시판 권한이 없습니다.");
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public Long getPostBoardId(Long postId) {
-        return postRepository.findById(postId)
-                .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."))
-                .getBoardId();
     }
 
     // ===== 내부 메서드 =====

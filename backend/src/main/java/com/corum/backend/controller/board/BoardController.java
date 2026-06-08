@@ -82,10 +82,9 @@ public class BoardController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest httpRequest) {
 
-        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        boardService.requirePermission(boardId, memberId, "READ");
         Pageable pageable = PageRequest.of(page, size);
         Page<PostSummaryResponse> result = postService.getPosts(boardId, searchType, keyword, pageable);
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
         operationLogService.search(memberId, keyword, searchType, (int) result.getTotalElements(), httpRequest);
         return ApiResponse.ok(result);
     }
@@ -97,7 +96,6 @@ public class BoardController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        boardService.requirePermission(boardId, memberId, "READ");
         return ApiResponse.ok(postService.getPost(postId, memberId));
     }
 
@@ -109,7 +107,6 @@ public class BoardController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest httpRequest) {
 
-        boardService.requirePermission(boardId, userDetails.getMemberId(), "WRITE");
         return ApiResponse.ok(postService.createPost(
                 boardId, request, userDetails.getMemberId(), null, httpRequest));
     }
@@ -121,9 +118,8 @@ public class BoardController {
             @RequestParam("files") List<MultipartFile> files,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        Long boardId = boardService.getPostBoardId(postId);
-        boardService.requirePermission(boardId, userDetails.getMemberId(), "WRITE");
-        return ApiResponse.ok(fileStorageService.uploadPostFiles(boardId, postId, files, userDetails.getMemberId()));
+        return ApiResponse.ok(fileStorageService.uploadFiles(
+                "POST", postId, files, userDetails.getMemberId()));
     }
 
     // 게시글 파일 단건 삭제
@@ -133,8 +129,6 @@ public class BoardController {
             @PathVariable Long fileId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        Long boardId = boardService.getPostBoardId(postId);
-        boardService.requirePermission(boardId, userDetails.getMemberId(), "WRITE");
         fileStorageService.deleteFile(fileId);
         return ApiResponse.ok("파일이 삭제되었습니다.");
     }
@@ -146,7 +140,6 @@ public class BoardController {
             @Valid @RequestBody PostCreateRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        boardService.requirePermission(boardId, userDetails.getMemberId(), "WRITE");
         return ApiResponse.ok(postService.updatePost(postId, request, userDetails.getMemberId()));
     }
 
@@ -156,7 +149,6 @@ public class BoardController {
             @PathVariable Long postId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        boardService.requirePermission(boardId, userDetails.getMemberId(), "WRITE");
         postService.deletePost(postId, userDetails.getMemberId(), false);
         return ApiResponse.ok("게시글이 삭제되었습니다.");
     }
@@ -167,7 +159,6 @@ public class BoardController {
             @PathVariable Long postId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        boardService.requirePermission(boardId, userDetails.getMemberId(), "READ");
         boolean liked = postService.toggleLike(postId, userDetails.getMemberId());
         return ApiResponse.ok(Map.of("liked", liked));
     }
@@ -190,10 +181,8 @@ public class BoardController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest httpRequest) {
 
-        Long memberId = userDetails == null ? null : userDetails.getMemberId();
-        boardService.requirePermission(boardId, memberId, "COMMENT");
         return ApiResponse.ok(commentService.createComment(
-                postId, request, memberId, httpRequest));
+                postId, request, userDetails.getMemberId(), httpRequest));
     }
 
     @PutMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}")

@@ -8,8 +8,6 @@ public interface UploadFileRepository extends JpaRepository<UploadFile, Long> {
 
     List<UploadFile> findByTargetTypeAndTargetId(String targetType, Long targetId);
 
-    UploadFile findFirstByTargetTypeAndTargetIdOrderByIdAsc(String targetType, Long targetId);
-
     void deleteByTargetTypeAndTargetId(String targetType, Long targetId);
 
     int countByTargetTypeAndTargetId(String targetType, Long targetId);
