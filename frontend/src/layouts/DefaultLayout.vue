@@ -44,7 +44,7 @@
       </div>
     </transition>
 
-    <main class="main-content" :class="{ 'with-banner': bannerRef?.visible }">
+    <main class="main-content" :class="{ 'with-banner': bannerRef?.visible?.value }">
       <div class="page-container">
         <template v-if="showsMenuLayout">
           <div class="menu-shell">
@@ -219,14 +219,12 @@ onMounted(async () => {
 
 <style scoped>
 .layout {
-  min-height: 100vh;
   background: var(--bg);
   transition: background 0.25s;
 }
 
 .main-content {
   margin-top: var(--header-height);
-  min-height: calc(100vh - var(--header-height));
 }
 
 .main-content.with-banner {
