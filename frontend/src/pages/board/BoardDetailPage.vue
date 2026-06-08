@@ -2,10 +2,14 @@
   <div class="board-detail" v-loading="loading">
     <template v-if="post">
       <div class="post-header">
-        <el-tag v-if="post.isNotice" type="danger" effect="plain" size="small">공지</el-tag>
+        <el-tag v-if="post.isNotice" type="danger" effect="dark" size="small">공지</el-tag>
         <h1 class="post-title">{{ post.title }}</h1>
         <div class="post-meta">
-          <span>{{ post.writerName }}</span>
+          <span class="writer-info">
+            <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" class="writer-avatar" alt="" />
+            <span v-else class="writer-avatar-placeholder">{{ post.writerName?.charAt(0) || 'U' }}</span>
+            <span class="writer-name">{{ post.writerName }}</span>
+          </span>
           <span class="meta-divider">·</span>
           <span>{{ formatDate(post.createdAt) }}</span>
           <span class="meta-divider">·</span>
@@ -185,6 +189,39 @@ onMounted(async () => {
 }
 
 .meta-divider { color: var(--t3); }
+
+.writer-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.writer-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.writer-avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.writer-name {
+  font-weight: 600;
+  color: var(--t1);
+}
 
 .attach-area {
   padding: 14px 30px;

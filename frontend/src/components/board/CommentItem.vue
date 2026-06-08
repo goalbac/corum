@@ -3,6 +3,11 @@
     <div class="comment-inner" :style="{ marginLeft: `${comment.depth * 24}px` }">
       <el-icon v-if="comment.depth > 0" class="reply-icon"><ChatLineRound /></el-icon>
 
+      <div class="comment-avatar">
+        <img v-if="comment.writerProfileImageUrl" :src="comment.writerProfileImageUrl" class="c-avatar-img" alt="" />
+        <span v-else class="c-avatar-placeholder">{{ comment.writerName?.charAt(0) || 'U' }}</span>
+      </div>
+
       <div class="comment-body">
         <div class="comment-meta">
           <span class="comment-writer">{{ comment.writerName }}</span>
@@ -120,8 +125,33 @@ function formatDate(dateStr) {
 
 .comment-inner {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   padding: 14px 0;
+}
+
+.comment-avatar {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.c-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.c-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .reply-icon {

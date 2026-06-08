@@ -65,7 +65,12 @@ public class PostService {
         boolean liked = memberId != null && postLikeRepository
                 .existsByPostIdAndMemberId(postId, memberId);
 
-        return new PostResponse(post, files, liked, 0);
+        String writerProfileImageUrl = post.getMemberId() != null
+                ? memberRepository.findById(post.getMemberId())
+                        .map(m -> m.getProfileImageUrl()).orElse(null)
+                : null;
+
+        return new PostResponse(post, files, liked, 0, writerProfileImageUrl);
     }
 
     // ===== 게시글 작성 =====
@@ -94,7 +99,9 @@ public class PostService {
             fileResponses = fileStorageService.uploadFiles("POST", saved.getId(), files, memberId);
         }
 
-        return new PostResponse(saved, fileResponses, false, 0);
+        String savedProfileImageUrl = memberRepository.findById(memberId)
+                .map(m -> m.getProfileImageUrl()).orElse(null);
+        return new PostResponse(saved, fileResponses, false, 0, savedProfileImageUrl);
     }
 
     // ===== 게시글 수정 =====
@@ -112,7 +119,9 @@ public class PostService {
 
         List<FileResponse> files = fileStorageService.getFiles("POST", postId);
         boolean liked = postLikeRepository.existsByPostIdAndMemberId(postId, memberId);
-        return new PostResponse(post, files, liked, 0);
+        String updaterProfileImageUrl = memberRepository.findById(memberId)
+                .map(m -> m.getProfileImageUrl()).orElse(null);
+        return new PostResponse(post, files, liked, 0, updaterProfileImageUrl);
     }
 
     // ===== 게시글 삭제 =====

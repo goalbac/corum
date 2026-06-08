@@ -11,7 +11,7 @@
       <el-table-column label="게시판명" prop="name" min-width="140" />
       <el-table-column label="유형" width="100" align="center">
         <template #default="{ row }">
-          <el-tag size="small" :type="typeColor(row.boardType)" effect="plain">{{ typeLabel(row.boardType) }}</el-tag>
+          <el-tag size="small" :type="typeColor(row.boardType)" effect="dark">{{ typeLabel(row.boardType) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="댓글" width="70" align="center">
@@ -31,7 +31,7 @@
       </el-table-column>
       <el-table-column label="상태" width="80" align="center">
         <template #default="{ row }">
-          <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="plain">
+          <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="dark">
             {{ row.isActive ? '활성' : '비활성' }}
           </el-tag>
         </template>

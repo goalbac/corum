@@ -268,11 +268,26 @@ onMounted(async () => {
 .view-btns { display: flex; gap: 2px; }
 
 .cal-wrap :deep(.fc) { font-family: inherit; }
+/* 다크모드 호환 - FullCalendar 기본 흰 배경/검정 텍스트 재정의 */
+.cal-wrap :deep(.fc-theme-standard td),
+.cal-wrap :deep(.fc-theme-standard th),
+.cal-wrap :deep(.fc-theme-standard .fc-scrollgrid),
+.cal-wrap :deep(.fc-theme-standard .fc-scrollgrid-section > td) {
+  border-color: var(--border) !important;
+}
+.cal-wrap :deep(.fc-daygrid-day) { background: var(--surface) !important; }
+.cal-wrap :deep(.fc-day-other) { background: var(--surface2) !important; }
 .cal-wrap :deep(.fc-day-today) { background: var(--accent-bg) !important; }
-.cal-wrap :deep(.fc-col-header-cell) { font-size: 13px; font-weight: 500; color: var(--t2); padding: 8px 0; }
+.cal-wrap :deep(.fc-col-header-cell) {
+  background: var(--surface2) !important;
+  font-size: 13px; font-weight: 500; color: var(--t2); padding: 8px 0;
+}
+.cal-wrap :deep(.fc-col-header-cell a) { color: var(--t2) !important; }
 .cal-wrap :deep(.fc-daygrid-day-number) { font-size: 13px; color: var(--t2); }
+.cal-wrap :deep(.fc-daygrid-day-number:hover) { color: var(--accent); }
 .cal-wrap :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
 .cal-wrap :deep(.fc-toolbar) { display: none; }
+.cal-wrap :deep(.fc-more-link) { color: var(--accent-t) !important; }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 

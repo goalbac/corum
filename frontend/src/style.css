@@ -173,6 +173,9 @@ input, textarea, select { font-family: inherit; }
   background: var(--surface2) !important;
   border-color: var(--border) !important;
 }
+[data-theme="dark"] .el-alert .el-alert__title { color: var(--t1) !important; }
+[data-theme="dark"] .el-alert .el-alert__description { color: var(--t2) !important; }
+[data-theme="dark"] .el-alert .el-alert__content li { color: var(--t2) !important; }
 [data-theme="dark"] .el-message-box {
   background: var(--surface) !important;
   border-color: var(--border) !important;

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,8 +31,18 @@ public class CommentService {
     public List<CommentResponse> getComments(Long postId) {
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
 
+        // memberId → profileImageUrl 배치 조회
+        Set<Long> memberIds = comments.stream()
+                .filter(c -> c.getMemberId() != null)
+                .map(Comment::getMemberId)
+                .collect(Collectors.toSet());
+        Map<Long, String> profileImageMap = memberRepository.findAllById(memberIds).stream()
+                .filter(m -> m.getProfileImageUrl() != null)
+                .collect(Collectors.toMap(m -> m.getId(), m -> m.getProfileImageUrl()));
+
         Map<Long, CommentResponse> map = comments.stream()
-                .collect(Collectors.toMap(Comment::getId, CommentResponse::new));
+                .collect(Collectors.toMap(Comment::getId,
+                        c -> new CommentResponse(c, profileImageMap.get(c.getMemberId()))));
 
         List<CommentResponse> roots = new ArrayList<>();
         comments.forEach(c -> {

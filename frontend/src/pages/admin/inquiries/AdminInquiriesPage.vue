@@ -19,7 +19,7 @@
       </el-table-column>
       <el-table-column label="상태" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="statusColor(row.status)" size="small" effect="plain">{{ statusLabel(row.status) }}</el-tag>
+          <el-tag :type="statusColor(row.status)" size="small" effect="dark">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="접수일" width="110" align="center">

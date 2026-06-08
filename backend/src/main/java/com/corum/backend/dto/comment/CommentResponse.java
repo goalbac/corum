@@ -15,6 +15,7 @@ public class CommentResponse {
     private final Long parentId;
     private final Long memberId;
     private final String writerName;
+    private final String writerProfileImageUrl;
     private final String content;
     private final Integer depth;
     private final Boolean isDeleted;
@@ -23,11 +24,16 @@ public class CommentResponse {
     private final List<CommentResponse> children;
 
     public CommentResponse(Comment comment) {
+        this(comment, null);
+    }
+
+    public CommentResponse(Comment comment, String writerProfileImageUrl) {
         this.id = comment.getId();
         this.postId = comment.getPostId();
         this.parentId = comment.getParentId();
         this.memberId = comment.getMemberId();
         this.writerName = comment.getWriterName();
+        this.writerProfileImageUrl = writerProfileImageUrl;
         this.content = comment.getContent();
         this.depth = comment.getDepth();
         this.isDeleted = comment.getIsDeleted();
