@@ -1,68 +1,119 @@
 <template>
   <div class="board-list">
 
-    <!-- 갤러리 뷰 -->
+    <!-- ===== 갤러리 뷰 ===== -->
     <template v-if="board?.boardType === 'GALLERY'">
       <div v-loading="loading" class="gallery-grid">
         <div v-for="post in posts" :key="post.id" class="gallery-card" @click="goDetail(post)">
           <div class="gallery-thumb">
-            <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title" @error="e => e.target.style.display='none'" />
+            <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title"
+              @error="e => e.target.style.display='none'" />
             <div v-else class="no-thumb"><i class="ti ti-photo-off"></i></div>
+            <div v-if="post.isNotice" class="gallery-notice-badge">공지</div>
           </div>
           <div class="gallery-info">
             <div class="gallery-title">{{ post.title }}</div>
-            <div class="gallery-meta">{{ post.writerName }} · {{ formatDate(post.createdAt) }}</div>
+            <div class="gallery-meta-row">
+              <span class="gallery-writer">{{ post.writerName }}</span>
+              <span class="gallery-dot">·</span>
+              <span class="gallery-date">{{ formatDate(post.createdAt) }}</span>
+            </div>
+            <div class="gallery-stats">
+              <span v-if="board?.useLike" class="stat-chip">
+                <i class="ti ti-heart"></i> {{ post.likeCount }}
+              </span>
+              <span v-if="post.commentCount > 0" class="stat-chip">
+                <i class="ti ti-message-circle"></i> {{ post.commentCount }}
+              </span>
+              <span v-if="post.hasFile" class="stat-chip">
+                <i class="ti ti-paperclip"></i>
+              </span>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </div>
           </div>
         </div>
-        <div v-if="!loading && !posts.length" class="gallery-empty">등록된 게시글이 없습니다.</div>
+        <div v-if="!loading && !posts.length" class="gallery-empty">
+          <i class="ti ti-photo-off"></i>
+          <p>등록된 게시글이 없습니다.</p>
+        </div>
       </div>
+
       <div class="pagination">
         <el-pagination v-model:current-page="page" :page-size="gallerySize" :total="total"
           layout="prev, pager, next" background small @current-change="fetchPosts" />
       </div>
       <div class="bottom-bar">
         <div class="search-area">
-          <el-input v-model="keyword" placeholder="검색어 입력" size="small" clearable @keyup.enter="handleSearch" style="width:200px" />
+          <el-input v-model="keyword" placeholder="검색어 입력" size="small" clearable
+            @keyup.enter="handleSearch" style="width:200px" />
           <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
         </div>
         <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
-          <i class="ti ti-pencil"></i> 글쓰기
+          <i class="ti ti-pencil"></i>&nbsp;글쓰기
         </el-button>
       </div>
     </template>
 
-    <!-- 일반/자료실 테이블 뷰 -->
+    <!-- ===== 일반/자료실 테이블 뷰 ===== -->
     <template v-else>
-      <el-table :data="posts" v-loading="loading" row-class-name="post-row" style="width:100%" @row-click="goDetail">
-        <el-table-column width="72" align="center">
-          <template #default="{ row }">
-            <el-tag v-if="row.isNotice" type="danger" size="small" effect="dark">공지</el-tag>
-            <span v-else class="row-num">{{ row.rowNum }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="제목" min-width="280">
-          <template #default="{ row }">
-            <div class="title-cell">
-              <span :class="['title-text', { notice: row.isNotice }]">{{ row.title }}</span>
-              <span v-if="row.hasFile" class="file-icon"><i class="ti ti-paperclip"></i></span>
-              <span v-if="row.commentCount > 0" class="comment-cnt">[{{ row.commentCount }}]</span>
-              <span v-if="isNew(row.createdAt)" class="new-badge">N</span>
+      <div class="post-table" v-loading="loading">
+        <!-- 헤더 -->
+        <div class="pt-head">
+          <div class="pt-col num">번호</div>
+          <div class="pt-col title">제목</div>
+          <div class="pt-col writer">작성자</div>
+          <div class="pt-col date">작성일</div>
+          <div v-if="showViewCount" class="pt-col count">조회</div>
+          <div v-if="showLikeCount && board?.useLike" class="pt-col count">좋아요</div>
+        </div>
+
+        <!-- 공지 행 -->
+        <template v-for="post in noticePosts" :key="`notice-${post.id}`">
+          <div class="pt-row notice-row" @click="goDetail(post)">
+            <div class="pt-col num">
+              <span class="notice-tag">공지</span>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="작성자" width="120" align="center">
-          <template #default="{ row }"><span class="meta-text">{{ row.writerName }}</span></template>
-        </el-table-column>
-        <el-table-column label="작성일" width="130" align="center">
-          <template #default="{ row }"><span class="meta-text">{{ formatDate(row.createdAt) }}</span></template>
-        </el-table-column>
-        <el-table-column v-if="showViewCount" label="조회" width="82" align="center">
-          <template #default="{ row }"><span class="meta-text">{{ row.viewCount }}</span></template>
-        </el-table-column>
-        <el-table-column v-if="showLikeCount && board?.useLike" label="좋아요" width="82" align="center">
-          <template #default="{ row }"><span class="meta-text">{{ row.likeCount }}</span></template>
-        </el-table-column>
-      </el-table>
+            <div class="pt-col title">
+              <span class="pt-title notice-title">{{ post.title }}</span>
+              <span v-if="post.commentCount > 0" class="comment-cnt">[{{ post.commentCount }}]</span>
+              <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </div>
+            <div class="pt-col writer">{{ post.writerName }}</div>
+            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
+            <div v-if="showViewCount" class="pt-col count">{{ post.viewCount }}</div>
+            <div v-if="showLikeCount && board?.useLike" class="pt-col count">{{ post.likeCount }}</div>
+          </div>
+        </template>
+
+        <!-- 구분선 (공지 있을 때) -->
+        <div v-if="noticePosts.length && normalPosts.length" class="notice-divider" />
+
+        <!-- 일반 글 행 -->
+        <template v-for="post in normalPosts" :key="post.id">
+          <div class="pt-row" @click="goDetail(post)">
+            <div class="pt-col num">
+              <span class="row-num">{{ post.rowNum }}</span>
+            </div>
+            <div class="pt-col title">
+              <span class="pt-title">{{ post.title }}</span>
+              <span v-if="post.commentCount > 0" class="comment-cnt">[{{ post.commentCount }}]</span>
+              <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </div>
+            <div class="pt-col writer">{{ post.writerName }}</div>
+            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
+            <div v-if="showViewCount" class="pt-col count">{{ post.viewCount }}</div>
+            <div v-if="showLikeCount && board?.useLike" class="pt-col count">{{ post.likeCount }}</div>
+          </div>
+        </template>
+
+        <!-- 빈 상태 -->
+        <div v-if="!loading && !posts.length" class="pt-empty">
+          <i class="ti ti-inbox"></i>
+          <p>등록된 게시글이 없습니다.</p>
+        </div>
+      </div>
 
       <div class="pagination">
         <el-pagination v-model:current-page="page" :page-size="size" :total="total"
@@ -82,7 +133,7 @@
           <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
         </div>
         <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
-          <i class="ti ti-pencil"></i>글쓰기
+          <i class="ti ti-pencil"></i>&nbsp;글쓰기
         </el-button>
       </div>
     </template>
@@ -115,6 +166,9 @@ const size = ref(20)
 const gallerySize = ref(12)
 const keyword = ref('')
 const searchType = ref('title')
+
+const noticePosts = computed(() => posts.value.filter(p => p.isNotice))
+const normalPosts = computed(() => posts.value.filter(p => !p.isNotice))
 
 const canWrite = computed(() => {
   if (!board.value) return false
@@ -154,18 +208,9 @@ async function fetchPosts() {
   }
 }
 
-function handleSearch() {
-  page.value = 1
-  fetchPosts()
-}
-
-function goWrite() {
-  router.push(`${basePath.value}/write`)
-}
-
-function goDetail(row) {
-  router.push(`${basePath.value}/posts/${row.id}`)
-}
+function handleSearch() { page.value = 1; fetchPosts() }
+function goWrite() { router.push(`${basePath.value}/write`) }
+function goDetail(row) { router.push(`${basePath.value}/posts/${row.id}`) }
 
 function formatDate(d) {
   if (!d) return ''
@@ -175,21 +220,16 @@ function formatDate(d) {
   return `${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}`
 }
 
-function isNew(d) {
-  return d && Date.now() - new Date(d).getTime() < 3 * 86400000
-}
+function isNew(d) { return d && Date.now() - new Date(d).getTime() < 3 * 86400000 }
 
 watch(boardId, async () => {
-  page.value = 1
-  keyword.value = ''
-  await fetchBoard()
-  fetchPosts()
+  page.value = 1; keyword.value = ''
+  await fetchBoard(); fetchPosts()
 })
 
 onMounted(async () => {
   if (route.params.menuId) await menuStore.fetchMenus()
-  await fetchBoard()
-  fetchPosts()
+  await fetchBoard(); fetchPosts()
 })
 </script>
 
@@ -197,46 +237,157 @@ onMounted(async () => {
 .board-list {
   display: flex;
   flex-direction: column;
-  padding: 20px 24px 24px;
   color: var(--t1);
 }
 
-/* ===== 하단 바 (검색 + 글쓰기) ===== */
-.bottom-bar {
+/* ===== 공통 배지 ===== */
+.new-badge {
+  font-size: 10px;
+  background: var(--new);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ===== 테이블 뷰 ===== */
+.post-table {
+  width: 100%;
+}
+
+.pt-head {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  height: 40px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border2);
+  border-top: 1px solid var(--border2);
+}
+
+.pt-col {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.pt-col.num   { width: 64px; flex-shrink: 0; text-align: center; }
+.pt-col.title { flex: 1; min-width: 0; }
+.pt-col.writer{ width: 100px; flex-shrink: 0; text-align: center; }
+.pt-col.date  { width: 96px; flex-shrink: 0; text-align: center; }
+.pt-col.count { width: 60px; flex-shrink: 0; text-align: center; }
+
+/* 행 */
+.pt-row {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  min-height: 48px;
+  border-bottom: 0.5px solid var(--border2);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.pt-row:hover { background: var(--surface2); }
+.pt-row:hover .pt-title { color: var(--accent-t); }
+
+.pt-row .pt-col {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--t2);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pt-row .pt-col.title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pt-title {
+  color: var(--t1);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.12s;
+}
+
+.notice-row { background: var(--accent-bg); }
+.notice-row:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.notice-title { font-weight: 700; color: var(--accent-t); }
+
+.notice-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.row-num { font-size: 13px; color: var(--t4); }
+
+.comment-cnt {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.file-chip {
+  font-size: 13px;
+  color: var(--t3);
+  flex-shrink: 0;
+}
+
+.notice-divider {
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+  opacity: 0.15;
+}
+
+.pt-empty {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
-  flex-wrap: wrap;
+  padding: 60px 0;
+  color: var(--t4);
+  font-size: 14px;
 }
-.search-group {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.search-area { display: flex; gap: 6px; align-items: center; }
-.search-type { width: 90px; }
-.search-input { width: 200px; }
+
+.pt-empty i { font-size: 36px; }
 
 /* ===== 갤러리 ===== */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-  min-height: 200px;
+  gap: 1px;
+  background: var(--border2);
+  border-top: 1px solid var(--border2);
 }
+
 .gallery-card {
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  border: 0.5px solid var(--border);
-  background: var(--surface2);
+  background: var(--surface);
   cursor: pointer;
   transition: var(--transition);
+  overflow: hidden;
 }
-.gallery-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+.gallery-card:hover { background: var(--surface2); }
+.gallery-card:hover .gallery-title { color: var(--accent-t); }
 
 .gallery-thumb {
+  position: relative;
   width: 100%;
   aspect-ratio: 4/3;
   background: var(--surface2);
@@ -245,10 +396,25 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
 }
-.gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.gallery-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.gallery-card:hover .gallery-thumb img { transform: scale(1.04); }
 .no-thumb { font-size: 28px; color: var(--t4); }
 
-.gallery-info { padding: 10px 12px; }
+.gallery-notice-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+
+.gallery-info { padding: 10px 12px 12px; }
+
 .gallery-title {
   font-size: 13px;
   font-weight: 600;
@@ -256,29 +422,74 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-bottom: 4px;
+  transition: color 0.12s;
 }
-.gallery-meta { font-size: 11px; color: var(--t3); margin-top: 4px; }
-.gallery-empty { grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--t3); font-size: 14px; }
 
-/* ===== 테이블 ===== */
-:deep(.el-table__row) { cursor: pointer; }
-
-.row-num { color: var(--t3); font-size: 13px; }
-
-.title-cell { display: flex; align-items: center; gap: 6px; }
-.title-text { font-size: 14px; }
-.title-text.notice { font-weight: 600; color: var(--accent); }
-.file-icon { font-size: 13px; color: var(--t3); }
-.comment-cnt { font-size: 12px; color: var(--accent); font-weight: 600; }
-.new-badge {
-  font-size: 10px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 3px;
-  padding: 1px 4px;
-  font-weight: 700;
+.gallery-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--t3);
+  margin-bottom: 6px;
 }
-.meta-text { font-size: 13px; color: var(--t2); }
 
-.pagination { display: flex; justify-content: center; padding: 20px 0 4px; }
+.gallery-dot { color: var(--t4); }
+
+.gallery-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.stat-chip i { font-size: 11px; }
+
+.gallery-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 60px 0;
+  color: var(--t4);
+  font-size: 14px;
+}
+
+.gallery-empty i { font-size: 36px; }
+
+/* ===== 하단 바 ===== */
+.pagination { display: flex; justify-content: center; padding: 18px 0 4px; }
+
+.bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border2);
+  background: var(--surface2);
+  flex-wrap: wrap;
+}
+
+.search-group, .search-area { display: flex; gap: 6px; align-items: center; }
+.search-type { width: 82px; }
+.search-input { width: 200px; }
+
+@media (max-width: 600px) {
+  .pt-col.writer, .pt-col.count { display: none; }
+  .pt-col.date { width: 72px; font-size: 12px; }
+  .search-input { width: 130px; }
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+}
 </style>

@@ -1,11 +1,16 @@
 <template>
   <div class="board-detail" v-loading="loading">
     <template v-if="post">
+
+      <!-- ===== 게시글 헤더 ===== -->
       <div class="post-header">
-        <div v-if="post.isNotice" class="notice-badge">공지</div>
-        <h1 class="post-title">{{ post.title }}</h1>
+        <div class="post-header-top">
+          <span v-if="post.isNotice" class="notice-tag">공지</span>
+          <h1 class="post-title">{{ post.title }}</h1>
+        </div>
+
         <div class="post-meta">
-          <span class="writer-info">
+          <div class="writer-info">
             <img
               v-if="post.writerProfileImageUrl && !postAvatarError"
               :src="post.writerProfileImageUrl"
@@ -13,19 +18,24 @@
               alt=""
               @error="postAvatarError = true"
             />
-            <span v-else class="writer-avatar-placeholder">{{ post.writerName?.charAt(0) || 'U' }}</span>
-            <span class="writer-name">{{ post.writerName }}</span>
-          </span>
-          <span class="meta-divider">·</span>
-          <span>{{ formatDate(post.createdAt) }}</span>
-          <span class="meta-divider">·</span>
-          <span>조회 {{ post.viewCount }}</span>
+            <span v-else class="writer-avatar-fallback">{{ post.writerName?.charAt(0) || 'U' }}</span>
+            <div class="writer-texts">
+              <span class="writer-name">{{ post.writerName }}</span>
+              <span class="post-date">{{ formatDate(post.createdAt) }}</span>
+            </div>
+          </div>
+          <div class="meta-stats">
+            <span class="meta-stat"><i class="ti ti-eye"></i> {{ post.viewCount }}</span>
+            <span v-if="board?.useLike" class="meta-stat"><i class="ti ti-heart"></i> {{ post.likeCount }}</span>
+          </div>
         </div>
       </div>
 
+      <!-- ===== 첨부파일 ===== -->
       <div v-if="post.files?.length" class="attach-area">
-        <div class="attach-title">
-          <el-icon><Paperclip /></el-icon> 첨부파일 ({{ post.files.length }})
+        <div class="attach-header">
+          <i class="ti ti-paperclip"></i>
+          <span>첨부파일 {{ post.files.length }}개</span>
         </div>
         <div class="attach-list">
           <a
@@ -35,16 +45,22 @@
             class="attach-item"
             target="_blank"
           >
-            <el-icon><Document /></el-icon>
-            <span>{{ f.originalName }}</span>
-            <span class="file-size">({{ formatFileSize(f.fileSize) }})</span>
+            <div class="attach-icon">
+              <i :class="fileIcon(f.originalName)"></i>
+            </div>
+            <div class="attach-info">
+              <span class="attach-name">{{ f.originalName }}</span>
+              <span class="attach-size">{{ formatFileSize(f.fileSize) }}</span>
+            </div>
+            <i class="ti ti-download attach-dl"></i>
           </a>
         </div>
       </div>
 
+      <!-- ===== 본문 ===== -->
       <div class="post-content" v-html="post.content" />
 
-      <!-- 액션 바 -->
+      <!-- ===== 액션 바 ===== -->
       <div class="post-actions">
         <div class="actions-left">
           <button
@@ -53,49 +69,54 @@
             @click="handleLike"
           >
             <i :class="post.liked ? 'ti ti-heart-filled' : 'ti ti-heart'"></i>
-            <span>좋아요 {{ post.likeCount }}</span>
+            <span>{{ post.likeCount }}</span>
           </button>
-          <button class="action-btn" @click="handlePrint">
+          <button class="action-btn ghost" @click="handlePrint">
             <i class="ti ti-printer"></i>
-            <span>인쇄</span>
+            <span class="btn-label">인쇄</span>
           </button>
         </div>
         <div class="actions-right">
-          <button v-if="canEdit" class="action-btn" @click="router.push(`${basePath}/posts/${postId}/edit`)">
+          <button v-if="canEdit" class="action-btn ghost"
+            @click="router.push(`${basePath}/posts/${postId}/edit`)">
             <i class="ti ti-edit"></i>
-            <span>수정</span>
+            <span class="btn-label">수정</span>
           </button>
           <button v-if="canEdit" class="action-btn danger" @click="handleDelete">
             <i class="ti ti-trash"></i>
-            <span>삭제</span>
+            <span class="btn-label">삭제</span>
           </button>
-          <button class="action-btn accent" @click="router.push(basePath)">
+          <button class="action-btn primary" @click="router.push(basePath)">
             <i class="ti ti-layout-list"></i>
-            <span>목록</span>
+            <span class="btn-label">목록</span>
           </button>
         </div>
       </div>
 
-      <!-- 이전/다음 글 -->
+      <!-- ===== 이전/다음 글 ===== -->
       <div v-if="adjacent" class="adjacent-nav">
-        <router-link
-          v-if="adjacent.next"
-          :to="`${basePath}/posts/${adjacent.next.id}`"
-          class="adj-item"
+        <component
+          :is="adjacent.next ? 'router-link' : 'div'"
+          v-bind="adjacent.next ? { to: `${basePath}/posts/${adjacent.next.id}` } : {}"
+          :class="['adj-item', { empty: !adjacent.next }]"
         >
-          <span class="adj-label"><i class="ti ti-chevron-up"></i> 다음 글</span>
-          <span class="adj-title">{{ adjacent.next.title }}</span>
-        </router-link>
-        <div v-else class="adj-item empty"><span class="adj-label"><i class="ti ti-chevron-up"></i> 다음 글</span><span class="adj-empty">없음</span></div>
-        <router-link
-          v-if="adjacent.prev"
-          :to="`${basePath}/posts/${adjacent.prev.id}`"
-          class="adj-item"
+          <span class="adj-label">
+            <i class="ti ti-chevron-up"></i> 다음 글
+          </span>
+          <span v-if="adjacent.next" class="adj-title">{{ adjacent.next.title }}</span>
+          <span v-else class="adj-empty">없음</span>
+        </component>
+        <component
+          :is="adjacent.prev ? 'router-link' : 'div'"
+          v-bind="adjacent.prev ? { to: `${basePath}/posts/${adjacent.prev.id}` } : {}"
+          :class="['adj-item', { empty: !adjacent.prev }]"
         >
-          <span class="adj-label"><i class="ti ti-chevron-down"></i> 이전 글</span>
-          <span class="adj-title">{{ adjacent.prev.title }}</span>
-        </router-link>
-        <div v-else class="adj-item empty"><span class="adj-label"><i class="ti ti-chevron-down"></i> 이전 글</span><span class="adj-empty">없음</span></div>
+          <span class="adj-label">
+            <i class="ti ti-chevron-down"></i> 이전 글
+          </span>
+          <span v-if="adjacent.prev" class="adj-title">{{ adjacent.prev.title }}</span>
+          <span v-else class="adj-empty">없음</span>
+        </component>
       </div>
 
       <CommentSection
@@ -112,7 +133,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Paperclip, Document } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
@@ -128,6 +148,7 @@ const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
 const postId = computed(() => route.params.postId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
+
 const post = ref(null)
 const board = ref(null)
 const adjacent = ref(null)
@@ -169,10 +190,7 @@ async function fetchPost() {
 }
 
 async function handleLike() {
-  if (!authStore.isLoggedIn) {
-    ElMessage.warning('로그인이 필요합니다.')
-    return
-  }
+  if (!authStore.isLoggedIn) { ElMessage.warning('로그인이 필요합니다.'); return }
   const res = await api.post(`/boards/${boardId.value}/posts/${postId.value}/like`)
   post.value.liked = res.data.data.liked
   post.value.likeCount += res.data.data.liked ? 1 : -1
@@ -180,32 +198,41 @@ async function handleLike() {
 
 async function handleDelete() {
   await ElMessageBox.confirm('게시글을 삭제하시겠습니까?', '삭제 확인', {
-    type: 'warning',
-    confirmButtonText: '삭제',
-    cancelButtonText: '취소'
+    type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소'
   })
   await api.delete(`/boards/${boardId.value}/posts/${postId.value}`)
   ElMessage.success('삭제되었습니다.')
   router.push(basePath.value)
 }
 
-function handlePrint() {
-  window.print()
-}
+function handlePrint() { window.print() }
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('ko-KR')
+  return new Date(dateStr).toLocaleString('ko-KR', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  })
 }
 
 function formatFileSize(bytes) {
+  if (!bytes) return '0B'
   if (bytes < 1024) return bytes + 'B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB'
   return (bytes / (1024 * 1024)).toFixed(1) + 'MB'
 }
 
-watch([boardId, postId], fetchPost)
+function fileIcon(name) {
+  const ext = name?.split('.').pop()?.toLowerCase() || ''
+  if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) return 'ti ti-photo'
+  if (['pdf'].includes(ext)) return 'ti ti-file-type-pdf'
+  if (['doc','docx'].includes(ext)) return 'ti ti-file-type-doc'
+  if (['xls','xlsx'].includes(ext)) return 'ti ti-file-type-xls'
+  if (['zip','rar','7z'].includes(ext)) return 'ti ti-file-zip'
+  return 'ti ti-file'
+}
 
+watch([boardId, postId], fetchPost)
 onMounted(async () => {
   if (route.params.menuId) await menuStore.fetchMenus()
   fetchPost()
@@ -213,70 +240,73 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.board-detail {
-  color: var(--t1);
-}
+.board-detail { color: var(--t1); }
 
+/* ===== 헤더 ===== */
 .post-header {
-  padding: 28px 30px 22px;
+  padding: 26px 28px 20px;
   border-bottom: 1px solid var(--border2);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
-.notice-badge {
+.post-header-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.notice-tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
+  padding: 3px 9px;
   border-radius: 4px;
-  background: var(--new);
+  background: var(--accent);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  width: fit-content;
+  white-space: nowrap;
+  margin-top: 4px;
+  flex-shrink: 0;
 }
 
 .post-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.45;
   color: var(--t1);
+  word-break: break-word;
 }
 
 .post-meta {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 15px;
-  color: var(--t2);
+  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
 }
-
-.meta-divider { color: var(--t3); }
 
 .writer-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
 }
 
 .writer-avatar {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  border: 1.5px solid var(--border);
 }
 
-.writer-avatar-placeholder {
-  width: 24px;
-  height: 24px;
+.writer-avatar-fallback {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--accent);
+  background: linear-gradient(135deg, #4f6ef7, #7c4ff7);
   color: #fff;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -284,88 +314,171 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+.writer-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .writer-name {
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--t1);
 }
 
+.post-date {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.meta-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.meta-stat i { font-size: 13px; }
+
+/* ===== 첨부파일 ===== */
 .attach-area {
-  padding: 14px 30px;
+  padding: 14px 28px;
   background: var(--surface2);
   border-bottom: 1px solid var(--border2);
 }
 
-.attach-title {
+.attach-header {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 15px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
-  margin-bottom: 8px;
-  color: var(--t1);
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
 }
 
 .attach-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .attach-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 15px;
-  color: var(--accent-t);
-  padding: 5px 8px;
+  gap: 10px;
+  padding: 8px 12px;
   border-radius: var(--radius-xs);
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--t1);
   transition: var(--transition);
-  width: fit-content;
+  text-decoration: none;
 }
 
-.attach-item:hover { background: var(--accent-bg); }
-.file-size { color: var(--t3); font-size: 14px; }
+.attach-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
 
+.attach-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--accent-bg);
+  color: var(--accent-t);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.attach-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attach-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-size {
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.attach-dl {
+  font-size: 15px;
+  color: var(--t3);
+  flex-shrink: 0;
+}
+
+/* ===== 본문 ===== */
 .post-content {
-  padding: 30px;
-  min-height: 220px;
-  font-size: 16px;
-  line-height: 1.85;
+  padding: 32px 28px;
+  min-height: 180px;
+  font-size: 15px;
+  line-height: 1.9;
   color: var(--t1);
 }
 
-.post-content :deep(p) { margin: 0 0 0.6em; }
-.post-content :deep(h1) { font-size: 1.8em; font-weight: 800; margin: 1em 0 0.4em; }
-.post-content :deep(h2) { font-size: 1.4em; font-weight: 700; margin: 0.9em 0 0.4em; }
-.post-content :deep(h3) { font-size: 1.15em; font-weight: 700; margin: 0.8em 0 0.3em; }
-.post-content :deep(ul) { padding-left: 1.5em; margin: 0.4em 0; }
-.post-content :deep(ol) { padding-left: 1.5em; margin: 0.4em 0; }
+.post-content :deep(p) { margin: 0 0 0.7em; }
+.post-content :deep(h1) { font-size: 1.7em; font-weight: 800; margin: 1em 0 0.4em; }
+.post-content :deep(h2) { font-size: 1.35em; font-weight: 700; margin: 0.9em 0 0.4em; }
+.post-content :deep(h3) { font-size: 1.1em; font-weight: 700; margin: 0.8em 0 0.3em; }
+.post-content :deep(ul), .post-content :deep(ol) { padding-left: 1.5em; margin: 0.4em 0; }
 .post-content :deep(li) { margin: 0.2em 0; }
 .post-content :deep(blockquote) {
   border-left: 3px solid var(--accent);
-  padding-left: 16px;
+  padding: 4px 0 4px 16px;
   color: var(--t2);
   margin: 0.8em 0;
+  background: var(--accent-bg);
+  border-radius: 0 4px 4px 0;
 }
 .post-content :deep(code) {
   background: var(--surface2);
   border-radius: 4px;
   padding: 2px 6px;
-  font-size: 0.9em;
-  color: var(--accent);
+  font-size: 0.88em;
+  color: #e03e52;
+  font-family: monospace;
 }
 .post-content :deep(pre) {
-  background: var(--surface2);
+  background: #1e1e2e;
   border-radius: var(--radius-xs);
-  padding: 16px;
+  padding: 18px;
   overflow-x: auto;
   margin: 0.8em 0;
 }
-.post-content :deep(pre code) { background: none; padding: 0; color: var(--t1); font-size: 14px; }
+.post-content :deep(pre code) { background: none; padding: 0; color: #cdd6f4; font-size: 13px; }
 .post-content :deep(a) { color: var(--accent); text-decoration: underline; }
 .post-content :deep(img) { max-width: 100%; height: auto; border-radius: var(--radius-xs); }
-.post-content :deep(hr) { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
-.post-content :deep(table) { max-width: 100%; border-color: var(--border); }
+.post-content :deep(hr) { border: none; border-top: 1px solid var(--border); margin: 1.2em 0; }
+.post-content :deep(table) { border-collapse: collapse; max-width: 100%; }
+.post-content :deep(th), .post-content :deep(td) {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  font-size: 14px;
+}
+.post-content :deep(th) { background: var(--surface2); font-weight: 700; }
 
 /* ===== 액션 바 ===== */
 .post-actions {
@@ -373,87 +486,84 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 30px;
+  padding: 12px 28px;
   border-top: 1px solid var(--border2);
   border-bottom: 1px solid var(--border2);
   background: var(--surface2);
 }
 
-.actions-left,
-.actions-right {
+.actions-left, .actions-right {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.action-btn,
-.like-btn {
+.like-btn, .action-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  border: 0.5px solid var(--border);
   border-radius: var(--radius-xs);
-  background: var(--surface);
-  color: var(--t2);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
   white-space: nowrap;
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--t2);
 }
 
-.action-btn:hover { background: var(--surface2); color: var(--t1); border-color: var(--border2); }
-.action-btn.danger { color: var(--el-color-danger); }
-.action-btn.danger:hover { background: #fff1f0; border-color: var(--el-color-danger); }
-.action-btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
-.action-btn.accent:hover { opacity: 0.88; }
+.action-btn.ghost:hover { background: var(--surface2); color: var(--t1); }
+
+.action-btn.danger {
+  color: #e03e52;
+  border-color: #fecdd3;
+}
+.action-btn.danger:hover { background: #fff1f2; border-color: #e03e52; }
+
+.action-btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.action-btn.primary:hover { opacity: 0.88; }
 
 .like-btn { color: var(--t3); }
-.like-btn:hover { color: #e03e52; border-color: #e03e52; background: #fff5f6; }
-.like-btn.liked { color: #e03e52; border-color: #e03e52; background: #fff5f6; }
-.like-btn.liked i { color: #e03e52; }
+.like-btn:hover { color: #e03e52; border-color: #fecdd3; background: #fff1f2; }
+.like-btn.liked { color: #e03e52; border-color: #fecdd3; background: #fff1f2; }
 
-/* ===== 이전/다음 글 ===== */
-.adjacent-nav {
-  border-bottom: 1px solid var(--border2);
-}
+/* ===== 이전/다음 ===== */
+.adjacent-nav { border-bottom: 1px solid var(--border2); }
 
 .adj-item {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 12px 30px;
-  border-top: 1px solid var(--border2);
+  padding: 13px 28px;
+  border-top: 0.5px solid var(--border2);
+  text-decoration: none;
   color: var(--t2);
   transition: var(--transition);
-  text-decoration: none;
 }
 
-a.adj-item:hover {
-  background: var(--surface2);
-  color: var(--t1);
-}
+a.adj-item:hover { background: var(--surface2); }
+a.adj-item:hover .adj-title { color: var(--accent-t); }
 
-a.adj-item:hover .adj-title {
-  color: var(--accent-t);
-}
-
-.adj-item.empty {
-  cursor: default;
-  opacity: 0.5;
-}
+.adj-item.empty { opacity: 0.45; cursor: default; }
 
 .adj-label {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--t3);
   white-space: nowrap;
-  width: 72px;
+  width: 68px;
   flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .adj-title {
@@ -462,26 +572,16 @@ a.adj-item:hover .adj-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.12s;
 }
 
-.adj-empty {
-  font-size: 13px;
-  color: var(--t4);
-}
+.adj-empty { font-size: 13px; color: var(--t4); }
 
+/* ===== 반응형 ===== */
 @media (max-width: 768px) {
-  .post-header,
-  .attach-area,
-  .post-content,
-  .post-actions,
-  .adj-item {
-    padding-left: 18px;
-    padding-right: 18px;
-  }
-
-  .post-title { font-size: 21px; }
-  .post-actions { flex-wrap: wrap; gap: 8px; }
-  .action-btn span, .like-btn span { display: none; }
-  .action-btn, .like-btn { padding: 8px 10px; }
+  .post-header, .attach-area, .post-content, .post-actions, .adj-item { padding-left: 18px; padding-right: 18px; }
+  .post-title { font-size: 18px; }
+  .btn-label { display: none; }
+  .like-btn, .action-btn { padding: 7px 10px; }
 }
 </style>

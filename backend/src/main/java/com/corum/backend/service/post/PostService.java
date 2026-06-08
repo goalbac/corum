@@ -11,6 +11,7 @@ import com.corum.backend.dto.post.AdjacentPostsResponse;
 import com.corum.backend.dto.post.PostCreateRequest;
 import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
+import com.corum.backend.domain.comment.CommentRepository;
 import com.corum.backend.service.file.FileStorageService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final MemberRepository memberRepository;
     private final FileStorageService fileStorageService;
+    private final CommentRepository commentRepository;
 
     // ===== 게시글 목록 =====
     @Transactional(readOnly = true)
@@ -61,7 +63,8 @@ public class PostService {
                             .map(f -> "/api/files/" + f.getId() + "/view")
                             .orElse(null);
             long rowNum = total - offset - i;
-            content.add(new PostSummaryResponse(p, 0, !files.isEmpty(), thumbnailUrl, rowNum));
+            int commentCount = commentRepository.countByPostIdAndIsDeletedFalse(p.getId());
+            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, rowNum));
         }
 
         return new PageImpl<>(content, pageable, posts.getTotalElements());
