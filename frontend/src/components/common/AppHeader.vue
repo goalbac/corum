@@ -88,7 +88,8 @@ const menuStore = useMenuStore()
 const themeStore = useThemeStore()
 const router = useRouter()
 
-function handleTopMenuClick(menu) {
+async function handleTopMenuClick(menu) {
+  await menuStore.fetchMenus()
   const url = menuStore.resolveMenuPath(menu)
   if (!url) {
     menuStore.setActiveTopMenu(menu.id)

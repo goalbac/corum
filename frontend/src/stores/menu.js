@@ -76,7 +76,6 @@ export const useMenuStore = defineStore('menu', () => {
     if (menu.menuType === 'LINK') return menu.url || null
     if (menu.menuType === 'GROUP') return resolveMenuPath(firstNavigableMenu(menu))
     if (menu.pageType === 'DASHBOARD') return '/'
-    if (menu.url && !menu.urlAuto) return menu.url
     return `/menu/${menu.id}`
   }
 

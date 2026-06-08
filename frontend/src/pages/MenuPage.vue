@@ -3,15 +3,15 @@
   <CalendarPage v-else-if="activeMenu?.pageType === 'CALENDAR'" />
   <DashboardPage v-else-if="activeMenu?.pageType === 'DASHBOARD'" />
   <ContentPage v-else-if="activeMenu?.pageType === 'CONTENT'" />
-  <div v-else class="menu-page">
-    <h1>{{ activeMenu?.name || '메뉴' }}</h1>
+  <div v-else-if="activeMenu" class="menu-page">
+    <h1>{{ activeMenu.name }}</h1>
     <p>이 메뉴의 콘텐츠가 아직 준비되지 않았습니다.</p>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
 import BoardListPage from '@/pages/board/BoardListPage.vue'
 import CalendarPage from '@/pages/calendar/CalendarPage.vue'
@@ -19,8 +19,18 @@ import ContentPage from '@/pages/content/ContentPage.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 
 const route = useRoute()
+const router = useRouter()
 const menuStore = useMenuStore()
 const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
+
+// GROUP 타입 메뉴에 직접 진입 시 첫 번째 탐색 가능 하위 메뉴로 리다이렉트
+watch(activeMenu, menu => {
+  if (!menu || menu.menuType !== 'GROUP') return
+  const first = menuStore.firstNavigableMenu(menu)
+  if (first && first.id !== menu.id) {
+    router.replace(menuStore.resolveMenuPath(first))
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>
