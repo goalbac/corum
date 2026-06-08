@@ -60,7 +60,8 @@ public class SecurityConfig {
                                 "/api/display/banners/active",
                                 "/api/site/public",
                                 "/api/files/profile/**",
-                                "/api/files/inline/**"
+                                "/api/files/inline/**",
+                                "/api/files/*/view"
                         ).permitAll()
                         // 나머지 인증 필요
                         .anyRequest().authenticated()

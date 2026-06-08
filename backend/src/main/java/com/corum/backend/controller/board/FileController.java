@@ -79,6 +79,26 @@ public class FileController {
                 .body(data);
     }
 
+    @GetMapping("/api/files/{fileId}/view")
+    public ResponseEntity<byte[]> viewImage(@PathVariable Long fileId) {
+        UploadFile uploadFile = fileStorageService.getUploadFile(fileId);
+        byte[] data = fileStorageService.readFileBytes(fileId);
+
+        String mimeType = uploadFile.getMimeType();
+        MediaType mediaType;
+        try {
+            mediaType = mimeType != null ? MediaType.parseMediaType(mimeType) : MediaType.APPLICATION_OCTET_STREAM;
+        } catch (Exception e) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .cacheControl(CacheControl.maxAge(7, TimeUnit.DAYS))
+                .contentLength(data.length)
+                .body(data);
+    }
+
     @GetMapping("/api/files/profile/{storedName}")
     public ResponseEntity<byte[]> profileImage(@PathVariable String storedName) {
         byte[] data = fileStorageService.downloadProfileImage(storedName);

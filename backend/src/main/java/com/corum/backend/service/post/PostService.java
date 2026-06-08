@@ -49,7 +49,7 @@ public class PostService {
                     String thumbnailUrl = files.stream()
                             .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
                             .findFirst()
-                            .map(f -> "/api/files/" + f.getId() + "/download")
+                            .map(f -> "/api/files/" + f.getId() + "/view")
                             .orElseGet(() -> extractFirstImageFromContent(p.getContent()));
                     return new PostSummaryResponse(p, 0, !files.isEmpty(), thumbnailUrl);
                 })

@@ -80,6 +80,23 @@ public class FileStorageService {
         return new FileResponse(uploadFileRepository.save(uploadFile));
     }
 
+    // ===== 파일 조회 (카운트 증가 없음, 이미지 인라인 표시용) =====
+    @Transactional(readOnly = true)
+    public byte[] readFileBytes(Long fileId) {
+        UploadFile uploadFile = uploadFileRepository.findById(fileId)
+                .orElseThrow(() -> BusinessException.notFound("파일을 찾을 수 없습니다."));
+        try {
+            return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(uploadFile.getStoragePath())
+                    .build()
+            ).asByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("파일을 불러올 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     // ===== 파일 다운로드 =====
     @Transactional
     public byte[] downloadFile(Long fileId) {
