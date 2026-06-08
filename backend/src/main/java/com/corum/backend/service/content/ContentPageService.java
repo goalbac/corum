@@ -5,6 +5,7 @@ import com.corum.backend.domain.content.ContentPage;
 import com.corum.backend.domain.content.ContentPageHistory;
 import com.corum.backend.domain.content.ContentPageHistoryRepository;
 import com.corum.backend.domain.content.ContentPageRepository;
+import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.dto.content.ContentPageHistoryResponse;
 import com.corum.backend.dto.content.ContentPageRequest;
 import com.corum.backend.dto.content.ContentPageResponse;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class ContentPageService {
 
     private final ContentPageRepository contentPageRepository;
     private final ContentPageHistoryRepository historyRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional(readOnly = true)
     public List<ContentPageResponse> getPages() {
@@ -57,8 +61,20 @@ public class ContentPageService {
 
     @Transactional(readOnly = true)
     public List<ContentPageHistoryResponse> getHistories(Long contentPageId) {
-        return historyRepository.findByContentPageIdOrderByCreatedAtDesc(contentPageId).stream()
-                .map(ContentPageHistoryResponse::new)
+        List<ContentPageHistory> histories =
+                historyRepository.findByContentPageIdOrderByCreatedAtDesc(contentPageId);
+
+        // 수정자 ID → 이름 일괄 조회
+        List<Long> memberIds = histories.stream()
+                .map(ContentPageHistory::getCreatedBy)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, String> nameMap = memberRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(m -> m.getId(), m -> m.getName()));
+
+        return histories.stream()
+                .map(h -> new ContentPageHistoryResponse(h, nameMap.getOrDefault(h.getCreatedBy(), "알 수 없음")))
                 .toList();
     }
 
