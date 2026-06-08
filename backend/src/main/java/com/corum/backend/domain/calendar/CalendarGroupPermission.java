@@ -28,4 +28,9 @@ public class CalendarGroupPermission {
     @Column(name = "can_write", nullable = false)
     @Builder.Default
     private Boolean canWrite = false;
+
+    public void update(Boolean canRead, Boolean canWrite) {
+        this.canRead  = canRead;
+        this.canWrite = canWrite;
+    }
 }

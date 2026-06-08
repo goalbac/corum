@@ -18,15 +18,6 @@ public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Lo
     List<CalendarEvent> findByPeriod(List<Long> calendarIds,
                                       LocalDateTime start, LocalDateTime end);
 
-    @Query("""
-        SELECT e FROM CalendarEvent e
-        WHERE e.calendarId IN :calendarIds
-        AND e.recurrenceType <> 'NONE'
-        AND e.startAt <= :end
-        ORDER BY e.startAt ASC
-        """)
-    List<CalendarEvent> findRecurringCandidates(List<Long> calendarIds, LocalDateTime end);
-
     List<CalendarEvent> findByCalendarIdOrderByStartAtAsc(Long calendarId);
 
     void deleteByCalendarId(Long calendarId);
