@@ -30,7 +30,7 @@
             <div class="at-col muted" style="width:100px">{{ posLabel(row.position) }}</div>
             <div class="at-col muted" style="width:160px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
             <div class="at-col" style="width:70px;text-align:center">
-              <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+              <span :class="['adm-badge', statusBadge(row)]">{{ statusText(row) }}</span>
             </div>
             <div class="at-col at-actions" style="width:90px">
               <button class="act-btn" @click="openPopupEdit(row)"><i class="ti ti-edit"></i> 수정</button>
@@ -54,7 +54,7 @@
             <div class="at-col bold" style="flex:1">{{ row.title }}</div>
             <div class="at-col muted" style="width:160px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
             <div class="at-col" style="width:70px;text-align:center">
-              <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+              <span :class="['adm-badge', statusBadge(row)]">{{ statusText(row) }}</span>
             </div>
             <div class="at-col at-actions" style="width:90px">
               <button class="act-btn" @click="openBannerEdit(row)"><i class="ti ti-edit"></i> 수정</button>
@@ -179,6 +179,17 @@ async function saveBanner() {
 async function deletePopup(id) { await ElMessageBox.confirm('팝업을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/display/popups/${id}`); ElMessage.success('삭제되었습니다.'); fetchPopups() }
 async function deleteBanner(id) { await ElMessageBox.confirm('배너를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/display/banners/${id}`); ElMessage.success('삭제되었습니다.'); fetchBanners() }
 
+function isExpired(row) { return row.endAt && new Date(row.endAt) < new Date() }
+function statusText(row) {
+  if (!row.isActive) return '비활성'
+  if (isExpired(row)) return '기간만료'
+  return '활성'
+}
+function statusBadge(row) {
+  if (!row.isActive) return 'badge-muted'
+  if (isExpired(row)) return 'badge-warning'
+  return 'badge-success'
+}
 function posLabel(p) { return { CENTER: '중앙', LEFT: '왼쪽', RIGHT: '오른쪽' }[p] || p }
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) }
 
