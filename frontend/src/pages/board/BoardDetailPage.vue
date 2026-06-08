@@ -277,10 +277,38 @@ onMounted(async () => {
   border-bottom: 1px solid var(--border2);
 }
 
-.post-content :deep(*) { color: inherit; }
-.post-content :deep(a) { color: var(--accent-t); }
+.post-content :deep(p) { margin: 0 0 0.6em; }
+.post-content :deep(h1) { font-size: 1.8em; font-weight: 800; margin: 1em 0 0.4em; }
+.post-content :deep(h2) { font-size: 1.4em; font-weight: 700; margin: 0.9em 0 0.4em; }
+.post-content :deep(h3) { font-size: 1.15em; font-weight: 700; margin: 0.8em 0 0.3em; }
+.post-content :deep(ul) { padding-left: 1.5em; margin: 0.4em 0; }
+.post-content :deep(ol) { padding-left: 1.5em; margin: 0.4em 0; }
+.post-content :deep(li) { margin: 0.2em 0; }
+.post-content :deep(blockquote) {
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+  color: var(--t2);
+  margin: 0.8em 0;
+}
+.post-content :deep(code) {
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+  color: var(--accent);
+}
+.post-content :deep(pre) {
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 16px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.post-content :deep(pre code) { background: none; padding: 0; color: var(--t1); font-size: 14px; }
+.post-content :deep(a) { color: var(--accent); text-decoration: underline; }
+.post-content :deep(img) { max-width: 100%; height: auto; border-radius: var(--radius-xs); }
+.post-content :deep(hr) { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
 .post-content :deep(table) { max-width: 100%; border-color: var(--border); }
-.post-content :deep(img) { max-width: 100%; height: auto; }
 
 .post-actions {
   display: flex;

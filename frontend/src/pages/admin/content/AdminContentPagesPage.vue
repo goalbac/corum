@@ -18,36 +18,16 @@
             </el-select>
           </el-form-item>
           <el-form-item label="제목">
-            <el-input v-model="form.title" placeholder="페이지 제목" />
+            <el-input v-model="form.title" placeholder="페이지 제목" :disabled="!selectedMenuId" />
           </el-form-item>
         </el-form>
 
-        <div class="editor-shell" :class="{ disabled: !selectedMenuId }">
-          <div class="editor-toolbar">
-            <button type="button" :class="{ active: editor?.isActive('bold') }" @click="editor?.chain().focus().toggleBold().run()">
-              <i class="ti ti-bold"></i>
-            </button>
-            <button type="button" :class="{ active: editor?.isActive('italic') }" @click="editor?.chain().focus().toggleItalic().run()">
-              <i class="ti ti-italic"></i>
-            </button>
-            <button type="button" :class="{ active: editor?.isActive('heading', { level: 2 }) }" @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()">
-              H2
-            </button>
-            <button type="button" :class="{ active: editor?.isActive('bulletList') }" @click="editor?.chain().focus().toggleBulletList().run()">
-              <i class="ti ti-list"></i>
-            </button>
-            <button type="button" :class="{ active: editor?.isActive('orderedList') }" @click="editor?.chain().focus().toggleOrderedList().run()">
-              <i class="ti ti-list-numbers"></i>
-            </button>
-            <button type="button" @click="editor?.chain().focus().undo().run()">
-              <i class="ti ti-arrow-back-up"></i>
-            </button>
-            <button type="button" @click="editor?.chain().focus().redo().run()">
-              <i class="ti ti-arrow-forward-up"></i>
-            </button>
-          </div>
-          <EditorContent class="editor-content" :editor="editor" />
-        </div>
+        <RichEditor
+          v-model="form.content"
+          placeholder="안내 페이지 내용을 입력하세요."
+          min-height="460px"
+          :disabled="!selectedMenuId"
+        />
       </section>
 
       <aside class="history-panel">
@@ -69,11 +49,10 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Editor, EditorContent } from '@tiptap/vue-3'
-import StarterKit from '@tiptap/starter-kit'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import RichEditor from '@/components/common/RichEditor.vue'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 
@@ -83,19 +62,6 @@ const currentPage = ref(null)
 const histories = ref([])
 const saving = ref(false)
 const form = ref({ title: '', content: '' })
-
-const editor = new Editor({
-  extensions: [StarterKit],
-  content: '',
-  editorProps: {
-    attributes: {
-      class: 'tiptap-body'
-    }
-  },
-  onUpdate: ({ editor }) => {
-    form.value.content = editor.getHTML()
-  }
-})
 
 const contentMenus = computed(() => {
   return menuStore.flatMenus
@@ -115,14 +81,12 @@ async function loadPage() {
       title: currentPage.value.title,
       content: currentPage.value.content || ''
     }
-    editor.commands.setContent(form.value.content || '')
     await loadHistories()
   } catch {
     const menu = menuStore.findMenuById(selectedMenuId.value)
     currentPage.value = null
     histories.value = []
     form.value = { title: menu?.name || '', content: '' }
-    editor.commands.setContent('')
   }
 }
 
@@ -161,7 +125,6 @@ async function restoreHistory(history) {
   const res = await api.post(`/admin/content-pages/${currentPage.value.id}/histories/${history.id}/restore`)
   currentPage.value = res.data.data
   form.value.content = currentPage.value.content || ''
-  editor.commands.setContent(form.value.content)
   ElMessage.success('복원되었습니다.')
   await loadHistories()
 }
@@ -189,10 +152,6 @@ onMounted(async () => {
     loadPage()
   }
 })
-
-onBeforeUnmount(() => {
-  editor.destroy()
-})
 </script>
 
 <style scoped>
@@ -211,68 +170,16 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   padding: 18px;
-}
-
-.editor-shell {
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--surface);
-}
-
-.editor-shell.disabled { opacity: 0.6; pointer-events: none; }
-
-.editor-toolbar {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px;
-  border-bottom: 0.5px solid var(--border);
-  background: var(--surface2);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
 }
-
-.editor-toolbar button {
-  min-width: 34px;
-  height: 32px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-xs);
-  background: var(--surface);
-  color: var(--t2);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.editor-toolbar button.active,
-.editor-toolbar button:hover {
-  background: var(--accent-bg);
-  color: var(--accent-t);
-  border-color: var(--accent);
-}
-
-.editor-content {
-  min-height: 420px;
-  padding: 18px;
-  color: var(--t1);
-}
-
-.editor-content :deep(.tiptap-body) {
-  min-height: 380px;
-  outline: none;
-  font-size: 16px;
-  line-height: 1.8;
-}
-
-.editor-content :deep(p) { margin: 0 0 12px; }
-.editor-content :deep(h2) { margin: 20px 0 10px; font-size: 24px; }
-.editor-content :deep(ul),
-.editor-content :deep(ol) { padding-left: 24px; margin: 10px 0; }
 
 .panel-title {
   font-size: 16px;
   font-weight: 800;
   color: var(--t1);
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .history-empty {

@@ -80,8 +80,30 @@ onMounted(async () => {
   margin: 12px 0;
 }
 
+.content-body :deep(blockquote) {
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+  color: var(--t2);
+  margin: 0.8em 0;
+}
+.content-body :deep(code) {
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+  color: var(--accent);
+}
+.content-body :deep(pre) {
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 16px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.content-body :deep(pre code) { background: none; padding: 0; color: var(--t1); }
+.content-body :deep(hr) { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
 .content-body :deep(a) {
-  color: var(--accent-t);
+  color: var(--accent);
   text-decoration: underline;
 }
 

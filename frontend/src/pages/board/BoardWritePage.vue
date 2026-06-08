@@ -10,13 +10,7 @@
       </el-form-item>
 
       <el-form-item label="내용">
-        <el-input
-          v-model="form.content"
-          type="textarea"
-          :rows="15"
-          placeholder="내용을 입력하세요."
-          resize="none"
-        />
+        <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="400px" style="width:100%" />
       </el-form-item>
 
       <el-form-item label="파일 첨부">
@@ -56,6 +50,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import RichEditor from '@/components/common/RichEditor.vue'
 import api from '@/api/axios'
 
 const route = useRoute()
@@ -68,18 +63,14 @@ const boardId = computed(() => route.params.boardId || activeMenu.value?.targetI
 const postId = computed(() => route.params.postId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
 const isEdit = computed(() => !!postId.value)
-const isAdmin = computed(() => authStore.member?.admin)
+const isAdmin = computed(() => authStore.member?.isAdmin)
 
 const loading = ref(false)
 const fileList = ref([])
 const files = ref([])
 const board = ref(null)
 
-const form = ref({
-  title: '',
-  content: '',
-  isNotice: false
-})
+const form = ref({ title: '', content: '', isNotice: false })
 
 async function fetchBoard() {
   if (!boardId.value) return
@@ -89,7 +80,6 @@ async function fetchBoard() {
   } catch {}
 }
 
-// site_settings의 전역 기본값 (백엔드와 sync)
 const DEFAULT_MAX_MB = 10
 const DEFAULT_MAX_COUNT = 10
 
