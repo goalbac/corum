@@ -50,7 +50,7 @@ public class PostService {
                             .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
                             .findFirst()
                             .map(f -> "/api/files/" + f.getId() + "/download")
-                            .orElse(null);
+                            .orElseGet(() -> extractFirstImageFromContent(p.getContent()));
                     return new PostSummaryResponse(p, 0, !files.isEmpty(), thumbnailUrl);
                 })
                 .collect(Collectors.toList());
@@ -168,6 +168,18 @@ public class PostService {
                 .stream()
                 .map(p -> new PostSummaryResponse(p, 0, false))
                 .collect(Collectors.toList());
+    }
+
+    private String extractFirstImageFromContent(String content) {
+        if (content == null || content.isBlank()) return null;
+        int idx = content.indexOf("<img ");
+        if (idx < 0) return null;
+        int srcIdx = content.indexOf("src=\"", idx);
+        if (srcIdx < 0) return null;
+        int start = srcIdx + 5;
+        int end = content.indexOf("\"", start);
+        if (end < 0) return null;
+        return content.substring(start, end);
     }
 
     private String getClientIp(HttpServletRequest request) {

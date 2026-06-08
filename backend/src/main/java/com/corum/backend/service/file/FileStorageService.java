@@ -155,6 +155,41 @@ public class FileStorageService {
                 .build());
     }
 
+    // ===== 인라인 이미지 (에디터 본문 삽입용) =====
+    public String uploadInlineImage(MultipartFile file, Long uploadedBy) {
+        String ext = getExtension(file.getOriginalFilename());
+        String storedName = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
+        String storagePath = "inline/" + storedName;
+        try {
+            s3Client.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .contentType(file.getContentType())
+                    .contentLength(file.getSize())
+                    .build(),
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (IOException e) {
+            throw new BusinessException("이미지 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return "/api/files/inline/" + storedName;
+    }
+
+    public byte[] downloadInlineImage(String storedName) {
+        String storagePath = "inline/" + storedName;
+        try {
+            return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .build()
+            ).asByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("이미지를 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
+        }
+    }
+
     // ===== 프로필 이미지 서빙 =====
     public byte[] downloadProfileImage(String storedName) {
         String storagePath = "profiles/" + storedName;

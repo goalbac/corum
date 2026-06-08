@@ -86,9 +86,11 @@
         <button type="button" title="링크 제거" @click="editor?.chain().focus().unsetLink().run()">
           <i class="ti ti-link-off"></i>
         </button>
-        <button type="button" title="이미지 URL 삽입" @click="insertImageUrl">
-          <i class="ti ti-photo"></i>
+        <button type="button" title="이미지 업로드" :disabled="imageUploading" @click="triggerImageUpload">
+          <i v-if="imageUploading" class="ti ti-loader-2 spin"></i>
+          <i v-else class="ti ti-photo"></i>
         </button>
+        <input ref="imageInput" type="file" accept="image/*" style="display:none" @change="handleImageUpload" />
       </div>
       <!-- 글자색 -->
       <div class="toolbar-group">
@@ -118,7 +120,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import { StarterKit } from '@tiptap/starter-kit'
 import { Link } from '@tiptap/extension-link'
@@ -128,7 +130,8 @@ import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Underline } from '@tiptap/extension-underline'
 import { Placeholder } from '@tiptap/extension-placeholder'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import api from '@/api/axios'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -184,17 +187,32 @@ async function insertLink() {
   } catch {}
 }
 
-async function insertImageUrl() {
+const imageInput = ref(null)
+const imageUploading = ref(false)
+
+function triggerImageUpload() {
+  imageInput.value?.click()
+}
+
+async function handleImageUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  e.target.value = ''
+
+  imageUploading.value = true
   try {
-    const { value } = await ElMessageBox.prompt('이미지 URL을 입력하세요.', '이미지 삽입', {
-      inputPlaceholder: 'https://example.com/image.jpg',
-      confirmButtonText: '확인',
-      cancelButtonText: '취소',
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await api.post('/files/inline-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
-    if (value) {
-      editor.chain().focus().setImage({ src: value }).run()
-    }
-  } catch {}
+    const url = res.data.data.url
+    editor.chain().focus().setImage({ src: url }).run()
+  } catch {
+    ElMessage.error('이미지 업로드에 실패했습니다.')
+  } finally {
+    imageUploading.value = false
+  }
 }
 
 function setColor(e) {
@@ -268,6 +286,9 @@ onBeforeUnmount(() => { editor.destroy() })
 }
 .color-btn:hover .color-input { pointer-events: auto; }
 .color-btn i { pointer-events: none; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; display: inline-block; }
 
 /* ===== 에디터 본문 ===== */
 .editor-body {
