@@ -31,6 +31,9 @@
           <router-link to="/admin/dashboard-widgets" class="sidebar-item" active-class="active">
             <i class="ti ti-layout-dashboard"></i> 대시보드 관리
           </router-link>
+          <router-link to="/admin/calendars" class="sidebar-item" active-class="active">
+            <i class="ti ti-calendar"></i> 캘린더 관리
+          </router-link>
         </div>
 
         <div class="sidebar-section">

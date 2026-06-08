@@ -134,7 +134,8 @@ const routes = [
       { path: 'inquiries', name: 'AdminInquiries', component: () => import('@/pages/admin/inquiries/AdminInquiriesPage.vue') },
       { path: 'groups', name: 'AdminGroups', component: () => import('@/pages/admin/groups/AdminGroupsPage.vue') },
       { path: 'stats', name: 'AdminStats', component: () => import('@/pages/admin/stats/AdminStatsPage.vue') },
-      { path: 'settings', name: 'AdminSettings', component: () => import('@/pages/admin/settings/AdminSettingsPage.vue') }
+      { path: 'settings', name: 'AdminSettings', component: () => import('@/pages/admin/settings/AdminSettingsPage.vue') },
+      { path: 'calendars', name: 'AdminCalendars', component: () => import('@/pages/admin/calendar/AdminCalendarPage.vue') }
     ]
   },
   {

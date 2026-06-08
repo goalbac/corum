@@ -39,4 +39,8 @@ public class CalendarEntity {
         this.color = color;
         this.description = description;
     }
+
+    public void updateActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
 }

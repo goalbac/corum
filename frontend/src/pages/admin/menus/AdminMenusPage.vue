@@ -129,15 +129,27 @@
           </el-select>
         </el-form-item>
 
-        <!-- 캘린더/대시보드는 URL 자동 연결 안내 -->
+        <!-- 대시보드 자동 연결 안내 -->
         <el-alert
-          v-if="form.menuType === 'PAGE' && (form.pageType === 'CALENDAR' || form.pageType === 'DASHBOARD')"
-          :title="form.pageType === 'CALENDAR' ? '캘린더 페이지(/calendar)로 자동 연결됩니다.' : '대시보드(/)로 자동 연결됩니다.'"
+          v-if="form.menuType === 'PAGE' && form.pageType === 'DASHBOARD'"
+          title="대시보드(/)로 자동 연결됩니다."
           type="info"
           :closable="false"
           show-icon
           style="margin-bottom:12px"
         />
+
+        <!-- 캘린더 선택 -->
+        <el-form-item v-if="form.menuType === 'PAGE' && form.pageType === 'CALENDAR'" label="연결할 캘린더 (선택)">
+          <el-select v-model="form.targetId" style="width:100%" placeholder="캘린더 선택 (미선택 시 전체 캘린더 표시)" clearable>
+            <el-option
+              v-for="c in calendars"
+              :key="c.id"
+              :value="c.id"
+              :label="c.name"
+            />
+          </el-select>
+        </el-form-item>
 
         <el-form-item v-if="form.menuType === 'PAGE' && form.pageType === 'BOARD'" label="연결할 게시판">
           <el-select v-model="form.targetId" style="width:100%" placeholder="게시판 선택">
@@ -203,6 +215,7 @@ import api from '@/api/axios'
 
 const menus       = ref([])
 const boards      = ref([])
+const calendars   = ref([])
 const loading     = ref(false)
 const saving      = ref(false)
 const sortSaving  = ref(false)
@@ -327,6 +340,13 @@ async function fetchBoards() {
   } catch {}
 }
 
+async function fetchCalendars() {
+  try {
+    const res = await api.get('/calendars/admin')
+    calendars.value = res.data.data || []
+  } catch {}
+}
+
 function openCreate(parent) {
   editing.value  = null
   parentId.value = parent?.id || null
@@ -364,7 +384,7 @@ async function deleteMenu(id) {
   fetchMenus()
 }
 
-onMounted(() => { fetchMenus(); fetchBoards() })
+onMounted(() => { fetchMenus(); fetchBoards(); fetchCalendars() })
 onBeforeUnmount(() => {
   sortableInstances.forEach(s => s.destroy())
 })
