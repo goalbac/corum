@@ -1,90 +1,98 @@
 <template>
-  <div>
+  <div class="adm-page">
     <AdminPageHeader title="게시판 관리" desc="게시판 생성 및 권한 설정">
-      <el-button type="primary" size="small" @click="openCreate">
-        <i class="ti ti-plus" style="margin-right:4px"></i>게시판 추가
-      </el-button>
+      <button class="adm-btn primary" @click="openCreate">
+        <i class="ti ti-plus"></i> 게시판 추가
+      </button>
     </AdminPageHeader>
 
-    <el-table :data="boards" v-loading="loading" border>
-      <el-table-column label="ID" prop="id" width="60" align="center" />
-      <el-table-column label="게시판명" prop="name" min-width="140" />
-      <el-table-column label="유형" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag size="small" :type="typeColor(row.boardType)" effect="dark">{{ typeLabel(row.boardType) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="댓글" width="70" align="center">
-        <template #default="{ row }">
-          <i :class="row.useComment ? 'ti ti-check' : 'ti ti-x'" :style="{ color: row.useComment ? 'var(--green)' : 'var(--t3)' }"></i>
-        </template>
-      </el-table-column>
-      <el-table-column label="좋아요" width="70" align="center">
-        <template #default="{ row }">
-          <i :class="row.useLike ? 'ti ti-check' : 'ti ti-x'" :style="{ color: row.useLike ? 'var(--green)' : 'var(--t3)' }"></i>
-        </template>
-      </el-table-column>
-      <el-table-column label="파일 용량" width="100" align="center">
-        <template #default="{ row }">
-          <span class="text-muted">{{ row.fileMaxSizeMb ? row.fileMaxSizeMb + 'MB' : '전역 설정' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="상태" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="dark">
-            {{ row.isActive ? '활성' : '비활성' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="관리" width="120" align="center">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">수정</el-button>
-          <el-button size="small" type="danger" plain @click="deleteBoard(row.id)">삭제</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="adm-card" v-loading="loading">
+      <div class="at-wrap">
+        <div class="at-head">
+          <div class="at-col" style="width:60px;text-align:center">ID</div>
+          <div class="at-col" style="flex:1">게시판명</div>
+          <div class="at-col" style="width:90px;text-align:center">유형</div>
+          <div class="at-col" style="width:60px;text-align:center">댓글</div>
+          <div class="at-col" style="width:60px;text-align:center">좋아요</div>
+          <div class="at-col" style="width:110px;text-align:center">파일 용량</div>
+          <div class="at-col" style="width:70px;text-align:center">상태</div>
+          <div class="at-col" style="width:100px;text-align:center">관리</div>
+        </div>
+        <div v-for="row in boards" :key="row.id" class="at-row">
+          <div class="at-col muted" style="width:60px;text-align:center">{{ row.id }}</div>
+          <div class="at-col bold" style="flex:1">{{ row.name }}</div>
+          <div class="at-col" style="width:90px;text-align:center">
+            <span :class="['adm-badge', typeBadge(row.boardType)]">{{ typeLabel(row.boardType) }}</span>
+          </div>
+          <div class="at-col" style="width:60px;text-align:center">
+            <i :class="row.useComment ? 'ti ti-check green' : 'ti ti-minus muted'"></i>
+          </div>
+          <div class="at-col" style="width:60px;text-align:center">
+            <i :class="row.useLike ? 'ti ti-check green' : 'ti ti-minus muted'"></i>
+          </div>
+          <div class="at-col muted" style="width:110px;text-align:center">
+            {{ row.fileMaxSizeMb ? row.fileMaxSizeMb + 'MB' : '전역 설정' }}
+          </div>
+          <div class="at-col" style="width:70px;text-align:center">
+            <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">
+              {{ row.isActive ? '활성' : '비활성' }}
+            </span>
+          </div>
+          <div class="at-col at-actions" style="width:100px">
+            <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+            <button class="act-btn danger" @click="deleteBoard(row.id)"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+        <div v-if="!boards.length && !loading" class="at-empty">
+          <i class="ti ti-inbox"></i><span>등록된 게시판이 없습니다.</span>
+        </div>
+      </div>
+    </div>
 
-    <!-- 게시판 생성/수정 다이얼로그 -->
-    <el-dialog v-model="showForm" :title="editing ? '게시판 수정' : '게시판 추가'" width="520px" destroy-on-close>
-      <el-form :model="form" label-position="top">
-        <div class="form-row">
-          <el-form-item label="게시판명">
+    <!-- 다이얼로그 -->
+    <el-dialog v-model="showForm" :title="editing ? '게시판 수정' : '게시판 추가'" width="480px" destroy-on-close>
+      <div class="dlg-form">
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>게시판명</label>
             <el-input v-model="form.name" />
-          </el-form-item>
-          <el-form-item label="유형">
+          </div>
+          <div class="dlg-field">
+            <label>유형</label>
             <el-select v-model="form.boardType" style="width:100%">
-              <el-option value="POST"     label="글 게시판" />
-              <el-option value="GALLERY"  label="갤러리" />
+              <el-option value="POST" label="글 게시판" />
+              <el-option value="GALLERY" label="갤러리" />
               <el-option value="DOCUMENT" label="자료실" />
             </el-select>
-          </el-form-item>
+          </div>
         </div>
-        <div class="check-row">
-          <el-checkbox v-model="form.useComment">댓글 사용</el-checkbox>
-          <el-checkbox v-model="form.useLike">좋아요 사용</el-checkbox>
-          <el-tooltip
-            content="꺼짐 시 일반 사용자는 공지를 설정할 수 없으며, 관리자(운영자)만 공지글을 등록할 수 있습니다."
-            placement="top"
-          >
-            <el-checkbox v-model="form.useNotice">공지 사용</el-checkbox>
-          </el-tooltip>
-          <el-checkbox v-model="form.isActive">활성화</el-checkbox>
-        </div>
-        <div class="form-row">
-          <el-form-item label="파일 최대 용량 (MB, 빈칸=전역 설정)">
-            <el-input-number v-model="form.fileMaxSizeMb" :min="1" :max="500" style="width:100%" />
-          </el-form-item>
-          <el-form-item label="최대 파일 수">
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>파일 최대 용량 (MB)</label>
+            <el-input-number v-model="form.fileMaxSizeMb" :min="1" :max="500" style="width:100%" placeholder="전역 설정 사용" />
+          </div>
+          <div class="dlg-field">
+            <label>최대 파일 수</label>
             <el-input-number v-model="form.fileMaxCount" :min="1" :max="20" style="width:100%" />
-          </el-form-item>
+          </div>
         </div>
-        <el-form-item label="허용 확장자 (빈칸=전체)">
+        <div class="dlg-field">
+          <label>허용 확장자 <span class="label-hint">(빈칸=전체 허용)</span></label>
           <el-input v-model="form.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
-        </el-form-item>
-      </el-form>
+        </div>
+        <div class="dlg-checks">
+          <label class="chk-item"><el-checkbox v-model="form.useComment" />댓글 사용</label>
+          <label class="chk-item"><el-checkbox v-model="form.useLike" />좋아요 사용</label>
+          <label class="chk-item"><el-checkbox v-model="form.useNotice" />공지 사용</label>
+          <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
+        </div>
+      </div>
       <template #footer>
-        <el-button @click="showForm = false">취소</el-button>
-        <el-button type="primary" :loading="saving" @click="saveBoard">저장</el-button>
+        <button class="adm-btn ghost" @click="showForm = false">취소</button>
+        <button class="adm-btn primary" :disabled="saving" @click="saveBoard">
+          <i v-if="saving" class="ti ti-loader-2 spinning"></i>
+          {{ saving ? '저장 중...' : '저장' }}
+        </button>
       </template>
     </el-dialog>
   </div>
@@ -102,11 +110,12 @@ const saving  = ref(false)
 const showForm = ref(false)
 const editing  = ref(null)
 
-const form = ref({
+const defaultForm = () => ({
   name: '', boardType: 'POST', useComment: true, useLike: true,
   useNotice: true, isActive: true, fileMaxSizeMb: null,
   fileMaxCount: 5, fileAllowedExtensions: '',
 })
+const form = ref(defaultForm())
 
 async function fetchBoards() {
   loading.value = true
@@ -114,27 +123,14 @@ async function fetchBoards() {
   finally { loading.value = false }
 }
 
-function openCreate() {
-  editing.value = null
-  form.value = { name: '', boardType: 'POST', useComment: true, useLike: true, useNotice: true, isActive: true, fileMaxSizeMb: null, fileMaxCount: 5, fileAllowedExtensions: '' }
-  showForm.value = true
-}
-
-function openEdit(board) {
-  editing.value = board
-  form.value = { ...board }
-  showForm.value = true
-}
+function openCreate() { editing.value = null; form.value = defaultForm(); showForm.value = true }
+function openEdit(board) { editing.value = board; form.value = { ...board }; showForm.value = true }
 
 async function saveBoard() {
   if (!form.value.name) return ElMessage.warning('게시판명을 입력해주세요.')
   saving.value = true
   try {
-    if (editing.value) {
-      await api.put(`/boards/${editing.value.id}`, form.value)
-    } else {
-      await api.post('/boards', form.value)
-    }
+    editing.value ? await api.put(`/boards/${editing.value.id}`, form.value) : await api.post('/boards', form.value)
     ElMessage.success('저장되었습니다.')
     showForm.value = false
     fetchBoards()
@@ -142,20 +138,17 @@ async function saveBoard() {
 }
 
 async function deleteBoard(id) {
-  await ElMessageBox.confirm('게시판을 삭제하시겠습니까?', '삭제', { type: 'warning' })
+  await ElMessageBox.confirm('게시판을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' })
   await api.delete(`/boards/${id}`)
   ElMessage.success('삭제되었습니다.')
   fetchBoards()
 }
 
-function typeLabel(t) { return { POST: '글', GALLERY: '갤러리', DOCUMENT: '자료실' }[t] || t }
-function typeColor(t) { return { POST: undefined, GALLERY: 'success', DOCUMENT: 'warning' }[t] }
-
+function typeLabel(t) { return { POST: '일반', GALLERY: '갤러리', DOCUMENT: '자료실' }[t] || t }
+function typeBadge(t) { return { POST: 'badge-primary', GALLERY: 'badge-success', DOCUMENT: 'badge-warning' }[t] || '' }
 onMounted(fetchBoards)
 </script>
 
 <style scoped>
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.check-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
-.text-muted { font-size: 12px; color: var(--t3); }
+@import '@/assets/admin-table.css';
 </style>

@@ -1,359 +1,191 @@
 <template>
-  <div>
-    <AdminPageHeader title="팝업/배너 관리" desc="운영 공지용 팝업과 상단 배너 노출을 관리합니다.">
-      <el-button v-if="activeTab === 'popups'" type="primary" size="small" @click="openPopupCreate">
-        <i class="ti ti-plus" style="margin-right:4px"></i>팝업 추가
-      </el-button>
-      <el-button v-else type="primary" size="small" @click="openBannerCreate">
-        <i class="ti ti-plus" style="margin-right:4px"></i>배너 추가
-      </el-button>
+  <div class="adm-page">
+    <AdminPageHeader title="팝업/배너 관리" desc="팝업 및 상단 배너 노출 관리">
+      <button v-if="tab === 'popups'" class="adm-btn primary" @click="openPopupCreate"><i class="ti ti-plus"></i> 팝업 추가</button>
+      <button v-else class="adm-btn primary" @click="openBannerCreate"><i class="ti ti-plus"></i> 배너 추가</button>
     </AdminPageHeader>
 
-    <el-tabs v-model="activeTab" class="display-tabs">
-      <el-tab-pane label="팝업" name="popups">
-        <el-table :data="popups" v-loading="popupLoading" border>
-          <el-table-column prop="title" label="제목" min-width="180" />
-          <el-table-column label="유형" width="90" align="center">
-            <template #default="{ row }">
-              <el-tag size="small" effect="dark">{{ row.contentType === 'IMAGE' ? '이미지' : 'HTML' }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="위치" width="90" align="center">
-            <template #default="{ row }">{{ positionLabel(row.position) }}</template>
-          </el-table-column>
-          <el-table-column label="대상" width="90" align="center">
-            <template #default="{ row }">{{ row.targetType === 'MENU' ? '메뉴' : '전체' }}</template>
-          </el-table-column>
-          <el-table-column label="기간" min-width="180">
-            <template #default="{ row }">{{ periodText(row.startAt, row.endAt) }}</template>
-          </el-table-column>
-          <el-table-column label="상태" width="90" align="center">
-            <template #default="{ row }">
-              <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="dark">
-                {{ row.isActive ? '활성' : '비활성' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="관리" width="140" align="center">
-            <template #default="{ row }">
-              <el-button size="small" @click="openPopupEdit(row)">수정</el-button>
-              <el-button size="small" type="danger" plain @click="deletePopup(row.id)">삭제</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
+    <div class="adm-card">
+      <div class="adm-tabs">
+        <div :class="['adm-tab', tab === 'popups' ? 'active' : '']" @click="tab = 'popups'">팝업</div>
+        <div :class="['adm-tab', tab === 'banners' ? 'active' : '']" @click="tab = 'banners'">상단 배너</div>
+      </div>
 
-      <el-tab-pane label="배너" name="banners">
-        <el-table :data="banners" v-loading="bannerLoading" border>
-          <el-table-column prop="title" label="제목" min-width="180" />
-          <el-table-column prop="content" label="내용" min-width="220" show-overflow-tooltip />
-          <el-table-column label="기간" min-width="180">
-            <template #default="{ row }">{{ periodText(row.startAt, row.endAt) }}</template>
-          </el-table-column>
-          <el-table-column label="상태" width="90" align="center">
-            <template #default="{ row }">
-              <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="dark">
-                {{ row.isActive ? '활성' : '비활성' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="관리" width="140" align="center">
-            <template #default="{ row }">
-              <el-button size="small" @click="openBannerEdit(row)">수정</el-button>
-              <el-button size="small" type="danger" plain @click="deleteBanner(row.id)">삭제</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-    </el-tabs>
+      <!-- 팝업 탭 -->
+      <template v-if="tab === 'popups'">
+        <div class="at-wrap" v-loading="loading">
+          <div class="at-head">
+            <div class="at-col" style="width:100px">유형</div>
+            <div class="at-col" style="flex:1">제목</div>
+            <div class="at-col" style="width:100px">위치</div>
+            <div class="at-col" style="width:160px">노출 기간</div>
+            <div class="at-col" style="width:70px;text-align:center">상태</div>
+            <div class="at-col" style="width:90px;text-align:center">관리</div>
+          </div>
+          <div v-for="row in popups" :key="row.id" class="at-row">
+            <div class="at-col" style="width:100px">
+              <span :class="['adm-badge', row.contentType === 'IMAGE' ? 'badge-primary' : 'badge-purple']">{{ row.contentType === 'IMAGE' ? '이미지' : 'HTML' }}</span>
+            </div>
+            <div class="at-col bold" style="flex:1">{{ row.title }}</div>
+            <div class="at-col muted" style="width:100px">{{ posLabel(row.position) }}</div>
+            <div class="at-col muted" style="width:160px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
+            <div class="at-col" style="width:70px;text-align:center">
+              <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+            </div>
+            <div class="at-col at-actions" style="width:90px">
+              <button class="act-btn" @click="openPopupEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+              <button class="act-btn danger" @click="deletePopup(row.id)"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div v-if="!popups.length && !loading" class="at-empty"><i class="ti ti-layout-2"></i><span>등록된 팝업이 없습니다.</span></div>
+        </div>
+      </template>
 
-    <el-dialog v-model="showPopupForm" :title="editingPopup ? '팝업 수정' : '팝업 추가'" width="620px" destroy-on-close>
-      <el-form :model="popupForm" label-position="top">
-        <div class="form-grid">
-          <el-form-item label="제목">
-            <el-input v-model="popupForm.title" />
-          </el-form-item>
-          <el-form-item label="콘텐츠 유형">
+      <!-- 배너 탭 -->
+      <template v-if="tab === 'banners'">
+        <div class="at-wrap" v-loading="loadingBanner">
+          <div class="at-head">
+            <div class="at-col" style="flex:1">제목</div>
+            <div class="at-col" style="width:160px">노출 기간</div>
+            <div class="at-col" style="width:70px;text-align:center">상태</div>
+            <div class="at-col" style="width:90px;text-align:center">관리</div>
+          </div>
+          <div v-for="row in banners" :key="row.id" class="at-row">
+            <div class="at-col bold" style="flex:1">{{ row.title }}</div>
+            <div class="at-col muted" style="width:160px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
+            <div class="at-col" style="width:70px;text-align:center">
+              <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+            </div>
+            <div class="at-col at-actions" style="width:90px">
+              <button class="act-btn" @click="openBannerEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+              <button class="act-btn danger" @click="deleteBanner(row.id)"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div v-if="!banners.length && !loadingBanner" class="at-empty"><i class="ti ti-speakerphone"></i><span>등록된 배너가 없습니다.</span></div>
+        </div>
+      </template>
+    </div>
+
+    <!-- 팝업 다이얼로그 -->
+    <el-dialog v-model="showPopupForm" :title="editingPopup ? '팝업 수정' : '팝업 추가'" width="520px" destroy-on-close>
+      <div class="dlg-form">
+        <div class="dlg-field"><label>제목</label><el-input v-model="popupForm.title" /></div>
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>콘텐츠 유형</label>
             <el-select v-model="popupForm.contentType" style="width:100%">
-              <el-option value="IMAGE" label="이미지" />
-              <el-option value="HTML" label="HTML" />
+              <el-option value="IMAGE" label="이미지" /><el-option value="HTML" label="HTML" />
             </el-select>
-          </el-form-item>
-        </div>
-        <el-form-item v-if="popupForm.contentType === 'IMAGE'" label="이미지 URL">
-          <el-input v-model="popupForm.imageUrl" placeholder="https://..." />
-        </el-form-item>
-        <el-form-item v-else label="HTML 내용">
-          <el-input v-model="popupForm.content" type="textarea" :rows="5" resize="none" />
-        </el-form-item>
-        <div class="form-grid">
-          <el-form-item label="링크 URL">
-            <el-input v-model="popupForm.linkUrl" placeholder="https://..." />
-          </el-form-item>
-          <el-form-item label="위치">
+          </div>
+          <div class="dlg-field">
+            <label>위치</label>
             <el-select v-model="popupForm.position" style="width:100%">
-              <el-option value="LEFT" label="왼쪽" />
-              <el-option value="CENTER" label="가운데" />
-              <el-option value="RIGHT" label="오른쪽" />
+              <el-option value="CENTER" label="중앙" /><el-option value="LEFT" label="왼쪽" /><el-option value="RIGHT" label="오른쪽" />
             </el-select>
-          </el-form-item>
+          </div>
         </div>
-        <div class="form-grid">
-          <el-form-item label="시작일">
-            <el-date-picker v-model="popupForm.startAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" style="width:100%" />
-          </el-form-item>
-          <el-form-item label="종료일">
-            <el-date-picker v-model="popupForm.endAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" style="width:100%" />
-          </el-form-item>
+        <div class="dlg-field" v-if="popupForm.contentType === 'IMAGE'"><label>이미지 URL</label><el-input v-model="popupForm.imageUrl" /></div>
+        <div class="dlg-field" v-else><label>HTML 내용</label><el-input v-model="popupForm.content" type="textarea" :rows="4" resize="none" /></div>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>링크 URL</label><el-input v-model="popupForm.linkUrl" /></div>
+          <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
+            <label class="chk-item"><el-checkbox v-model="popupForm.linkNewWindow" />새 창</label>
+          </div>
         </div>
-        <div class="form-grid">
-          <el-form-item label="노출 대상">
-            <el-select v-model="popupForm.targetType" style="width:100%">
-              <el-option value="ALL" label="전체" />
-              <el-option value="MENU" label="특정 메뉴" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="우선순위">
-            <el-input-number v-model="popupForm.priority" :min="0" style="width:100%" />
-          </el-form-item>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>시작일</label><el-date-picker v-model="popupForm.startAt" type="datetime" style="width:100%" /></div>
+          <div class="dlg-field"><label>종료일</label><el-date-picker v-model="popupForm.endAt" type="datetime" style="width:100%" /></div>
         </div>
-        <el-form-item v-if="popupForm.targetType === 'MENU'" label="대상 메뉴">
-          <el-select v-model="popupForm.targetMenuIds" multiple style="width:100%" placeholder="메뉴 선택">
-            <el-option v-for="menu in flatMenus" :key="menu.id" :label="menu.label" :value="menu.id" />
-          </el-select>
-        </el-form-item>
-        <div class="check-row">
-          <el-checkbox v-model="popupForm.linkNewWindow">새 창으로 열기</el-checkbox>
-          <el-checkbox v-model="popupForm.isActive">활성화</el-checkbox>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>우선순위</label><el-input-number v-model="popupForm.priority" :min="0" style="width:100%" /></div>
+          <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
+            <label class="chk-item"><el-checkbox v-model="popupForm.isActive" />활성화</label>
+          </div>
         </div>
-      </el-form>
+      </div>
       <template #footer>
-        <el-button @click="showPopupForm = false">취소</el-button>
-        <el-button type="primary" :loading="saving" @click="savePopup">저장</el-button>
+        <button class="adm-btn ghost" @click="showPopupForm = false">취소</button>
+        <button class="adm-btn primary" :disabled="saving" @click="savePopup">
+          <i v-if="saving" class="ti ti-loader-2 spinning"></i>{{ saving ? '저장 중...' : '저장' }}
+        </button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showBannerForm" :title="editingBanner ? '배너 수정' : '배너 추가'" width="560px" destroy-on-close>
-      <el-form :model="bannerForm" label-position="top">
-        <el-form-item label="제목">
-          <el-input v-model="bannerForm.title" />
-        </el-form-item>
-        <el-form-item label="내용">
-          <el-input v-model="bannerForm.content" type="textarea" :rows="3" resize="none" />
-        </el-form-item>
-        <el-form-item label="링크 URL">
-          <el-input v-model="bannerForm.linkUrl" placeholder="https://..." />
-        </el-form-item>
-        <div class="form-grid">
-          <el-form-item label="시작일">
-            <el-date-picker v-model="bannerForm.startAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" style="width:100%" />
-          </el-form-item>
-          <el-form-item label="종료일">
-            <el-date-picker v-model="bannerForm.endAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" style="width:100%" />
-          </el-form-item>
+    <!-- 배너 다이얼로그 -->
+    <el-dialog v-model="showBannerForm" :title="editingBanner ? '배너 수정' : '배너 추가'" width="480px" destroy-on-close>
+      <div class="dlg-form">
+        <div class="dlg-field"><label>제목</label><el-input v-model="bannerForm.title" /></div>
+        <div class="dlg-field"><label>내용</label><el-input v-model="bannerForm.content" type="textarea" :rows="3" resize="none" /></div>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>링크 URL</label><el-input v-model="bannerForm.linkUrl" /></div>
+          <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
+            <label class="chk-item"><el-checkbox v-model="bannerForm.linkNewWindow" />새 창</label>
+          </div>
         </div>
-        <div class="check-row">
-          <el-checkbox v-model="bannerForm.linkNewWindow">새 창으로 열기</el-checkbox>
-          <el-checkbox v-model="bannerForm.isActive">활성화</el-checkbox>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>시작일</label><el-date-picker v-model="bannerForm.startAt" type="datetime" style="width:100%" /></div>
+          <div class="dlg-field"><label>종료일</label><el-date-picker v-model="bannerForm.endAt" type="datetime" style="width:100%" /></div>
         </div>
-      </el-form>
+        <div class="dlg-checks"><label class="chk-item"><el-checkbox v-model="bannerForm.isActive" />활성화</label></div>
+      </div>
       <template #footer>
-        <el-button @click="showBannerForm = false">취소</el-button>
-        <el-button type="primary" :loading="saving" @click="saveBanner">저장</el-button>
+        <button class="adm-btn ghost" @click="showBannerForm = false">취소</button>
+        <button class="adm-btn primary" :disabled="saving" @click="saveBanner">
+          <i v-if="saving" class="ti ti-loader-2 spinning"></i>{{ saving ? '저장 중...' : '저장' }}
+        </button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-const activeTab = ref('popups')
-const popups = ref([])
-const banners = ref([])
-const menus = ref([])
-const popupLoading = ref(false)
-const bannerLoading = ref(false)
-const saving = ref(false)
-const showPopupForm = ref(false)
-const showBannerForm = ref(false)
-const editingPopup = ref(null)
-const editingBanner = ref(null)
+const tab = ref('popups')
+const popups = ref([]); const banners = ref([])
+const loading = ref(false); const loadingBanner = ref(false); const saving = ref(false)
+const showPopupForm = ref(false); const showBannerForm = ref(false)
+const editingPopup = ref(null); const editingBanner = ref(null)
 
-const defaultPopup = () => ({
-  title: '',
-  contentType: 'IMAGE',
-  content: '',
-  imageUrl: '',
-  linkUrl: '',
-  linkNewWindow: false,
-  position: 'CENTER',
-  priority: 0,
-  startAt: null,
-  endAt: null,
-  isActive: true,
-  targetType: 'ALL',
-  targetMenuIds: []
-})
-const defaultBanner = () => ({
-  title: '',
-  content: '',
-  linkUrl: '',
-  linkNewWindow: false,
-  startAt: null,
-  endAt: null,
-  isActive: true
-})
-const popupForm = ref(defaultPopup())
-const bannerForm = ref(defaultBanner())
+const defaultPopup = () => ({ title: '', contentType: 'IMAGE', imageUrl: '', content: '', linkUrl: '', linkNewWindow: false, position: 'CENTER', priority: 0, startAt: null, endAt: null, isActive: true })
+const defaultBanner = () => ({ title: '', content: '', linkUrl: '', linkNewWindow: false, startAt: null, endAt: null, isActive: true })
+const popupForm = ref(defaultPopup()); const bannerForm = ref(defaultBanner())
 
-const flatMenus = computed(() => {
-  const result = []
-  const walk = (nodes, depth = 0) => nodes.forEach(menu => {
-    result.push({ id: menu.id, label: `${'-- '.repeat(depth)}${menu.name}` })
-    if (menu.children?.length) walk(menu.children, depth + 1)
-  })
-  walk(menus.value)
-  return result
-})
+async function fetchPopups() { loading.value = true; try { const r = await api.get('/admin/popups'); popups.value = r.data.data || [] } finally { loading.value = false } }
+async function fetchBanners() { loadingBanner.value = true; try { const r = await api.get('/admin/banners'); banners.value = r.data.data || [] } finally { loadingBanner.value = false } }
 
-function positionLabel(position) {
-  return { LEFT: '왼쪽', CENTER: '가운데', RIGHT: '오른쪽' }[position] || position
-}
-
-function periodText(startAt, endAt) {
-  if (!startAt && !endAt) return '상시'
-  return `${formatDate(startAt) || '-'} ~ ${formatDate(endAt) || '-'}`
-}
-
-function formatDate(value) {
-  if (!value) return ''
-  const d = new Date(value)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
-}
-
-async function fetchPopups() {
-  popupLoading.value = true
-  try {
-    const res = await api.get('/admin/display/popups')
-    popups.value = res.data.data || []
-  } finally {
-    popupLoading.value = false
-  }
-}
-
-async function fetchBanners() {
-  bannerLoading.value = true
-  try {
-    const res = await api.get('/admin/display/banners')
-    banners.value = res.data.data || []
-  } finally {
-    bannerLoading.value = false
-  }
-}
-
-async function fetchMenus() {
-  try {
-    const res = await api.get('/menus/admin')
-    menus.value = res.data.data || []
-  } catch {}
-}
-
-function openPopupCreate() {
-  editingPopup.value = null
-  popupForm.value = defaultPopup()
-  showPopupForm.value = true
-}
-
-function openPopupEdit(row) {
-  editingPopup.value = row
-  popupForm.value = { ...defaultPopup(), ...row, targetMenuIds: row.targetMenuIds || [] }
-  showPopupForm.value = true
-}
-
-function openBannerCreate() {
-  editingBanner.value = null
-  bannerForm.value = defaultBanner()
-  showBannerForm.value = true
-}
-
-function openBannerEdit(row) {
-  editingBanner.value = row
-  bannerForm.value = { ...defaultBanner(), ...row }
-  showBannerForm.value = true
-}
+function openPopupCreate() { editingPopup.value = null; popupForm.value = defaultPopup(); showPopupForm.value = true }
+function openPopupEdit(p) { editingPopup.value = p; popupForm.value = { ...p }; showPopupForm.value = true }
+function openBannerCreate() { editingBanner.value = null; bannerForm.value = defaultBanner(); showBannerForm.value = true }
+function openBannerEdit(b) { editingBanner.value = b; bannerForm.value = { ...b }; showBannerForm.value = true }
 
 async function savePopup() {
-  if (!popupForm.value.title) return ElMessage.warning('팝업 제목을 입력해주세요.')
   saving.value = true
   try {
-    if (editingPopup.value) await api.put(`/admin/display/popups/${editingPopup.value.id}`, popupForm.value)
-    else await api.post('/admin/display/popups', popupForm.value)
-    ElMessage.success('저장되었습니다.')
-    showPopupForm.value = false
-    fetchPopups()
-  } finally {
-    saving.value = false
-  }
+    editingPopup.value ? await api.put(`/admin/popups/${editingPopup.value.id}`, popupForm.value) : await api.post('/admin/popups', popupForm.value)
+    ElMessage.success('저장되었습니다.'); showPopupForm.value = false; fetchPopups()
+  } finally { saving.value = false }
 }
-
 async function saveBanner() {
-  if (!bannerForm.value.title) return ElMessage.warning('배너 제목을 입력해주세요.')
   saving.value = true
   try {
-    if (editingBanner.value) await api.put(`/admin/display/banners/${editingBanner.value.id}`, bannerForm.value)
-    else await api.post('/admin/display/banners', bannerForm.value)
-    ElMessage.success('저장되었습니다.')
-    showBannerForm.value = false
-    fetchBanners()
-  } finally {
-    saving.value = false
-  }
+    editingBanner.value ? await api.put(`/admin/banners/${editingBanner.value.id}`, bannerForm.value) : await api.post('/admin/banners', bannerForm.value)
+    ElMessage.success('저장되었습니다.'); showBannerForm.value = false; fetchBanners()
+  } finally { saving.value = false }
 }
+async function deletePopup(id) { await ElMessageBox.confirm('팝업을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/popups/${id}`); ElMessage.success('삭제되었습니다.'); fetchPopups() }
+async function deleteBanner(id) { await ElMessageBox.confirm('배너를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/banners/${id}`); ElMessage.success('삭제되었습니다.'); fetchBanners() }
 
-async function deletePopup(id) {
-  await ElMessageBox.confirm('팝업을 삭제하시겠습니까?', '삭제', { type: 'warning' })
-  await api.delete(`/admin/display/popups/${id}`)
-  ElMessage.success('삭제되었습니다.')
-  fetchPopups()
-}
+function posLabel(p) { return { CENTER: '중앙', LEFT: '왼쪽', RIGHT: '오른쪽' }[p] || p }
+function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) }
 
-async function deleteBanner(id) {
-  await ElMessageBox.confirm('배너를 삭제하시겠습니까?', '삭제', { type: 'warning' })
-  await api.delete(`/admin/display/banners/${id}`)
-  ElMessage.success('삭제되었습니다.')
-  fetchBanners()
-}
-
-onMounted(() => {
-  fetchPopups()
-  fetchBanners()
-  fetchMenus()
-})
+watch(tab, (v) => { if (v === 'banners' && !banners.value.length) fetchBanners() })
+onMounted(() => { fetchPopups(); fetchBanners() })
 </script>
 
 <style scoped>
-.display-tabs {
-  background: var(--surface);
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.check-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-@media (max-width: 768px) {
-  .form-grid { grid-template-columns: 1fr; }
-}
+@import '@/assets/admin-table.css';
 </style>

@@ -1,153 +1,105 @@
 <template>
-  <div>
-    <AdminPageHeader title="약관 관리" desc="이용약관과 개인정보 처리방침의 버전과 재동의 정책을 관리합니다.">
-      <el-button size="small" type="primary" @click="openCreate">새 버전 추가</el-button>
+  <div class="adm-page">
+    <AdminPageHeader title="약관 관리" desc="이용약관 및 개인정보처리방침 버전 관리">
+      <button class="adm-btn primary" @click="openCreate"><i class="ti ti-plus"></i> 새 버전 추가</button>
     </AdminPageHeader>
 
-    <el-table :data="terms" v-loading="loading" border class="admin-table">
-      <el-table-column label="유형" prop="type" width="120" />
-      <el-table-column label="버전" prop="version" width="80" align="center" />
-      <el-table-column label="상태" width="90" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="dark">
-            {{ row.isActive ? '활성' : '비활성' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="재동의" width="90" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.requireReagree ? 'warning' : 'info'" size="small" effect="dark">
-            {{ row.requireReagree ? '필요' : '없음' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="내용" min-width="260">
-        <template #default="{ row }">
-          <span class="preview">{{ stripHtml(row.content) }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="등록일" width="120" align="center">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-      <el-table-column label="관리" width="180" align="center">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">수정</el-button>
-          <el-button v-if="!row.isActive" size="small" type="primary" plain @click="activate(row)">활성화</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <el-dialog v-model="dialogOpen" :title="editing ? '약관 수정' : '새 약관 버전 추가'" width="760px">
-      <el-form label-position="top">
-        <div class="form-grid">
-          <el-form-item label="유형">
-            <el-select v-model="form.type" :disabled="!!editing" placeholder="유형 선택">
-              <el-option label="이용약관" value="SERVICE" />
-              <el-option label="개인정보 처리방침" value="PRIVACY" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="상태">
-            <el-switch v-model="form.isActive" active-text="활성" inactive-text="비활성" />
-          </el-form-item>
-          <el-form-item label="재동의 요청">
-            <el-switch v-model="form.requireReagree" active-text="요청" inactive-text="미요청" />
-          </el-form-item>
+    <div class="adm-card">
+      <div class="adm-tabs">
+        <div :class="['adm-tab', tab === 'SERVICE' ? 'active' : '']" @click="tab = 'SERVICE'">이용약관</div>
+        <div :class="['adm-tab', tab === 'PRIVACY' ? 'active' : '']" @click="tab = 'PRIVACY'">개인정보처리방침</div>
+      </div>
+      <div class="at-wrap" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:100px">버전</div>
+          <div class="at-col" style="width:80px;text-align:center">활성</div>
+          <div class="at-col" style="width:100px;text-align:center">재동의 필요</div>
+          <div class="at-col" style="flex:1">내용 미리보기</div>
+          <div class="at-col" style="width:120px">등록일</div>
+          <div class="at-col" style="width:90px;text-align:center">관리</div>
         </div>
-        <el-form-item label="내용">
-          <el-input v-model="form.content" type="textarea" :rows="14" resize="vertical" />
-        </el-form-item>
-      </el-form>
+        <div v-for="row in filteredTerms" :key="row.id" class="at-row">
+          <div class="at-col bold" style="width:100px">v{{ row.version }}</div>
+          <div class="at-col" style="width:80px;text-align:center">
+            <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+          </div>
+          <div class="at-col" style="width:100px;text-align:center">
+            <i :class="row.requireReagree ? 'ti ti-check green' : 'ti ti-minus muted'"></i>
+          </div>
+          <div class="at-col muted wrap" style="flex:1;font-size:12px">{{ row.content?.substring(0, 80) }}...</div>
+          <div class="at-col muted" style="width:120px;font-size:12px">{{ fmtDate(row.createdAt) }}</div>
+          <div class="at-col at-actions" style="width:90px">
+            <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+            <button class="act-btn danger" @click="deleteTerm(row.id)"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+        <div v-if="!filteredTerms.length && !loading" class="at-empty"><i class="ti ti-file-check"></i><span>등록된 약관이 없습니다.</span></div>
+      </div>
+    </div>
+
+    <el-dialog v-model="showForm" :title="editing ? '약관 수정' : '약관 추가'" width="680px" destroy-on-close>
+      <div class="dlg-form">
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>약관 유형</label>
+            <el-select v-model="form.type" style="width:100%" :disabled="!!editing">
+              <el-option value="SERVICE" label="이용약관" />
+              <el-option value="PRIVACY" label="개인정보처리방침" />
+            </el-select>
+          </div>
+          <div class="dlg-field">
+            <label>버전</label>
+            <el-input v-model="form.version" placeholder="예: 1.0, 2025-06" />
+          </div>
+        </div>
+        <div class="dlg-field">
+          <label>내용</label>
+          <el-input v-model="form.content" type="textarea" :rows="12" resize="none" />
+        </div>
+        <div class="dlg-checks">
+          <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
+          <label class="chk-item"><el-checkbox v-model="form.requireReagree" />변경 후 재동의 요청</label>
+        </div>
+      </div>
       <template #footer>
-        <el-button @click="dialogOpen = false">취소</el-button>
-        <el-button type="primary" :loading="saving" @click="save">저장</el-button>
+        <button class="adm-btn ghost" @click="showForm = false">취소</button>
+        <button class="adm-btn primary" :disabled="saving" @click="saveTerm">
+          <i v-if="saving" class="ti ti-loader-2 spinning"></i>{{ saving ? '저장 중...' : '저장' }}
+        </button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-const terms = ref([])
-const loading = ref(false)
-const saving = ref(false)
-const dialogOpen = ref(false)
-const editing = ref(null)
-const form = ref({ type: 'SERVICE', content: '', isActive: true, requireReagree: false })
+const terms = ref([]); const loading = ref(false); const saving = ref(false)
+const showForm = ref(false); const editing = ref(null); const tab = ref('SERVICE')
+const defaultForm = () => ({ type: 'SERVICE', version: '', content: '', isActive: false, requireReagree: false })
+const form = ref(defaultForm())
 
-async function fetchTerms() {
-  loading.value = true
-  try {
-    const res = await api.get('/admin/terms')
-    terms.value = res.data.data || []
-  } finally {
-    loading.value = false
-  }
-}
+const filteredTerms = computed(() => terms.value.filter(t => t.type === tab.value))
 
-function openCreate() {
-  editing.value = null
-  form.value = { type: 'SERVICE', content: '', isActive: true, requireReagree: false }
-  dialogOpen.value = true
-}
-
-function openEdit(row) {
-  editing.value = row
-  form.value = {
-    type: row.type,
-    content: row.content || '',
-    isActive: row.isActive,
-    requireReagree: row.requireReagree,
-  }
-  dialogOpen.value = true
-}
-
-async function save() {
-  if (!form.value.type) {
-    ElMessage.warning('약관 유형을 선택해주세요.')
-    return
-  }
+async function fetchTerms() { loading.value = true; try { const r = await api.get('/admin/terms'); terms.value = r.data.data || [] } finally { loading.value = false } }
+function openCreate() { editing.value = null; form.value = { ...defaultForm(), type: tab.value }; showForm.value = true }
+function openEdit(t) { editing.value = t; form.value = { ...t }; showForm.value = true }
+async function saveTerm() {
+  if (!form.value.version || !form.value.content) return ElMessage.warning('버전과 내용을 입력해주세요.')
   saving.value = true
   try {
-    if (editing.value) {
-      await api.put(`/admin/terms/${editing.value.id}`, form.value)
-    } else {
-      await api.post('/admin/terms', form.value)
-    }
-    ElMessage.success('약관이 저장되었습니다.')
-    dialogOpen.value = false
-    await fetchTerms()
-  } finally {
-    saving.value = false
-  }
+    editing.value ? await api.put(`/admin/terms/${editing.value.id}`, form.value) : await api.post('/admin/terms', form.value)
+    ElMessage.success('저장되었습니다.'); showForm.value = false; fetchTerms()
+  } finally { saving.value = false }
 }
-
-async function activate(row) {
-  await api.post(`/admin/terms/${row.id}/activate`)
-  ElMessage.success('활성 약관으로 변경되었습니다.')
-  await fetchTerms()
-}
-
-function stripHtml(value) {
-  return (value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 100)
-}
-
-function formatDate(value) {
-  if (!value) return '-'
-  return new Date(value).toLocaleDateString('ko-KR')
-}
-
+async function deleteTerm(id) { await ElMessageBox.confirm('약관을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/terms/${id}`); ElMessage.success('삭제되었습니다.'); fetchTerms() }
+function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR') }
 onMounted(fetchTerms)
 </script>
 
 <style scoped>
-.admin-table { border-radius: var(--radius-sm); overflow: hidden; }
-.preview { display: block; color: var(--t2); line-height: 1.5; }
-.form-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; }
-@media (max-width: 768px) {
-  .form-grid { grid-template-columns: 1fr; }
-}
+@import '@/assets/admin-table.css';
 </style>

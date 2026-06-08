@@ -1,291 +1,191 @@
 <template>
-  <div class="admin-dashboard-widgets">
-    <AdminPageHeader title="대시보드 관리" desc="메인 화면 위젯의 노출 순서와 내용을 설정합니다.">
-      <el-button type="primary" size="small" @click="openCreate">위젯 추가</el-button>
+  <div class="adm-page">
+    <AdminPageHeader title="대시보드 관리" desc="대시보드 위젯 추가 및 순서 설정">
+      <button class="adm-btn primary" @click="openCreate"><i class="ti ti-plus"></i> 위젯 추가</button>
     </AdminPageHeader>
 
-    <el-table :data="widgets" v-loading="loading" border>
-      <el-table-column prop="sortOrder" label="순서" width="80" align="center" />
-      <el-table-column label="유형" width="140">
-        <template #default="{ row }">{{ typeLabel(row.widgetType) }}</template>
-      </el-table-column>
-      <el-table-column prop="title" label="제목" min-width="180" />
-      <el-table-column label="대상 게시판" min-width="150">
-        <template #default="{ row }">{{ row.targetBoardName || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="표시" width="90" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'info'" size="small">{{ row.isActive ? '표시' : '숨김' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="관리" width="150" align="center">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">수정</el-button>
-          <el-button size="small" type="danger" @click="deleteWidget(row.id)">삭제</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="adm-card" v-loading="loading">
+      <div class="at-wrap">
+        <div class="at-head">
+          <div class="at-col" style="width:52px;text-align:center">순서</div>
+          <div class="at-col" style="width:130px">유형</div>
+          <div class="at-col" style="flex:1">제목</div>
+          <div class="at-col" style="width:140px">대상 게시판</div>
+          <div class="at-col" style="width:70px;text-align:center">상태</div>
+          <div class="at-col" style="width:90px;text-align:center">관리</div>
+        </div>
+        <div v-for="row in widgets" :key="row.id" class="at-row">
+          <div class="at-col muted" style="width:52px;text-align:center">{{ row.sortOrder }}</div>
+          <div class="at-col" style="width:130px">
+            <span class="adm-badge badge-primary">{{ typeLabel(row.widgetType) }}</span>
+          </div>
+          <div class="at-col bold" style="flex:1">{{ row.title }}</div>
+          <div class="at-col muted" style="width:140px">{{ row.targetBoardName || '-' }}</div>
+          <div class="at-col" style="width:70px;text-align:center">
+            <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+          </div>
+          <div class="at-col at-actions" style="width:90px">
+            <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+            <button class="act-btn danger" @click="deleteWidget(row.id)"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+        <div v-if="!widgets.length && !loading" class="at-empty"><i class="ti ti-layout-dashboard"></i><span>등록된 위젯이 없습니다.</span></div>
+      </div>
+    </div>
 
-    <el-dialog v-model="showForm" :title="editing ? '위젯 수정' : '위젯 추가'" width="720px" destroy-on-close>
-      <el-form :model="form" label-position="top">
-        <div class="form-grid">
-          <el-form-item label="위젯 유형">
-            <el-select v-model="form.widgetType" style="width:100%">
-              <el-option label="최신글" value="RECENT_POSTS" />
-              <el-option label="이미지 슬라이더" value="IMAGE_SLIDER" />
-              <el-option label="링크 모음" value="LINK_LIST" />
-              <el-option label="회원 현황" value="MEMBER_STATS" />
-              <el-option label="방문 통계" value="VISIT_STATS" />
+    <el-dialog v-model="showForm" :title="editing ? '위젯 수정' : '위젯 추가'" width="520px" destroy-on-close>
+      <div class="dlg-form">
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>위젯 유형</label>
+            <el-select v-model="form.widgetType" style="width:100%" @change="onTypeChange">
+              <el-option value="RECENT_POSTS"  label="최신 글" />
+              <el-option value="IMAGE_SLIDER"  label="이미지 슬라이더" />
+              <el-option value="LINK_LIST"     label="링크 목록" />
+              <el-option value="MEMBER_STATS"  label="회원 현황" />
+              <el-option value="VISIT_STATS"   label="접속 통계" />
             </el-select>
-          </el-form-item>
-          <el-form-item label="제목">
+          </div>
+          <div class="dlg-field">
+            <label>제목</label>
             <el-input v-model="form.title" />
-          </el-form-item>
-          <el-form-item v-if="form.widgetType === 'RECENT_POSTS'" label="대상 게시판">
-            <el-select v-model="form.targetBoardId" clearable style="width:100%" placeholder="전체 게시판">
-              <el-option v-for="board in boards" :key="board.id" :label="board.name" :value="board.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item v-if="form.widgetType === 'RECENT_POSTS'" label="글 개수">
-            <el-input-number v-model="form.postCount" :min="1" :max="20" style="width:100%" />
-          </el-form-item>
-          <el-form-item label="정렬 순서">
+          </div>
+        </div>
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>순서</label>
             <el-input-number v-model="form.sortOrder" :min="0" style="width:100%" />
-          </el-form-item>
-          <el-form-item label="노출 여부">
-            <el-switch v-model="form.isActive" active-text="표시" inactive-text="숨김" />
-          </el-form-item>
+          </div>
+          <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
+            <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
+          </div>
         </div>
 
-        <section v-if="form.widgetType === 'IMAGE_SLIDER'" class="config-section">
-          <div class="section-title">슬라이드 설정</div>
-          <div v-for="(slide, index) in config.slides" :key="index" class="config-row">
-            <el-input v-model="slide.title" placeholder="제목" />
-            <el-input v-model="slide.imageUrl" placeholder="이미지 URL" />
-            <el-input v-model="slide.url" placeholder="이동 URL" />
-            <el-checkbox v-model="slide.newWindow">새 창</el-checkbox>
-            <button type="button" class="icon-btn danger" @click="config.slides.splice(index, 1)">
-              <i class="ti ti-trash"></i>
-            </button>
+        <template v-if="form.widgetType === 'RECENT_POSTS'">
+          <hr class="dlg-divider"/>
+          <div class="dlg-row">
+            <div class="dlg-field">
+              <label>대상 게시판</label>
+              <el-select v-model="form.targetBoardId" clearable placeholder="전체" style="width:100%">
+                <el-option v-for="b in boards" :key="b.id" :value="b.id" :label="b.name" />
+              </el-select>
+            </div>
+            <div class="dlg-field">
+              <label>표시 개수</label>
+              <el-input-number v-model="form.postCount" :min="1" :max="20" style="width:100%" />
+            </div>
           </div>
-          <el-button size="small" @click="config.slides.push({ title: '', imageUrl: '', url: '', newWindow: false })">슬라이드 추가</el-button>
-        </section>
+        </template>
 
-        <section v-if="form.widgetType === 'LINK_LIST'" class="config-section">
-          <div class="section-title">링크 설정</div>
-          <div v-for="(link, index) in config.links" :key="index" class="config-row links">
-            <el-input v-model="link.label" placeholder="링크명" />
-            <el-input v-model="link.url" placeholder="URL" />
-            <el-checkbox v-model="link.newWindow">새 창</el-checkbox>
-            <button type="button" class="icon-btn danger" @click="config.links.splice(index, 1)">
-              <i class="ti ti-trash"></i>
-            </button>
+        <template v-if="form.widgetType === 'IMAGE_SLIDER'">
+          <hr class="dlg-divider"/>
+          <div class="dlg-section-title">슬라이드</div>
+          <div v-for="(s, i) in config.slides" :key="i" class="sub-item">
+            <div class="dlg-row">
+              <div class="dlg-field"><label>제목</label><el-input v-model="s.title" /></div>
+              <div class="dlg-field"><label>이미지 URL</label><el-input v-model="s.imageUrl" /></div>
+            </div>
+            <div class="dlg-row">
+              <div class="dlg-field"><label>링크 URL</label><el-input v-model="s.url" /></div>
+              <div class="dlg-field" style="flex-direction:row;align-items:flex-end;gap:10px;justify-content:space-between;padding-bottom:2px">
+                <label class="chk-item"><el-checkbox v-model="s.newWindow" />새 창</label>
+                <button class="act-btn danger" @click="config.slides.splice(i,1)"><i class="ti ti-trash"></i></button>
+              </div>
+            </div>
           </div>
-          <el-button size="small" @click="config.links.push({ label: '', url: '', newWindow: false })">링크 추가</el-button>
-        </section>
-      </el-form>
+          <button class="adm-btn ghost" style="width:100%" @click="config.slides.push({title:'',imageUrl:'',url:'',newWindow:false})">
+            <i class="ti ti-plus"></i> 슬라이드 추가
+          </button>
+        </template>
 
+        <template v-if="form.widgetType === 'LINK_LIST'">
+          <hr class="dlg-divider"/>
+          <div class="dlg-section-title">링크</div>
+          <div v-for="(l, i) in config.links" :key="i" class="sub-item">
+            <div class="dlg-row">
+              <div class="dlg-field"><label>레이블</label><el-input v-model="l.label" /></div>
+              <div class="dlg-field"><label>URL</label><el-input v-model="l.url" /></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <label class="chk-item"><el-checkbox v-model="l.newWindow" />새 창</label>
+              <button class="act-btn danger" @click="config.links.splice(i,1)"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <button class="adm-btn ghost" style="width:100%" @click="config.links.push({label:'',url:'',newWindow:false})">
+            <i class="ti ti-plus"></i> 링크 추가
+          </button>
+        </template>
+      </div>
       <template #footer>
-        <el-button @click="showForm = false">취소</el-button>
-        <el-button type="primary" :loading="saving" @click="saveWidget">저장</el-button>
+        <button class="adm-btn ghost" @click="showForm = false">취소</button>
+        <button class="adm-btn primary" :disabled="saving" @click="saveWidget">
+          <i v-if="saving" class="ti ti-loader-2 spinning"></i>{{ saving ? '저장 중...' : '저장' }}
+        </button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
 const widgets = ref([])
-const boards = ref([])
+const boards  = ref([])
 const loading = ref(false)
-const saving = ref(false)
+const saving  = ref(false)
 const showForm = ref(false)
-const editing = ref(null)
+const editing  = ref(null)
 
-const form = ref(defaultForm())
-const config = ref(defaultConfig())
-
-function defaultForm() {
-  return {
-    widgetType: 'RECENT_POSTS',
-    title: '',
-    targetBoardId: null,
-    postCount: 5,
-    sortOrder: 0,
-    isActive: true,
-    extraConfig: ''
-  }
-}
-
-function defaultConfig() {
-  return {
-    slides: [{ title: '', imageUrl: '', url: '', newWindow: false }],
-    links: [{ label: '', url: '', newWindow: false }]
-  }
-}
-
-function typeLabel(type) {
-  return {
-    RECENT_POSTS: '최신글',
-    IMAGE_SLIDER: '이미지 슬라이더',
-    LINK_LIST: '링크 모음',
-    MEMBER_STATS: '회원 현황',
-    VISIT_STATS: '방문 통계'
-  }[type] || type
-}
+const defaultForm = () => ({ widgetType: 'RECENT_POSTS', title: '', targetBoardId: null, postCount: 5, sortOrder: 0, isActive: true })
+const form   = ref(defaultForm())
+const config = ref({ slides: [], links: [] })
 
 async function fetchWidgets() {
   loading.value = true
-  try {
-    const res = await api.get('/admin/dashboard/widgets')
-    widgets.value = res.data.data || []
-  } finally {
-    loading.value = false
-  }
+  try { const r = await api.get('/admin/dashboard/widgets'); widgets.value = r.data.data || [] }
+  finally { loading.value = false }
 }
+async function fetchBoards() { const r = await api.get('/boards'); boards.value = r.data.data || [] }
 
-async function fetchBoards() {
-  const res = await api.get('/boards')
-  boards.value = res.data.data || []
-}
-
-function openCreate() {
-  editing.value = null
-  form.value = defaultForm()
-  form.value.sortOrder = widgets.value.length + 1
-  config.value = defaultConfig()
-  showForm.value = true
-}
-
-function openEdit(row) {
-  editing.value = row
-  form.value = {
-    widgetType: row.widgetType,
-    title: row.title || '',
-    targetBoardId: row.targetBoardId,
-    postCount: row.postCount || 5,
-    sortOrder: row.sortOrder || 0,
-    isActive: row.isActive,
-    extraConfig: row.extraConfig || ''
-  }
-  config.value = { ...defaultConfig(), ...parseConfig(row.extraConfig) }
+function onTypeChange() { config.value = { slides: [], links: [] } }
+function openCreate() { editing.value = null; form.value = defaultForm(); config.value = { slides: [], links: [] }; showForm.value = true }
+function openEdit(w) {
+  editing.value = w
+  form.value = { ...w }
+  const ec = w.extraConfig ? (typeof w.extraConfig === 'string' ? JSON.parse(w.extraConfig) : w.extraConfig) : {}
+  config.value = { slides: ec.slides || [], links: ec.links || [] }
   showForm.value = true
 }
 
 async function saveWidget() {
-  const payload = { ...form.value, extraConfig: buildExtraConfig() }
   saving.value = true
   try {
-    if (editing.value) await api.put(`/admin/dashboard/widgets/${editing.value.id}`, payload)
-    else await api.post('/admin/dashboard/widgets', payload)
+    const extra = {}
+    if (form.value.widgetType === 'IMAGE_SLIDER') extra.slides = config.value.slides
+    if (form.value.widgetType === 'LINK_LIST') extra.links = config.value.links
+    const payload = { ...form.value, extraConfig: JSON.stringify(extra) }
+    editing.value ? await api.put(`/admin/dashboard/widgets/${editing.value.id}`, payload) : await api.post('/admin/dashboard/widgets', payload)
     ElMessage.success('저장되었습니다.')
     showForm.value = false
-    await fetchWidgets()
-  } finally {
-    saving.value = false
-  }
+    fetchWidgets()
+  } finally { saving.value = false }
 }
 
 async function deleteWidget(id) {
-  await ElMessageBox.confirm('위젯을 삭제하시겠습니까?', '삭제 확인', {
-    type: 'warning',
-    confirmButtonText: '삭제',
-    cancelButtonText: '취소'
-  })
+  await ElMessageBox.confirm('위젯을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' })
   await api.delete(`/admin/dashboard/widgets/${id}`)
   ElMessage.success('삭제되었습니다.')
-  await fetchWidgets()
+  fetchWidgets()
 }
 
-function parseConfig(value) {
-  try {
-    return value ? JSON.parse(value) : {}
-  } catch {
-    return {}
-  }
-}
-
-function buildExtraConfig() {
-  if (form.value.widgetType === 'IMAGE_SLIDER') {
-    return JSON.stringify({
-      slides: config.value.slides.filter(slide => slide.imageUrl)
-    })
-  }
-  if (form.value.widgetType === 'LINK_LIST') {
-    return JSON.stringify({
-      links: config.value.links.filter(link => link.label && link.url)
-    })
-  }
-  return ''
-}
-
-watch(() => form.value.widgetType, type => {
-  if (type !== 'RECENT_POSTS') form.value.targetBoardId = null
-})
-
-onMounted(async () => {
-  await Promise.all([fetchWidgets(), fetchBoards()])
-})
+function typeLabel(t) { return { RECENT_POSTS: '최신 글', IMAGE_SLIDER: '슬라이더', LINK_LIST: '링크', MEMBER_STATS: '회원 현황', VISIT_STATS: '접속 통계' }[t] || t }
+onMounted(() => { fetchWidgets(); fetchBoards() })
 </script>
 
 <style scoped>
-.admin-dashboard-widgets { display: flex; flex-direction: column; gap: 18px; }
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.config-section {
-  margin-top: 10px;
-  padding: 14px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface2);
-}
-
-.section-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--t1);
-  margin-bottom: 10px;
-}
-
-.config-row {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr auto auto;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.config-row.links {
-  grid-template-columns: 1fr 1.7fr auto auto;
-}
-
-.icon-btn {
-  width: 32px;
-  height: 32px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-xs);
-  background: var(--surface);
-  color: var(--t2);
-}
-
-.icon-btn.danger {
-  color: var(--new);
-}
-
-@media (max-width: 800px) {
-  .form-grid,
-  .config-row,
-  .config-row.links {
-    grid-template-columns: 1fr;
-  }
-}
+@import '@/assets/admin-table.css';
+.sub-item { background: var(--surface2); border: 0.5px solid var(--border2); border-radius: var(--radius-xs); padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
 </style>

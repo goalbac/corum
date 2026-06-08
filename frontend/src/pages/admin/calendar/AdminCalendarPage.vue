@@ -1,102 +1,81 @@
 <template>
-  <div>
-    <AdminPageHeader title="캘린더 관리" desc="캘린더 생성 및 그룹별 권한을 설정합니다.">
-      <el-button type="primary" size="small" @click="openCreate">
-        <i class="ti ti-plus" style="margin-right:4px"></i>캘린더 추가
-      </el-button>
+  <div class="adm-page">
+    <AdminPageHeader title="캘린더 관리" desc="캘린더 및 그룹별 접근 권한 설정">
+      <button class="adm-btn primary" @click="openCreate"><i class="ti ti-plus"></i> 캘린더 추가</button>
     </AdminPageHeader>
 
-    <el-table :data="calendars" v-loading="loading" border>
-      <el-table-column label="색상" width="60" align="center">
-        <template #default="{ row }">
-          <span class="cal-dot" :style="{ background: row.color || '#2563EB' }"></span>
-        </template>
-      </el-table-column>
-      <el-table-column label="캘린더명" prop="name" min-width="140" />
-      <el-table-column label="설명" prop="description" min-width="200" show-overflow-tooltip />
-      <el-table-column label="그룹 권한" min-width="160">
-        <template #default="{ row }">
-          <span v-if="!row.permissions?.length" class="text-muted">공개 (제한 없음)</span>
-          <div v-else class="perm-tags">
-            <el-tag
-              v-for="p in row.permissions" :key="p.groupId"
-              size="small" effect="dark"
-              :type="p.canWrite ? 'warning' : 'info'"
-            >
-              {{ groupName(p.groupId) }}
-              <span v-if="p.canWrite"> · 쓰기</span>
-            </el-tag>
+    <div class="adm-card" v-loading="loading">
+      <div class="at-wrap">
+        <div class="at-head">
+          <div class="at-col" style="width:36px"></div>
+          <div class="at-col" style="width:160px">캘린더명</div>
+          <div class="at-col" style="flex:1">설명</div>
+          <div class="at-col" style="width:220px">권한 그룹</div>
+          <div class="at-col" style="width:70px;text-align:center">상태</div>
+          <div class="at-col" style="width:90px;text-align:center">관리</div>
+        </div>
+        <div v-for="row in calendars" :key="row.id" class="at-row">
+          <div class="at-col" style="width:36px">
+            <span class="color-dot" :style="{ background: row.color || '#4f6ef7' }"></span>
           </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="상태" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag size="small" :type="row.isActive ? 'success' : 'info'" effect="dark">
-            {{ row.isActive ? '활성' : '비활성' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="관리" width="130" align="center">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">수정</el-button>
-          <el-button size="small" type="danger" plain @click="deleteCalendar(row.id)">삭제</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+          <div class="at-col bold" style="width:160px">{{ row.name }}</div>
+          <div class="at-col muted" style="flex:1">{{ row.description || '-' }}</div>
+          <div class="at-col" style="width:220px;gap:4px;flex-wrap:wrap">
+            <span v-for="p in (row.permissions || []).slice(0,3)" :key="p.groupId" class="adm-badge badge-info">{{ p.groupName }}</span>
+            <span v-if="(row.permissions || []).length > 3" class="adm-badge badge-muted">+{{ (row.permissions || []).length - 3 }}</span>
+            <span v-if="!(row.permissions || []).length" class="muted-text">없음</span>
+          </div>
+          <div class="at-col" style="width:70px;text-align:center">
+            <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+          </div>
+          <div class="at-col at-actions" style="width:90px">
+            <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+            <button class="act-btn danger" @click="deleteCalendar(row.id)"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+        <div v-if="!calendars.length && !loading" class="at-empty"><i class="ti ti-calendar"></i><span>등록된 캘린더가 없습니다.</span></div>
+      </div>
+    </div>
 
-    <!-- 생성/수정 다이얼로그 -->
-    <el-dialog v-model="showForm" :title="editing ? '캘린더 수정' : '캘린더 추가'" width="560px" destroy-on-close>
-      <el-form :model="form" label-position="top">
-        <div class="form-row">
-          <el-form-item label="캘린더명">
+    <el-dialog v-model="showForm" :title="editing ? '캘린더 수정' : '캘린더 추가'" width="520px" destroy-on-close>
+      <div class="dlg-form">
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>캘린더명</label>
             <el-input v-model="form.name" />
-          </el-form-item>
-          <el-form-item label="색상">
-            <el-color-picker v-model="form.color" show-alpha />
-          </el-form-item>
-        </div>
-        <el-form-item label="설명">
-          <el-input v-model="form.description" />
-        </el-form-item>
-        <el-form-item>
-          <el-checkbox v-model="form.isActive">활성화</el-checkbox>
-        </el-form-item>
-
-        <!-- 그룹 권한 설정 -->
-        <el-divider content-position="left">그룹 권한</el-divider>
-        <div class="perm-hint">권한 없음 = 공개 캘린더 (모든 사용자 읽기/쓰기)</div>
-        <div class="perm-table">
-          <div class="perm-header">
-            <span>그룹</span>
-            <span>읽기</span>
-            <span>쓰기</span>
-            <span></span>
           </div>
-          <div v-for="(perm, i) in form.permissions" :key="i" class="perm-row">
-            <el-select v-model="perm.groupId" placeholder="그룹 선택" size="small" style="flex:1">
-              <el-option-group v-for="g in flatGroups" :key="g.id" :label="g.name">
-                <el-option
-                  v-for="child in (g.children || [{ id: g.id, name: g.name }])"
-                  :key="child.id"
-                  :value="child.id"
-                  :label="child.name"
-                />
-              </el-option-group>
-            </el-select>
-            <el-checkbox v-model="perm.canRead" />
-            <el-checkbox v-model="perm.canWrite" />
-            <el-button size="small" type="danger" plain circle @click="form.permissions.splice(i, 1)">
-              <i class="ti ti-trash"></i>
-            </el-button>
+          <div class="dlg-field">
+            <label>색상</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="color" v-model="form.color" style="width:40px;height:32px;border:none;cursor:pointer;border-radius:4px" />
+              <el-input v-model="form.color" style="flex:1" />
+            </div>
           </div>
-          <el-button size="small" @click="addPerm" style="margin-top:6px">
-            <i class="ti ti-plus"></i> 그룹 추가
-          </el-button>
         </div>
-      </el-form>
+        <div class="dlg-field">
+          <label>설명</label>
+          <el-input v-model="form.description" type="textarea" :rows="2" resize="none" />
+        </div>
+        <div class="dlg-checks">
+          <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
+        </div>
+        <hr class="dlg-divider" />
+        <div class="dlg-section-title">그룹 권한</div>
+        <div v-for="(p, i) in form.permissions" :key="i" class="perm-row">
+          <el-select v-model="p.groupId" placeholder="그룹 선택" style="flex:1">
+            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+          </el-select>
+          <label class="chk-item"><el-checkbox v-model="p.canRead" />읽기</label>
+          <label class="chk-item"><el-checkbox v-model="p.canWrite" />쓰기</label>
+          <button class="act-btn danger" @click="form.permissions.splice(i,1)"><i class="ti ti-trash"></i></button>
+        </div>
+        <button class="adm-btn ghost" style="width:100%" @click="addPerm"><i class="ti ti-plus"></i> 그룹 추가</button>
+      </div>
       <template #footer>
-        <el-button @click="showForm = false">취소</el-button>
-        <el-button type="primary" :loading="saving" @click="saveCalendar">저장</el-button>
+        <button class="adm-btn ghost" @click="showForm = false">취소</button>
+        <button class="adm-btn primary" :disabled="saving" @click="saveCalendar">
+          <i v-if="saving" class="ti ti-loader-2 spinning"></i>{{ saving ? '저장 중...' : '저장' }}
+        </button>
       </template>
     </el-dialog>
   </div>
@@ -108,133 +87,57 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-const loading   = ref(false)
-const saving    = ref(false)
-const showForm  = ref(false)
-const editing   = ref(null)
 const calendars = ref([])
-const groups    = ref([])
+const groups = ref([])
+const loading = ref(false)
+const saving = ref(false)
+const showForm = ref(false)
+const editing = ref(null)
+const defaultForm = () => ({ name: '', color: '#4f6ef7', description: '', isActive: true, permissions: [] })
+const form = ref(defaultForm())
 
-const form = ref({
-  name: '', color: '#2563EB', description: '', isActive: true, permissions: [],
-})
-
-// 전체 그룹을 flat하게 펼쳐서 groupName 조회에 사용
-const allGroups = computed(() => {
+const flatGroups = computed(() => {
   const result = []
-  groups.value.forEach(g => {
-    result.push(g)
-    if (g.children) g.children.forEach(c => result.push(c))
-  })
+  const walk = (nodes) => nodes.forEach(n => { result.push(n); if (n.children?.length) walk(n.children) })
+  walk(groups.value)
   return result
 })
 
-// el-select 옵션용 그룹 (root + children)
-const flatGroups = computed(() => groups.value)
-
-function groupName(groupId) {
-  return allGroups.value.find(g => g.id === groupId)?.name || `그룹 ${groupId}`
+async function fetchCalendars() {
+  loading.value = true
+  try { const r = await api.get('/calendars/admin'); calendars.value = r.data.data || [] }
+  finally { loading.value = false }
 }
+async function fetchGroups() { const r = await api.get('/groups'); groups.value = r.data.data || [] }
 
-function openCreate() {
-  editing.value = null
-  form.value = { name: '', color: '#2563EB', description: '', isActive: true, permissions: [] }
-  showForm.value = true
-}
-
-function openEdit(cal) {
-  editing.value = cal
-  form.value = {
-    name: cal.name,
-    color: cal.color || '#2563EB',
-    description: cal.description || '',
-    isActive: cal.isActive,
-    permissions: (cal.permissions || []).map(p => ({ ...p })),
-  }
-  showForm.value = true
-}
-
-function addPerm() {
-  form.value.permissions.push({ groupId: null, canRead: true, canWrite: false })
-}
+function addPerm() { form.value.permissions.push({ groupId: null, canRead: true, canWrite: false }) }
+function openCreate() { editing.value = null; form.value = defaultForm(); showForm.value = true }
+function openEdit(c) { editing.value = c; form.value = { ...c, permissions: JSON.parse(JSON.stringify(c.permissions || [])) }; showForm.value = true }
 
 async function saveCalendar() {
   if (!form.value.name) return ElMessage.warning('캘린더명을 입력해주세요.')
   saving.value = true
   try {
-    const payload = {
-      name: form.value.name,
-      color: form.value.color,
-      description: form.value.description,
-      isActive: form.value.isActive,
-      permissions: form.value.permissions.filter(p => p.groupId),
-    }
-    if (editing.value) {
-      await api.put(`/calendars/${editing.value.id}`, payload)
-      ElMessage.success('수정되었습니다.')
-    } else {
-      await api.post('/calendars', payload)
-      ElMessage.success('캘린더가 추가되었습니다.')
-    }
+    editing.value ? await api.put(`/calendars/${editing.value.id}`, form.value) : await api.post('/calendars', form.value)
+    ElMessage.success('저장되었습니다.')
     showForm.value = false
-    await fetchCalendars()
+    fetchCalendars()
   } finally { saving.value = false }
 }
 
 async function deleteCalendar(id) {
-  await ElMessageBox.confirm('캘린더와 모든 일정이 삭제됩니다. 계속하시겠습니까?', '삭제', { type: 'warning' })
+  await ElMessageBox.confirm('캘린더를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' })
   await api.delete(`/calendars/${id}`)
   ElMessage.success('삭제되었습니다.')
-  await fetchCalendars()
+  fetchCalendars()
 }
 
-async function fetchCalendars() {
-  loading.value = true
-  try {
-    const res = await api.get('/calendars/admin')
-    calendars.value = res.data.data || []
-  } finally { loading.value = false }
-}
-
-onMounted(async () => {
-  await fetchCalendars()
-  try {
-    const res = await api.get('/groups')
-    groups.value = res.data.data || []
-  } catch {}
-})
+onMounted(() => { fetchCalendars(); fetchGroups() })
 </script>
 
 <style scoped>
-.cal-dot {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-}
-.perm-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.text-muted { color: var(--t3); font-size: 12px; }
-.perm-hint { font-size: 12px; color: var(--t3); margin-bottom: 10px; }
-
-.perm-table { display: flex; flex-direction: column; gap: 6px; }
-.perm-header {
-  display: grid;
-  grid-template-columns: 1fr 60px 60px 36px;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--t3);
-  font-weight: 600;
-  padding: 0 4px;
-  text-align: center;
-}
-.perm-header span:first-child { text-align: left; }
-.perm-row {
-  display: grid;
-  grid-template-columns: 1fr 60px 60px 36px;
-  gap: 8px;
-  align-items: center;
-}
-.perm-row :deep(.el-checkbox) { justify-content: center; }
-
-.form-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+@import '@/assets/admin-table.css';
+.color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.muted-text { font-size: 12px; color: var(--t4); }
+.perm-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 </style>

@@ -1,240 +1,146 @@
 <template>
-  <div>
-    <AdminPageHeader title="회원 관리" desc="가입 회원, 계정 잠금, 강제 로그아웃, 그룹과 관리자 메모를 관리합니다.">
-      <el-button size="small" @click="download('/admin/members/export/excel', 'members.csv')">
-        엑셀
-      </el-button>
-      <el-button size="small" @click="download('/admin/members/export/pdf', 'members.pdf')">
-        PDF
-      </el-button>
-      <el-input v-model="keyword" placeholder="이름 또는 이메일 검색" size="small" clearable class="search-input" @keyup.enter="fetchMembers" />
-      <el-button size="small" type="primary" @click="fetchMembers">검색</el-button>
+  <div class="adm-page">
+    <AdminPageHeader title="회원 관리" desc="가입 회원 목록, 계정 잠금, 그룹 관리">
+      <div style="display:flex;gap:8px">
+        <button class="adm-btn ghost" @click="download('/admin/members/export/excel', 'members.xlsx')"><i class="ti ti-table-export"></i> 엑셀</button>
+        <button class="adm-btn ghost" @click="download('/admin/members/export/pdf', 'members.pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
+      </div>
     </AdminPageHeader>
 
-    <el-table :data="members" v-loading="loading" border class="admin-table">
-      <el-table-column label="ID" prop="id" width="70" align="center" />
-      <el-table-column label="아이디" prop="username" width="130" />
-      <el-table-column label="이름" prop="name" width="110" />
-      <el-table-column label="이메일" prop="email" min-width="190" />
-      <el-table-column label="연락처" prop="phone" width="130" />
-      <el-table-column label="상태" width="90" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" effect="dark">
-            {{ row.isActive ? '활성' : '비활성' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="잠금" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag v-if="row.isLocked" type="warning" size="small" effect="dark">잠금</el-tag>
-          <span v-else class="text-muted">-</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="가입일" width="120" align="center">
-        <template #default="{ row }">{{ formatDate(row.joinedAt) }}</template>
-      </el-table-column>
-      <el-table-column label="관리" width="250" align="center" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openDetail(row)">상세</el-button>
-          <el-button size="small" type="warning" plain @click="toggleLock(row)">
-            {{ row.isLocked ? '잠금해제' : '잠금' }}
-          </el-button>
-          <el-button size="small" type="danger" plain @click="forceLogout(row)">강제 로그아웃</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="adm-card">
+      <div class="adm-toolbar">
+        <input v-model="keyword" class="adm-search-input" placeholder="이름/아이디/이메일 검색" @keyup.enter="fetchMembers(1)" />
+        <el-select v-model="groupFilter" style="width:130px" clearable placeholder="그룹 필터" @change="fetchMembers(1)">
+          <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+        </el-select>
+        <el-select v-model="statusFilter" style="width:110px" @change="fetchMembers(1)">
+          <el-option value="" label="전체" />
+          <el-option value="active" label="활성" />
+          <el-option value="locked" label="잠금" />
+          <el-option value="withdrawn" label="탈퇴" />
+        </el-select>
+        <button class="adm-btn primary" @click="fetchMembers(1)"><i class="ti ti-search"></i></button>
+      </div>
 
-    <div class="pagination">
-      <el-pagination
-        v-model:current-page="page"
-        :page-size="20"
-        :total="total"
-        layout="prev, pager, next"
-        background
-        small
-        @current-change="fetchMembers"
-      />
+      <div class="at-wrap" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:60px;text-align:center">ID</div>
+          <div class="at-col" style="width:100px">이름</div>
+          <div class="at-col" style="width:130px">아이디</div>
+          <div class="at-col" style="flex:1">이메일</div>
+          <div class="at-col" style="width:140px">그룹</div>
+          <div class="at-col" style="width:80px;text-align:center">상태</div>
+          <div class="at-col" style="width:120px">가입일</div>
+          <div class="at-col" style="width:110px;text-align:center">관리</div>
+        </div>
+        <div v-for="row in members" :key="row.id" class="at-row">
+          <div class="at-col muted" style="width:60px;text-align:center">{{ row.id }}</div>
+          <div class="at-col bold" style="width:100px">{{ row.name }}</div>
+          <div class="at-col" style="width:130px">{{ row.username }}</div>
+          <div class="at-col muted" style="flex:1">{{ row.email }}</div>
+          <div class="at-col" style="width:140px;gap:3px;flex-wrap:wrap">
+            <span v-for="g in (row.groups || []).slice(0,2)" :key="g.id" class="adm-badge badge-muted">{{ g.name }}</span>
+            <span v-if="(row.groups || []).length > 2" class="adm-badge badge-muted">+{{ row.groups.length - 2 }}</span>
+          </div>
+          <div class="at-col" style="width:80px;text-align:center">
+            <span v-if="row.withdrawnAt" class="adm-badge badge-danger">탈퇴</span>
+            <span v-else-if="row.isLocked" class="adm-badge badge-warning">잠금</span>
+            <span v-else class="adm-badge badge-success">활성</span>
+          </div>
+          <div class="at-col muted" style="width:120px;font-size:12px">{{ fmtDate(row.joinedAt) }}</div>
+          <div class="at-col at-actions" style="width:110px">
+            <button class="act-btn" @click="openDetail(row)"><i class="ti ti-edit"></i> 상세</button>
+            <button v-if="row.isLocked" class="act-btn primary" @click="unlockMember(row)"><i class="ti ti-lock-open"></i></button>
+            <button v-else class="act-btn danger" @click="forceLogout(row)"><i class="ti ti-logout"></i></button>
+          </div>
+        </div>
+        <div v-if="!members.length && !loading" class="at-empty"><i class="ti ti-users"></i><span>회원이 없습니다.</span></div>
+      </div>
+      <div class="adm-pagination">
+        <el-pagination v-model:current-page="page" :page-size="size" :total="total" layout="prev,pager,next" @current-change="fetchMembers" />
+      </div>
     </div>
 
-    <el-dialog v-model="showDetail" title="회원 상세" width="680px" destroy-on-close>
-      <div v-if="selectedMember" class="member-detail">
-        <div class="detail-section">
-          <div class="detail-title">기본 정보</div>
-          <div class="detail-grid">
-            <div class="detail-item"><span class="label">아이디</span><span>{{ selectedMember.username }}</span></div>
-            <div class="detail-item"><span class="label">이름</span><span>{{ selectedMember.name }}</span></div>
-            <div class="detail-item"><span class="label">이메일</span><span>{{ selectedMember.email }}</span></div>
-            <div class="detail-item"><span class="label">연락처</span><span>{{ selectedMember.phone || '-' }}</span></div>
-            <div class="detail-item"><span class="label">성별</span><span>{{ genderLabel(selectedMember.gender) }}</span></div>
-            <div class="detail-item"><span class="label">생년월일</span><span>{{ selectedMember.birthDate || '-' }}</span></div>
-            <div class="detail-item wide"><span class="label">주소</span><span>{{ selectedMember.address || '-' }}</span></div>
-            <div class="detail-item"><span class="label">직업</span><span>{{ selectedMember.occupation || '-' }}</span></div>
-            <div class="detail-item"><span class="label">직장전화</span><span>{{ selectedMember.workPhone || '-' }}</span></div>
-            <div class="detail-item"><span class="label">자택전화</span><span>{{ selectedMember.homePhone || '-' }}</span></div>
-            <div class="detail-item"><span class="label">뉴스레터</span><span>{{ selectedMember.newsletterYn ? '수신' : '미수신' }}</span></div>
-            <div class="detail-item"><span class="label">가입일</span><span>{{ formatDate(selectedMember.joinedAt) }}</span></div>
-          </div>
+    <!-- 상세 다이얼로그 -->
+    <el-dialog v-model="showDetail" title="회원 상세" width="600px" destroy-on-close>
+      <div v-if="detail" class="dlg-form">
+        <div class="member-info-grid">
+          <div><span class="info-label">이름</span><span>{{ detail.name }}</span></div>
+          <div><span class="info-label">아이디</span><span>{{ detail.username }}</span></div>
+          <div><span class="info-label">이메일</span><span>{{ detail.email }}</span></div>
+          <div><span class="info-label">연락처</span><span>{{ detail.phone || '-' }}</span></div>
+          <div><span class="info-label">생년월일</span><span>{{ detail.birthDate || '-' }}</span></div>
+          <div><span class="info-label">성별</span><span>{{ detail.gender || '-' }}</span></div>
+          <div><span class="info-label">가입일</span><span>{{ fmtDate(detail.joinedAt) }}</span></div>
+          <div><span class="info-label">마지막 로그인</span><span>{{ fmtDate(detail.lastLoginAt) }}</span></div>
         </div>
-
-        <div class="detail-section">
-          <div class="detail-title">그룹</div>
-          <div class="group-list">
-            <el-tag v-for="g in memberGroups" :key="g.id" closable @close="revokeGroup(g.id)">
-              {{ g.name }}
-            </el-tag>
-            <span v-if="!memberGroups.length" class="text-muted">배정된 그룹 없음</span>
-          </div>
-          <div class="group-assign">
-            <el-select v-model="assignGroupId" placeholder="그룹 선택" size="small">
-              <el-option v-for="g in allGroups" :key="g.id" :value="g.id" :label="g.name" />
-            </el-select>
-            <el-button size="small" type="primary" @click="assignGroup">부여</el-button>
-          </div>
+        <hr class="dlg-divider" />
+        <div class="dlg-section-title">그룹</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <span v-for="g in (detail.groups||[])" :key="g.id" class="adm-badge badge-primary" style="cursor:pointer" @click="removeGroup(g.id)">
+            {{ g.name }} <i class="ti ti-x" style="font-size:10px"></i>
+          </span>
+          <el-select v-model="addGroupId" placeholder="그룹 추가" style="width:150px" @change="addGroup">
+            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+          </el-select>
         </div>
-
-        <div class="detail-section">
-          <div class="detail-title">관리자 메모</div>
-          <el-input v-model="adminMemo" type="textarea" :rows="3" placeholder="관리자 메모를 입력하세요." resize="none" />
-          <el-button size="small" type="primary" class="memo-button" @click="saveMemo">저장</el-button>
+        <hr class="dlg-divider" />
+        <div class="dlg-section-title">관리자 메모</div>
+        <div v-for="m in (detail.memos||[])" :key="m.id" class="memo-item">
+          <span class="memo-author">{{ m.createdByName }}</span>
+          <span class="memo-date">{{ fmtDate(m.createdAt) }}</span>
+          <p>{{ m.memo }}</p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <el-input v-model="newMemo" placeholder="메모 입력" style="flex:1" @keyup.enter="addMemo" />
+          <button class="adm-btn primary" @click="addMemo">추가</button>
         </div>
       </div>
+      <template #footer>
+        <button class="adm-btn ghost" @click="showDetail = false">닫기</button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-const members = ref([])
-const loading = ref(false)
-const total = ref(0)
-const page = ref(1)
-const keyword = ref('')
-const showDetail = ref(false)
-const selectedMember = ref(null)
-const memberGroups = ref([])
-const allGroups = ref([])
-const assignGroupId = ref(null)
-const adminMemo = ref('')
+const members = ref([]); const loading = ref(false)
+const keyword = ref(''); const groupFilter = ref(null); const statusFilter = ref('')
+const page = ref(1); const size = 15; const total = ref(0)
+const showDetail = ref(false); const detail = ref(null)
+const groups = ref([]); const addGroupId = ref(null); const newMemo = ref('')
 
-async function fetchMembers() {
-  loading.value = true
-  try {
-    const res = await api.get('/admin/members', { params: { page: page.value - 1, size: 20, keyword: keyword.value || undefined } })
-    members.value = res.data.data?.content || []
-    total.value = res.data.data?.totalElements || 0
-  } finally {
-    loading.value = false
-  }
+const flatGroups = computed(() => { const r = []; const w = (n) => n.forEach(x => { r.push(x); if (x.children?.length) w(x.children) }); w(groups.value); return r })
+
+async function fetchMembers(p = page.value) {
+  page.value = p; loading.value = true
+  try { const r = await api.get('/admin/members', { params: { keyword: keyword.value, groupId: groupFilter.value, status: statusFilter.value, page: p - 1, size } }); members.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
+  finally { loading.value = false }
 }
-
-async function fetchGroups() {
-  const res = await api.get('/groups')
-  const flat = []
-  const flatten = (nodes) => nodes.forEach(n => { flat.push(n); if (n.children?.length) flatten(n.children) })
-  flatten(res.data.data || [])
-  allGroups.value = flat
-}
-
-async function openDetail(member) {
-  selectedMember.value = member
-  adminMemo.value = ''
-  showDetail.value = true
-  const res = await api.get(`/member-groups/members/${member.id}`)
-  memberGroups.value = res.data.data || []
-  try {
-    const memoRes = await api.get(`/admin/members/${member.id}/memo`)
-    adminMemo.value = memoRes.data.data?.memo || ''
-  } catch {}
-}
-
-async function assignGroup() {
-  if (!assignGroupId.value) return
-  await api.post('/member-groups', { memberId: selectedMember.value.id, groupId: assignGroupId.value })
-  ElMessage.success('그룹이 부여되었습니다.')
-  const res = await api.get(`/member-groups/members/${selectedMember.value.id}`)
-  memberGroups.value = res.data.data || []
-  assignGroupId.value = null
-}
-
-async function revokeGroup(groupId) {
-  await api.delete('/member-groups', { data: { memberId: selectedMember.value.id, groupId } })
-  ElMessage.success('그룹이 회수되었습니다.')
-  const res = await api.get(`/member-groups/members/${selectedMember.value.id}`)
-  memberGroups.value = res.data.data || []
-}
-
-async function toggleLock(member) {
-  await api.patch(`/admin/members/${member.id}/lock`, { locked: !member.isLocked })
-  ElMessage.success(member.isLocked ? '잠금이 해제되었습니다.' : '계정이 잠겼습니다.')
-  member.isLocked = !member.isLocked
-}
-
-async function forceLogout(member) {
-  await ElMessageBox.confirm(`${member.username} 회원을 강제 로그아웃 처리할까요?`, '강제 로그아웃', { type: 'warning' })
-  await api.post(`/admin/members/${member.id}/force-logout`)
-  ElMessage.success('강제 로그아웃 처리되었습니다.')
-}
-
-async function saveMemo() {
-  await api.put(`/admin/members/${selectedMember.value.id}/memo`, { memo: adminMemo.value })
-  ElMessage.success('메모가 저장되었습니다.')
-}
-
-async function download(url, filename) {
-  const res = await api.get(url, { responseType: 'blob' })
-  const objectUrl = URL.createObjectURL(res.data)
-  const anchor = document.createElement('a')
-  anchor.href = objectUrl
-  anchor.download = filename
-  anchor.click()
-  URL.revokeObjectURL(objectUrl)
-}
-
-function formatDate(value) {
-  if (!value) return '-'
-  return new Date(value).toLocaleDateString('ko-KR')
-}
-
-function genderLabel(value) {
-  if (value === 'M') return '남성'
-  if (value === 'F') return '여성'
-  return '-'
-}
-
-onMounted(() => {
-  fetchMembers()
-  fetchGroups()
-})
+async function fetchGroups() { const r = await api.get('/groups'); groups.value = r.data.data || [] }
+async function openDetail(row) { const r = await api.get(`/admin/members/${row.id}`); detail.value = r.data.data; showDetail.value = true }
+async function unlockMember(row) { await api.put(`/admin/members/${row.id}/unlock`); ElMessage.success('계정이 잠금 해제되었습니다.'); fetchMembers() }
+async function forceLogout(row) { await ElMessageBox.confirm(`${row.name} 회원을 강제 로그아웃하시겠습니까?`, '강제 로그아웃', { type: 'warning', confirmButtonText: '로그아웃', cancelButtonText: '취소' }); await api.post(`/admin/members/${row.id}/force-logout`); ElMessage.success('강제 로그아웃되었습니다.') }
+async function addGroup() { if (!addGroupId.value) return; await api.post(`/admin/members/${detail.value.id}/groups`, { groupId: addGroupId.value }); addGroupId.value = null; const r = await api.get(`/admin/members/${detail.value.id}`); detail.value = r.data.data }
+async function removeGroup(gid) { await api.delete(`/admin/members/${detail.value.id}/groups/${gid}`); const r = await api.get(`/admin/members/${detail.value.id}`); detail.value = r.data.data }
+async function addMemo() { if (!newMemo.value.trim()) return; await api.post(`/admin/members/${detail.value.id}/memos`, { memo: newMemo.value }); newMemo.value = ''; const r = await api.get(`/admin/members/${detail.value.id}`); detail.value = r.data.data }
+function download(url, filename) { api.get(url, { responseType: 'blob' }).then(r => { const a = document.createElement('a'); a.href = URL.createObjectURL(r.data); a.download = filename; a.click() }) }
+function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR') }
+onMounted(() => { fetchMembers(); fetchGroups() })
 </script>
 
 <style scoped>
-.admin-table { border-radius: var(--radius-sm); overflow: hidden; }
-.search-input { width: 220px; }
-.pagination { display: flex; justify-content: center; padding: 16px 0; }
-.text-muted { font-size: 12px; color: var(--t3); }
-.member-detail { display: flex; flex-direction: column; gap: 20px; }
-.detail-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--t2);
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 0.5px solid var(--border2);
-}
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
-.detail-item { display: flex; gap: 8px; font-size: 14px; color: var(--t1); min-width: 0; }
-.detail-item.wide { grid-column: 1 / -1; }
-.label { color: var(--t3); width: 78px; flex-shrink: 0; }
-.group-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.group-assign { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
-.group-assign .el-select { width: 180px; }
-.memo-button { margin-top: 8px; }
-@media (max-width: 768px) {
-  .search-input { width: 100%; }
-  .detail-grid { grid-template-columns: 1fr; }
-}
+@import '@/assets/admin-table.css';
+.member-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+.member-info-grid > div { display: flex; gap: 10px; font-size: 13px; }
+.info-label { color: var(--t3); font-weight: 700; width: 80px; flex-shrink: 0; }
+.memo-item { padding: 8px 10px; background: var(--surface2); border-radius: var(--radius-xs); margin-bottom: 6px; font-size: 13px; }
+.memo-author { font-weight: 700; color: var(--t1); margin-right: 8px; }
+.memo-date { font-size: 11px; color: var(--t4); }
+.memo-item p { margin: 4px 0 0; color: var(--t2); }
 </style>

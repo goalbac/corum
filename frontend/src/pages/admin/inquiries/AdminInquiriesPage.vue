@@ -1,156 +1,128 @@
 <template>
-  <div>
-    <AdminPageHeader title="문의 관리" desc="접수된 문의 목록 및 처리">
-      <el-select v-model="statusFilter" size="small" style="width:120px" @change="fetchInquiries">
-        <el-option value="" label="전체" />
-        <el-option value="RECEIVED"    label="접수" />
-        <el-option value="IN_PROGRESS" label="처리중" />
-        <el-option value="COMPLETED"   label="완료" />
-      </el-select>
+  <div class="adm-page">
+    <AdminPageHeader title="문의 관리" desc="접수된 문의 목록 및 처리 상태 관리">
+      <div class="adm-search">
+        <input v-model="keyword" class="adm-search-input" placeholder="제목/내용 검색" @keyup.enter="fetchInquiries(1)" />
+        <el-select v-model="statusFilter" style="width:110px" @change="fetchInquiries(1)">
+          <el-option value="" label="전체 상태" />
+          <el-option value="RECEIVED" label="접수" />
+          <el-option value="CHECKING" label="확인중" />
+          <el-option value="DONE" label="처리완료" />
+        </el-select>
+      </div>
     </AdminPageHeader>
 
-    <el-table :data="inquiries" v-loading="loading" border @row-click="openDetail">
-      <el-table-column label="ID" prop="id" width="60" align="center" />
-      <el-table-column label="제목" prop="title" min-width="200" />
-      <el-table-column label="연락처" prop="contactPhone" width="130" />
-      <el-table-column label="이메일" prop="contactEmail" min-width="160" />
-      <el-table-column label="IP" prop="clientIp" width="120">
-        <template #default="{ row }"><span class="text-muted">{{ row.clientIp }}</span></template>
-      </el-table-column>
-      <el-table-column label="상태" width="90" align="center">
-        <template #default="{ row }">
-          <el-tag :type="statusColor(row.status)" size="small" effect="dark">{{ statusLabel(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="접수일" width="110" align="center">
-        <template #default="{ row }"><span class="text-muted">{{ formatDate(row.createdAt) }}</span></template>
-      </el-table-column>
-    </el-table>
-
-    <div class="pagination">
-      <el-pagination v-model:current-page="page" :page-size="20" :total="total"
-        layout="prev, pager, next" background small @current-change="fetchInquiries" />
+    <div class="adm-card" v-loading="loading">
+      <div class="at-wrap">
+        <div class="at-head">
+          <div class="at-col" style="flex:1">제목</div>
+          <div class="at-col" style="width:120px">연락처</div>
+          <div class="at-col" style="width:120px">이메일</div>
+          <div class="at-col" style="width:80px;text-align:center">상태</div>
+          <div class="at-col" style="width:120px">접수일</div>
+          <div class="at-col" style="width:60px;text-align:center">관리</div>
+        </div>
+        <div v-for="row in list" :key="row.id" class="at-row clickable" @click="openDetail(row)">
+          <div class="at-col bold" style="flex:1">{{ row.title }}</div>
+          <div class="at-col muted" style="width:120px">{{ row.contactPhone || '-' }}</div>
+          <div class="at-col muted" style="width:120px">{{ row.contactEmail || '-' }}</div>
+          <div class="at-col" style="width:80px;text-align:center">
+            <span :class="['adm-badge', statusBadge(row.status)]">{{ statusLabel(row.status) }}</span>
+          </div>
+          <div class="at-col muted" style="width:120px;font-size:12px">{{ fmtDate(row.createdAt) }}</div>
+          <div class="at-col at-actions" style="width:60px" @click.stop>
+            <button class="act-btn danger" @click="deleteInquiry(row.id)"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+        <div v-if="!list.length && !loading" class="at-empty"><i class="ti ti-mail"></i><span>접수된 문의가 없습니다.</span></div>
+      </div>
+      <div class="adm-pagination">
+        <el-pagination v-model:current-page="page" :page-size="size" :total="total" layout="prev,pager,next" @current-change="fetchInquiries" />
+      </div>
     </div>
 
-    <!-- 문의 상세 -->
-    <el-dialog v-model="showDetail" title="문의 상세" width="600px" destroy-on-close>
-      <div v-if="selectedInquiry" class="inquiry-detail">
-        <div class="detail-header">
-          <div class="detail-title-text">{{ selectedInquiry.title }}</div>
-          <el-select v-model="selectedInquiry.status" size="small" @change="updateStatus">
-            <el-option value="RECEIVED"    label="접수" />
-            <el-option value="IN_PROGRESS" label="처리중" />
-            <el-option value="COMPLETED"   label="완료" />
-          </el-select>
-        </div>
+    <!-- 상세 다이얼로그 -->
+    <el-dialog v-model="showDetail" title="문의 상세" width="580px" destroy-on-close>
+      <div v-if="detail" class="dlg-form">
         <div class="detail-meta">
-          <span>연락처: {{ selectedInquiry.contactPhone || '-' }}</span>
-          <span>이메일: {{ selectedInquiry.contactEmail || '-' }}</span>
-          <span>IP: {{ selectedInquiry.clientIp }}</span>
-          <span>{{ formatDate(selectedInquiry.createdAt) }}</span>
+          <span><b>제목</b> {{ detail.title }}</span>
+          <span><b>연락처</b> {{ detail.contactPhone || '-' }}</span>
+          <span><b>이메일</b> {{ detail.contactEmail || '-' }}</span>
+          <span><b>IP</b> {{ detail.clientIp || '-' }}</span>
+          <span><b>접수일</b> {{ fmtDate(detail.createdAt) }}</span>
         </div>
-        <div class="detail-content">{{ selectedInquiry.content }}</div>
-
-        <div class="memo-section">
-          <div class="memo-title">관리자 메모</div>
-          <div v-for="memo in selectedInquiry.memos" :key="memo.id" class="memo-item">
-            <div class="memo-content">{{ memo.memo }}</div>
-            <div class="memo-footer">
-              <span class="text-muted">{{ formatDate(memo.createdAt) }}</span>
-              <button class="del-btn" @click="deleteMemo(memo.id)"><i class="ti ti-trash"></i></button>
-            </div>
+        <div class="detail-content">{{ detail.content }}</div>
+        <hr class="dlg-divider" />
+        <div class="dlg-row">
+          <div class="dlg-field">
+            <label>처리 상태</label>
+            <el-select v-model="detailStatus" style="width:100%">
+              <el-option value="RECEIVED" label="접수" />
+              <el-option value="CHECKING" label="확인중" />
+              <el-option value="DONE" label="처리완료" />
+            </el-select>
           </div>
-          <div class="memo-add">
-            <el-input v-model="newMemo" type="textarea" :rows="2" placeholder="메모 추가..." resize="none" />
-            <el-button size="small" type="primary" @click="addMemo">추가</el-button>
+          <div style="display:flex;align-items:flex-end">
+            <button class="adm-btn primary" @click="updateStatus">상태 저장</button>
           </div>
+        </div>
+        <div class="dlg-section-title" style="margin-top:4px">메모</div>
+        <div v-for="m in detail.memos" :key="m.id" class="memo-item">
+          <span class="memo-author">{{ m.createdByName }}</span>
+          <span class="memo-date">{{ fmtDate(m.createdAt) }}</span>
+          <p>{{ m.memo }}</p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <el-input v-model="newMemo" placeholder="메모 입력" style="flex:1" @keyup.enter="addMemo" />
+          <button class="adm-btn primary" @click="addMemo">추가</button>
         </div>
       </div>
+      <template #footer>
+        <button class="adm-btn ghost" @click="showDetail = false">닫기</button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-const inquiries      = ref([])
-const loading        = ref(false)
-const total          = ref(0)
-const page           = ref(1)
-const statusFilter   = ref('')
-const showDetail     = ref(false)
-const selectedInquiry = ref(null)
-const newMemo        = ref('')
+const list = ref([]); const loading = ref(false)
+const keyword = ref(''); const statusFilter = ref('')
+const page = ref(1); const size = 15; const total = ref(0)
+const showDetail = ref(false); const detail = ref(null)
+const detailStatus = ref(''); const newMemo = ref('')
 
-async function fetchInquiries() {
-  loading.value = true
-  try {
-    const params = { page: page.value - 1, size: 20 }
-    if (statusFilter.value) params.status = statusFilter.value
-    const res = await api.get('/inquiries', { params })
-    inquiries.value = res.data.data?.content || []
-    total.value     = res.data.data?.totalElements || 0
-  } finally { loading.value = false }
+async function fetchInquiries(p = page.value) {
+  page.value = p; loading.value = true
+  try { const r = await api.get('/admin/inquiries', { params: { keyword: keyword.value, status: statusFilter.value, page: p - 1, size } }); list.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
+  finally { loading.value = false }
 }
-
 async function openDetail(row) {
-  const res = await api.get(`/inquiries/${row.id}`)
-  selectedInquiry.value = res.data.data
-  showDetail.value = true
-  newMemo.value = ''
+  const r = await api.get(`/admin/inquiries/${row.id}`)
+  detail.value = r.data.data; detailStatus.value = detail.value.status; showDetail.value = true
 }
+async function updateStatus() { await api.put(`/admin/inquiries/${detail.value.id}/status`, { status: detailStatus.value }); ElMessage.success('상태가 변경되었습니다.'); detail.value.status = detailStatus.value; fetchInquiries() }
+async function addMemo() { if (!newMemo.value.trim()) return; await api.post(`/admin/inquiries/${detail.value.id}/memos`, { memo: newMemo.value }); newMemo.value = ''; const r = await api.get(`/admin/inquiries/${detail.value.id}`); detail.value = r.data.data }
+async function deleteInquiry(id) { await ElMessageBox.confirm('문의를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/inquiries/${id}`); ElMessage.success('삭제되었습니다.'); fetchInquiries() }
 
-async function updateStatus() {
-  await api.patch(`/inquiries/${selectedInquiry.value.id}/status`, { status: selectedInquiry.value.status })
-  ElMessage.success('상태가 변경되었습니다.')
-  fetchInquiries()
-}
-
-async function addMemo() {
-  if (!newMemo.value.trim()) return
-  await api.post(`/inquiries/${selectedInquiry.value.id}/memos`, { memo: newMemo.value })
-  newMemo.value = ''
-  const res = await api.get(`/inquiries/${selectedInquiry.value.id}`)
-  selectedInquiry.value = res.data.data
-}
-
-async function deleteMemo(memoId) {
-  await api.delete(`/inquiries/memos/${memoId}`)
-  const res = await api.get(`/inquiries/${selectedInquiry.value.id}`)
-  selectedInquiry.value = res.data.data
-}
-
-function formatDate(d) {
-  if (!d) return '-'
-  return new Date(d).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
-function statusLabel(s) { return { RECEIVED: '접수', IN_PROGRESS: '처리중', COMPLETED: '완료' }[s] || s }
-function statusColor(s) { return { RECEIVED: 'warning', IN_PROGRESS: 'primary', COMPLETED: 'success' }[s] || '' }
-
-onMounted(fetchInquiries)
+function statusLabel(s) { return { RECEIVED: '접수', CHECKING: '확인중', DONE: '처리완료' }[s] || s }
+function statusBadge(s) { return { RECEIVED: 'badge-warning', CHECKING: 'badge-info', DONE: 'badge-success' }[s] || 'badge-muted' }
+function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR') }
+onMounted(() => fetchInquiries())
 </script>
 
 <style scoped>
-.pagination { display: flex; justify-content: center; padding: 16px 0; }
-.text-muted { font-size: 12px; color: var(--t3); }
-
-.inquiry-detail { display: flex; flex-direction: column; gap: 16px; }
-.detail-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.detail-title-text { font-size: 16px; font-weight: 600; color: var(--t1); flex: 1; }
-.detail-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12.5px; color: var(--t2); padding: 10px 0; border-top: 0.5px solid var(--border2); border-bottom: 0.5px solid var(--border2); }
-.detail-content { font-size: 14px; line-height: 1.8; color: var(--t1); white-space: pre-wrap; min-height: 60px; }
-
-.memo-section { border-top: 0.5px solid var(--border2); padding-top: 14px; }
-.memo-title { font-size: 13px; font-weight: 600; color: var(--t2); margin-bottom: 10px; }
-.memo-item { background: var(--surface2); border-radius: var(--radius-xs); padding: 10px 12px; margin-bottom: 8px; }
-.memo-content { font-size: 13px; color: var(--t1); white-space: pre-wrap; }
-.memo-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
-.memo-add { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
-.memo-add .el-textarea { flex: 1; }
-.del-btn { background: none; border: none; color: var(--t3); cursor: pointer; font-size: 14px; padding: 2px; transition: var(--transition); }
-.del-btn:hover { color: var(--new); }
+@import '@/assets/admin-table.css';
+.at-row.clickable { cursor: pointer; }
+.detail-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--t2); padding: 10px 12px; background: var(--surface2); border-radius: var(--radius-xs); }
+.detail-meta b { color: var(--t3); font-weight: 700; margin-right: 4px; }
+.detail-content { padding: 12px; border: 0.5px solid var(--border2); border-radius: var(--radius-xs); font-size: 14px; line-height: 1.6; white-space: pre-wrap; min-height: 80px; }
+.memo-item { padding: 8px 10px; background: var(--surface2); border-radius: var(--radius-xs); margin-bottom: 6px; font-size: 13px; }
+.memo-author { font-weight: 700; color: var(--t1); margin-right: 8px; }
+.memo-date { font-size: 11px; color: var(--t4); }
+.memo-item p { margin: 4px 0 0; color: var(--t2); }
 </style>

@@ -5,7 +5,31 @@
     <div class="admin-body">
       <aside class="admin-sidebar" :class="{ open: mobileOpen }">
         <div class="sidebar-section">
-          <div class="section-title">회원</div>
+          <div class="section-title">관리자</div>
+          <router-link to="/admin/boards" class="sidebar-item" active-class="active">
+            <i class="ti ti-layout-list"></i> 게시판 관리
+          </router-link>
+          <router-link to="/admin/menus" class="sidebar-item" active-class="active">
+            <i class="ti ti-menu-2"></i> 메뉴 관리
+          </router-link>
+          <router-link to="/admin/dashboard-widgets" class="sidebar-item" active-class="active">
+            <i class="ti ti-layout-dashboard"></i> 대시보드 관리
+          </router-link>
+          <router-link to="/admin/calendars" class="sidebar-item" active-class="active">
+            <i class="ti ti-calendar"></i> 캘린더 관리
+          </router-link>
+          <router-link to="/admin/content-pages" class="sidebar-item" active-class="active">
+            <i class="ti ti-file-text"></i> 안내 페이지 관리
+          </router-link>
+          <router-link to="/admin/display" class="sidebar-item" active-class="active">
+            <i class="ti ti-speakerphone"></i> 팝업/배너 관리
+          </router-link>
+          <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
+            <i class="ti ti-mail"></i> 문의 관리
+          </router-link>
+          <router-link to="/admin/stats" class="sidebar-item" active-class="active">
+            <i class="ti ti-chart-bar"></i> 통계/로그
+          </router-link>
           <router-link to="/admin/members" class="sidebar-item" active-class="active">
             <i class="ti ti-users"></i> 회원 관리
           </router-link>
@@ -18,35 +42,7 @@
         </div>
 
         <div class="sidebar-section">
-          <div class="section-title">콘텐츠</div>
-          <router-link to="/admin/boards" class="sidebar-item" active-class="active">
-            <i class="ti ti-layout-list"></i> 게시판 관리
-          </router-link>
-          <router-link to="/admin/menus" class="sidebar-item" active-class="active">
-            <i class="ti ti-menu-2"></i> 메뉴 관리
-          </router-link>
-          <router-link to="/admin/content-pages" class="sidebar-item" active-class="active">
-            <i class="ti ti-file-text"></i> 안내 페이지 관리
-          </router-link>
-          <router-link to="/admin/dashboard-widgets" class="sidebar-item" active-class="active">
-            <i class="ti ti-layout-dashboard"></i> 대시보드 관리
-          </router-link>
-          <router-link to="/admin/calendars" class="sidebar-item" active-class="active">
-            <i class="ti ti-calendar"></i> 캘린더 관리
-          </router-link>
-        </div>
-
-        <div class="sidebar-section">
-          <div class="section-title">운영</div>
-          <router-link to="/admin/display" class="sidebar-item" active-class="active">
-            <i class="ti ti-speakerphone"></i> 팝업/배너 관리
-          </router-link>
-          <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
-            <i class="ti ti-mail"></i> 문의 관리
-          </router-link>
-          <router-link to="/admin/stats" class="sidebar-item" active-class="active">
-            <i class="ti ti-chart-bar"></i> 통계 / 로그
-          </router-link>
+          <div class="section-title">설정</div>
           <router-link to="/admin/settings" class="sidebar-item" active-class="active">
             <i class="ti ti-settings"></i> 사이트 설정
           </router-link>

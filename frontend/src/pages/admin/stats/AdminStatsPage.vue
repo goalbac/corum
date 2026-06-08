@@ -1,187 +1,145 @@
 <template>
-  <div class="admin-stats">
-    <AdminPageHeader title="통계 / 로그" desc="방문, 검색, 감사, SMTP 발송 이력을 확인합니다.">
-      <el-input v-model="testEmail" placeholder="test@example.com" size="small" class="test-email" />
-      <el-button size="small" type="primary" :loading="sending" @click="sendTestMail">SMTP 테스트</el-button>
+  <div class="adm-page">
+    <AdminPageHeader title="통계 / 로그" desc="방문, 검색, 감사, SMTP 발송 이력">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input v-model="testEmail" class="adm-search-input" placeholder="test@example.com" style="width:180px" />
+        <button class="adm-btn ghost" :disabled="sending" @click="sendTestMail">
+          <i v-if="sending" class="ti ti-loader-2 spinning"></i>SMTP 테스트
+        </button>
+      </div>
     </AdminPageHeader>
 
+    <!-- 통계 카드 -->
     <div class="stat-grid">
-      <div class="stat-card">
-        <strong>{{ stats.todayVisits ?? 0 }}</strong>
-        <span>오늘 방문</span>
-      </div>
-      <div class="stat-card">
-        <strong>{{ stats.todayUniqueVisits ?? 0 }}</strong>
-        <span>오늘 고유 방문</span>
-      </div>
-      <div class="stat-card">
-        <strong>{{ stats.memberCount ?? 0 }}</strong>
-        <span>회원</span>
-      </div>
-      <div class="stat-card">
-        <strong>{{ stats.pendingInquiryCount ?? 0 }}</strong>
-        <span>미처리 문의</span>
-      </div>
+      <div class="stat-card"><div class="stat-card-label">오늘 방문</div><div class="stat-card-value">{{ stats.todayVisits ?? '-' }}</div></div>
+      <div class="stat-card"><div class="stat-card-label">오늘 순방문</div><div class="stat-card-value">{{ stats.todayUnique ?? '-' }}</div></div>
+      <div class="stat-card"><div class="stat-card-label">이번달 방문</div><div class="stat-card-value">{{ stats.monthVisits ?? '-' }}</div></div>
+      <div class="stat-card"><div class="stat-card-label">총 회원수</div><div class="stat-card-value">{{ stats.totalMembers ?? '-' }}</div></div>
     </div>
 
-    <el-tabs v-model="activeTab" class="log-tabs" @tab-change="fetchLogs">
-      <el-tab-pane label="방문 로그" name="visits">
-        <el-table :data="logs.visits" v-loading="loading" border>
-          <el-table-column prop="createdAt" label="일시" width="180" :formatter="dateFormatter" />
-          <el-table-column prop="memberId" label="회원 ID" width="100" />
-          <el-table-column prop="ipAddress" label="IP" width="150" />
-          <el-table-column prop="requestUri" label="요청 URI" min-width="240" show-overflow-tooltip />
-        </el-table>
-      </el-tab-pane>
+    <div class="adm-card">
+      <div class="adm-tabs">
+        <div :class="['adm-tab', tab === 'visit' ? 'active' : '']" @click="switchTab('visit')">방문 로그</div>
+        <div :class="['adm-tab', tab === 'search' ? 'active' : '']" @click="switchTab('search')">검색 로그</div>
+        <div :class="['adm-tab', tab === 'audit' ? 'active' : '']" @click="switchTab('audit')">감사 로그</div>
+        <div :class="['adm-tab', tab === 'smtp' ? 'active' : '']" @click="switchTab('smtp')">SMTP 로그</div>
+      </div>
 
-      <el-tab-pane label="검색 로그" name="search">
-        <el-table :data="logs.search" v-loading="loading" border>
-          <el-table-column prop="createdAt" label="일시" width="180" :formatter="dateFormatter" />
-          <el-table-column prop="memberId" label="회원 ID" width="100" />
-          <el-table-column prop="keyword" label="검색어" min-width="180" />
-          <el-table-column prop="searchType" label="유형" width="120" />
-          <el-table-column prop="resultCount" label="결과" width="90" align="center" />
-        </el-table>
-      </el-tab-pane>
+      <!-- 방문 로그 -->
+      <div class="at-wrap" v-if="tab === 'visit'" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:140px">IP</div>
+          <div class="at-col" style="flex:1">요청 URI</div>
+          <div class="at-col" style="width:120px">회원</div>
+          <div class="at-col" style="width:140px">시각</div>
+        </div>
+        <div v-for="row in rows" :key="row.id" class="at-row">
+          <div class="at-col muted" style="width:140px">{{ row.ipAddress }}</div>
+          <div class="at-col" style="flex:1;font-size:12px;font-family:monospace">{{ row.requestUri }}</div>
+          <div class="at-col muted" style="width:120px">{{ row.memberName || '-' }}</div>
+          <div class="at-col muted" style="width:140px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+        </div>
+        <div v-if="!rows.length && !loading" class="at-empty"><i class="ti ti-eye"></i><span>방문 로그가 없습니다.</span></div>
+      </div>
 
-      <el-tab-pane label="감사 로그" name="audit">
-        <el-table :data="logs.audit" v-loading="loading" border>
-          <el-table-column prop="createdAt" label="일시" width="180" :formatter="dateFormatter" />
-          <el-table-column prop="memberId" label="회원 ID" width="100" />
-          <el-table-column prop="actionType" label="액션" width="120" />
-          <el-table-column prop="targetTable" label="대상" width="140" />
-          <el-table-column prop="targetId" label="대상 ID" width="100" />
-          <el-table-column prop="ipAddress" label="IP" width="150" />
-        </el-table>
-      </el-tab-pane>
+      <!-- 검색 로그 -->
+      <div class="at-wrap" v-if="tab === 'search'" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="flex:1">검색어</div>
+          <div class="at-col" style="width:100px">유형</div>
+          <div class="at-col" style="width:80px;text-align:center">결과수</div>
+          <div class="at-col" style="width:120px">회원</div>
+          <div class="at-col" style="width:140px">시각</div>
+        </div>
+        <div v-for="row in rows" :key="row.id" class="at-row">
+          <div class="at-col bold" style="flex:1">{{ row.keyword }}</div>
+          <div class="at-col muted" style="width:100px">{{ row.searchType }}</div>
+          <div class="at-col muted" style="width:80px;text-align:center">{{ row.resultCount }}</div>
+          <div class="at-col muted" style="width:120px">{{ row.memberName || '-' }}</div>
+          <div class="at-col muted" style="width:140px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+        </div>
+        <div v-if="!rows.length && !loading" class="at-empty"><i class="ti ti-search"></i><span>검색 로그가 없습니다.</span></div>
+      </div>
 
-      <el-tab-pane label="SMTP 로그" name="smtp">
-        <el-table :data="logs.smtp" v-loading="loading" border>
-          <el-table-column prop="createdAt" label="일시" width="180" :formatter="dateFormatter" />
-          <el-table-column prop="sendType" label="유형" width="140" />
-          <el-table-column prop="toEmail" label="수신자" min-width="180" />
-          <el-table-column prop="subject" label="제목" min-width="220" show-overflow-tooltip />
-          <el-table-column label="결과" width="90" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.success ? 'success' : 'danger'" size="small">{{ row.success ? '성공' : '실패' }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="errorMessage" label="오류" min-width="220" show-overflow-tooltip />
-        </el-table>
-      </el-tab-pane>
-    </el-tabs>
+      <!-- 감사 로그 -->
+      <div class="at-wrap" v-if="tab === 'audit'" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:110px">액션</div>
+          <div class="at-col" style="width:120px">대상 테이블</div>
+          <div class="at-col" style="width:80px;text-align:center">대상 ID</div>
+          <div class="at-col" style="width:120px">회원</div>
+          <div class="at-col" style="width:120px">IP</div>
+          <div class="at-col" style="width:140px">시각</div>
+        </div>
+        <div v-for="row in rows" :key="row.id" class="at-row">
+          <div class="at-col" style="width:110px"><span :class="['adm-badge', auditBadge(row.actionType)]">{{ row.actionType }}</span></div>
+          <div class="at-col muted" style="width:120px">{{ row.targetTable }}</div>
+          <div class="at-col muted" style="width:80px;text-align:center">{{ row.targetId }}</div>
+          <div class="at-col muted" style="width:120px">{{ row.memberName || '-' }}</div>
+          <div class="at-col muted" style="width:120px">{{ row.ipAddress }}</div>
+          <div class="at-col muted" style="width:140px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+        </div>
+        <div v-if="!rows.length && !loading" class="at-empty"><i class="ti ti-clipboard-list"></i><span>감사 로그가 없습니다.</span></div>
+      </div>
 
-    <div class="pagination">
-      <el-pagination
-        v-model:current-page="page"
-        :page-size="size"
-        :total="total"
-        layout="prev, pager, next"
-        background
-        small
-        @current-change="fetchLogs"
-      />
+      <!-- SMTP 로그 -->
+      <div class="at-wrap" v-if="tab === 'smtp'" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:130px">수신자</div>
+          <div class="at-col" style="flex:1">제목</div>
+          <div class="at-col" style="width:110px">유형</div>
+          <div class="at-col" style="width:70px;text-align:center">결과</div>
+          <div class="at-col" style="width:140px">시각</div>
+        </div>
+        <div v-for="row in rows" :key="row.id" class="at-row">
+          <div class="at-col muted" style="width:130px">{{ row.toEmail }}</div>
+          <div class="at-col" style="flex:1">{{ row.subject }}</div>
+          <div class="at-col muted" style="width:110px;font-size:12px">{{ row.sendType }}</div>
+          <div class="at-col" style="width:70px;text-align:center">
+            <span :class="['adm-badge', row.success ? 'badge-success' : 'badge-danger']">{{ row.success ? '성공' : '실패' }}</span>
+          </div>
+          <div class="at-col muted" style="width:140px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+        </div>
+        <div v-if="!rows.length && !loading" class="at-empty"><i class="ti ti-mail"></i><span>SMTP 로그가 없습니다.</span></div>
+      </div>
+
+      <div class="adm-pagination">
+        <el-pagination v-model:current-page="page" :page-size="size" :total="total" layout="prev,pager,next" @current-change="fetchRows" />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-const activeTab = ref('visits')
-const loading = ref(false)
-const sending = ref(false)
-const testEmail = ref('')
-const page = ref(1)
-const size = ref(20)
-const total = ref(0)
-const stats = ref({})
-const logs = ref({ visits: [], search: [], audit: [], smtp: [] })
+const tab = ref('visit'); const rows = ref([]); const loading = ref(false)
+const page = ref(1); const size = 20; const total = ref(0)
+const stats = ref({}); const testEmail = ref(''); const sending = ref(false)
 
-async function fetchStats() {
-  const res = await api.get('/dashboard/stats')
-  stats.value = res.data.data || {}
+const endpointMap = { visit: '/admin/stats/visit-logs', search: '/admin/stats/search-logs', audit: '/admin/audit-logs', smtp: '/admin/stats/smtp-logs' }
+
+async function fetchStats() { try { const r = await api.get('/admin/stats/summary'); stats.value = r.data.data || {} } catch {} }
+async function fetchRows(p = page.value) {
+  page.value = p; loading.value = true
+  try { const r = await api.get(endpointMap[tab.value], { params: { page: p - 1, size } }); rows.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
+  finally { loading.value = false }
 }
-
-async function fetchLogs() {
-  loading.value = true
-  try {
-    const res = await api.get(`/admin/logs/${activeTab.value}`, {
-      params: { page: page.value - 1, size: size.value }
-    })
-    logs.value[activeTab.value] = res.data.data?.content || []
-    total.value = res.data.data?.totalElements || 0
-  } finally {
-    loading.value = false
-  }
-}
-
+function switchTab(t) { tab.value = t; rows.value = []; page.value = 1; fetchRows(1) }
 async function sendTestMail() {
-  if (!testEmail.value) {
-    ElMessage.warning('받는 이메일을 입력해주세요.')
-    return
-  }
+  if (!testEmail.value) return ElMessage.warning('이메일을 입력해주세요.')
   sending.value = true
-  try {
-    await api.post('/admin/logs/smtp/test', { toEmail: testEmail.value })
-    ElMessage.success('테스트 메일을 발송했습니다.')
-    activeTab.value = 'smtp'
-    page.value = 1
-    await fetchLogs()
-  } finally {
-    sending.value = false
-  }
+  try { await api.post('/admin/settings/smtp/test', { email: testEmail.value }); ElMessage.success('테스트 메일이 발송되었습니다.') }
+  finally { sending.value = false }
 }
-
-function dateFormatter(row, column, value) {
-  return value ? new Date(value).toLocaleString('ko-KR') : '-'
-}
-
-onMounted(async () => {
-  await Promise.all([fetchStats(), fetchLogs()])
-})
+function fmtDt(d) { if (!d) return '-'; return new Date(d).toLocaleString('ko-KR') }
+function auditBadge(t) { return { LOGIN: 'badge-info', LOGOUT: 'badge-muted', CREATE: 'badge-success', UPDATE: 'badge-warning', DELETE: 'badge-danger' }[t] || 'badge-muted' }
+onMounted(() => { fetchStats(); fetchRows() })
 </script>
 
 <style scoped>
-.admin-stats { display: flex; flex-direction: column; gap: 18px; }
-.test-email { width: 220px; }
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-.stat-card {
-  padding: 18px;
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-.stat-card strong {
-  display: block;
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--accent-t);
-}
-.stat-card span {
-  display: block;
-  margin-top: 4px;
-  font-size: 14px;
-  color: var(--t2);
-}
-.log-tabs {
-  padding: 16px;
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-.pagination { display: flex; justify-content: center; }
-@media (max-width: 768px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
-  .test-email { width: 100%; }
-}
+@import '@/assets/admin-table.css';
 </style>
