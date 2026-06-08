@@ -8,33 +8,94 @@
       <div class="welcome-date">{{ today }}</div>
     </div>
 
-    <div class="widget-grid" v-if="recentBoards.length">
-      <div class="widget-card" v-for="board in recentBoards" :key="board.id">
-        <div class="widget-head">
-          <span class="widget-name">{{ board.name }}</span>
-          <router-link :to="boardListPath(board)" class="widget-more">더보기</router-link>
-        </div>
-        <div v-if="board.posts?.length" class="post-list">
-          <router-link
-            v-for="post in board.posts"
-            :key="post.id"
-            :to="postPath(board, post)"
-            class="post-row"
-          >
-            <span class="post-title">
-              {{ post.title }}
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
-            </span>
-            <span class="post-date">{{ formatDate(post.createdAt) }}</span>
-          </router-link>
-        </div>
-        <div v-else class="empty">등록된 글이 없습니다.</div>
-      </div>
+    <div class="widget-grid" v-if="widgets.length">
+      <section
+        v-for="widget in widgets"
+        :key="widget.id"
+        class="widget-card"
+        :class="`widget-${widget.widgetType?.toLowerCase()}`"
+      >
+        <template v-if="widget.widgetType === 'RECENT_POSTS'">
+          <div class="widget-head">
+            <span class="widget-name">{{ widget.title || widget.targetBoardName || '최신글' }}</span>
+            <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="widget-more">더보기</router-link>
+          </div>
+          <div v-if="widget.posts?.length" class="post-list">
+            <router-link
+              v-for="post in widget.posts"
+              :key="post.id"
+              :to="postPath(widget, post)"
+              class="post-row"
+            >
+              <span class="post-title">{{ post.title }}</span>
+              <span class="post-date">{{ formatDate(post.createdAt) }}</span>
+            </router-link>
+          </div>
+          <div v-else class="empty">등록된 글이 없습니다.</div>
+        </template>
+
+        <template v-else-if="widget.widgetType === 'IMAGE_SLIDER'">
+          <div class="slider">
+            <a
+              v-for="(slide, index) in parseConfig(widget).slides || []"
+              :key="index"
+              :href="slide.url || undefined"
+              :target="slide.newWindow ? '_blank' : undefined"
+              class="slide"
+            >
+              <img :src="slide.imageUrl" :alt="slide.title || widget.title" />
+              <span v-if="slide.title">{{ slide.title }}</span>
+            </a>
+          </div>
+        </template>
+
+        <template v-else-if="widget.widgetType === 'LINK_LIST'">
+          <div class="widget-head">
+            <span class="widget-name">{{ widget.title || '링크 모음' }}</span>
+          </div>
+          <div class="link-list">
+            <a
+              v-for="(link, index) in parseConfig(widget).links || []"
+              :key="index"
+              :href="link.url"
+              :target="link.newWindow ? '_blank' : undefined"
+              class="link-item"
+            >
+              <span>{{ link.label }}</span>
+              <i class="ti ti-arrow-up-right"></i>
+            </a>
+          </div>
+        </template>
+
+        <template v-else-if="widget.widgetType === 'MEMBER_STATS' || widget.widgetType === 'VISIT_STATS'">
+          <div class="widget-head">
+            <span class="widget-name">{{ widget.title || '사이트 현황' }}</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <strong>{{ widget.stats?.memberCount ?? 0 }}</strong>
+              <span>회원</span>
+            </div>
+            <div class="stat-item">
+              <strong>{{ widget.stats?.boardCount ?? 0 }}</strong>
+              <span>게시판</span>
+            </div>
+            <div class="stat-item">
+              <strong>{{ widget.stats?.pendingInquiryCount ?? 0 }}</strong>
+              <span>미처리 문의</span>
+            </div>
+            <div class="stat-item">
+              <strong>{{ widget.stats?.todayVisits ?? 0 }}</strong>
+              <span>오늘 방문</span>
+            </div>
+          </div>
+        </template>
+      </section>
     </div>
 
     <div class="empty-state" v-else-if="!loading">
       <i class="ti ti-layout-dashboard"></i>
-      <p>아직 게시판이 없습니다.</p>
+      <p>표시할 대시보드 위젯이 없습니다.</p>
     </div>
   </div>
 </template>
@@ -47,7 +108,7 @@ import api from '@/api/axios'
 
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
-const recentBoards = ref([])
+const widgets = ref([])
 const loading = ref(true)
 
 const today = new Date().toLocaleDateString('ko-KR', {
@@ -57,12 +118,21 @@ const today = new Date().toLocaleDateString('ko-KR', {
   weekday: 'long'
 })
 
-function boardListPath(board) {
-  return board.menuId ? `/menu/${board.menuId}` : `/board/${board.id}`
+function boardListPath(widget) {
+  const menu = menuStore.findBoardMenu(widget.targetBoardId)
+  return menu ? `/menu/${menu.id}` : `/board/${widget.targetBoardId}`
 }
 
-function postPath(board, post) {
-  return `${boardListPath(board)}/posts/${post.id}`
+function postPath(widget, post) {
+  return `${boardListPath(widget)}/posts/${post.id}`
+}
+
+function parseConfig(widget) {
+  try {
+    return widget.extraConfig ? JSON.parse(widget.extraConfig) : {}
+  } catch {
+    return {}
+  }
 }
 
 function formatDate(d) {
@@ -78,27 +148,11 @@ function formatDate(d) {
   return `${dt.getMonth() + 1}.${String(dt.getDate()).padStart(2, '0')}`
 }
 
-function isNew(d) {
-  if (!d) return false
-  return Date.now() - new Date(d).getTime() < 3 * 86400000
-}
-
 onMounted(async () => {
   try {
     await menuStore.fetchMenus()
-    const res = await api.get('/boards')
-    const boards = (res.data.data || []).slice(0, 4)
-    recentBoards.value = await Promise.all(boards.map(async board => {
-      const menu = menuStore.findBoardMenu(board.id)
-      try {
-        const pr = await api.get(`/boards/${board.id}/posts?size=5`)
-        return { ...board, menuId: menu?.id, posts: pr.data.data?.content || [] }
-      } catch {
-        return { ...board, menuId: menu?.id, posts: [] }
-      }
-    }))
-  } catch (e) {
-    console.error(e)
+    const res = await api.get('/dashboard/widgets')
+    widgets.value = res.data.data || []
   } finally {
     loading.value = false
   }
@@ -123,7 +177,7 @@ onMounted(async () => {
 
 .widget-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -132,8 +186,14 @@ onMounted(async () => {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   border: 0.5px solid var(--border2);
-  padding: 18px 18px 10px;
+  padding: 18px;
   transition: background 0.25s;
+}
+
+.widget-image_slider {
+  grid-column: 1 / -1;
+  padding: 0;
+  overflow: hidden;
 }
 
 .widget-head {
@@ -178,6 +238,93 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+.slider {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.slide {
+  position: relative;
+  display: block;
+  min-height: 220px;
+  scroll-snap-align: start;
+  background: var(--surface2);
+}
+
+.slide img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+}
+
+.slide span {
+  position: absolute;
+  left: 20px;
+  bottom: 18px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+}
+
+.link-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--t1);
+  background: var(--surface2);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.link-item:hover {
+  color: var(--accent-t);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.stat-item {
+  padding: 14px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--surface2);
+  text-align: center;
+}
+
+.stat-item strong {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent-t);
+}
+
+.stat-item span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--t2);
+}
+
 .empty {
   font-size: 15px;
   color: var(--t3);
@@ -204,5 +351,7 @@ onMounted(async () => {
   .widget-grid { grid-template-columns: 1fr; }
   .welcome-card { flex-direction: column; align-items: flex-start; gap: 8px; }
   .welcome-date { text-align: left; font-size: 13px; }
+  .link-list,
+  .stats-grid { grid-template-columns: 1fr; }
 }
 </style>

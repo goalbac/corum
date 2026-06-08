@@ -22,6 +22,12 @@
           <router-link to="/admin/menus" class="sidebar-item" active-class="active">
             <i class="ti ti-menu-2"></i> 메뉴 관리
           </router-link>
+          <router-link to="/admin/content-pages" class="sidebar-item" active-class="active">
+            <i class="ti ti-file-text"></i> 안내 페이지 관리
+          </router-link>
+          <router-link to="/admin/dashboard-widgets" class="sidebar-item" active-class="active">
+            <i class="ti ti-layout-dashboard"></i> 대시보드 관리
+          </router-link>
         </div>
 
         <div class="sidebar-section">
@@ -50,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -86,7 +92,7 @@ onMounted(async () => {
 }
 
 .admin-sidebar {
-  width: 200px;
+  width: 220px;
   flex-shrink: 0;
   background: var(--surface);
   border-right: 0.5px solid var(--border);
@@ -101,8 +107,8 @@ onMounted(async () => {
 .sidebar-section { margin-bottom: 20px; }
 
 .section-title {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--t3);
   text-transform: uppercase;
   padding: 0 16px;
@@ -113,21 +119,23 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 9px 16px;
+  font-size: 14px;
   color: var(--t2);
   cursor: pointer;
   transition: var(--transition);
   position: relative;
   text-decoration: none;
 }
-.sidebar-item i { font-size: 15px; }
+
+.sidebar-item i { font-size: 16px; }
 .sidebar-item:hover { color: var(--t1); background: var(--surface2); }
 .sidebar-item.active {
   color: var(--accent);
   background: var(--accent-bg);
-  font-weight: 500;
+  font-weight: 700;
 }
+
 .sidebar-item.active::before {
   content: '';
   position: absolute;
@@ -140,7 +148,7 @@ onMounted(async () => {
 }
 
 .admin-main { flex: 1; min-width: 0; }
-.admin-container { padding: 24px; max-width: 1100px; }
+.admin-container { padding: 24px; max-width: 1160px; }
 
 .mobile-overlay {
   position: fixed;

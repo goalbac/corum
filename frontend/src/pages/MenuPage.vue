@@ -2,6 +2,7 @@
   <BoardListPage v-if="activeMenu?.pageType === 'BOARD'" />
   <CalendarPage v-else-if="activeMenu?.pageType === 'CALENDAR'" />
   <DashboardPage v-else-if="activeMenu?.pageType === 'DASHBOARD'" />
+  <ContentPage v-else-if="activeMenu?.pageType === 'CONTENT'" />
   <div v-else class="menu-page">
     <h1>{{ activeMenu?.name || '메뉴' }}</h1>
     <p>이 메뉴의 콘텐츠가 아직 준비되지 않았습니다.</p>
@@ -14,6 +15,7 @@ import { useRoute } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
 import BoardListPage from '@/pages/board/BoardListPage.vue'
 import CalendarPage from '@/pages/calendar/CalendarPage.vue'
+import ContentPage from '@/pages/content/ContentPage.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 
 const route = useRoute()
