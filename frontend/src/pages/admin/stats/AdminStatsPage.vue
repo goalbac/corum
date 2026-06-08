@@ -1,6 +1,6 @@
 <template>
   <div class="adm-page">
-    <AdminPageHeader title="통계 / 로그" desc="방문, 검색, 감사, SMTP 발송 이력">
+    <AdminPageHeader title="로그" desc="방문, 검색, 감사, SMTP 발송 이력">
       <div style="display:flex;gap:8px;align-items:center">
         <input v-model="testEmail" class="adm-search-input" placeholder="test@example.com" style="width:180px" />
         <button class="adm-btn ghost" :disabled="sending" @click="sendTestMail">
@@ -8,14 +8,6 @@
         </button>
       </div>
     </AdminPageHeader>
-
-    <!-- 통계 카드 -->
-    <div class="stat-grid">
-      <div class="stat-card"><div class="stat-card-label">오늘 방문</div><div class="stat-card-value">{{ stats.todayVisits ?? '-' }}</div></div>
-      <div class="stat-card"><div class="stat-card-label">오늘 순방문</div><div class="stat-card-value">{{ stats.todayUnique ?? '-' }}</div></div>
-      <div class="stat-card"><div class="stat-card-label">이번달 방문</div><div class="stat-card-value">{{ stats.monthVisits ?? '-' }}</div></div>
-      <div class="stat-card"><div class="stat-card-label">총 회원수</div><div class="stat-card-value">{{ stats.totalMembers ?? '-' }}</div></div>
-    </div>
 
     <div class="adm-card">
       <div class="adm-tabs">
@@ -118,11 +110,10 @@ import api from '@/api/axios'
 
 const tab = ref('visit'); const rows = ref([]); const loading = ref(false)
 const page = ref(1); const size = 20; const total = ref(0)
-const stats = ref({}); const testEmail = ref(''); const sending = ref(false)
+const testEmail = ref(''); const sending = ref(false)
 
 const endpointMap = { visit: '/admin/logs/visits', search: '/admin/logs/search', audit: '/admin/logs/audit', smtp: '/admin/logs/smtp' }
 
-async function fetchStats() { /* summary endpoint not yet implemented */ }
 async function fetchRows(p = page.value) {
   page.value = p; loading.value = true
   try { const r = await api.get(endpointMap[tab.value], { params: { page: p - 1, size } }); rows.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
@@ -137,7 +128,7 @@ async function sendTestMail() {
 }
 function fmtDt(d) { if (!d) return '-'; return new Date(d).toLocaleString('ko-KR') }
 function auditBadge(t) { return { LOGIN: 'badge-info', LOGOUT: 'badge-muted', CREATE: 'badge-success', UPDATE: 'badge-warning', DELETE: 'badge-danger' }[t] || 'badge-muted' }
-onMounted(() => { fetchStats(); fetchRows() })
+onMounted(() => fetchRows())
 </script>
 
 <style scoped>
