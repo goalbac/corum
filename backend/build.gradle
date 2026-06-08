@@ -75,6 +75,7 @@ sourceSets {
 
 tasks.withType(JavaCompile).configureEach {
     options.getGeneratedSourceOutputDirectory().set(querydslDir)
+    options.compilerArgs.add("-parameters")
 }
 
 clean.doLast {
