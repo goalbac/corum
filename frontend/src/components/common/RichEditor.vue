@@ -143,7 +143,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const editor = new Editor({
   extensions: [
-    StarterKit,
+    StarterKit.configure({ link: false, underline: false }),
     Underline,
     TextStyle,
     Color,

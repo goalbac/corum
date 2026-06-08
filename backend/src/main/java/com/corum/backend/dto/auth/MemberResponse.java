@@ -2,6 +2,7 @@ package com.corum.backend.dto.auth;
 
 import com.corum.backend.domain.member.Member;
 import com.corum.backend.dto.terms.TermsResponse;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -32,9 +33,10 @@ public class MemberResponse {
     private final boolean requiresTermsAgreement;
     private final List<TermsResponse> requiredTerms;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("isAdmin")
+    @JsonProperty("isAdmin")
     private final boolean isAdmin;
 
+    @JsonProperty("groupIds")
     private final List<Long> groupIds;
 
     public MemberResponse(Member member, boolean isAdmin) {
