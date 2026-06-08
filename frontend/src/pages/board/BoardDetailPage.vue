@@ -44,33 +44,58 @@
 
       <div class="post-content" v-html="post.content" />
 
+      <!-- 액션 바 -->
       <div class="post-actions">
-        <el-button
-          v-if="board?.useLike"
-          :type="post.liked ? 'primary' : 'default'"
-          size="small"
-          @click="handleLike"
-        >
-          <el-icon><Star /></el-icon>
-          좋아요 {{ post.likeCount }}
-        </el-button>
-        <el-button size="small" @click="handlePrint">
-          <el-icon><Printer /></el-icon> 인쇄
-        </el-button>
-        <div class="right-actions">
-          <el-button
-            v-if="canEdit"
-            size="small"
-            @click="router.push(`${basePath}/posts/${postId}/edit`)"
-          >수정</el-button>
-          <el-button
-            v-if="canEdit"
-            size="small"
-            type="danger"
-            @click="handleDelete"
-          >삭제</el-button>
-          <el-button size="small" @click="router.push(basePath)">목록</el-button>
+        <div class="actions-left">
+          <button
+            v-if="board?.useLike"
+            :class="['like-btn', { liked: post.liked }]"
+            @click="handleLike"
+          >
+            <i :class="post.liked ? 'ti ti-heart-filled' : 'ti ti-heart'"></i>
+            <span>좋아요 {{ post.likeCount }}</span>
+          </button>
+          <button class="action-btn" @click="handlePrint">
+            <i class="ti ti-printer"></i>
+            <span>인쇄</span>
+          </button>
         </div>
+        <div class="actions-right">
+          <button v-if="canEdit" class="action-btn" @click="router.push(`${basePath}/posts/${postId}/edit`)">
+            <i class="ti ti-edit"></i>
+            <span>수정</span>
+          </button>
+          <button v-if="canEdit" class="action-btn danger" @click="handleDelete">
+            <i class="ti ti-trash"></i>
+            <span>삭제</span>
+          </button>
+          <button class="action-btn accent" @click="router.push(basePath)">
+            <i class="ti ti-layout-list"></i>
+            <span>목록</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 이전/다음 글 -->
+      <div v-if="adjacent" class="adjacent-nav">
+        <router-link
+          v-if="adjacent.next"
+          :to="`${basePath}/posts/${adjacent.next.id}`"
+          class="adj-item"
+        >
+          <span class="adj-label"><i class="ti ti-chevron-up"></i> 다음 글</span>
+          <span class="adj-title">{{ adjacent.next.title }}</span>
+        </router-link>
+        <div v-else class="adj-item empty"><span class="adj-label"><i class="ti ti-chevron-up"></i> 다음 글</span><span class="adj-empty">없음</span></div>
+        <router-link
+          v-if="adjacent.prev"
+          :to="`${basePath}/posts/${adjacent.prev.id}`"
+          class="adj-item"
+        >
+          <span class="adj-label"><i class="ti ti-chevron-down"></i> 이전 글</span>
+          <span class="adj-title">{{ adjacent.prev.title }}</span>
+        </router-link>
+        <div v-else class="adj-item empty"><span class="adj-label"><i class="ti ti-chevron-down"></i> 이전 글</span><span class="adj-empty">없음</span></div>
       </div>
 
       <CommentSection
@@ -87,7 +112,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Paperclip, Document, Star, Printer } from '@element-plus/icons-vue'
+import { Paperclip, Document } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
@@ -105,6 +130,7 @@ const postId = computed(() => route.params.postId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
 const post = ref(null)
 const board = ref(null)
+const adjacent = ref(null)
 const loading = ref(false)
 const postAvatarError = ref(false)
 
@@ -116,11 +142,10 @@ const canEdit = computed(() => {
   return authStore.member?.id === post.value?.memberId
 })
 
-// board.permissions 기반 댓글 권한 체크
 const canComment = computed(() => {
   if (isAdmin.value) return true
   const perms = board.value?.permissions || []
-  if (!perms.length) return authStore.isLoggedIn // 공개 게시판
+  if (!perms.length) return authStore.isLoggedIn
   const memberGroupIds = authStore.member?.groupIds || []
   return perms.some(p => memberGroupIds.includes(p.groupId) && p.canComment)
 })
@@ -129,12 +154,14 @@ async function fetchPost() {
   if (!boardId.value || !postId.value) return
   loading.value = true
   try {
-    const [postRes, boardRes] = await Promise.all([
+    const [postRes, boardRes, adjRes] = await Promise.all([
       api.get(`/boards/${boardId.value}/posts/${postId.value}`),
-      board.value ? Promise.resolve(null) : api.get(`/boards/${boardId.value}`)
+      board.value ? Promise.resolve(null) : api.get(`/boards/${boardId.value}`),
+      api.get(`/boards/${boardId.value}/posts/${postId.value}/adjacent`)
     ])
     post.value = postRes.data.data
     if (boardRes) board.value = boardRes.data.data
+    adjacent.value = adjRes.data.data
     postAvatarError.value = false
   } finally {
     loading.value = false
@@ -305,7 +332,6 @@ onMounted(async () => {
   font-size: 16px;
   line-height: 1.85;
   color: var(--t1);
-  border-bottom: 1px solid var(--border2);
 }
 
 .post-content :deep(p) { margin: 0 0 0.6em; }
@@ -341,32 +367,121 @@ onMounted(async () => {
 .post-content :deep(hr) { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
 .post-content :deep(table) { max-width: 100%; border-color: var(--border); }
 
+/* ===== 액션 바 ===== */
 .post-actions {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  padding: 16px 30px;
+  padding: 14px 30px;
+  border-top: 1px solid var(--border2);
   border-bottom: 1px solid var(--border2);
   background: var(--surface2);
 }
 
-.right-actions {
-  margin-left: auto;
+.actions-left,
+.actions-right {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-btn,
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.action-btn:hover { background: var(--surface2); color: var(--t1); border-color: var(--border2); }
+.action-btn.danger { color: var(--el-color-danger); }
+.action-btn.danger:hover { background: #fff1f0; border-color: var(--el-color-danger); }
+.action-btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.action-btn.accent:hover { opacity: 0.88; }
+
+.like-btn { color: var(--t3); }
+.like-btn:hover { color: #e03e52; border-color: #e03e52; background: #fff5f6; }
+.like-btn.liked { color: #e03e52; border-color: #e03e52; background: #fff5f6; }
+.like-btn.liked i { color: #e03e52; }
+
+/* ===== 이전/다음 글 ===== */
+.adjacent-nav {
+  border-bottom: 1px solid var(--border2);
+}
+
+.adj-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 30px;
+  border-top: 1px solid var(--border2);
+  color: var(--t2);
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+a.adj-item:hover {
+  background: var(--surface2);
+  color: var(--t1);
+}
+
+a.adj-item:hover .adj-title {
+  color: var(--accent-t);
+}
+
+.adj-item.empty {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.adj-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+  white-space: nowrap;
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.adj-title {
+  font-size: 14px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adj-empty {
+  font-size: 13px;
+  color: var(--t4);
 }
 
 @media (max-width: 768px) {
   .post-header,
   .attach-area,
   .post-content,
-  .post-actions {
+  .post-actions,
+  .adj-item {
     padding-left: 18px;
     padding-right: 18px;
   }
 
   .post-title { font-size: 21px; }
-  .post-actions { flex-wrap: wrap; }
-  .right-actions { width: 100%; justify-content: flex-end; }
+  .post-actions { flex-wrap: wrap; gap: 8px; }
+  .action-btn span, .like-btn span { display: none; }
+  .action-btn, .like-btn { padding: 8px 10px; }
 }
 </style>

@@ -3,15 +3,6 @@
 
     <!-- 갤러리 뷰 -->
     <template v-if="board?.boardType === 'GALLERY'">
-      <div class="gallery-toolbar">
-        <div class="search-area">
-          <el-input v-model="keyword" placeholder="검색어 입력" size="small" clearable @keyup.enter="handleSearch" style="width:200px" />
-          <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
-        </div>
-        <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
-          <i class="ti ti-pencil"></i> 글쓰기
-        </el-button>
-      </div>
       <div v-loading="loading" class="gallery-grid">
         <div v-for="post in posts" :key="post.id" class="gallery-card" @click="goDetail(post)">
           <div class="gallery-thumb">
@@ -29,32 +20,24 @@
         <el-pagination v-model:current-page="page" :page-size="gallerySize" :total="total"
           layout="prev, pager, next" background small @current-change="fetchPosts" />
       </div>
+      <div class="bottom-bar">
+        <div class="search-area">
+          <el-input v-model="keyword" placeholder="검색어 입력" size="small" clearable @keyup.enter="handleSearch" style="width:200px" />
+          <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
+        </div>
+        <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
+          <i class="ti ti-pencil"></i> 글쓰기
+        </el-button>
+      </div>
     </template>
 
     <!-- 일반/자료실 테이블 뷰 -->
     <template v-else>
-      <div class="search-bar">
-        <el-select v-model="searchType" size="small" class="search-type">
-          <el-option value="title" label="제목" />
-          <el-option value="content" label="내용" />
-          <el-option value="writer" label="작성자" />
-          <el-option value="all" label="전체" />
-        </el-select>
-        <el-input v-model="keyword" placeholder="검색어 입력" size="small" class="search-input"
-          clearable @keyup.enter="handleSearch" />
-        <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
-        <div class="write-area">
-          <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
-            <i class="ti ti-pencil"></i>글쓰기
-          </el-button>
-        </div>
-      </div>
-
       <el-table :data="posts" v-loading="loading" row-class-name="post-row" style="width:100%" @row-click="goDetail">
         <el-table-column width="72" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.isNotice" type="danger" size="small" effect="dark">공지</el-tag>
-            <span v-else class="row-id">{{ row.id }}</span>
+            <span v-else class="row-num">{{ row.rowNum }}</span>
           </template>
         </el-table-column>
         <el-table-column label="제목" min-width="280">
@@ -84,6 +67,23 @@
       <div class="pagination">
         <el-pagination v-model:current-page="page" :page-size="size" :total="total"
           layout="prev, pager, next" background small @current-change="fetchPosts" />
+      </div>
+
+      <div class="bottom-bar">
+        <div class="search-group">
+          <el-select v-model="searchType" size="small" class="search-type">
+            <el-option value="title" label="제목" />
+            <el-option value="content" label="내용" />
+            <el-option value="writer" label="작성자" />
+            <el-option value="all" label="전체" />
+          </el-select>
+          <el-input v-model="keyword" placeholder="검색어 입력" size="small" class="search-input"
+            clearable @keyup.enter="handleSearch" />
+          <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
+        </div>
+        <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
+          <i class="ti ti-pencil"></i>글쓰기
+        </el-button>
       </div>
     </template>
 
@@ -116,17 +116,15 @@ const gallerySize = ref(12)
 const keyword = ref('')
 const searchType = ref('title')
 
-// 권한 체크: board.permissions에서 회원 그룹 매칭
 const canWrite = computed(() => {
   if (!board.value) return false
   const perms = board.value.permissions || []
-  if (!perms.length) return true // 권한 없음 = 공개
+  if (!perms.length) return true
   if (!authStore.isLoggedIn) return false
   const memberGroupIds = authStore.member?.groupIds || []
   return perms.some(p => memberGroupIds.includes(p.groupId) && p.canWrite)
 })
 
-// 컬럼 표시 설정 (추후 board 설정 연동 가능)
 const showViewCount = ref(true)
 const showLikeCount = ref(true)
 
@@ -203,28 +201,25 @@ onMounted(async () => {
   color: var(--t1);
 }
 
-/* ===== 검색바 ===== */
-.search-bar {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.search-type { width: 90px; }
-.search-input { flex: 1; min-width: 120px; }
-.write-area { margin-left: auto; }
-
-/* ===== 갤러리 ===== */
-.gallery-toolbar {
+/* ===== 하단 바 (검색 + 글쓰기) ===== */
+.bottom-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
   gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.search-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 .search-area { display: flex; gap: 6px; align-items: center; }
+.search-type { width: 90px; }
+.search-input { width: 200px; }
 
+/* ===== 갤러리 ===== */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -235,7 +230,7 @@ onMounted(async () => {
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 0.5px solid var(--border);
-  background: var(--surface);
+  background: var(--surface2);
   cursor: pointer;
   transition: var(--transition);
 }
@@ -268,7 +263,7 @@ onMounted(async () => {
 /* ===== 테이블 ===== */
 :deep(.el-table__row) { cursor: pointer; }
 
-.row-id { color: var(--t3); font-size: 13px; }
+.row-num { color: var(--t3); font-size: 13px; }
 
 .title-cell { display: flex; align-items: center; gap: 6px; }
 .title-text { font-size: 14px; }

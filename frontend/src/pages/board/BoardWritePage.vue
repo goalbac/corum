@@ -9,6 +9,22 @@
         <el-checkbox v-model="form.isNotice" :disabled="!isAdmin && !board?.useNotice">공지글로 등록</el-checkbox>
       </el-form-item>
 
+      <template v-if="isAdmin && isEdit">
+        <el-form-item label="게시일">
+          <el-date-picker
+            v-model="form.createdAt"
+            type="datetime"
+            placeholder="게시일 변경 (비워두면 유지)"
+            format="YYYY-MM-DD HH:mm:ss"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            style="width:280px"
+          />
+        </el-form-item>
+        <el-form-item label="좋아요 수">
+          <el-input-number v-model="form.likeCount" :min="0" style="width:160px" />
+        </el-form-item>
+      </template>
+
       <el-form-item label="내용">
         <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="400px" style="width:100%" />
       </el-form-item>
@@ -70,7 +86,7 @@ const fileList = ref([])
 const files = ref([])
 const board = ref(null)
 
-const form = ref({ title: '', content: '', isNotice: false })
+const form = ref({ title: '', content: '', isNotice: false, createdAt: null, likeCount: 0 })
 
 async function fetchBoard() {
   if (!boardId.value) return
@@ -164,7 +180,9 @@ async function fetchPost() {
   form.value = {
     title: p.title,
     content: p.content,
-    isNotice: p.isNotice
+    isNotice: p.isNotice,
+    createdAt: null,
+    likeCount: p.likeCount ?? 0
   }
 }
 

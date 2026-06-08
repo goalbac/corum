@@ -7,6 +7,7 @@ import com.corum.backend.domain.post.PostLike;
 import com.corum.backend.domain.post.PostLikeRepository;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.file.FileResponse;
+import com.corum.backend.dto.post.AdjacentPostsResponse;
 import com.corum.backend.dto.post.PostCreateRequest;
 import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
@@ -15,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,19 +45,24 @@ public class PostService {
             posts = postRepository.findByBoardId(boardId, pageable);
         }
 
-        List<PostSummaryResponse> content = posts.getContent().stream()
-                .map(p -> {
-                    List<FileResponse> files = fileStorageService.getFiles("POST", p.getId());
-                    String contentThumb = extractFirstImageFromContent(p.getContent());
-                    String thumbnailUrl = contentThumb != null ? contentThumb
-                            : files.stream()
-                                    .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
-                                    .findFirst()
-                                    .map(f -> "/api/files/" + f.getId() + "/view")
-                                    .orElse(null);
-                    return new PostSummaryResponse(p, 0, !files.isEmpty(), thumbnailUrl);
-                })
-                .collect(Collectors.toList());
+        long total = posts.getTotalElements();
+        int offset = pageable.getPageNumber() * pageable.getPageSize();
+        List<Post> postList = posts.getContent();
+
+        List<PostSummaryResponse> content = new java.util.ArrayList<>();
+        for (int i = 0; i < postList.size(); i++) {
+            Post p = postList.get(i);
+            List<FileResponse> files = fileStorageService.getFiles("POST", p.getId());
+            String contentThumb = extractFirstImageFromContent(p.getContent());
+            String thumbnailUrl = contentThumb != null ? contentThumb
+                    : files.stream()
+                            .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
+                            .findFirst()
+                            .map(f -> "/api/files/" + f.getId() + "/view")
+                            .orElse(null);
+            long rowNum = total - offset - i;
+            content.add(new PostSummaryResponse(p, 0, !files.isEmpty(), thumbnailUrl, rowNum));
+        }
 
         return new PageImpl<>(content, pageable, posts.getTotalElements());
     }
@@ -111,18 +118,33 @@ public class PostService {
         return new PostResponse(saved, fileResponses, false, 0, savedProfileImageUrl);
     }
 
+    // ===== 이전/다음 글 =====
+    @Transactional(readOnly = true)
+    public AdjacentPostsResponse getAdjacentPosts(Long boardId, Long postId) {
+        Pageable one = PageRequest.of(0, 1);
+        Post prev = postRepository.findPrevPost(boardId, postId, one).stream().findFirst().orElse(null);
+        Post next = postRepository.findNextPost(boardId, postId, one).stream().findFirst().orElse(null);
+        return new AdjacentPostsResponse(prev, next);
+    }
+
     // ===== 게시글 수정 =====
     @Transactional
-    public PostResponse updatePost(Long postId, PostCreateRequest request, Long memberId) {
+    public PostResponse updatePost(Long postId, PostCreateRequest request, Long memberId, boolean isAdmin) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
 
-        if (!post.getMemberId().equals(memberId)) {
+        if (!isAdmin && !post.getMemberId().equals(memberId)) {
             throw BusinessException.forbidden("수정 권한이 없습니다.");
         }
 
         post.update(request.getTitle(), request.getContent(),
                 request.getIsNotice(), post.getIsHidden(), memberId);
+
+        if (isAdmin && (request.getCreatedAt() != null || request.getLikeCount() != null)) {
+            java.time.LocalDateTime createdAt = request.getCreatedAt() != null ? request.getCreatedAt() : post.getCreatedAt();
+            int likeCount = request.getLikeCount() != null ? request.getLikeCount() : post.getLikeCount();
+            postRepository.updateAdminFields(postId, createdAt, likeCount);
+        }
 
         List<FileResponse> files = fileStorageService.getFiles("POST", postId);
         boolean liked = postLikeRepository.existsByPostIdAndMemberId(postId, memberId);

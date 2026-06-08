@@ -253,7 +253,11 @@ onMounted(async () => {
 .lnb {
   position: sticky;
   top: calc(var(--header-height) + 24px);
-  background: transparent;
+  background: var(--surface);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
 .lnb-title {
@@ -269,7 +273,7 @@ onMounted(async () => {
 }
 
 .lnb-list {
-  padding: 10px 0;
+  padding: 8px 8px;
 }
 
 .lnb-item {

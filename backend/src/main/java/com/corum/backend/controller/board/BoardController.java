@@ -5,11 +5,13 @@ import com.corum.backend.dto.board.BoardCreateRequest;
 import com.corum.backend.dto.board.BoardResponse;
 import com.corum.backend.dto.comment.CommentCreateRequest;
 import com.corum.backend.dto.comment.CommentResponse;
+import com.corum.backend.dto.post.AdjacentPostsResponse;
 import com.corum.backend.dto.post.PostCreateRequest;
 import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.dto.file.FileResponse;
+import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.service.board.BoardService;
 import com.corum.backend.service.comment.CommentService;
 import com.corum.backend.service.file.FileStorageService;
@@ -38,6 +40,7 @@ public class BoardController {
     private final CommentService commentService;
     private final FileStorageService fileStorageService;
     private final OperationLogService operationLogService;
+    private final MemberGroupRepository memberGroupRepository;
 
     // ===== 게시판 =====
 
@@ -133,6 +136,13 @@ public class BoardController {
         return ApiResponse.ok("파일이 삭제되었습니다.");
     }
 
+    @GetMapping("/api/boards/{boardId}/posts/{postId}/adjacent")
+    public ApiResponse<AdjacentPostsResponse> getAdjacentPosts(
+            @PathVariable Long boardId,
+            @PathVariable Long postId) {
+        return ApiResponse.ok(postService.getAdjacentPosts(boardId, postId));
+    }
+
     @PutMapping("/api/boards/{boardId}/posts/{postId}")
     public ApiResponse<PostResponse> updatePost(
             @PathVariable Long boardId,
@@ -140,7 +150,8 @@ public class BoardController {
             @Valid @RequestBody PostCreateRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        return ApiResponse.ok(postService.updatePost(postId, request, userDetails.getMemberId()));
+        boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(userDetails.getMemberId());
+        return ApiResponse.ok(postService.updatePost(postId, request, userDetails.getMemberId(), isAdmin));
     }
 
     @DeleteMapping("/api/boards/{boardId}/posts/{postId}")
