@@ -211,7 +211,10 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import Sortable from 'sortablejs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
+
+const menuStore = useMenuStore()
 
 const menus       = ref([])
 const boards      = ref([])
@@ -315,7 +318,8 @@ async function saveSortOrder() {
 
     ElMessage.success('순서가 저장되었습니다.')
     sortChanged.value = false
-    fetchMenus()
+    await fetchMenus()
+    menuStore.fetchMenus(true) // 네비게이션 메뉴 캐시 갱신
   } catch(e) {
     ElMessage.error('순서 저장에 실패했습니다.')
   } finally { sortSaving.value = false }
@@ -351,6 +355,16 @@ function openCreate(parent) {
   editing.value  = null
   parentId.value = parent?.id || null
   form.value     = defaultForm()
+
+  // 같은 레벨 형제 메뉴의 최대 sortOrder + 1 을 기본값으로
+  const siblings = parent?.id
+    ? (flatMenus.value.filter(m => m.parentId === parent.id))
+    : menus.value
+  const maxOrder = siblings.length
+    ? Math.max(...siblings.map(m => m.sortOrder ?? 0))
+    : -1
+  form.value.sortOrder = maxOrder + 1
+
   showForm.value = true
 }
 
@@ -373,7 +387,8 @@ async function saveMenu() {
     }
     ElMessage.success('저장되었습니다.')
     showForm.value = false
-    fetchMenus()
+    await fetchMenus()
+    menuStore.fetchMenus(true)
   } finally { saving.value = false }
 }
 
@@ -381,7 +396,8 @@ async function deleteMenu(id) {
   await ElMessageBox.confirm('메뉴를 삭제하시겠습니까?', '삭제', { type: 'warning' })
   await api.delete(`/menus/${id}`)
   ElMessage.success('삭제되었습니다.')
-  fetchMenus()
+  await fetchMenus()
+  menuStore.fetchMenus(true)
 }
 
 onMounted(() => { fetchMenus(); fetchBoards(); fetchCalendars() })

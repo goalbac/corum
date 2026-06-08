@@ -1,6 +1,37 @@
 <template>
   <div class="board-list">
 
+    <!-- ===== 공통 툴바 ===== -->
+    <div class="list-toolbar">
+      <div class="search-group">
+        <div class="search-type-wrap">
+          <el-select v-model="searchType" size="small" class="search-type">
+            <el-option value="title" label="제목" />
+            <el-option value="content" label="내용" />
+            <el-option value="writer" label="작성자" />
+            <el-option value="all" label="전체" />
+          </el-select>
+        </div>
+        <div class="search-input-wrap">
+          <i class="ti ti-search search-icon"></i>
+          <input
+            v-model="keyword"
+            class="search-input"
+            placeholder="검색어 입력..."
+            @keyup.enter="handleSearch"
+          />
+          <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+        <button class="search-btn" @click="handleSearch">검색</button>
+      </div>
+      <button v-if="canWrite" class="write-btn" @click="goWrite">
+        <i class="ti ti-pencil-plus"></i>
+        <span>글쓰기</span>
+      </button>
+    </div>
+
     <!-- ===== 갤러리 뷰 ===== -->
     <template v-if="board?.boardType === 'GALLERY'">
       <div v-loading="loading" class="gallery-grid">
@@ -41,16 +72,6 @@
       <div class="pagination">
         <el-pagination v-model:current-page="page" :page-size="gallerySize" :total="total"
           layout="prev, pager, next" background small @current-change="fetchPosts" />
-      </div>
-      <div class="bottom-bar">
-        <div class="search-area">
-          <el-input v-model="keyword" placeholder="검색어 입력" size="small" clearable
-            @keyup.enter="handleSearch" style="width:200px" />
-          <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
-        </div>
-        <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
-          <i class="ti ti-pencil"></i>&nbsp;글쓰기
-        </el-button>
       </div>
     </template>
 
@@ -118,23 +139,6 @@
       <div class="pagination">
         <el-pagination v-model:current-page="page" :page-size="size" :total="total"
           layout="prev, pager, next" background small @current-change="fetchPosts" />
-      </div>
-
-      <div class="bottom-bar">
-        <div class="search-group">
-          <el-select v-model="searchType" size="small" class="search-type">
-            <el-option value="title" label="제목" />
-            <el-option value="content" label="내용" />
-            <el-option value="writer" label="작성자" />
-            <el-option value="all" label="전체" />
-          </el-select>
-          <el-input v-model="keyword" placeholder="검색어 입력" size="small" class="search-input"
-            clearable @keyup.enter="handleSearch" />
-          <el-button size="small" type="primary" @click="handleSearch">검색</el-button>
-        </div>
-        <el-button v-if="canWrite" size="small" type="primary" @click="goWrite">
-          <i class="ti ti-pencil"></i>&nbsp;글쓰기
-        </el-button>
       </div>
     </template>
 
@@ -468,23 +472,112 @@ onMounted(async () => {
 
 .gallery-empty i { font-size: 36px; }
 
-/* ===== 하단 바 ===== */
-.pagination { display: flex; justify-content: center; padding: 18px 0 4px; }
-
-.bottom-bar {
+/* ===== 툴바 ===== */
+.list-toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid var(--border2);
-  background: var(--surface2);
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
   flex-wrap: wrap;
 }
 
-.search-group, .search-area { display: flex; gap: 6px; align-items: center; }
+.search-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.search-type-wrap { flex-shrink: 0; }
 .search-type { width: 82px; }
-.search-input { width: 200px; }
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 13px;
+  color: var(--t3);
+  pointer-events: none;
+}
+
+.search-input {
+  padding: 7px 30px 7px 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface2);
+  font-size: 13px;
+  color: var(--t1);
+  width: 200px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.search-input::placeholder { color: var(--t4); }
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--t3);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.search-btn {
+  padding: 7px 14px;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.search-btn:hover { opacity: 0.88; }
+
+.write-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.write-btn:hover { opacity: 0.88; }
+
+/* ===== 페이지네이션 ===== */
+.pagination { display: flex; justify-content: center; padding: 18px 0 4px; }
 
 @media (max-width: 600px) {
   .pt-col.writer, .pt-col.count { display: none; }

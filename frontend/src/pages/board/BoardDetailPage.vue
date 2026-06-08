@@ -93,6 +93,14 @@
         </div>
       </div>
 
+      <CommentSection
+        :board-id="boardId"
+        :post-id="postId"
+        :use-comment="board?.useComment ?? true"
+        :can-comment="canComment"
+        :is-admin="isAdmin"
+      />
+
       <!-- ===== 이전/다음 글 ===== -->
       <div v-if="adjacent" class="adjacent-nav">
         <component
@@ -118,14 +126,6 @@
           <span v-else class="adj-empty">없음</span>
         </component>
       </div>
-
-      <CommentSection
-        :board-id="boardId"
-        :post-id="postId"
-        :use-comment="board?.useComment ?? true"
-        :can-comment="canComment"
-        :is-admin="isAdmin"
-      />
     </template>
   </div>
 </template>
