@@ -46,6 +46,7 @@
 
       <div class="post-actions">
         <el-button
+          v-if="board?.useLike"
           :type="post.liked ? 'primary' : 'default'"
           size="small"
           @click="handleLike"
@@ -72,7 +73,13 @@
         </div>
       </div>
 
-      <CommentSection :board-id="boardId" :post-id="postId" />
+      <CommentSection
+        :board-id="boardId"
+        :post-id="postId"
+        :use-comment="board?.useComment ?? true"
+        :can-comment="canComment"
+        :is-admin="isAdmin"
+      />
     </template>
   </div>
 </template>
@@ -97,21 +104,37 @@ const boardId = computed(() => route.params.boardId || activeMenu.value?.targetI
 const postId = computed(() => route.params.postId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
 const post = ref(null)
+const board = ref(null)
 const loading = ref(false)
 const postAvatarError = ref(false)
 
+const isAdmin = computed(() => !!authStore.member?.isAdmin)
+
 const canEdit = computed(() => {
   if (!authStore.isLoggedIn) return false
-  if (authStore.member?.admin) return true
+  if (isAdmin.value) return true
   return authStore.member?.id === post.value?.memberId
+})
+
+// board.permissions 기반 댓글 권한 체크
+const canComment = computed(() => {
+  if (isAdmin.value) return true
+  const perms = board.value?.permissions || []
+  if (!perms.length) return authStore.isLoggedIn // 공개 게시판
+  const memberGroupIds = authStore.member?.groupIds || []
+  return perms.some(p => memberGroupIds.includes(p.groupId) && p.canComment)
 })
 
 async function fetchPost() {
   if (!boardId.value || !postId.value) return
   loading.value = true
   try {
-    const res = await api.get(`/boards/${boardId.value}/posts/${postId.value}`)
-    post.value = res.data.data
+    const [postRes, boardRes] = await Promise.all([
+      api.get(`/boards/${boardId.value}/posts/${postId.value}`),
+      board.value ? Promise.resolve(null) : api.get(`/boards/${boardId.value}`)
+    ])
+    post.value = postRes.data.data
+    if (boardRes) board.value = boardRes.data.data
     postAvatarError.value = false
   } finally {
     loading.value = false

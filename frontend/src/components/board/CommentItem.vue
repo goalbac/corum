@@ -34,7 +34,7 @@
           <p class="comment-content">{{ comment.content }}</p>
           <div class="comment-actions">
             <span
-              v-if="authStore.isLoggedIn && comment.depth < 2"
+              v-if="authStore.isLoggedIn && comment.depth < 2 && canComment"
               class="action-btn"
               @click="replyMode = !replyMode"
             >답글</span>
@@ -57,6 +57,7 @@
       :comment="child"
       :board-id="boardId"
       :post-id="postId"
+      :can-comment="canComment"
       @refresh="$emit('refresh')"
     />
   </div>
@@ -70,9 +71,10 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 
 const props = defineProps({
-  comment: { type: Object, required: true },
-  boardId: { type: [String, Number], required: true },
-  postId: { type: [String, Number], required: true }
+  comment:    { type: Object, required: true },
+  boardId:    { type: [String, Number], required: true },
+  postId:     { type: [String, Number], required: true },
+  canComment: { type: Boolean, default: true },
 })
 const emit = defineEmits(['refresh'])
 
