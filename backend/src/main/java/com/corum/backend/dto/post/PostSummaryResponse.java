@@ -19,12 +19,13 @@ public class PostSummaryResponse {
     private final int commentCount;
     private final boolean hasFile;
     private final String thumbnailUrl;
+    private final String firstFileName;
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile) {
-        this(post, commentCount, hasFile, null);
+        this(post, commentCount, hasFile, null, null);
     }
 
-    public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl) {
+    public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl, String firstFileName) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.title = post.getTitle();
@@ -36,5 +37,6 @@ public class PostSummaryResponse {
         this.commentCount = commentCount;
         this.hasFile = hasFile;
         this.thumbnailUrl = thumbnailUrl;
+        this.firstFileName = firstFileName;
     }
 }

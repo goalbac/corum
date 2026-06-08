@@ -5,12 +5,18 @@
         <el-input v-model="form.title" placeholder="제목을 입력하세요." size="large" />
       </el-form-item>
 
-      <el-form-item v-if="isAdmin || board?.useNotice" label="공지 설정">
-        <el-checkbox v-model="form.isNotice" :disabled="!isAdmin && !board?.useNotice">공지글로 등록</el-checkbox>
+      <el-form-item v-if="isAdmin" label="공지 설정">
+        <el-checkbox v-model="form.isNotice">공지글로 등록</el-checkbox>
       </el-form-item>
 
-      <el-form-item label="내용">
-        <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="400px" style="width:100%" />
+      <el-form-item :label="board?.boardType === 'DOCUMENT' ? '자료 설명' : '내용'">
+        <el-input
+          v-model="form.content"
+          type="textarea"
+          :rows="15"
+          placeholder="내용을 입력하세요."
+          resize="none"
+        />
       </el-form-item>
 
       <el-form-item label="파일 첨부">
@@ -18,18 +24,13 @@
           v-model:file-list="fileList"
           :auto-upload="false"
           multiple
+          :accept="acceptExtensions"
           :on-change="handleFileChange"
+          :on-remove="handleFileRemove"
         >
           <el-button size="small">파일 선택</el-button>
           <template #tip>
-            <div class="upload-tip">
-              파일을 선택하면 저장 시 함께 업로드됩니다.
-              <span v-if="board">
-                최대 {{ board.fileMaxSizeMb || DEFAULT_MAX_MB }}MB,
-                {{ board.fileMaxCount || DEFAULT_MAX_COUNT }}개까지
-                <template v-if="board.fileAllowedExtensions"> / 허용: {{ board.fileAllowedExtensions }}</template>
-              </span>
-            </div>
+            <div class="upload-tip">{{ uploadTip }}</div>
           </template>
         </el-upload>
       </el-form-item>
@@ -50,7 +51,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
-import RichEditor from '@/components/common/RichEditor.vue'
 import api from '@/api/axios'
 
 const route = useRoute()
@@ -63,62 +63,42 @@ const boardId = computed(() => route.params.boardId || activeMenu.value?.targetI
 const postId = computed(() => route.params.postId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
 const isEdit = computed(() => !!postId.value)
-const isAdmin = computed(() => authStore.member?.isAdmin)
+const isAdmin = computed(() => authStore.member?.admin || authStore.member?.isAdmin)
 
+const board = ref(null)
 const loading = ref(false)
 const fileList = ref([])
 const files = ref([])
-const board = ref(null)
 
 const form = ref({ title: '', content: '', isNotice: false })
 
-async function fetchBoard() {
-  if (!boardId.value) return
-  try {
-    const res = await api.get(`/boards/${boardId.value}`)
-    board.value = res.data.data
-  } catch {}
+const allowedExtensions = computed(() =>
+  (board.value?.fileAllowedExtensions || '')
+    .split(',')
+    .map(v => v.trim().replace(/^\./, '').toLowerCase())
+    .filter(Boolean)
+)
+const acceptExtensions = computed(() => allowedExtensions.value.map(ext => `.${ext}`).join(','))
+const uploadTip = computed(() => {
+  const count = board.value?.fileMaxCount || 5
+  const size = board.value?.fileMaxSizeMb ? `${board.value.fileMaxSizeMb}MB` : '전역 설정 용량'
+  const ext = allowedExtensions.value.length ? allowedExtensions.value.join(', ') : '전역 설정 확장자'
+  return `최대 ${count}개, 파일당 ${size}. 허용 확장자: ${ext}`
+})
+
+function handleFileChange(file, nextFileList) {
+  fileList.value = nextFileList
+  files.value = nextFileList.map(item => item.raw).filter(Boolean)
+  if (board.value?.fileMaxCount && files.value.length > board.value.fileMaxCount) {
+    ElMessage.warning(`첨부 파일은 최대 ${board.value.fileMaxCount}개까지 선택할 수 있습니다.`)
+    fileList.value = nextFileList.slice(0, board.value.fileMaxCount)
+    files.value = fileList.value.map(item => item.raw).filter(Boolean)
+  }
 }
 
-const DEFAULT_MAX_MB = 10
-const DEFAULT_MAX_COUNT = 10
-
-function validateFiles(newFiles) {
-  if (!board.value) return true
-  const maxMb = board.value.fileMaxSizeMb || DEFAULT_MAX_MB
-  const maxCount = board.value.fileMaxCount || DEFAULT_MAX_COUNT
-  const allowedExts = board.value.fileAllowedExtensions
-    ? board.value.fileAllowedExtensions.split(',').map(e => e.trim().toLowerCase())
-    : null
-
-  if (files.value.length + newFiles.length > maxCount) {
-    ElMessage.warning(`파일은 최대 ${maxCount}개까지 첨부 가능합니다.`)
-    return false
-  }
-  for (const f of newFiles) {
-    if (f.size > maxMb * 1024 * 1024) {
-      ElMessage.warning(`파일 크기는 ${maxMb}MB 이하여야 합니다. (${f.name})`)
-      return false
-    }
-    if (allowedExts) {
-      const ext = f.name.split('.').pop().toLowerCase()
-      if (!allowedExts.includes(ext)) {
-        ElMessage.warning(`허용되지 않는 파일 형식입니다: .${ext} (허용: ${board.value.fileAllowedExtensions})`)
-        return false
-      }
-    }
-  }
-  return true
-}
-
-function handleFileChange(file) {
-  if (file.raw) {
-    if (!validateFiles([file.raw])) {
-      fileList.value = fileList.value.filter(f => f.uid !== file.uid)
-      return
-    }
-    files.value.push(file.raw)
-  }
+function handleFileRemove(file, nextFileList) {
+  fileList.value = nextFileList
+  files.value = nextFileList.map(item => item.raw).filter(Boolean)
 }
 
 async function handleSubmit() {
@@ -144,7 +124,7 @@ async function handleSubmit() {
 
     if (files.value.length > 0) {
       const formData = new FormData()
-      files.value.forEach(f => formData.append('files', f))
+      files.value.forEach(file => formData.append('files', file))
       await api.post(`/posts/${savedPostId}/files`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
@@ -157,26 +137,28 @@ async function handleSubmit() {
   }
 }
 
+async function fetchBoard() {
+  if (!boardId.value) return
+  const res = await api.get(`/boards/${boardId.value}`)
+  board.value = res.data.data
+}
+
 async function fetchPost() {
   if (!isEdit.value || !boardId.value) return
   const res = await api.get(`/boards/${boardId.value}/posts/${postId.value}`)
-  const p = res.data.data
-  form.value = {
-    title: p.title,
-    content: p.content,
-    isNotice: p.isNotice
-  }
+  const post = res.data.data
+  form.value = { title: post.title, content: post.content, isNotice: post.isNotice }
 }
 
 watch([boardId, postId], async () => {
   await fetchBoard()
-  fetchPost()
+  await fetchPost()
 })
 
 onMounted(async () => {
   if (route.params.menuId) await menuStore.fetchMenus()
   await fetchBoard()
-  fetchPost()
+  await fetchPost()
 })
 </script>
 
@@ -189,20 +171,8 @@ onMounted(async () => {
   color: var(--t1);
   box-shadow: var(--shadow);
 }
-
-.write-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.upload-tip {
-  font-size: 14px;
-  color: var(--t3);
-  margin-top: 4px;
-}
-
+.write-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.upload-tip { font-size: 14px; color: var(--t3); margin-top: 4px; }
 @media (max-width: 768px) {
   .board-write { padding: 20px; }
 }

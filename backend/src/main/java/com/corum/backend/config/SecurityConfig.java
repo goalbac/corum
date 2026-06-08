@@ -44,7 +44,6 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // 공개 API
                         .requestMatchers(
                                 "/api/health",
                                 "/api/auth/login",
@@ -53,15 +52,15 @@ public class SecurityConfig {
                                 "/api/auth/request-password-reset",
                                 "/api/auth/reset-password",
                                 "/api/terms/active",
+                                "/api/files/*/download",
+                                "/api/files/profile/**",
                                 "/api/menus",
                                 "/api/inquiries",
                                 "/api/calendars/**",
                                 "/api/display/popups/active",
                                 "/api/display/banners/active",
-                                "/api/site/public",
-                                "/api/files/profile/**"
+                                "/api/site/public"
                         ).permitAll()
-                        // 나머지 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)

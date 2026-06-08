@@ -1,7 +1,16 @@
 package com.corum.backend.domain.file;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -23,10 +32,10 @@ public class FileDownloadLog {
     @Column(name = "member_id")
     private Long memberId;
 
-    @Column(name = "ip_address", length = 45)
+    @Column(name = "ip_address", length = 50)
     private String ipAddress;
 
-    @Column(name = "downloaded_at", nullable = false)
     @Builder.Default
-    private LocalDateTime downloadedAt = LocalDateTime.now();
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
