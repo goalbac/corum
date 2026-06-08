@@ -25,11 +25,15 @@ const authStore = useAuthStore()
 const maintenance = reactive({ active: false, message: null, until: null })
 
 onMounted(async () => {
+  // 토큰이 있으면 먼저 사용자 정보를 가져와서 관리자 여부 확인
+  if (authStore.token && !authStore.member) {
+    try { await authStore.fetchMe() } catch { /* ignore */ }
+  }
   try {
     const res = await api.get('/site/public')
     const info = res.data.data
-    // 관리자는 점검 모드 우회
-    if (info.maintenanceMode && !authStore.member?.admin) {
+    // 관리자(isAdmin)는 점검 모드 우회
+    if (info.maintenanceMode && !authStore.member?.isAdmin) {
       maintenance.active = true
       maintenance.message = info.maintenanceMessage
       maintenance.until = info.maintenanceUntil

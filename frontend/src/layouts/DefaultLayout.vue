@@ -44,7 +44,7 @@
       </div>
     </transition>
 
-    <main class="main-content">
+    <main class="main-content" :class="{ 'with-banner': bannerRef?.visible }">
       <div class="page-container">
         <template v-if="showsMenuLayout">
           <div class="menu-shell">
@@ -229,8 +229,7 @@ onMounted(async () => {
   min-height: calc(100vh - var(--header-height));
 }
 
-/* 배너가 고정되므로 배너 높이(약 44px)만큼 추가 여백 */
-:global(.app-banner) ~ .layout .main-content {
+.main-content.with-banner {
   margin-top: calc(var(--header-height) + 44px);
 }
 

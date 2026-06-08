@@ -41,7 +41,7 @@ function dismiss() {
   sessionStorage.setItem(STORAGE_KEY, '1')
 }
 
-defineExpose({ height: visible })
+defineExpose({ visible })
 </script>
 
 <style scoped>
