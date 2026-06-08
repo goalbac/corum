@@ -60,7 +60,7 @@ public class SecurityConfig {
                 // 나머지 인증 필요
                 .anyRequest().authenticated()
             )
-            .addFilterAfter(visitLoggingFilter, JwtAuthFilter.class)
+            .addFilterAfter(visitLoggingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
