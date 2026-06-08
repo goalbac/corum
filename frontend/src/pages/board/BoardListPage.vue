@@ -23,6 +23,30 @@
       </div>
     </div>
 
+    <section v-if="board?.boardType === 'DOCUMENT'" class="document-tools">
+      <div class="tool-head">
+        <div>
+          <strong>문서 폴더</strong>
+          <span>문서 게시판의 분류를 관리합니다.</span>
+        </div>
+        <el-button v-if="canManageDocuments" size="small" @click="openFolderDialog()">
+          <i class="ti ti-folder-plus"></i> 폴더 추가
+        </el-button>
+      </div>
+      <div v-if="folders.length" class="folder-list">
+        <button v-for="folder in folders" :key="folder.id" class="folder-chip" type="button">
+          <i class="ti ti-folder"></i>
+          <span>{{ folder.name }}</span>
+          <small>#{{ folder.sortOrder }}</small>
+          <span v-if="canManageDocuments" class="folder-actions">
+            <i class="ti ti-edit" @click.stop="openFolderDialog(folder)"></i>
+            <i class="ti ti-trash" @click.stop="deleteFolder(folder)"></i>
+          </span>
+        </button>
+      </div>
+      <el-empty v-else description="등록된 문서 폴더가 없습니다." :image-size="52" />
+    </section>
+
     <div v-if="board?.boardType === 'GALLERY'" v-loading="loading" class="gallery-grid">
       <button v-for="row in posts" :key="row.id" class="gallery-card" type="button" @click="goDetail(row)">
         <div class="thumb">
@@ -90,36 +114,68 @@
         @current-change="fetchPosts"
       />
     </div>
+
+    <el-dialog v-model="showFolderDialog" :title="editingFolder ? '폴더 수정' : '폴더 추가'" width="420px">
+      <el-form :model="folderForm" label-position="top">
+        <el-form-item label="폴더명">
+          <el-input v-model="folderForm.name" maxlength="200" />
+        </el-form-item>
+        <el-form-item label="정렬 순서">
+          <el-input-number v-model="folderForm.sortOrder" :min="0" style="width:100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showFolderDialog = false">취소</el-button>
+        <el-button type="primary" @click="saveFolder">저장</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const menuStore = useMenuStore()
 
 const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
+const canManageDocuments = computed(() => authStore.member?.admin || authStore.member?.isAdmin)
 
 const board = ref(null)
 const posts = ref([])
+const folders = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const keyword = ref('')
 const searchType = ref('title')
+const showFolderDialog = ref(false)
+const editingFolder = ref(null)
+const folderForm = ref({ name: '', sortOrder: 0 })
 
 async function fetchBoard() {
   if (!boardId.value) return
   const res = await api.get(`/boards/${boardId.value}`)
   board.value = res.data.data
+}
+
+async function fetchFolders() {
+  if (!boardId.value || board.value?.boardType !== 'DOCUMENT') {
+    folders.value = []
+    return
+  }
+  const res = await api.get(`/boards/${boardId.value}/document-folders`)
+  folders.value = res.data.data || []
 }
 
 async function fetchPosts() {
@@ -152,6 +208,32 @@ function goDetail(row) {
   router.push(`${basePath.value}/posts/${row.id}`)
 }
 
+function openFolderDialog(folder = null) {
+  editingFolder.value = folder
+  folderForm.value = folder ? { name: folder.name, sortOrder: folder.sortOrder } : { name: '', sortOrder: 0 }
+  showFolderDialog.value = true
+}
+
+async function saveFolder() {
+  if (!folderForm.value.name?.trim()) return ElMessage.warning('폴더명을 입력해주세요.')
+  const payload = { ...folderForm.value }
+  if (editingFolder.value) {
+    await api.put(`/boards/${boardId.value}/document-folders/${editingFolder.value.id}`, payload)
+  } else {
+    await api.post(`/boards/${boardId.value}/document-folders`, payload)
+  }
+  showFolderDialog.value = false
+  await fetchFolders()
+  ElMessage.success('저장되었습니다.')
+}
+
+async function deleteFolder(folder) {
+  await ElMessageBox.confirm(`"${folder.name}" 폴더를 삭제할까요?`, '폴더 삭제', { type: 'warning' })
+  await api.delete(`/boards/${boardId.value}/document-folders/${folder.id}`)
+  await fetchFolders()
+  ElMessage.success('삭제되었습니다.')
+}
+
 function formatDate(value) {
   if (!value) return ''
   const date = new Date(value)
@@ -168,13 +250,13 @@ watch(boardId, async () => {
   page.value = 1
   keyword.value = ''
   await fetchBoard()
-  await fetchPosts()
+  await Promise.all([fetchFolders(), fetchPosts()])
 })
 
 onMounted(async () => {
   if (route.params.menuId) await menuStore.fetchMenus()
   await fetchBoard()
-  await fetchPosts()
+  await Promise.all([fetchFolders(), fetchPosts()])
 })
 </script>
 
@@ -193,6 +275,38 @@ onMounted(async () => {
 .search-input { width: 260px; }
 .write-area { margin-left: auto; }
 .write-area :deep(.el-button i) { margin-right: 4px; }
+.document-tools {
+  border: 0.5px solid var(--border2);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.tool-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.tool-head strong { display: block; font-size: 16px; color: var(--t1); }
+.tool-head span { display: block; margin-top: 3px; font-size: 13px; color: var(--t3); }
+.folder-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.folder-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 0.5px solid var(--border2);
+  background: var(--surface2);
+  color: var(--t1);
+  border-radius: var(--radius-xs);
+  padding: 7px 10px;
+  font-family: inherit;
+}
+.folder-chip small { color: var(--t3); }
+.folder-actions { display: inline-flex; gap: 6px; color: var(--t3); }
+.folder-actions i:hover { color: var(--accent-t); }
 :deep(.post-row) { cursor: pointer; }
 .title-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .title-text {
@@ -260,5 +374,6 @@ onMounted(async () => {
   .search-type { width: 92px; }
   .search-input { width: 170px; }
   .write-area { margin-left: 0; width: 100%; display: flex; justify-content: flex-end; }
+  .tool-head { align-items: flex-start; flex-direction: column; }
 }
 </style>

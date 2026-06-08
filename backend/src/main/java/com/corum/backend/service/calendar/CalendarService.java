@@ -3,101 +3,69 @@ package com.corum.backend.service.calendar;
 import com.corum.backend.common.BusinessException;
 import com.corum.backend.domain.calendar.*;
 import com.corum.backend.domain.group.MemberGroupRepository;
-import com.corum.backend.dto.calendar.CalendarCreateRequest;
-import com.corum.backend.dto.calendar.CalendarEventRequest;
-import com.corum.backend.dto.calendar.CalendarResponse;
+import com.corum.backend.dto.calendar.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CalendarService {
 
+    private static final int MAX_OCCURRENCES_PER_EVENT = 400;
+
     private final CalendarRepository calendarRepository;
     private final CalendarEventRepository calendarEventRepository;
-    private final CalendarGroupPermissionRepository permissionRepository;
+    private final CalendarGroupPermissionRepository calendarGroupPermissionRepository;
     private final MemberGroupRepository memberGroupRepository;
 
-    // ===== 캘린더 목록 (활성) =====
     @Transactional(readOnly = true)
-    public List<CalendarResponse> getCalendars() {
+    public List<CalendarResponse> getCalendars(Long memberId) {
         return calendarRepository.findByIsActiveTrueOrderByIdAsc().stream()
-                .map(c -> new CalendarResponse(c, permissionRepository.findByCalendarId(c.getId())))
-                .collect(Collectors.toList());
+                .map(calendar -> new CalendarResponse(
+                        calendar,
+                        hasPermission(calendar.getId(), memberId, "READ"),
+                        hasPermission(calendar.getId(), memberId, "WRITE")
+                ))
+                .filter(CalendarResponse::getCanRead)
+                .toList();
     }
 
-    // ===== 관리자용 전체 캘린더 =====
     @Transactional(readOnly = true)
-    public List<CalendarResponse> getAllCalendars() {
-        return calendarRepository.findAll().stream()
-                .map(c -> new CalendarResponse(c, permissionRepository.findByCalendarId(c.getId())))
-                .collect(Collectors.toList());
-    }
-
-    // ===== 읽기 가능한 캘린더 ID 목록 =====
-    private List<Long> getReadableCalendarIds(Long memberId) {
-        List<Long> allActive = calendarRepository.findByIsActiveTrueOrderByIdAsc()
-                .stream().map(CalendarEntity::getId).collect(Collectors.toList());
-
-        if (memberId == null) {
-            // 비로그인: 권한 설정 없는 캘린더만 접근 (공개)
-            return allActive.stream()
-                    .filter(id -> permissionRepository.findByCalendarId(id).isEmpty())
-                    .collect(Collectors.toList());
-        }
-        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
-        if (groupIds.isEmpty()) {
-            return allActive.stream()
-                    .filter(id -> permissionRepository.findByCalendarId(id).isEmpty())
-                    .collect(Collectors.toList());
-        }
-        // 권한 없는 캘린더(공개) + 읽기 가능한 캘린더
-        List<Long> readable = permissionRepository.findReadableCalendarIds(groupIds);
-        List<Long> publicIds = allActive.stream()
-                .filter(id -> permissionRepository.findByCalendarId(id).isEmpty())
-                .collect(Collectors.toList());
-        return allActive.stream()
-                .filter(id -> readable.contains(id) || publicIds.contains(id))
-                .collect(Collectors.toList());
-    }
-
-    // ===== 쓰기 권한 체크 =====
-    public boolean canWrite(Long calendarId, Long memberId) {
-        if (memberId == null) return false;
-        List<Long> perms = permissionRepository.findByCalendarId(calendarId).stream()
-                .map(p -> p.getGroupId()).collect(Collectors.toList());
-        if (perms.isEmpty()) return true; // 공개 캘린더
-        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
-        if (groupIds.isEmpty()) return false;
-        return permissionRepository.canWrite(calendarId, groupIds);
-    }
-
-    // ===== 기간별 일정 조회 (권한 필터) =====
-    @Transactional(readOnly = true)
-    public List<CalendarEvent> getEvents(LocalDateTime start, LocalDateTime end, Long memberId) {
+    public List<CalendarEventResponse> getEvents(LocalDateTime start, LocalDateTime end, Long memberId) {
         List<Long> calendarIds = getReadableCalendarIds(memberId);
         if (calendarIds.isEmpty()) return List.of();
-        return calendarEventRepository.findByPeriod(calendarIds, start, end);
+
+        List<CalendarEventResponse> singleEvents = calendarEventRepository.findByPeriod(calendarIds, start, end).stream()
+                .filter(event -> isNone(event.getRecurrenceType()))
+                .map(CalendarEventResponse::new)
+                .toList();
+
+        List<CalendarEventResponse> recurringEvents = calendarEventRepository
+                .findRecurringCandidates(calendarIds, end).stream()
+                .flatMap(event -> expandRecurringEvent(event, start, end).stream())
+                .toList();
+
+        return java.util.stream.Stream.concat(singleEvents.stream(), recurringEvents.stream())
+                .sorted(Comparator.comparing(CalendarEventResponse::getStartAt))
+                .toList();
     }
 
-    // ===== 일정 단건 조회 =====
     @Transactional(readOnly = true)
-    public CalendarEvent getEvent(Long id) {
-        return calendarEventRepository.findById(id)
-                .orElseThrow(() -> BusinessException.notFound("일정을 찾을 수 없습니다."));
+    public CalendarEventResponse getEvent(Long id, Long memberId) {
+        CalendarEvent event = getEventEntity(id);
+        requirePermission(event.getCalendarId(), memberId, "READ");
+        return new CalendarEventResponse(event);
     }
 
-    // ===== 일정 등록 =====
     @Transactional
-    public CalendarEvent createEvent(CalendarEventRequest request, Long memberId) {
-        if (!canWrite(request.getCalendarId(), memberId)) {
-            throw BusinessException.forbidden("이 캘린더에 일정을 추가할 권한이 없습니다.");
-        }
+    public CalendarEventResponse createEvent(CalendarEventRequest request, Long memberId) {
+        requirePermission(request.getCalendarId(), memberId, "WRITE");
         CalendarEvent event = CalendarEvent.builder()
                 .calendarId(request.getCalendarId())
                 .title(request.getTitle())
@@ -105,88 +73,169 @@ public class CalendarService {
                 .location(request.getLocation())
                 .startAt(request.getStartAt())
                 .endAt(request.getEndAt())
-                .isAllDay(request.getIsAllDay() != null ? request.getIsAllDay() : false)
-                .recurrenceType(request.getRecurrenceType() != null ? request.getRecurrenceType() : "NONE")
+                .isAllDay(Boolean.TRUE.equals(request.getIsAllDay()))
+                .recurrenceType(normalizeRecurrence(request.getRecurrenceType()))
                 .recurrenceRule(request.getRecurrenceRule())
                 .createdBy(memberId)
                 .build();
-        return calendarEventRepository.save(event);
+        return new CalendarEventResponse(calendarEventRepository.save(event));
     }
 
-    // ===== 일정 수정 =====
     @Transactional
-    public CalendarEvent updateEvent(Long id, CalendarEventRequest request, Long memberId) {
-        CalendarEvent event = calendarEventRepository.findById(id)
-                .orElseThrow(() -> BusinessException.notFound("일정을 찾을 수 없습니다."));
-        if (!event.getCreatedBy().equals(memberId) && !canWrite(event.getCalendarId(), memberId)) {
-            throw BusinessException.forbidden("수정 권한이 없습니다.");
+    public CalendarEventResponse updateEvent(Long id, CalendarEventRequest request, Long memberId) {
+        CalendarEvent event = getEventEntity(id);
+        requirePermission(event.getCalendarId(), memberId, "WRITE");
+        if (!event.getCalendarId().equals(request.getCalendarId())) {
+            requirePermission(request.getCalendarId(), memberId, "WRITE");
         }
         event.update(
                 request.getTitle(), request.getDescription(), request.getLocation(),
-                request.getStartAt(), request.getEndAt(),
-                request.getIsAllDay() != null ? request.getIsAllDay() : false,
-                request.getRecurrenceType() != null ? request.getRecurrenceType() : "NONE",
-                request.getRecurrenceRule(), memberId
+                request.getStartAt(), request.getEndAt(), Boolean.TRUE.equals(request.getIsAllDay()),
+                normalizeRecurrence(request.getRecurrenceType()), request.getRecurrenceRule(), memberId
         );
-        return event;
+        return new CalendarEventResponse(event);
     }
 
-    // ===== 일정 삭제 =====
     @Transactional
     public void deleteEvent(Long id, Long memberId) {
-        CalendarEvent event = calendarEventRepository.findById(id)
+        CalendarEvent event = getEventEntity(id);
+        requirePermission(event.getCalendarId(), memberId, "WRITE");
+        calendarEventRepository.delete(event);
+    }
+
+    @Transactional
+    public CalendarResponse createCalendar(String name, String color, String description, Long memberId) {
+        requireAdmin(memberId);
+        CalendarEntity saved = calendarRepository.save(CalendarEntity.builder()
+                .name(name).color(color).description(description).build());
+        return new CalendarResponse(saved, true, true);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CalendarPermissionResponse> getPermissions(Long calendarId, Long memberId) {
+        requireAdmin(memberId);
+        ensureCalendar(calendarId);
+        return calendarGroupPermissionRepository.findByCalendarId(calendarId).stream()
+                .map(CalendarPermissionResponse::new)
+                .toList();
+    }
+
+    @Transactional
+    public List<CalendarPermissionResponse> updatePermissions(
+            Long calendarId, CalendarPermissionRequest request, Long memberId) {
+        requireAdmin(memberId);
+        ensureCalendar(calendarId);
+        calendarGroupPermissionRepository.deleteByCalendarId(calendarId);
+        List<CalendarGroupPermission> permissions = request.getPermissions() == null ? List.of() :
+                request.getPermissions().stream()
+                        .map(item -> CalendarGroupPermission.builder()
+                                .calendarId(calendarId)
+                                .groupId(item.getGroupId())
+                                .canRead(Boolean.TRUE.equals(item.getCanRead()))
+                                .canWrite(Boolean.TRUE.equals(item.getCanWrite()))
+                                .build())
+                        .toList();
+        return calendarGroupPermissionRepository.saveAll(permissions).stream()
+                .map(CalendarPermissionResponse::new)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasPermission(Long calendarId, Long memberId, String permType) {
+        List<CalendarGroupPermission> allPerms = calendarGroupPermissionRepository.findByCalendarId(calendarId);
+        if (memberId != null && memberGroupRepository.existsAdminGroupByMemberId(memberId)) {
+            return true;
+        }
+        if (allPerms.isEmpty()) {
+            return switch (permType) {
+                case "READ" -> true;
+                case "WRITE" -> memberId != null;
+                default -> false;
+            };
+        }
+        if (memberId == null) return false;
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        if (groupIds.isEmpty()) return false;
+        List<CalendarGroupPermission> perms =
+                calendarGroupPermissionRepository.findByCalendarIdAndGroupIds(calendarId, groupIds);
+        return perms.stream().anyMatch(p -> switch (permType) {
+            case "READ" -> p.getCanRead();
+            case "WRITE" -> p.getCanWrite();
+            default -> false;
+        });
+    }
+
+    private List<Long> getReadableCalendarIds(Long memberId) {
+        return calendarRepository.findByIsActiveTrueOrderByIdAsc().stream()
+                .filter(calendar -> hasPermission(calendar.getId(), memberId, "READ"))
+                .map(CalendarEntity::getId)
+                .toList();
+    }
+
+    private List<CalendarEventResponse> expandRecurringEvent(
+            CalendarEvent event, LocalDateTime rangeStart, LocalDateTime rangeEnd) {
+        String type = normalizeRecurrence(event.getRecurrenceType());
+        if (isNone(type)) return List.of();
+
+        Duration duration = Duration.between(event.getStartAt(),
+                event.getEndAt() == null ? event.getStartAt() : event.getEndAt());
+        List<CalendarEventResponse> occurrences = new java.util.ArrayList<>();
+        LocalDateTime cursor = event.getStartAt();
+        int guard = 0;
+        while (!cursor.isAfter(rangeEnd) && guard < MAX_OCCURRENCES_PER_EVENT) {
+            LocalDateTime occurrenceEnd = cursor.plus(duration);
+            if (!cursor.isAfter(rangeEnd) && !occurrenceEnd.isBefore(rangeStart)) {
+                occurrences.add(new CalendarEventResponse(event, event.getId(), cursor, occurrenceEnd));
+            }
+            cursor = nextOccurrence(cursor, type);
+            guard++;
+        }
+        return occurrences;
+    }
+
+    private LocalDateTime nextOccurrence(LocalDateTime value, String recurrenceType) {
+        return switch (recurrenceType) {
+            case "DAILY" -> value.plusDays(1);
+            case "WEEKLY" -> value.plusWeeks(1);
+            case "MONTHLY" -> value.plusMonths(1);
+            default -> value.plusYears(100);
+        };
+    }
+
+    private String normalizeRecurrence(String value) {
+        if (value == null || value.isBlank()) return "NONE";
+        String normalized = value.trim().toUpperCase();
+        return switch (normalized) {
+            case "DAILY", "WEEKLY", "MONTHLY" -> normalized;
+            default -> "NONE";
+        };
+    }
+
+    private boolean isNone(String recurrenceType) {
+        return "NONE".equals(normalizeRecurrence(recurrenceType));
+    }
+
+    private CalendarEvent getEventEntity(Long id) {
+        return calendarEventRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("일정을 찾을 수 없습니다."));
-        if (!event.getCreatedBy().equals(memberId) && !canWrite(event.getCalendarId(), memberId)) {
-            throw BusinessException.forbidden("삭제 권한이 없습니다.");
-        }
-        calendarEventRepository.deleteById(id);
     }
 
-    // ===== 캘린더 생성 =====
-    @Transactional
-    public CalendarResponse createCalendar(CalendarCreateRequest request) {
-        CalendarEntity calendar = calendarRepository.save(CalendarEntity.builder()
-                .name(request.getName())
-                .color(request.getColor() != null ? request.getColor() : "#2563EB")
-                .description(request.getDescription())
-                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
-                .build());
-        savePermissions(calendar.getId(), request.getPermissions());
-        return new CalendarResponse(calendar, permissionRepository.findByCalendarId(calendar.getId()));
-    }
-
-    // ===== 캘린더 수정 =====
-    @Transactional
-    public CalendarResponse updateCalendar(Long id, CalendarCreateRequest request) {
-        CalendarEntity calendar = calendarRepository.findById(id)
-                .orElseThrow(() -> BusinessException.notFound("캘린더를 찾을 수 없습니다."));
-        calendar.update(request.getName(), request.getColor(), request.getDescription());
-        if (request.getIsActive() != null) {
-            calendar.updateActive(request.getIsActive());
-        }
-        permissionRepository.deleteByCalendarId(id);
-        savePermissions(id, request.getPermissions());
-        return new CalendarResponse(calendar, permissionRepository.findByCalendarId(id));
-    }
-
-    // ===== 캘린더 삭제 =====
-    @Transactional
-    public void deleteCalendar(Long id) {
-        if (!calendarRepository.existsById(id)) {
+    private void ensureCalendar(Long calendarId) {
+        if (!calendarRepository.existsById(calendarId)) {
             throw BusinessException.notFound("캘린더를 찾을 수 없습니다.");
         }
-        permissionRepository.deleteByCalendarId(id);
-        calendarEventRepository.deleteByCalendarId(id);
-        calendarRepository.deleteById(id);
     }
 
-    private void savePermissions(Long calendarId, List<CalendarCreateRequest.PermissionDto> perms) {
-        if (perms == null || perms.isEmpty()) return;
-        perms.forEach(p -> permissionRepository.save(CalendarGroupPermission.builder()
-                .calendarId(calendarId)
-                .groupId(p.getGroupId())
-                .canRead(p.getCanRead() != null ? p.getCanRead() : true)
-                .canWrite(p.getCanWrite() != null ? p.getCanWrite() : false)
-                .build()));
+    private void requirePermission(Long calendarId, Long memberId, String permType) {
+        ensureCalendar(calendarId);
+        if (!hasPermission(calendarId, memberId, permType)) {
+            throw BusinessException.forbidden("캘린더 권한이 없습니다.");
+        }
+    }
+
+    private void requireAdmin(Long memberId) {
+        if (memberId == null || !memberGroupRepository.existsAdminGroupByMemberId(memberId)) {
+            throw BusinessException.forbidden("관리자 권한이 필요합니다.");
+        }
     }
 }
