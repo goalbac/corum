@@ -41,16 +41,10 @@ function dismiss() {
   sessionStorage.setItem(STORAGE_KEY, '1')
 }
 
-defineExpose({ visible })
 </script>
 
 <style scoped>
 .app-banner {
-  position: fixed;
-  top: var(--header-height);
-  left: 0;
-  right: 0;
-  z-index: 90;
   background: var(--accent);
   color: #fff;
 }

@@ -1,7 +1,9 @@
 <template>
   <div class="layout">
     <AppHeader @toggle-mobile-menu="mobileMenuOpen = !mobileMenuOpen" />
-    <AppBanner ref="bannerRef" />
+    <!-- 고정 헤더 높이만큼 공간 확보 -->
+    <div class="header-spacer" />
+    <AppBanner />
 
     <transition name="fade">
       <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false" />
@@ -44,7 +46,7 @@
       </div>
     </transition>
 
-    <main class="main-content" :class="{ 'with-banner': bannerRef?.visible?.value }">
+    <main class="main-content">
       <div class="page-container">
         <template v-if="showsMenuLayout">
           <div class="menu-shell">
@@ -223,12 +225,10 @@ onMounted(async () => {
   transition: background 0.25s;
 }
 
-.main-content {
-  margin-top: var(--header-height);
-}
-
-.main-content.with-banner {
-  margin-top: calc(var(--header-height) + 44px);
+/* 고정 헤더 높이만큼 공간을 차지해 배너와 콘텐츠를 헤더 아래로 내림 */
+.header-spacer {
+  height: var(--header-height);
+  flex-shrink: 0;
 }
 
 .page-container {
