@@ -8,7 +8,7 @@ export const useMenuStore = defineStore('menu', () => {
   const loaded = ref(false)
   const activeTopMenuId = ref(null)
 
-  const topMenus = computed(() => menus.value.slice(0, 4))
+  const topMenus = computed(() => menus.value)
 
   const flatMenus = computed(() => {
     const result = []
