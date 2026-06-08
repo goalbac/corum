@@ -72,6 +72,8 @@ public class BoardService {
                 request.getUseLike(), request.getUseAnonymous(), request.getUseNotice(),
                 request.getNoticeCountLimit(), request.getFileMaxSizeMb(),
                 request.getFileAllowedExtensions(), request.getFileMaxCount(), request.getIsActive());
+        boardGroupPermissionRepository.deleteByBoardId(id);
+        savePermissions(id, request.getPermissions());
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(id);
         return new BoardResponse(board, permissions);
     }
@@ -104,6 +106,7 @@ public class BoardService {
     private void savePermissions(Long boardId, List<BoardCreateRequest.BoardPermissionRequest> reqs) {
         if (reqs == null || reqs.isEmpty()) return;
         List<BoardGroupPermission> permissions = reqs.stream()
+                .filter(r -> r.getGroupId() != null)
                 .map(r -> BoardGroupPermission.builder()
                         .boardId(boardId)
                         .groupId(r.getGroupId())

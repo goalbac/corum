@@ -5,6 +5,8 @@ import com.corum.backend.domain.board.Board;
 import com.corum.backend.domain.board.BoardGroupPermission;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.board.BoardRepository;
+import com.corum.backend.domain.calendar.CalendarEntity;
+import com.corum.backend.domain.calendar.CalendarRepository;
 import com.corum.backend.domain.content.ContentPage;
 import com.corum.backend.domain.content.ContentPageRepository;
 import com.corum.backend.domain.menu.Menu;
@@ -33,6 +35,7 @@ public class MenuService {
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final ContentPageRepository contentPageRepository;
     private final PostRepository postRepository;
+    private final CalendarRepository calendarRepository;
 
     // ===== 전체 메뉴 트리 (관리자용 — 숨김 포함) =====
     @Transactional(readOnly = true)
@@ -92,6 +95,8 @@ public class MenuService {
         if ("PAGE".equals(request.getMenuType())) {
             if ("BOARD".equals(request.getPageType()) && request.getTargetId() == null) {
                 autoCreateBoard(saved, request.getAllowedGroupIds());
+            } else if ("CALENDAR".equals(request.getPageType()) && request.getTargetId() == null) {
+                autoCreateCalendar(saved);
             } else if ("CONTENT".equals(request.getPageType())) {
                 autoCreateContentPage(saved);
             }
@@ -140,6 +145,19 @@ public class MenuService {
         );
     }
 
+    private void autoCreateCalendar(Menu menu) {
+        CalendarEntity calendar = calendarRepository.save(CalendarEntity.builder()
+                .name(menu.getName())
+                .color("#4f6ef7")
+                .description(menu.getDescription())
+                .isActive(true)
+                .build());
+        menu.update(menu.getName(), menu.getDescription(), menu.getMenuType(),
+                menu.getPageType(), calendar.getId(), menu.getUrl(), menu.getUrlAuto(),
+                menu.getNewWindow(), menu.getSortOrder(), menu.getIsHidden(),
+                menu.getHideIfNoPermission(), menu.getAccessType(), menu.getIsActive());
+    }
+
     // ===== 메뉴 수정 =====
     @Transactional
     public MenuResponse updateMenu(Long id, MenuUpdateRequest request) {
@@ -147,8 +165,8 @@ public class MenuService {
                 .orElseThrow(() -> BusinessException.notFound("메뉴를 찾을 수 없습니다."));
 
         menu.update(
-                request.getName(), request.getDescription(), request.getMenuType(),
-                request.getPageType(), request.getTargetId(), request.getUrl(),
+                request.getName(), request.getDescription(), menu.getMenuType(),
+                menu.getPageType(), menu.getTargetId(), request.getUrl(),
                 request.getUrlAuto(), request.getNewWindow(), request.getSortOrder(),
                 request.getIsHidden(), request.getHideIfNoPermission(),
                 request.getAccessType(), request.getIsActive()

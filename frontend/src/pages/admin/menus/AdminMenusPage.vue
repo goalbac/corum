@@ -29,6 +29,9 @@
             <span v-if="menu.isHidden" class="tree-tag hidden">숨김</span>
             <div class="tree-actions">
               <button class="tree-btn" @click="openCreate(menu)" title="하위 추가"><i class="ti ti-plus"></i></button>
+              <button v-if="resourceButtonLabel(menu)" class="tree-btn resource" @click="openResourceManager(menu)">
+                {{ resourceButtonLabel(menu) }}
+              </button>
               <button class="tree-btn" @click="openEdit(menu)" title="수정"><i class="ti ti-edit"></i></button>
               <button class="tree-btn danger" @click="deleteMenu(menu.id)" title="삭제"><i class="ti ti-trash"></i></button>
             </div>
@@ -56,6 +59,9 @@
                 <span v-if="child.isHidden" class="tree-tag hidden">숨김</span>
                 <div class="tree-actions">
                   <button class="tree-btn" @click="openCreate(child)" title="하위 추가"><i class="ti ti-plus"></i></button>
+                  <button v-if="resourceButtonLabel(child)" class="tree-btn resource" @click="openResourceManager(child)">
+                    {{ resourceButtonLabel(child) }}
+                  </button>
                   <button class="tree-btn" @click="openEdit(child)" title="수정"><i class="ti ti-edit"></i></button>
                   <button class="tree-btn danger" @click="deleteMenu(child.id)" title="삭제"><i class="ti ti-trash"></i></button>
                 </div>
@@ -80,6 +86,9 @@
                     <span class="tree-name">{{ sub.name }}</span>
                     <span class="tree-url">{{ sub.url || '' }}</span>
                     <div class="tree-actions">
+                      <button v-if="resourceButtonLabel(sub)" class="tree-btn resource" @click="openResourceManager(sub)">
+                        {{ resourceButtonLabel(sub) }}
+                      </button>
                       <button class="tree-btn" @click="openEdit(sub)" title="수정"><i class="ti ti-edit"></i></button>
                       <button class="tree-btn danger" @click="deleteMenu(sub.id)" title="삭제"><i class="ti ti-trash"></i></button>
                     </div>
@@ -112,7 +121,7 @@
             <el-input v-model="form.name" />
           </el-form-item>
           <el-form-item label="유형">
-            <el-select v-model="form.menuType" style="width:100%">
+            <el-select v-model="form.menuType" style="width:100%" :disabled="!!editing">
               <el-option value="PAGE"  label="페이지" />
               <el-option value="LINK"  label="링크" />
               <el-option value="GROUP" label="그룹(폴더)" />
@@ -121,7 +130,7 @@
         </div>
 
         <el-form-item v-if="form.menuType === 'PAGE'" label="페이지 유형">
-          <el-select v-model="form.pageType" style="width:100%">
+          <el-select v-model="form.pageType" style="width:100%" :disabled="!!editing">
             <el-option value="BOARD"     label="게시판" />
             <el-option value="CALENDAR"  label="캘린더 (/calendar 자동 연결)" />
             <el-option value="CONTENT"   label="안내 페이지" />
@@ -191,6 +200,12 @@
           </el-form-item>
         </div>
 
+        <el-form-item v-if="form.accessType === 'GROUP'" label="접근 허용 그룹">
+          <el-select v-model="form.allowedGroupIds" multiple filterable style="width:100%" placeholder="조회 가능한 그룹 선택">
+            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+          </el-select>
+        </el-form-item>
+
         <div class="check-row">
           <el-checkbox v-model="form.isHidden">메뉴 숨김</el-checkbox>
           <el-checkbox v-model="form.hideIfNoPermission">권한 없을 때 숨김</el-checkbox>
@@ -203,6 +218,96 @@
         <el-button type="primary" :loading="saving" @click="saveMenu">저장</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showResourceForm" :title="resourceButtonLabel(resourceMenu) || '리소스 관리'" width="720px" destroy-on-close>
+      <div v-if="resourceType === 'BOARD'" class="resource-form">
+        <div class="form-row">
+          <el-form-item label="게시판명">
+            <el-input v-model="boardForm.name" />
+          </el-form-item>
+          <el-form-item label="게시판 유형">
+            <el-select v-model="boardForm.boardType" style="width:100%">
+              <el-option value="POST" label="일반 게시판" />
+              <el-option value="GALLERY" label="갤러리" />
+              <el-option value="DOCUMENT" label="자료실" />
+            </el-select>
+          </el-form-item>
+        </div>
+        <div class="form-row">
+          <el-form-item label="파일 최대 용량 (MB)">
+            <el-input-number v-model="boardForm.fileMaxSizeMb" :min="1" :max="500" style="width:100%" />
+          </el-form-item>
+          <el-form-item label="최대 파일 수">
+            <el-input-number v-model="boardForm.fileMaxCount" :min="1" :max="20" style="width:100%" />
+          </el-form-item>
+        </div>
+        <el-form-item label="허용 확장자">
+          <el-input v-model="boardForm.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
+        </el-form-item>
+        <div class="check-row">
+          <el-checkbox v-model="boardForm.useComment">댓글 사용</el-checkbox>
+          <el-checkbox v-model="boardForm.useLike">좋아요 사용</el-checkbox>
+          <el-checkbox v-model="boardForm.useNotice">공지 사용</el-checkbox>
+          <el-checkbox v-model="boardForm.isActive">활성화</el-checkbox>
+        </div>
+        <div class="perm-block">
+          <div class="perm-title">게시판 그룹 권한</div>
+          <div v-for="(p, i) in boardForm.permissions" :key="i" class="perm-row">
+            <el-select v-model="p.groupId" placeholder="그룹 선택" style="flex:1">
+              <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+            </el-select>
+            <el-checkbox v-model="p.canRead">조회</el-checkbox>
+            <el-checkbox v-model="p.canWrite">관리</el-checkbox>
+            <el-checkbox v-model="p.canComment">댓글</el-checkbox>
+            <el-checkbox v-model="p.canDownload">다운로드</el-checkbox>
+            <button class="tree-btn danger" @click="boardForm.permissions.splice(i, 1)"><i class="ti ti-trash"></i></button>
+          </div>
+          <button class="tree-btn resource add-perm-btn" @click="addBoardPerm"><i class="ti ti-plus"></i> 그룹 권한 추가</button>
+        </div>
+      </div>
+
+      <div v-else-if="resourceType === 'CALENDAR'" class="resource-form">
+        <div class="form-row">
+          <el-form-item label="캘린더명">
+            <el-input v-model="calendarForm.name" />
+          </el-form-item>
+          <el-form-item label="색상">
+            <div class="color-field">
+              <input type="color" v-model="calendarForm.color" />
+              <el-input v-model="calendarForm.color" />
+            </div>
+          </el-form-item>
+        </div>
+        <el-form-item label="설명">
+          <el-input v-model="calendarForm.description" type="textarea" :rows="2" resize="none" />
+        </el-form-item>
+        <el-checkbox v-model="calendarForm.isActive">활성화</el-checkbox>
+        <div class="perm-block">
+          <div class="perm-title">캘린더 그룹 권한</div>
+          <div v-for="(p, i) in calendarForm.permissions" :key="i" class="perm-row">
+            <el-select v-model="p.groupId" placeholder="그룹 선택" style="flex:1">
+              <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+            </el-select>
+            <el-checkbox v-model="p.canRead">조회</el-checkbox>
+            <el-checkbox v-model="p.canWrite">관리</el-checkbox>
+            <button class="tree-btn danger" @click="calendarForm.permissions.splice(i, 1)"><i class="ti ti-trash"></i></button>
+          </div>
+          <button class="tree-btn resource add-perm-btn" @click="addCalendarPerm"><i class="ti ti-plus"></i> 그룹 권한 추가</button>
+        </div>
+      </div>
+
+      <div v-else-if="resourceType === 'CONTENT'" class="resource-form">
+        <el-form-item label="제목">
+          <el-input v-model="contentForm.title" />
+        </el-form-item>
+        <RichEditor v-model="contentForm.content" min-height="420px" />
+      </div>
+
+      <template #footer>
+        <el-button @click="showResourceForm = false">취소</el-button>
+        <el-button type="primary" :loading="resourceSaving" @click="saveResource">저장</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -211,6 +316,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import Sortable from 'sortablejs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import RichEditor from '@/components/common/RichEditor.vue'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 
@@ -219,6 +325,7 @@ const menuStore = useMenuStore()
 const menus       = ref([])
 const boards      = ref([])
 const calendars   = ref([])
+const groups      = ref([])
 const loading     = ref(false)
 const saving      = ref(false)
 const sortSaving  = ref(false)
@@ -226,6 +333,13 @@ const sortChanged = ref(false)
 const showForm    = ref(false)
 const editing     = ref(null)
 const parentId    = ref(null)
+const showResourceForm = ref(false)
+const resourceSaving = ref(false)
+const resourceMenu = ref(null)
+const resourceType = ref('')
+const boardForm = ref({})
+const calendarForm = ref({})
+const contentForm = ref({ title: '', content: '' })
 
 const rootSortable = ref(null)
 const childRefs    = ref({})
@@ -236,8 +350,20 @@ const defaultForm = () => ({
   urlAuto: true, newWindow: false, description: '',
   accessType: 'ALL', sortOrder: 0,
   isHidden: false, hideIfNoPermission: true, isActive: true,
+  allowedGroupIds: [],
 })
 const form = ref(defaultForm())
+
+const defaultBoardForm = () => ({
+  name: '', boardType: 'POST', useComment: true, useLike: true,
+  useAnonymous: false, useNotice: true, noticeCountLimit: 5,
+  isActive: true, fileMaxSizeMb: null, fileMaxCount: 5,
+  fileAllowedExtensions: '', permissions: [],
+})
+
+const defaultCalendarForm = () => ({
+  name: '', color: '#4f6ef7', description: '', isActive: true, permissions: [],
+})
 
 // 트리를 flat 배열로 (상위 메뉴 선택용)
 const flatMenus = computed(() => {
@@ -249,6 +375,16 @@ const flatMenus = computed(() => {
     })
   }
   flatten(menus.value)
+  return result
+})
+
+const flatGroups = computed(() => {
+  const result = []
+  const walk = (nodes = []) => nodes.forEach(g => {
+    result.push(g)
+    if (g.children?.length) walk(g.children)
+  })
+  walk(groups.value)
   return result
 })
 
@@ -351,6 +487,84 @@ async function fetchCalendars() {
   } catch {}
 }
 
+async function fetchGroups() {
+  try {
+    const res = await api.get('/groups')
+    groups.value = res.data.data || []
+  } catch {}
+}
+
+function resourceButtonLabel(menu) {
+  if (!menu || menu.menuType !== 'PAGE') return ''
+  if (menu.pageType === 'BOARD' && menu.targetId) return '게시판 관리'
+  if (menu.pageType === 'CALENDAR' && menu.targetId) return '캘린더 관리'
+  if (menu.pageType === 'CONTENT') return '안내페이지 관리'
+  return ''
+}
+
+async function openResourceManager(menu) {
+  resourceMenu.value = menu
+  resourceType.value = menu.pageType
+  resourceSaving.value = false
+  if (menu.pageType === 'BOARD') {
+    const res = await api.get(`/boards/${menu.targetId}`)
+    boardForm.value = {
+      ...defaultBoardForm(),
+      ...res.data.data,
+      permissions: JSON.parse(JSON.stringify(res.data.data?.permissions || [])),
+    }
+  } else if (menu.pageType === 'CALENDAR') {
+    const res = await api.get(`/calendars/admin`)
+    const calendar = (res.data.data || []).find(c => Number(c.id) === Number(menu.targetId))
+    calendarForm.value = {
+      ...defaultCalendarForm(),
+      ...(calendar || { name: menu.name, description: menu.description }),
+      permissions: JSON.parse(JSON.stringify(calendar?.permissions || [])),
+    }
+  } else if (menu.pageType === 'CONTENT') {
+    try {
+      const res = await api.get(`/admin/content-pages/menus/${menu.id}`)
+      contentForm.value = {
+        title: res.data.data?.title || menu.name,
+        content: res.data.data?.content || '',
+      }
+    } catch {
+      contentForm.value = { title: menu.name, content: '' }
+    }
+  }
+  showResourceForm.value = true
+}
+
+function addBoardPerm() {
+  boardForm.value.permissions.push({ groupId: null, canRead: true, canWrite: false, canComment: false, canDownload: true })
+}
+
+function addCalendarPerm() {
+  calendarForm.value.permissions.push({ groupId: null, canRead: true, canWrite: false })
+}
+
+async function saveResource() {
+  if (!resourceMenu.value) return
+  resourceSaving.value = true
+  try {
+    if (resourceType.value === 'BOARD') {
+      await api.put(`/boards/${resourceMenu.value.targetId}`, boardForm.value)
+      await fetchBoards()
+    } else if (resourceType.value === 'CALENDAR') {
+      await api.put(`/calendars/${resourceMenu.value.targetId}`, calendarForm.value)
+      await fetchCalendars()
+    } else if (resourceType.value === 'CONTENT') {
+      await api.put(`/admin/content-pages/menus/${resourceMenu.value.id}`, contentForm.value)
+    }
+    ElMessage.success('저장되었습니다.')
+    showResourceForm.value = false
+    await fetchMenus()
+    menuStore.fetchMenus(true)
+  } finally {
+    resourceSaving.value = false
+  }
+}
+
 function openCreate(parent) {
   editing.value  = null
   parentId.value = parent?.id || null
@@ -371,7 +585,7 @@ function openCreate(parent) {
 function openEdit(menu) {
   editing.value  = menu
   parentId.value = menu.parentId
-  form.value     = { ...menu }
+  form.value     = { ...defaultForm(), ...menu, allowedGroupIds: menu.allowedGroupIds || [] }
   showForm.value = true
 }
 
@@ -379,7 +593,11 @@ async function saveMenu() {
   if (!form.value.name) return ElMessage.warning('메뉴명을 입력해주세요.')
   saving.value = true
   try {
-    const payload = { ...form.value, parentId: parentId.value }
+    const payload = {
+      ...form.value,
+      parentId: parentId.value,
+      allowedGroupIds: form.value.accessType === 'GROUP' ? form.value.allowedGroupIds : [],
+    }
     if (editing.value) {
       await api.put(`/menus/${editing.value.id}`, payload)
     } else {
@@ -400,7 +618,7 @@ async function deleteMenu(id) {
   menuStore.fetchMenus(true)
 }
 
-onMounted(() => { fetchMenus(); fetchBoards(); fetchCalendars() })
+onMounted(() => { fetchMenus(); fetchBoards(); fetchCalendars(); fetchGroups() })
 onBeforeUnmount(() => {
   sortableInstances.forEach(s => s.destroy())
 })
@@ -462,7 +680,34 @@ onBeforeUnmount(() => {
   transition: var(--transition);
 }
 .tree-btn:hover { background: var(--surface2); color: var(--t1); }
+.tree-btn.resource {
+  color: var(--accent);
+  border-color: rgba(37,99,235,0.25);
+  background: var(--accent-bg);
+  font-weight: 700;
+}
+.tree-btn.resource:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
 .tree-btn.danger:hover { background: var(--new-bg); color: var(--new); border-color: var(--new); }
+.resource-form { display: flex; flex-direction: column; gap: 12px; }
+.perm-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--border2);
+}
+.perm-title { font-size: 13px; font-weight: 800; color: var(--t1); }
+.perm-row { display: flex; align-items: center; gap: 8px; }
+.add-perm-btn { justify-content: center; min-height: 34px; }
+.color-field { display: flex; align-items: center; gap: 8px; width: 100%; }
+.color-field input[type="color"] {
+  width: 42px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  cursor: pointer;
+}
 </style>
 
 <style>

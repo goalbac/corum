@@ -182,7 +182,7 @@ public class CalendarService {
 
     private void savePermissions(Long calendarId, List<CalendarCreateRequest.PermissionDto> perms) {
         if (perms == null || perms.isEmpty()) return;
-        perms.forEach(p -> permissionRepository.save(CalendarGroupPermission.builder()
+        perms.stream().filter(p -> p.getGroupId() != null).forEach(p -> permissionRepository.save(CalendarGroupPermission.builder()
                 .calendarId(calendarId)
                 .groupId(p.getGroupId())
                 .canRead(p.getCanRead() != null ? p.getCanRead() : true)
