@@ -1,31 +1,6 @@
 <template>
   <div class="cal-layout">
 
-    <!-- 사이드바: 캘린더 목록 -->
-    <aside class="cal-sidebar">
-      <div class="sidebar-section">
-        <div class="sidebar-title">캘린더</div>
-        <label
-          v-for="cal in calendars"
-          :key="cal.id"
-          class="cal-check-item"
-        >
-          <input
-            type="checkbox"
-            :checked="visibleCalendars.has(cal.id)"
-            @change="toggleCalendar(cal.id)"
-          />
-          <span class="cal-dot" :style="{ background: cal.color || '#2563EB' }"></span>
-          <span class="cal-check-name">{{ cal.name }}</span>
-        </label>
-      </div>
-      <div v-if="writableCalendars.length" class="sidebar-section">
-        <button class="sidebar-add-btn" @click="openCreate">
-          <i class="ti ti-plus"></i> 일정 추가
-        </button>
-      </div>
-    </aside>
-
     <!-- 메인 캘린더 영역 -->
     <div class="cal-main">
       <!-- 툴바 -->
@@ -37,6 +12,30 @@
           <span class="cal-title">{{ currentTitle }}</span>
         </div>
         <div class="cal-right">
+          <!-- 캘린더 선택 드롭다운 -->
+          <div class="cal-filter-wrap" ref="filterWrap">
+            <button class="cal-btn" @click="showFilter = !showFilter">
+              <i class="ti ti-filter"></i>
+              캘린더
+              <span v-if="visibleCalendars.size < calendars.length" class="filter-badge">{{ visibleCalendars.size }}</span>
+              <i class="ti ti-chevron-down" style="font-size:11px"></i>
+            </button>
+            <div v-if="showFilter" class="cal-filter-panel">
+              <div class="filter-title">표시할 캘린더</div>
+              <label v-for="cal in calendars" :key="cal.id" class="cal-check-item">
+                <input type="checkbox" :checked="visibleCalendars.has(cal.id)" @change="toggleCalendar(cal.id)" />
+                <span class="cal-dot" :style="{ background: cal.color || '#2563EB' }"></span>
+                <span class="cal-check-name">{{ cal.name }}</span>
+              </label>
+              <div class="filter-actions">
+                <button class="filter-link" @click="selectAll">전체 선택</button>
+                <button class="filter-link" @click="deselectAll">전체 해제</button>
+              </div>
+            </div>
+          </div>
+          <button v-if="writableCalendars.length" class="cal-btn primary" @click="openCreate">
+            <i class="ti ti-plus"></i> 일정 추가
+          </button>
           <div class="view-btns">
             <button v-for="v in views" :key="v.key" class="cal-btn"
               :class="{ active: currentView === v.key }" @click="changeView(v.key)">
@@ -138,7 +137,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -162,6 +161,8 @@ const currentView  = ref('dayGridMonth')
 const editingEvent = ref(null)
 const selectedEvent = ref(null)
 const recurrenceEndDate = ref(null)
+const showFilter = ref(false)
+const filterWrap = ref(null)
 
 const views = [
   { key: 'dayGridMonth', label: '월' },
@@ -204,6 +205,9 @@ const canEditSelected = computed(() => {
 function recurrenceLabel(type) {
   return { DAILY: '매일 반복', WEEKLY: '매주 반복', MONTHLY: '매월 반복' }[type] || ''
 }
+
+function selectAll() { visibleCalendars.value = new Set(calendars.value.map(c => c.id)); calApi.value?.refetchEvents() }
+function deselectAll() { visibleCalendars.value = new Set(); calApi.value?.refetchEvents() }
 
 function toggleCalendar(id) {
   const s = new Set(visibleCalendars.value)
@@ -348,6 +352,10 @@ function formatEventDate(event) {
   return e ? `${timeFmt(s)} ~ ${timeFmt(e)}` : timeFmt(s)
 }
 
+function onClickOutside(e) {
+  if (filterWrap.value && !filterWrap.value.contains(e.target)) showFilter.value = false
+}
+
 onMounted(async () => {
   try {
     const res = await api.get('/calendars')
@@ -355,36 +363,85 @@ onMounted(async () => {
     visibleCalendars.value = new Set(calendars.value.map(c => c.id))
   } catch {}
   currentTitle.value = calApi.value?.view.title || ''
+  document.addEventListener('click', onClickOutside)
 })
+
+onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 </script>
 
 <style scoped>
 .cal-layout {
   display: flex;
-  gap: 20px;
   min-height: 0;
   padding: 20px 24px 24px;
 }
 
-/* ===== 사이드바 ===== */
-.cal-sidebar {
-  width: 200px;
-  flex-shrink: 0;
+/* ===== 메인 ===== */
+.cal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* ===== 캘린더 필터 드롭다운 ===== */
+.cal-filter-wrap { position: relative; }
+
+.cal-filter-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  z-index: 200;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
 }
-.sidebar-section { display: flex; flex-direction: column; gap: 4px; }
-.sidebar-title {
+
+.filter-title {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: .05em;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 6px;
+  letter-spacing: 0.4px;
+  padding-bottom: 6px;
+  border-bottom: 0.5px solid var(--border2);
+  margin-bottom: 4px;
 }
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 0.5px solid var(--border2);
+  margin-top: 4px;
+}
+
+.filter-link {
+  font-size: 12px;
+  color: var(--accent-t);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.filter-link:hover { text-decoration: underline; }
+
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .cal-check-item {
   display: flex;
   align-items: center;
@@ -399,27 +456,6 @@ onMounted(async () => {
 .cal-check-item:hover { background: var(--surface2); color: var(--t1); }
 .cal-check-item input { accent-color: var(--accent); cursor: pointer; }
 .cal-check-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.sidebar-add-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-xs);
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-  width: 100%;
-  justify-content: center;
-  transition: var(--transition);
-}
-.sidebar-add-btn:hover { background: var(--accent-t); }
-
-/* ===== 메인 ===== */
-.cal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 
 .cal-toolbar {
   display: flex;
@@ -446,6 +482,8 @@ onMounted(async () => {
 }
 .cal-btn:hover { color: var(--t1); background: var(--surface); }
 .cal-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); font-weight: 500; }
+.cal-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cal-btn.primary:hover { opacity: 0.88; }
 
 .cal-title { font-size: 15px; font-weight: 700; color: var(--t1); margin-left: 4px; }
 .view-btns { display: flex; gap: 2px; }
@@ -492,9 +530,9 @@ onMounted(async () => {
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 @media (max-width: 768px) {
-  .cal-layout { flex-direction: column; }
-  .cal-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
-  .sidebar-section { min-width: 140px; }
+  .cal-layout { padding: 12px 16px 20px; }
+  .cal-toolbar { flex-direction: column; align-items: flex-start; }
+  .cal-right { flex-wrap: wrap; }
   .form-row { grid-template-columns: 1fr; }
 }
 </style>
