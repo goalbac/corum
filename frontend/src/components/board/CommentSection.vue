@@ -178,7 +178,7 @@ onMounted(fetchComments)
   display: flex;
   align-items: center;
   gap: 7px;
-  margin: 0 28px 0;
+  margin: 14px 28px;
   padding: 10px 14px;
   background: #fffbeb;
   border: 0.5px solid #fde68a;
