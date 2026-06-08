@@ -5,7 +5,7 @@
     <div class="admin-body">
       <aside class="admin-sidebar" :class="{ open: mobileOpen }">
         <div class="sidebar-section">
-          <div class="section-title">관리자</div>
+          <div class="section-title">콘텐츠</div>
           <router-link to="/admin/boards" class="sidebar-item" active-class="active">
             <i class="ti ti-layout-list"></i> 게시판 관리
           </router-link>
@@ -24,12 +24,20 @@
           <router-link to="/admin/display" class="sidebar-item" active-class="active">
             <i class="ti ti-speakerphone"></i> 팝업/배너 관리
           </router-link>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="section-title">운영</div>
           <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
             <i class="ti ti-mail"></i> 문의 관리
           </router-link>
           <router-link to="/admin/stats" class="sidebar-item" active-class="active">
             <i class="ti ti-chart-bar"></i> 통계/로그
           </router-link>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="section-title">회원</div>
           <router-link to="/admin/members" class="sidebar-item" active-class="active">
             <i class="ti ti-users"></i> 회원 관리
           </router-link>
