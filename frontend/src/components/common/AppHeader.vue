@@ -46,8 +46,8 @@
         </div>
 
         <template v-if="authStore.isLoggedIn">
-          <el-dropdown trigger="click">
-            <div class="user-btn">
+          <el-dropdown trigger="click" popper-class="user-menu-popper">
+            <button type="button" class="user-btn">
               <div class="avatar">
                 <img
                   v-if="authStore.member?.profileImageUrl && !headerAvatarError"
@@ -60,12 +60,26 @@
               </div>
               <span class="user-name">{{ authStore.member?.name }}</span>
               <i class="ti ti-chevron-down user-arrow"></i>
-            </div>
+            </button>
             <template #dropdown>
-              <el-dropdown-menu>
+              <el-dropdown-menu class="user-dropdown-menu">
+                <div class="user-menu-profile">
+                  <div class="menu-avatar">
+                    <img
+                      v-if="authStore.member?.profileImageUrl && !headerAvatarError"
+                      :src="authStore.member.profileImageUrl"
+                      alt=""
+                    />
+                    <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
+                  </div>
+                  <div class="menu-profile-text">
+                    <strong>{{ authStore.member?.name || authStore.member?.username || 'User' }}</strong>
+                    <span>{{ authStore.member?.email || authStore.member?.username }}</span>
+                  </div>
+                </div>
                 <el-dropdown-item @click="$router.push('/mypage')">마이페이지</el-dropdown-item>
                 <el-dropdown-item
-                  v-if="authStore.member?.admin"
+                  v-if="authStore.member?.isAdmin || authStore.member?.admin"
                   @click="$router.push('/admin')"
                 >
                   <span class="admin-link">
@@ -237,14 +251,23 @@ async function handleLogout() {
   align-items: center;
   gap: 7px;
   cursor: pointer;
-  padding: 4px 8px 4px 4px;
-  border-radius: 20px;
-  border: 0.5px solid var(--border);
-  background: var(--surface2);
+  min-height: 38px;
+  padding: 4px 9px 4px 5px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
   transition: var(--transition);
 }
 
-.user-btn:hover { background: var(--surface); box-shadow: var(--shadow); }
+.user-btn:hover {
+  background: var(--surface2);
+  box-shadow: inset 0 0 0 1px var(--border2);
+}
+
+.user-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
 
 .avatar {
   width: 28px;
@@ -275,8 +298,117 @@ async function handleLogout() {
 }
 
 .user-arrow { font-size: 13px; color: var(--t3); }
-.admin-link { color: var(--accent); font-weight: 600; }
-.admin-link i { margin-right: 4px; }
+.admin-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font-weight: 700;
+}
+
+:global(.user-menu-popper.el-popper) {
+  border: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.06);
+}
+
+:global(.user-menu-popper .el-popper__arrow) { display: none; }
+
+:global(.user-menu-popper .el-dropdown-menu) {
+  width: 248px;
+  padding: 8px;
+  border: 0.5px solid var(--border2);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+:global(.user-menu-popper .el-dropdown-menu__item) {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--t1);
+  font-size: 14px !important;
+  font-weight: 700;
+  line-height: 1;
+}
+
+:global(.user-menu-popper .el-dropdown-menu__item:hover),
+:global(.user-menu-popper .el-dropdown-menu__item:focus) {
+  background: var(--surface2);
+  color: var(--t1);
+}
+
+:global(.user-menu-popper .el-dropdown-menu__item--divided) {
+  margin-top: 8px;
+  border-top: 0.5px solid var(--border2);
+}
+
+:global(.user-menu-popper .el-dropdown-menu__item--divided::before) {
+  display: none;
+}
+
+:global(.user-menu-popper .el-dropdown-menu__item:last-child) {
+  color: var(--new);
+}
+
+.user-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px 14px;
+  margin-bottom: 6px;
+  border-bottom: 0.5px solid var(--border2);
+}
+
+.menu-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-t));
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+}
+
+.menu-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-profile-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-profile-text strong {
+  color: var(--t1);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-profile-text span {
+  color: var(--t3);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .login-btn {
   padding: 7px 15px;
