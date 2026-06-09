@@ -195,8 +195,10 @@ import { useRoute } from 'vue-router'
 import { Loading, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api/axios'
+import { useNotificationStore } from '@/stores/notification'
 
 const route = useRoute()
+const notifStore = useNotificationStore()
 
 // ===== 대화 목록 =====
 const conversations    = ref([])
@@ -218,6 +220,16 @@ async function fetchConversations() {
     convLoading.value = false
   }
 }
+
+// 새 쪽지 알림이 오면 대화 목록 + 열린 채팅도 새로고침
+watch(() => notifStore.notifications[0], async (latest) => {
+  if (latest?.type === 'MESSAGE') {
+    await fetchConversations()
+    if (activePartnerId.value) {
+      await loadChat(activePartnerId.value)
+    }
+  }
+})
 
 // ===== 채팅 내역 =====
 const chatMessages = ref([])
