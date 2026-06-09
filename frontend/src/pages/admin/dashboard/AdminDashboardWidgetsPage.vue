@@ -1,7 +1,13 @@
 <template>
   <div class="adm-page">
     <AdminPageHeader title="대시보드 관리" desc="대시보드 위젯 추가 및 순서 설정">
-      <button class="adm-btn primary" @click="openCreate"><i class="ti ti-plus"></i> 위젯 추가</button>
+      <div style="display:flex;gap:8px">
+        <button v-if="sortChanged" class="adm-btn ghost" :disabled="sortSaving" @click="saveSortOrder">
+          <i :class="['ti', sortSaving ? 'ti-loader-2 spinning' : 'ti-check']"></i>
+          {{ sortSaving ? '저장 중...' : '순서 저장' }}
+        </button>
+        <button class="adm-btn primary" @click="openCreate"><i class="ti ti-plus"></i> 위젯 추가</button>
+      </div>
     </AdminPageHeader>
 
     <div class="adm-card" v-loading="loading">
@@ -15,29 +21,38 @@
           <div class="at-col" style="width:70px;text-align:center">상태</div>
           <div class="at-col" style="width:90px;text-align:center">관리</div>
         </div>
-        <div v-for="row in widgets" :key="row.id" class="at-row">
-          <div class="at-col muted" style="width:52px;text-align:center">{{ row.sortOrder }}</div>
-          <div class="at-col" style="width:130px">
-            <span class="adm-badge badge-primary">{{ typeLabel(row.widgetType) }}</span>
-          </div>
-          <div class="at-col bold" style="flex:1">{{ row.title }}</div>
-          <div class="at-col" style="width:80px;text-align:center">
-            <span v-if="row.widgetType !== 'IMAGE_SLIDER' && row.widgetType !== 'MEMBER_STATS' && row.widgetType !== 'VISIT_STATS'"
-                  :class="['adm-badge', getSize(row) === 'full' ? 'badge-info' : 'badge-muted']">
-              {{ getSize(row) === 'full' ? '1칸' : '반칸' }}
-            </span>
-            <span v-else class="muted" style="font-size:12px">전체</span>
-          </div>
-          <div class="at-col muted" style="width:130px">{{ row.targetBoardName || '-' }}</div>
-          <div class="at-col" style="width:70px;text-align:center">
-            <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
-          </div>
-          <div class="at-col at-actions" style="width:90px">
-            <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
-            <button class="act-btn danger" @click="deleteWidget(row.id)"><i class="ti ti-trash"></i></button>
+
+        <div ref="widgetSortable">
+          <div v-for="row in widgets" :key="row.id" :data-id="row.id" class="at-row sortable-widget-row">
+            <div class="at-col order-col" style="width:52px;text-align:center">
+              <i class="ti ti-grip-vertical drag-handle" title="드래그해서 순서 변경"></i>
+              <span class="muted" style="font-size:12px">{{ row.sortOrder }}</span>
+            </div>
+            <div class="at-col" style="width:130px">
+              <span class="adm-badge badge-primary">{{ typeLabel(row.widgetType) }}</span>
+            </div>
+            <div class="at-col bold" style="flex:1">{{ row.title }}</div>
+            <div class="at-col" style="width:80px;text-align:center">
+              <span v-if="!['IMAGE_SLIDER','MEMBER_STATS','VISIT_STATS'].includes(row.widgetType)"
+                    :class="['adm-badge', getSize(row) === 'full' ? 'badge-info' : 'badge-muted']">
+                {{ getSize(row) === 'full' ? '1칸' : '반칸' }}
+              </span>
+              <span v-else class="muted" style="font-size:12px">전체</span>
+            </div>
+            <div class="at-col muted" style="width:130px">{{ row.targetBoardName || '-' }}</div>
+            <div class="at-col" style="width:70px;text-align:center">
+              <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
+            </div>
+            <div class="at-col at-actions" style="width:90px">
+              <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+              <button class="act-btn danger" @click="deleteWidget(row.id)"><i class="ti ti-trash"></i></button>
+            </div>
           </div>
         </div>
-        <div v-if="!widgets.length && !loading" class="at-empty"><i class="ti ti-layout-dashboard"></i><span>등록된 위젯이 없습니다.</span></div>
+
+        <div v-if="!widgets.length && !loading" class="at-empty">
+          <i class="ti ti-layout-dashboard"></i><span>등록된 위젯이 없습니다.</span>
+        </div>
       </div>
     </div>
 
@@ -75,42 +90,27 @@
           <div class="dlg-field">
             <label>위젯 크기</label>
             <div class="size-picker">
-              <button
-                type="button"
-                :class="['size-opt', config.size === 'full' ? 'active' : '']"
-                @click="config.size = 'full'"
-              >
+              <button type="button" :class="['size-opt', config.size === 'full' ? 'active' : '']" @click="config.size = 'full'">
                 <div class="size-preview full-preview"><div class="sp-block"></div></div>
                 <span>1칸 (전체 너비)</span>
               </button>
-              <button
-                type="button"
-                :class="['size-opt', config.size === 'half' ? 'active' : '']"
-                @click="config.size = 'half'"
-              >
+              <button type="button" :class="['size-opt', config.size === 'half' ? 'active' : '']" @click="config.size = 'half'">
                 <div class="size-preview half-preview"><div class="sp-block"></div><div class="sp-empty"></div></div>
                 <span>반칸 (절반 너비)</span>
               </button>
             </div>
           </div>
           <div class="dlg-field">
-            <label>순서</label>
-            <el-input-number v-model="form.sortOrder" :min="0" style="width:100%" />
+            <label>활성화</label>
+            <div style="padding-top:6px">
+              <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
+            </div>
           </div>
         </div>
 
-        <div v-if="['IMAGE_SLIDER','MEMBER_STATS','VISIT_STATS'].includes(form.widgetType)" class="dlg-row">
-          <div class="dlg-field">
-            <label>순서</label>
-            <el-input-number v-model="form.sortOrder" :min="0" style="width:100%" />
-          </div>
-          <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
-            <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
-          </div>
-        </div>
-
-        <div v-if="!['IMAGE_SLIDER','MEMBER_STATS','VISIT_STATS'].includes(form.widgetType)"
-             style="display:flex;align-items:center;margin-bottom:4px">
+        <!-- IMAGE_SLIDER / MEMBER_STATS / VISIT_STATS 는 크기 고정이라 활성화만 -->
+        <div v-if="['IMAGE_SLIDER','MEMBER_STATS','VISIT_STATS'].includes(form.widgetType)"
+             style="margin-bottom:8px">
           <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
         </div>
 
@@ -193,26 +193,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import Sortable from 'sortablejs'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import RichEditor from '@/components/common/RichEditor.vue'
 import api from '@/api/axios'
 
-const widgets = ref([])
-const boards  = ref([])
-const loading = ref(false)
-const saving  = ref(false)
-const showForm = ref(false)
-const editing  = ref(null)
+const widgets     = ref([])
+const boards      = ref([])
+const loading     = ref(false)
+const saving      = ref(false)
+const sortSaving  = ref(false)
+const sortChanged = ref(false)
+const showForm    = ref(false)
+const editing     = ref(null)
+const widgetSortable = ref(null)
+let sortableInstance = null
 
 const defaultForm = () => ({
   widgetType: 'RECENT_POSTS', title: '',
-  targetBoardId: null, postCount: 5, sortOrder: 0, isActive: true
+  targetBoardId: null, postCount: 5, isActive: true
 })
 const form   = ref(defaultForm())
 const config = ref({ slides: [], links: [], content: '', size: 'half' })
 
+// ===== 크기 읽기 헬퍼 =====
 function getSize(widget) {
   try {
     const ec = widget.extraConfig
@@ -222,19 +228,60 @@ function getSize(widget) {
   } catch { return 'half' }
 }
 
+// ===== 위젯 목록 =====
 async function fetchWidgets() {
   loading.value = true
-  try { const r = await api.get('/admin/dashboard/widgets'); widgets.value = r.data.data || [] }
-  finally { loading.value = false }
+  try {
+    const r = await api.get('/admin/dashboard/widgets')
+    widgets.value = r.data.data || []
+    await nextTick()
+    initSortable()
+  } finally {
+    loading.value = false
+  }
 }
 async function fetchBoards() {
-  const r = await api.get('/boards'); boards.value = r.data.data || []
+  const r = await api.get('/boards')
+  boards.value = r.data.data || []
 }
 
+// ===== 드래그 정렬 =====
+function initSortable() {
+  if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null }
+  if (!widgetSortable.value) return
+  sortableInstance = Sortable.create(widgetSortable.value, {
+    animation: 150,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd: () => { sortChanged.value = true }
+  })
+}
+
+async function saveSortOrder() {
+  if (!widgetSortable.value) return
+  sortSaving.value = true
+  try {
+    const ids = Array.from(widgetSortable.value.children)
+      .map(el => parseInt(el.dataset.id))
+      .filter(Boolean)
+    await api.put('/admin/dashboard/widgets/sort', ids)
+    ElMessage.success('순서가 저장되었습니다.')
+    sortChanged.value = false
+    await fetchWidgets()
+  } catch {
+    ElMessage.error('순서 저장에 실패했습니다.')
+  } finally {
+    sortSaving.value = false
+  }
+}
+
+// ===== 유형 변경 =====
 function onTypeChange() {
   config.value = { slides: [], links: [], content: '', size: config.value.size || 'half' }
 }
 
+// ===== 생성/수정 =====
 function openCreate() {
   editing.value = null
   form.value = defaultForm()
@@ -293,10 +340,12 @@ function typeLabel(t) {
 }
 
 onMounted(() => { fetchWidgets(); fetchBoards() })
+onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
 </script>
 
 <style scoped>
 @import '@/assets/admin-table.css';
+
 .sub-item {
   background: var(--surface2);
   border: 0.5px solid var(--border2);
@@ -308,11 +357,19 @@ onMounted(() => { fetchWidgets(); fetchBoards() })
   margin-bottom: 8px;
 }
 
-/* 크기 선택 UI */
-.size-picker {
-  display: flex;
-  gap: 10px;
+/* 드래그 핸들 */
+.order-col { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.drag-handle {
+  font-size: 15px;
+  color: var(--t4);
+  cursor: grab;
+  transition: color 0.15s;
 }
+.drag-handle:active { cursor: grabbing; }
+.sortable-widget-row:hover .drag-handle { color: var(--t2); }
+
+/* 크기 선택 UI */
+.size-picker { display: flex; gap: 10px; }
 .size-opt {
   flex: 1;
   display: flex;
@@ -331,15 +388,18 @@ onMounted(() => { fetchWidgets(); fetchBoards() })
 .size-opt:hover { border-color: var(--accent); background: var(--accent-bg); }
 .size-opt.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); font-weight: 700; }
 
-.size-preview {
-  display: flex;
-  gap: 3px;
-  width: 80px;
-  height: 22px;
-}
+.size-preview { display: flex; gap: 3px; width: 80px; height: 22px; }
 .sp-block { height: 100%; background: var(--accent); border-radius: 3px; opacity: 0.7; }
 .sp-empty { height: 100%; background: var(--border); border-radius: 3px; }
 .full-preview .sp-block { flex: 1; }
 .half-preview .sp-block { flex: 1; }
 .half-preview .sp-empty { flex: 1; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 0.7s linear infinite; display: inline-block; }
+</style>
+
+<style>
+.sortable-ghost { opacity: 0.4; background: var(--accent-bg) !important; }
+.sortable-drag  { background: var(--surface) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; border-radius: 8px !important; }
 </style>
