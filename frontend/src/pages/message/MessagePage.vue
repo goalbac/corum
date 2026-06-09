@@ -99,7 +99,7 @@
                 <span>{{ dateLabel(msg.createdAt) }}</span>
               </div>
 
-              <div :class="['bubble-row', msg.isMine ? 'mine' : 'theirs']">
+              <div :class="['bubble-row', msg.isMine ? 'mine' : 'theirs', { 'just-sent': msg.id === animatedMessageId }]">
                 <!-- 상대방 아바타 (left side) -->
                 <div v-if="!msg.isMine" class="bubble-avatar">
                   <img
@@ -280,6 +280,7 @@ watch(() => notifStore.notifications[0], async (latest) => {
 const chatMessages = ref([])
 const chatLoading  = ref(false)
 const chatBodyRef  = ref()
+const animatedMessageId = ref(null)
 
 async function selectConversation(conv) {
   activePartnerId.value = conv.partnerId
@@ -296,16 +297,47 @@ async function loadChat(partnerId) {
   try {
     const res = await api.get(`/messages/conversations/${partnerId}`)
     chatMessages.value = res.data.data || []
+    chatLoading.value = false
     await nextTick()
     scrollToBottom()
-  } finally {
+  } catch (e) {
     chatLoading.value = false
+    throw e
   }
 }
 
-function scrollToBottom() {
-  const el = chatBodyRef.value
-  if (el) el.scrollTop = el.scrollHeight
+function scrollToBottom({ smooth = false } = {}) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const el = chatBodyRef.value
+      if (!el) return
+
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      })
+    })
+  })
+}
+
+async function loadChatAfterSend(partnerId) {
+  const previousLastId = chatMessages.value.at(-1)?.id
+  await loadChat(partnerId)
+
+  const latestMine = [...chatMessages.value].reverse()
+    .find(msg => msg.isMine && msg.id !== previousLastId)
+
+  if (latestMine?.id) {
+    animatedMessageId.value = latestMine.id
+    window.setTimeout(() => {
+      if (animatedMessageId.value === latestMine.id) {
+        animatedMessageId.value = null
+      }
+    }, 420)
+  }
+
+  await nextTick()
+  scrollToBottom({ smooth: true })
 }
 
 // ===== 메시지 전송 =====
@@ -359,7 +391,7 @@ async function sendMessage() {
     inputText.value = ''
     attachments.value = []
     if (inputRef.value) inputRef.value.style.height = 'auto'
-    await loadChat(activePartnerId.value)
+    await loadChatAfterSend(activePartnerId.value)
     await fetchConversations()
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '전송에 실패했습니다.')
@@ -760,6 +792,21 @@ onMounted(async () => {
 }
 .bubble-row.mine { justify-content: flex-end; }
 .bubble-row.theirs { justify-content: flex-start; }
+.bubble-row.just-sent .bubble-col {
+  animation: sent-message-rise 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: right bottom;
+}
+
+@keyframes sent-message-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 .bubble-avatar {
   width: 28px;
