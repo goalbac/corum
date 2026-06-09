@@ -1,15 +1,14 @@
 <template>
   <footer class="app-footer">
     <div class="footer-inner">
-      <div v-if="footerHtml" class="footer-custom" v-html="footerHtml" />
-
-      <div v-else class="footer-default">
+      <div class="footer-default">
         <div class="footer-left">
           <div class="footer-brand">
             <img v-if="logoUrl" :src="logoUrl" :alt="siteName" class="footer-logo-img" />
             <span v-else class="footer-logo-text">{{ siteName || 'Corum' }}</span>
           </div>
           <p v-if="siteDescription" class="footer-desc">{{ siteDescription }}</p>
+          <div v-if="footerHtml" class="footer-custom" v-html="footerHtml" />
           <div class="footer-contact">
             <span v-if="contactAddress" class="contact-item">
               <i class="ti ti-map-pin"></i>{{ contactAddress }}
@@ -317,11 +316,15 @@ async function submitInquiry() {
   color: var(--t3);
 }
 
-/* 커스텀 HTML 푸터 */
-.footer-custom { color: var(--t2); font-size: 14px; line-height: 1.7; }
+/* 커스텀 HTML — 사이트 설명과 주소 사이에 위치 */
+.footer-custom {
+  color: var(--t2);
+  font-size: 13px;
+  line-height: 1.7;
+}
 .footer-custom :deep(a) { color: var(--accent-t); text-decoration: none; }
 .footer-custom :deep(a:hover) { text-decoration: underline; }
-.footer-custom :deep(p) { margin: 0 0 4px; }
+.footer-custom :deep(p) { margin: 0 0 2px; }
 
 /* 약관 모달 본문 */
 .terms-body {
