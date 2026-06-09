@@ -235,7 +235,7 @@ async function uploadLogo(e) {
   try {
     const fd = new FormData()
     fd.append('file', file)
-    const res = await api.post('/admin/settings/logo', fd)
+    const res = await api.post('/admin/settings/logo', fd, { headers: { 'Content-Type': undefined } })
     form.value.logoUrl = res.data.data?.logoUrl || ''
     ElMessage.success('로고가 업로드되었습니다.')
   } catch {
@@ -253,7 +253,7 @@ async function uploadFavicon(e) {
   try {
     const fd = new FormData()
     fd.append('file', file)
-    const res = await api.post('/admin/settings/favicon', fd)
+    const res = await api.post('/admin/settings/favicon', fd, { headers: { 'Content-Type': undefined } })
     form.value.faviconUrl = res.data.data?.faviconUrl || ''
     ElMessage.success('파비콘이 업로드되었습니다.')
   } catch {
