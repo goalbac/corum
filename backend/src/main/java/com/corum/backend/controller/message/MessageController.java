@@ -4,16 +4,15 @@ import com.corum.backend.common.ApiResponse;
 import com.corum.backend.dto.message.ChatMessageResponse;
 import com.corum.backend.dto.message.ConversationSummary;
 import com.corum.backend.dto.message.MessageResponse;
-import com.corum.backend.dto.message.MessageSendRequest;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.message.MessageService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -25,13 +24,15 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    // 쪽지 발송
-    @PostMapping
+    // 쪽지 발송 (multipart: recipientIds, content, files)
+    @PostMapping(consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<Void> send(
-            @Valid @RequestBody MessageSendRequest request,
+            @RequestParam("recipientIds") List<Long> recipientIds,
+            @RequestParam(value = "content", defaultValue = "") String content,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        messageService.send(request, userDetails.getMemberId());
+        messageService.sendWithFiles(recipientIds, content, files, userDetails.getMemberId());
         return ApiResponse.ok("쪽지가 발송되었습니다.");
     }
 

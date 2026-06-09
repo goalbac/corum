@@ -7,10 +7,12 @@ import com.corum.backend.domain.message.Message;
 import com.corum.backend.domain.message.MessageRecipient;
 import com.corum.backend.domain.message.MessageRecipientRepository;
 import com.corum.backend.domain.message.MessageRepository;
+import com.corum.backend.dto.file.FileResponse;
 import com.corum.backend.dto.message.ChatMessageResponse;
 import com.corum.backend.dto.message.ConversationSummary;
 import com.corum.backend.dto.message.MessageResponse;
 import com.corum.backend.dto.message.MessageSendRequest;
+import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.mail.MailService;
 import com.corum.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,23 +35,33 @@ public class MessageService {
     private final MemberRepository memberRepository;
     private final MailService mailService;
     private final NotificationService notificationService;
+    private final FileStorageService fileStorageService;
 
-    // ===== 쪽지 발송 =====
+    // ===== 쪽지 발송 (파일 포함, 컨트롤러 진입점) =====
     @Transactional
-    public void send(MessageSendRequest request, Long senderId) {
-        String title = (request.getTitle() == null || request.getTitle().isBlank())
-                ? truncate(request.getContent(), 50)
-                : request.getTitle();
+    public void sendWithFiles(List<Long> recipientIds, String content,
+                               List<MultipartFile> files, Long senderId) {
+        String safeContent = content == null ? "" : content;
+        boolean hasFiles = files != null && files.stream().anyMatch(f -> f != null && !f.isEmpty());
+
+        String title = safeContent.isBlank() ? "(파일)" : truncate(safeContent, 50);
 
         Message message = Message.builder()
                 .senderId(senderId)
                 .title(title)
-                .content(request.getContent())
-                .isNotice(request.getIsNotice() != null && request.getIsNotice())
+                .content(safeContent)
+                .isNotice(false)
                 .build();
         Message saved = messageRepository.save(message);
 
-        List<MessageRecipient> recipients = request.getRecipientIds().stream()
+        if (hasFiles) {
+            List<MultipartFile> realFiles = files.stream()
+                    .filter(f -> f != null && !f.isEmpty())
+                    .collect(Collectors.toList());
+            fileStorageService.uploadFiles("MESSAGE", saved.getId(), realFiles, senderId);
+        }
+
+        List<MessageRecipient> recipients = recipientIds.stream()
                 .map(recipientId -> MessageRecipient.builder()
                         .messageId(saved.getId())
                         .recipientId(recipientId)
@@ -57,39 +70,39 @@ public class MessageService {
         messageRecipientRepository.saveAll(recipients);
 
         String senderName = memberRepository.findById(senderId)
-                .map(m -> m.getName()).orElse("알 수 없음");
+                .map(Member::getName).orElse("알 수 없음");
 
-        memberRepository.findAllById(request.getRecipientIds()).forEach(member -> {
+        String notifContent = safeContent.isBlank() ? "(파일)" : truncate(safeContent, 50);
+
+        memberRepository.findAllById(recipientIds).forEach(member -> {
             try {
                 mailService.send(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다",
                         "<p><strong>" + saved.getTitle() + "</strong></p><p>Corum에서 쪽지를 확인해주세요.</p>",
                         "MESSAGE_NOTIFY");
             } catch (Exception ignored) { }
-            // 실시간 알림
             try {
-                notificationService.create(
-                        member.getId(),
-                        "MESSAGE",
-                        senderName + "님이 쪽지를 보냈습니다",
-                        truncate(saved.getContent(), 50),
-                        "/messages"
-                );
+                notificationService.create(member.getId(), "MESSAGE",
+                        senderName + "님이 쪽지를 보냈습니다", notifContent, "/messages");
             } catch (Exception ignored) { }
         });
+    }
+
+    // ===== 쪽지 발송 (내부 레거시 호환) =====
+    @Transactional
+    public void send(MessageSendRequest request, Long senderId) {
+        sendWithFiles(request.getRecipientIds(), request.getContent(), null, senderId);
     }
 
     // ===== 받은 쪽지함 =====
     @Transactional(readOnly = true)
     public Page<MessageResponse> getInbox(Long memberId, Pageable pageable) {
-        Page<MessageRecipient> page = messageRecipientRepository.findInbox(memberId, pageable);
-        return toMessageResponsePage(page, pageable);
+        return toMessageResponsePage(messageRecipientRepository.findInbox(memberId, pageable), pageable);
     }
 
     // ===== 보낸 쪽지함 =====
     @Transactional(readOnly = true)
     public Page<MessageResponse> getSent(Long memberId, Pageable pageable) {
-        Page<MessageRecipient> page = messageRecipientRepository.findSent(memberId, pageable);
-        return toMessageResponsePage(page, pageable);
+        return toMessageResponsePage(messageRecipientRepository.findSent(memberId, pageable), pageable);
     }
 
     // ===== 쪽지 상세 (읽음 처리) =====
@@ -97,19 +110,12 @@ public class MessageService {
     public MessageResponse getDetail(Long recipientId, Long memberId) {
         MessageRecipient mr = messageRecipientRepository.findById(recipientId)
                 .orElseThrow(() -> BusinessException.notFound("쪽지를 찾을 수 없습니다."));
-
-        if (!mr.getRecipientId().equals(memberId)) {
-            throw BusinessException.forbidden("접근 권한이 없습니다.");
-        }
-
+        if (!mr.getRecipientId().equals(memberId)) throw BusinessException.forbidden("접근 권한이 없습니다.");
         if (!mr.getIsRead()) mr.markAsRead();
-
         Message message = messageRepository.findById(mr.getMessageId())
                 .orElseThrow(() -> BusinessException.notFound("쪽지를 찾을 수 없습니다."));
-
         String senderName = memberRepository.findById(message.getSenderId())
                 .map(Member::getName).orElse("알 수 없음");
-
         return new MessageResponse(mr, message, senderName);
     }
 
@@ -118,9 +124,7 @@ public class MessageService {
     public void deleteFromInbox(Long recipientId, Long memberId) {
         MessageRecipient mr = messageRecipientRepository.findById(recipientId)
                 .orElseThrow(() -> BusinessException.notFound("쪽지를 찾을 수 없습니다."));
-        if (!mr.getRecipientId().equals(memberId)) {
-            throw BusinessException.forbidden("접근 권한이 없습니다.");
-        }
+        if (!mr.getRecipientId().equals(memberId)) throw BusinessException.forbidden("접근 권한이 없습니다.");
         mr.deleteByRecipient();
     }
 
@@ -134,7 +138,6 @@ public class MessageService {
     // ===== 대화 목록 =====
     @Transactional(readOnly = true)
     public List<ConversationSummary> getConversations(Long memberId) {
-        // 1. 내가 받은 MR 전체
         List<MessageRecipient> inboxMrs =
                 messageRecipientRepository.findAllByRecipientIdAndIsDeletedByRecipientFalse(memberId);
         List<Long> inboxMsgIds = inboxMrs.stream().map(MessageRecipient::getMessageId).collect(Collectors.toList());
@@ -144,18 +147,11 @@ public class MessageService {
                     .filter(m -> !m.getIsNotice())
                     .forEach(m -> inboxMsgMap.put(m.getId(), m));
         }
-        Map<Long, Boolean> inboxReadMap = inboxMrs.stream()
-                .collect(Collectors.toMap(MessageRecipient::getMessageId, MessageRecipient::getIsRead,
-                        (a, b) -> a));
 
-        // 2. 내가 보낸 메시지 전체 (공지 제외)
         List<Message> sentMessages =
                 messageRepository.findBySenderIdAndIsNoticeFalseOrderByCreatedAtDesc(memberId);
         List<Long> sentMsgIds = sentMessages.stream().map(Message::getId).collect(Collectors.toList());
-        Map<Long, Message> sentMsgMap = sentMessages.stream()
-                .collect(Collectors.toMap(Message::getId, m -> m));
 
-        // 3. 보낸 메시지의 수신자(MR) 목록
         Map<Long, List<MessageRecipient>> sentMrsByMsgId = new HashMap<>();
         if (!sentMsgIds.isEmpty()) {
             messageRecipientRepository.findAllByMessageIdIn(sentMsgIds).forEach(mr -> {
@@ -165,7 +161,6 @@ public class MessageService {
             });
         }
 
-        // 4. 파트너별 ConversationData 집계
         Map<Long, ConversationData> partnerData = new LinkedHashMap<>();
 
         for (MessageRecipient mr : inboxMrs) {
@@ -173,7 +168,6 @@ public class MessageService {
             if (msg == null) continue;
             Long partnerId = msg.getSenderId();
             if (partnerId.equals(memberId)) continue;
-
             ConversationData data = partnerData.computeIfAbsent(partnerId, k -> new ConversationData());
             if (data.lastAt == null || msg.getCreatedAt().isAfter(data.lastAt)) {
                 data.lastMsg    = msg;
@@ -184,11 +178,9 @@ public class MessageService {
         }
 
         for (Message msg : sentMessages) {
-            List<MessageRecipient> mrs = sentMrsByMsgId.getOrDefault(msg.getId(), List.of());
-            for (MessageRecipient mr : mrs) {
+            for (MessageRecipient mr : sentMrsByMsgId.getOrDefault(msg.getId(), List.of())) {
                 Long partnerId = mr.getRecipientId();
                 if (partnerId.equals(memberId)) continue;
-
                 ConversationData data = partnerData.computeIfAbsent(partnerId, k -> new ConversationData());
                 if (data.lastAt == null || msg.getCreatedAt().isAfter(data.lastAt)) {
                     data.lastMsg    = msg;
@@ -198,22 +190,21 @@ public class MessageService {
             }
         }
 
-        // 5. 파트너 멤버 정보 조회
         List<Long> partnerIds = new ArrayList<>(partnerData.keySet());
         Map<Long, Member> partnerMembers = memberRepository.findAllById(partnerIds).stream()
                 .collect(Collectors.toMap(Member::getId, m -> m));
 
-        // 6. 최신 순으로 정렬해 반환
         return partnerData.entrySet().stream()
                 .map(entry -> {
                     Long partnerId     = entry.getKey();
                     ConversationData d = entry.getValue();
                     Member partner     = partnerMembers.get(partnerId);
+                    String preview     = d.lastMsg.getContent().isBlank() ? "(파일)" : truncate(d.lastMsg.getContent(), 60);
                     return new ConversationSummary(
                             partnerId,
                             partner != null ? partner.getName() : "알 수 없음",
                             partner != null ? partner.getProfileImageUrl() : null,
-                            truncate(d.lastMsg.getContent(), 60),
+                            preview,
                             d.lastAt,
                             d.unreadCount,
                             d.lastIsMine
@@ -223,7 +214,7 @@ public class MessageService {
                 .collect(Collectors.toList());
     }
 
-    // ===== 특정 파트너와의 대화 내역 =====
+    // ===== 특정 파트너와의 대화 내역 (파일 포함) =====
     @Transactional(readOnly = true)
     public List<ChatMessageResponse> getConversation(Long me, Long partnerId) {
         List<MessageRecipient> sent     = messageRecipientRepository.findSentToPartner(me, partnerId);
@@ -233,20 +224,28 @@ public class MessageService {
         sent.forEach(mr -> allIds.add(mr.getMessageId()));
         received.forEach(mr -> allIds.add(mr.getMessageId()));
 
+        if (allIds.isEmpty()) return List.of();
+
         Map<Long, Message> msgMap = messageRepository.findAllById(allIds).stream()
                 .collect(Collectors.toMap(Message::getId, m -> m));
-        Map<Long, Boolean> readMap = received.stream()
-                .collect(Collectors.toMap(MessageRecipient::getMessageId, MessageRecipient::getIsRead,
-                        (a, b) -> a));
+
+        // 메시지별 파일 목록 조회
+        Map<Long, List<FileResponse>> filesMap = new HashMap<>();
+        for (Long msgId : allIds) {
+            List<FileResponse> files = fileStorageService.getFiles("MESSAGE", msgId);
+            if (!files.isEmpty()) filesMap.put(msgId, files);
+        }
 
         List<ChatMessageResponse> result = new ArrayList<>();
         sent.forEach(mr -> {
             Message m = msgMap.get(mr.getMessageId());
-            if (m != null) result.add(new ChatMessageResponse(m, true, mr.getIsRead()));
+            if (m != null) result.add(new ChatMessageResponse(m, true, mr.getIsRead(),
+                    filesMap.getOrDefault(m.getId(), List.of())));
         });
         received.forEach(mr -> {
             Message m = msgMap.get(mr.getMessageId());
-            if (m != null) result.add(new ChatMessageResponse(m, false, mr.getIsRead()));
+            if (m != null) result.add(new ChatMessageResponse(m, false, mr.getIsRead(),
+                    filesMap.getOrDefault(m.getId(), List.of())));
         });
 
         result.sort(Comparator.comparing(ChatMessageResponse::getCreatedAt));
@@ -270,16 +269,12 @@ public class MessageService {
     private Page<MessageResponse> toMessageResponsePage(Page<MessageRecipient> page, Pageable pageable) {
         List<Long> messageIds = page.getContent().stream()
                 .map(MessageRecipient::getMessageId).collect(Collectors.toList());
-
         Map<Long, Message> messageMap = messageRepository.findAllById(messageIds).stream()
                 .collect(Collectors.toMap(Message::getId, m -> m));
-
         List<Long> senderIds = messageMap.values().stream()
                 .map(Message::getSenderId).distinct().collect(Collectors.toList());
-
         Map<Long, String> senderNameMap = memberRepository.findAllById(senderIds).stream()
                 .collect(Collectors.toMap(Member::getId, Member::getName));
-
         List<MessageResponse> responses = page.getContent().stream()
                 .map(mr -> {
                     Message m = messageMap.get(mr.getMessageId());
@@ -287,7 +282,6 @@ public class MessageService {
                     return new MessageResponse(mr, m, name);
                 })
                 .collect(Collectors.toList());
-
         return new PageImpl<>(responses, pageable, page.getTotalElements());
     }
 

@@ -113,7 +113,29 @@
 
                 <div class="bubble-col" :class="msg.isMine ? 'col-mine' : 'col-theirs'">
                   <div :class="['bubble', msg.isMine ? 'bubble-mine' : 'bubble-theirs']">
-                    {{ msg.content }}
+                    <span v-if="msg.content">{{ msg.content }}</span>
+                    <!-- 첨부 파일 -->
+                    <div v-if="msg.files && msg.files.length" class="bubble-files">
+                      <template v-for="f in msg.files" :key="f.id">
+                        <img
+                          v-if="f.mimeType && f.mimeType.startsWith('image/')"
+                          :src="`/api/files/${f.id}/view`"
+                          class="bubble-image"
+                          @click="openImage(`/api/files/${f.id}/view`)"
+                        />
+                        <a
+                          v-else
+                          :href="`/api/files/${f.id}/download`"
+                          class="bubble-file-link"
+                          target="_blank"
+                          @click.stop
+                        >
+                          <i class="ti ti-file-download"></i>
+                          <span>{{ f.originalName }}</span>
+                          <span class="file-size">{{ formatFileSize(f.fileSize) }}</span>
+                        </a>
+                      </template>
+                    </div>
                   </div>
                   <span class="bubble-time">
                     {{ timeLabel(msg.createdAt) }}
@@ -126,27 +148,50 @@
         </div>
 
         <!-- 입력창 -->
-        <div class="chat-input-area">
-          <textarea
-            ref="inputRef"
-            v-model="inputText"
-            class="chat-textarea"
-            placeholder="메시지를 입력하세요..."
-            rows="1"
-            @keydown.enter.exact.prevent="sendMessage"
-            @keydown.enter.shift.exact="newline"
-            @input="autoResize"
-          />
-          <button
-            :class="['send-btn', { active: inputText.trim() }]"
-            :disabled="!inputText.trim() || sending"
-            @click="sendMessage"
-          >
-            <i class="ti ti-arrow-up"></i>
-          </button>
+        <div class="chat-input-wrap">
+          <!-- 첨부 파일 미리보기 -->
+          <div v-if="attachments.length" class="attach-preview">
+            <div v-for="(f, i) in attachments" :key="i" class="attach-chip">
+              <img v-if="isImage(f)" :src="previewUrl(f)" class="attach-thumb" />
+              <i v-else class="ti ti-file attach-file-icon"></i>
+              <span class="attach-name">{{ f.name }}</span>
+              <button class="attach-remove" @click="removeAttachment(i)">
+                <i class="ti ti-x"></i>
+              </button>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <input ref="fileInputRef" type="file" multiple class="hidden-file" @change="onFileChange" />
+            <button class="attach-btn" title="파일 첨부" @click="fileInputRef.click()">
+              <i class="ti ti-paperclip"></i>
+            </button>
+            <textarea
+              ref="inputRef"
+              v-model="inputText"
+              class="chat-textarea"
+              placeholder="메시지를 입력하세요..."
+              rows="1"
+              @keydown.enter.exact.prevent="sendMessage"
+              @keydown.enter.shift.exact="newline"
+              @input="autoResize"
+            />
+            <button
+              :class="['send-btn', { active: inputText.trim() || attachments.length }]"
+              :disabled="(!inputText.trim() && !attachments.length) || sending"
+              @click="sendMessage"
+            >
+              <i class="ti ti-arrow-up"></i>
+            </button>
+          </div>
         </div>
       </template>
     </main>
+
+    <!-- 이미지 뷰어 -->
+    <div v-if="lightboxSrc" class="lightbox" @click="lightboxSrc = null">
+      <img :src="lightboxSrc" class="lightbox-img" @click.stop />
+      <button class="lightbox-close" @click="lightboxSrc = null"><i class="ti ti-x"></i></button>
+    </div>
 
     <!-- ===== 새 쪽지 다이얼로그 ===== -->
     <el-dialog
@@ -264,28 +309,58 @@ function scrollToBottom() {
 }
 
 // ===== 메시지 전송 =====
-const inputText = ref('')
-const sending   = ref(false)
-const inputRef  = ref()
+const inputText    = ref('')
+const sending      = ref(false)
+const inputRef     = ref()
+const fileInputRef = ref()
+const attachments  = ref([])   // File[]
+const lightboxSrc  = ref(null)
+
+function onFileChange(e) {
+  const newFiles = Array.from(e.target.files || [])
+  attachments.value.push(...newFiles)
+  e.target.value = ''
+}
+
+function removeAttachment(i) {
+  attachments.value.splice(i, 1)
+}
+
+function isImage(file) {
+  return file.type.startsWith('image/')
+}
+
+function previewUrl(file) {
+  return URL.createObjectURL(file)
+}
+
+function openImage(src) {
+  lightboxSrc.value = src
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
 
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || !activePartnerId.value || sending.value) return
+  const hasAttach = attachments.value.length > 0
+  if ((!text && !hasAttach) || !activePartnerId.value || sending.value) return
   sending.value = true
   try {
-    await api.post('/messages', {
-      recipientIds: [activePartnerId.value],
-      content: text
-    })
+    const form = new FormData()
+    form.append('recipientIds', activePartnerId.value)
+    form.append('content', text)
+    attachments.value.forEach(f => form.append('files', f))
+    await api.post('/messages', form, { headers: { 'Content-Type': undefined } })
     inputText.value = ''
-    if (inputRef.value) {
-      inputRef.value.style.height = 'auto'
-    }
+    attachments.value = []
+    if (inputRef.value) inputRef.value.style.height = 'auto'
     await loadChat(activePartnerId.value)
-    // 대화 목록 갱신 (last message 업데이트)
     await fetchConversations()
-    // activePartnerId 유지
-    activePartnerId.value = activePartnerId.value
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '전송에 실패했습니다.')
   } finally {
@@ -737,16 +812,163 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-/* 입력창 */
-.chat-input-area {
+/* 버블 내 파일/이미지 */
+.bubble-files {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.bubble-image {
+  max-width: 220px;
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: cover;
+  cursor: zoom-in;
+  display: block;
+}
+
+.bubble-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 8px;
+  font-size: 12px;
+  color: inherit;
+  text-decoration: none;
+  max-width: 220px;
+}
+.bubble-mine .bubble-file-link { background: rgba(255,255,255,0.2); }
+.bubble-file-link:hover { opacity: 0.8; }
+.bubble-file-link i { font-size: 16px; flex-shrink: 0; }
+.bubble-file-link span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.file-size {
+  font-size: 10px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* 라이트박스 */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.3); }
+
+/* 입력창 */
+.chat-input-wrap {
   border-top: 0.5px solid var(--border2);
   background: var(--surface);
   flex-shrink: 0;
 }
+
+.attach-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px 0;
+}
+
+.attach-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 200px;
+}
+
+.attach-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.attach-file-icon { font-size: 20px; color: var(--t3); flex-shrink: 0; }
+
+.attach-name {
+  font-size: 12px;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.attach-remove {
+  border: none;
+  background: none;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.attach-remove:hover { color: #ef4444; }
+
+.chat-input-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.hidden-file { display: none; }
+
+.attach-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--t3);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.attach-btn:hover { background: var(--surface2); color: var(--accent); }
 
 .chat-textarea {
   flex: 1;
