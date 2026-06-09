@@ -2,6 +2,7 @@
   <div class="adm-page">
     <AdminPageHeader title="회원 관리" desc="가입 회원 목록, 계정 잠금, 그룹 관리">
       <div style="display:flex;gap:8px">
+        <button class="adm-btn primary" @click="openCreate"><i class="ti ti-user-plus"></i> 회원 추가</button>
         <button class="adm-btn ghost" @click="download('/admin/members/export/excel', 'members.xlsx')"><i class="ti ti-table-export"></i> 엑셀</button>
         <button class="adm-btn ghost" @click="download('/admin/members/export/pdf', 'members.pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
       </div>
@@ -100,6 +101,48 @@
         <button class="adm-btn ghost" @click="showDetail = false">닫기</button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showCreate" title="회원 추가" width="640px" destroy-on-close>
+      <div class="dlg-form">
+        <div class="dlg-row">
+          <div class="dlg-field"><label>아이디</label><el-input v-model="createForm.username" maxlength="50" /></div>
+          <div class="dlg-field"><label>이름</label><el-input v-model="createForm.name" maxlength="100" /></div>
+        </div>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>이메일</label><el-input v-model="createForm.email" maxlength="255" /></div>
+          <div class="dlg-field"><label>비밀번호</label><el-input v-model="createForm.password" type="password" show-password /></div>
+        </div>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>연락처</label><el-input v-model="createForm.phone" maxlength="30" /></div>
+          <div class="dlg-field"><label>성별</label><el-input v-model="createForm.gender" maxlength="10" /></div>
+        </div>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>생년월일</label><el-date-picker v-model="createForm.birthDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></div>
+          <div class="dlg-field"><label>자택전화</label><el-input v-model="createForm.homePhone" maxlength="30" /></div>
+        </div>
+        <div class="dlg-row">
+          <div class="dlg-field"><label>하는 일</label><el-input v-model="createForm.occupation" maxlength="200" /></div>
+          <div class="dlg-field"><label>직장 전화</label><el-input v-model="createForm.workPhone" maxlength="30" /></div>
+        </div>
+        <div class="dlg-field"><label>주소</label><el-input v-model="createForm.address" maxlength="500" /></div>
+        <div class="dlg-field">
+          <label>그룹</label>
+          <el-select v-model="createForm.groupIds" multiple clearable placeholder="그룹 선택" style="width:100%">
+            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+          </el-select>
+        </div>
+        <div class="create-options">
+          <el-checkbox v-model="createForm.isActive">바로 활성화</el-checkbox>
+          <el-checkbox v-model="createForm.newsletterYn">뉴스레터 수신</el-checkbox>
+        </div>
+      </div>
+      <template #footer>
+        <button class="adm-btn ghost" @click="showCreate = false">취소</button>
+        <button class="adm-btn primary" :disabled="creating" @click="createMember">
+          <i v-if="creating" class="ti ti-loader-2 spinning"></i>{{ creating ? '저장 중...' : '저장' }}
+        </button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -114,6 +157,24 @@ const keyword = ref(''); const groupFilter = ref(null); const statusFilter = ref
 const page = ref(1); const size = 15; const total = ref(0)
 const showDetail = ref(false); const detail = ref(null)
 const groups = ref([]); const addGroupId = ref(null); const newMemo = ref('')
+const showCreate = ref(false); const creating = ref(false)
+const emptyCreateForm = () => ({
+  username: '',
+  email: '',
+  password: '',
+  name: '',
+  gender: '',
+  phone: '',
+  address: '',
+  birthDate: '',
+  homePhone: '',
+  occupation: '',
+  workPhone: '',
+  newsletterYn: false,
+  isActive: true,
+  groupIds: []
+})
+const createForm = ref(emptyCreateForm())
 
 const flatGroups = computed(() => { const r = []; const w = (n) => n.forEach(x => { r.push(x); if (x.children?.length) w(x.children) }); w(groups.value); return r })
 
@@ -123,6 +184,26 @@ async function fetchMembers(p = page.value) {
   finally { loading.value = false }
 }
 async function fetchGroups() { const r = await api.get('/groups'); groups.value = r.data.data || [] }
+function openCreate() { createForm.value = emptyCreateForm(); showCreate.value = true }
+async function createMember() {
+  if (!createForm.value.username.trim() || !createForm.value.email.trim() || !createForm.value.password || !createForm.value.name.trim()) {
+    return ElMessage.warning('필수 항목을 입력해주세요.')
+  }
+  creating.value = true
+  try {
+    const payload = {
+      ...createForm.value,
+      username: createForm.value.username.trim(),
+      email: createForm.value.email.trim(),
+      name: createForm.value.name.trim(),
+      birthDate: createForm.value.birthDate || null
+    }
+    await api.post('/admin/members', payload)
+    ElMessage.success('회원이 추가되었습니다.')
+    showCreate.value = false
+    fetchMembers(1)
+  } finally { creating.value = false }
+}
 async function openDetail(row) { const r = await api.get(`/admin/members/${row.id}`); detail.value = r.data.data; showDetail.value = true }
 async function unlockMember(row) { await api.put(`/admin/members/${row.id}/unlock`); ElMessage.success('계정이 잠금 해제되었습니다.'); fetchMembers() }
 async function forceLogout(row) { await ElMessageBox.confirm(`${row.name} 회원을 강제 로그아웃하시겠습니까?`, '강제 로그아웃', { type: 'warning', confirmButtonText: '로그아웃', cancelButtonText: '취소' }); await api.post(`/admin/members/${row.id}/force-logout`); ElMessage.success('강제 로그아웃되었습니다.') }
@@ -143,4 +224,5 @@ onMounted(() => { fetchMembers(); fetchGroups() })
 .memo-author { font-weight: 700; color: var(--t1); margin-right: 8px; }
 .memo-date { font-size: 11px; color: var(--t4); }
 .memo-item p { margin: 4px 0 0; color: var(--t2); }
+.create-options { display: flex; gap: 18px; align-items: center; padding: 4px 0; }
 </style>

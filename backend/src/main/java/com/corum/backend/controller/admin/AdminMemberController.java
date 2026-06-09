@@ -10,10 +10,12 @@ import com.corum.backend.domain.member.AdminMemberMemoRepository;
 import com.corum.backend.domain.member.Member;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.dto.group.GroupResponse;
+import com.corum.backend.dto.member.AdminMemberCreateRequest;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.auth.TokenSessionService;
 import com.corum.backend.service.log.OperationLogService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,6 +55,7 @@ public class AdminMemberController {
     private final GroupRepository groupRepository;
     private final TokenSessionService tokenSessionService;
     private final OperationLogService operationLogService;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping
     public ApiResponse<Page<Member>> getMembers(
@@ -67,6 +71,45 @@ public class AdminMemberController {
             result = memberRepository.findAll(pageRequest);
         }
         return ApiResponse.ok(result);
+    }
+
+    @PostMapping
+    @Transactional
+    public ApiResponse<Map<String, Object>> createMember(@Valid @RequestBody AdminMemberCreateRequest createRequest,
+                                                         @AuthenticationPrincipal CustomUserDetails userDetails,
+                                                         HttpServletRequest httpRequest) {
+        String username = createRequest.getUsername().trim();
+        String email = createRequest.getEmail().trim();
+        String name = createRequest.getName().trim();
+
+        if (memberRepository.existsByUsername(username)) {
+            throw new BusinessException("이미 사용 중인 아이디입니다.");
+        }
+        if (memberRepository.existsByEmail(email)) {
+            throw new BusinessException("이미 사용 중인 이메일입니다.");
+        }
+
+        Member member = Member.builder()
+                .username(username)
+                .email(email)
+                .passwordHash(passwordEncoder.encode(createRequest.getPassword()))
+                .name(name)
+                .gender(blankToNull(createRequest.getGender()))
+                .phone(blankToNull(createRequest.getPhone()))
+                .address(blankToNull(createRequest.getAddress()))
+                .birthDate(createRequest.getBirthDate())
+                .homePhone(blankToNull(createRequest.getHomePhone()))
+                .occupation(blankToNull(createRequest.getOccupation()))
+                .workPhone(blankToNull(createRequest.getWorkPhone()))
+                .newsletterYn(Boolean.TRUE.equals(createRequest.getNewsletterYn()))
+                .isActive(createRequest.getIsActive() == null || Boolean.TRUE.equals(createRequest.getIsActive()))
+                .build();
+
+        Member saved = memberRepository.save(member);
+        assignGroups(saved.getId(), createRequest.getGroupIds(), userDetails.getMemberId());
+        operationLogService.audit(userDetails.getMemberId(), "CREATE", "members", saved.getId(), null, saved.getUsername(), httpRequest);
+
+        return ApiResponse.ok("회원이 추가되었습니다.", toDetailResponse(saved));
     }
 
     @GetMapping("/{id}")
@@ -224,6 +267,32 @@ public class AdminMemberController {
     private Member findMember(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("회원을 찾을 수 없습니다."));
+    }
+
+    private void assignGroups(Long memberId, List<Long> groupIds, Long assignedBy) {
+        if (groupIds == null || groupIds.isEmpty()) {
+            return;
+        }
+        for (Long groupId : groupIds.stream().distinct().toList()) {
+            if (groupId == null) {
+                continue;
+            }
+            if (!groupRepository.existsById(groupId)) {
+                throw BusinessException.notFound("그룹을 찾을 수 없습니다.");
+            }
+            memberGroupRepository.save(MemberGroup.builder()
+                    .memberId(memberId)
+                    .groupId(groupId)
+                    .assignedBy(assignedBy)
+                    .build());
+        }
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private Map<String, Object> toDetailResponse(Member member) {
