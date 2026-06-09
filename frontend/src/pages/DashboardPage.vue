@@ -292,6 +292,13 @@ onMounted(async () => {
 .widget-full  { grid-column: 1 / -1; }
 .widget-half  { grid-column: span 1; }
 
+/* 슬라이더처럼 wcard 없는 widget-full도 리프트 적용 */
+.widget-full:not(:has(.wcard)):hover,
+.widget-half:not(:has(.wcard)):hover {
+  transform: translateY(-4px);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 /* ===== 공통 위젯 카드 ===== */
 .wcard {
   background: var(--surface);
@@ -301,6 +308,20 @@ onMounted(async () => {
   padding: 20px 22px;
   height: 100%;
   box-sizing: border-box;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.22s ease,
+              border-color 0.22s ease;
+}
+.wcard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13);
+  border-color: var(--border);
+}
+
+/* widget-full 은 꽉 채워진 슬라이더/통계 카드라 부모 div에도 transition 필요 */
+.widget-full > .wcard,
+.widget-half > .wcard {
+  will-change: transform;
 }
 .wcard-head {
   display: flex;
