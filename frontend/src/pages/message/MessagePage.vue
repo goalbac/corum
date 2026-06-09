@@ -59,10 +59,10 @@
     <main class="msg-main">
       <!-- 대화 미선택 -->
       <div v-if="!activePartnerId" class="chat-empty">
-        <i class="ti ti-messages"></i>
+        <i class="ti ti-messages empty-icon"></i>
         <p>대화를 선택하거나 새 쪽지를 보내세요</p>
-        <el-button type="primary" @click="openNew">
-          <i class="ti ti-pencil-plus" style="margin-right:4px"></i>새 쪽지
+        <el-button type="primary" class="empty-new-btn" @click="openNew">
+          <i class="ti ti-pencil-plus"></i>새 쪽지
         </el-button>
       </div>
 
@@ -677,8 +677,13 @@ onMounted(async () => {
   height: 100%;
   color: var(--t3);
 }
-.chat-empty i { font-size: 48px; }
+.chat-empty .empty-icon { font-size: 48px; }
 .chat-empty p { font-size: 14px; margin: 0; }
+.empty-new-btn :deep(.ti) {
+  margin-right: 4px;
+  font-size: 16px;
+  line-height: 1;
+}
 
 /* 채팅 헤더 */
 .chat-header {
