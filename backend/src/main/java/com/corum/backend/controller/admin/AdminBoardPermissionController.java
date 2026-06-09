@@ -41,9 +41,9 @@ public class AdminBoardPermissionController {
         Map<Long, BoardGroupPermission> permMap = boardGroupPermissionRepository.findByBoardId(boardId)
                 .stream().collect(Collectors.toMap(BoardGroupPermission::getGroupId, p -> p));
 
-        // 하위 그룹만 추출 → ADMIN 먼저(운영), NORMAL 다음(일반), 각 타입 내 sortOrder 순
+        // 하위 그룹만 추출 (최고관리자 시스템 그룹 제외) → ADMIN 먼저(운영), NORMAL 다음(일반), 각 타입 내 sortOrder 순
         List<Group> subGroups = allGroups.stream()
-                .filter(g -> g.getParentId() != null)
+                .filter(g -> g.getParentId() != null && !Boolean.TRUE.equals(g.getIsSystem()))
                 .sorted(Comparator
                         .comparing((Group g) -> "ADMIN".equals(g.getType()) ? 0 : 1)
                         .thenComparingInt(Group::getSortOrder))

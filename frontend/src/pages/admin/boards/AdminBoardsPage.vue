@@ -120,10 +120,30 @@
           <thead>
             <tr>
               <th style="width:180px;text-align:left">그룹</th>
-              <th class="perm-col">조회</th>
-              <th class="perm-col">쓰기</th>
-              <th class="perm-col">댓글</th>
-              <th class="perm-col">다운로드</th>
+              <th class="perm-col">
+                <div class="th-inner">
+                  <span>조회</span>
+                  <button class="col-all-btn" @click="toggleAllCol('canRead')" title="전체 선택/해제">전체</button>
+                </div>
+              </th>
+              <th class="perm-col">
+                <div class="th-inner">
+                  <span>쓰기</span>
+                  <button class="col-all-btn" @click="toggleAllCol('canWrite')" title="전체 선택/해제">전체</button>
+                </div>
+              </th>
+              <th class="perm-col">
+                <div class="th-inner">
+                  <span>댓글</span>
+                  <button class="col-all-btn" @click="toggleAllCol('canComment')" title="전체 선택/해제">전체</button>
+                </div>
+              </th>
+              <th class="perm-col">
+                <div class="th-inner">
+                  <span>다운로드</span>
+                  <button class="col-all-btn" @click="toggleAllCol('canDownload')" title="전체 선택/해제">전체</button>
+                </div>
+              </th>
               <th class="perm-col manage-col">관리</th>
             </tr>
           </thead>
@@ -134,6 +154,7 @@
                   <span class="perm-parent">{{ row.parentName }}</span>
                   <span class="perm-name">{{ row.groupName }}</span>
                   <span v-if="row.groupType === 'ADMIN'" class="adm-badge badge-purple" style="font-size:9px;flex-shrink:0">관리자</span>
+                  <button class="row-all-btn" @click="grantAll(row)" title="조회·쓰기·댓글·다운로드 전체 부여">전체</button>
                 </div>
               </td>
               <td class="perm-col"><el-checkbox v-model="row.canRead" /></td>
@@ -228,6 +249,20 @@ async function openPermissions(board) {
   }
 }
 
+/** 컬럼 전체 선택/해제 (토글: 하나라도 false이면 전체 true, 모두 true이면 전체 false) */
+function toggleAllCol(field) {
+  const allChecked = permRows.value.every(r => r[field])
+  permRows.value.forEach(r => { r[field] = !allChecked })
+}
+
+/** 행 전체 부여 (조회·쓰기·댓글·다운로드) */
+function grantAll(row) {
+  row.canRead = true
+  row.canWrite = true
+  row.canComment = true
+  row.canDownload = true
+}
+
 async function savePermissions() {
   permSaving.value = true
   try {
@@ -298,6 +333,44 @@ onMounted(fetchBoards)
 .perm-parent::after { content: ' -'; }
 .perm-name { font-weight: 600; color: var(--t1); white-space: nowrap; }
 .perm-empty { text-align: center; color: var(--t3); padding: 20px; }
+
+/* 컬럼 헤더 전체선택 버튼 */
+.th-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.col-all-btn {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  color: var(--accent-t);
+  background: var(--accent-bg);
+  cursor: pointer;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.col-all-btn:hover { background: var(--accent); color: #fff; }
+
+/* 행 전체부여 버튼 */
+.row-all-btn {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--t3);
+  background: var(--surface2);
+  cursor: pointer;
+  transition: all .12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.row-all-btn:hover { border-color: var(--accent); color: var(--accent-t); background: var(--accent-bg); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { animation: spin 0.7s linear infinite; display: inline-block; }
