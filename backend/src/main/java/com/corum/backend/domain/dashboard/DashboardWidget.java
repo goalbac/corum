@@ -66,4 +66,10 @@ public class DashboardWidget {
         this.updatedBy = updatedBy;
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void updateSortOrder(Integer sortOrder, Long updatedBy) {
+        this.sortOrder = sortOrder;
+        this.updatedBy = updatedBy;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

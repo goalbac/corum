@@ -42,6 +42,15 @@ public class AdminDashboardWidgetController {
         return ApiResponse.ok(dashboardWidgetService.create(request, memberId));
     }
 
+    @PutMapping("/sort")
+    public ApiResponse<Void> updateSortOrder(
+            @RequestBody List<Long> widgetIds,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        dashboardWidgetService.updateSortOrder(widgetIds, memberId);
+        return ApiResponse.ok("?쒖꽌媛 蹂寃쎈릺?덉뒿?덈떎.");
+    }
+
     @PutMapping("/{id}")
     public ApiResponse<DashboardWidgetResponse> update(
             @PathVariable Long id,

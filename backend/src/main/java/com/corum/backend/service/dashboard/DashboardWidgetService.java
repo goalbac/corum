@@ -89,6 +89,15 @@ public class DashboardWidgetService {
         widgetRepository.delete(widget);
     }
 
+    @Transactional
+    public void updateSortOrder(List<Long> widgetIds, Long memberId) {
+        for (int i = 0; i < widgetIds.size(); i++) {
+            DashboardWidget widget = widgetRepository.findById(widgetIds.get(i))
+                    .orElseThrow(() -> BusinessException.notFound("??쒕낫???꾩젽??李얠쓣 ???놁뒿?덈떎."));
+            widget.updateSortOrder(i, memberId);
+        }
+    }
+
     @Transactional(readOnly = true)
     public DashboardStatsResponse getStats() {
         VisitStats today = visitStatsRepository.findByStatDate(LocalDate.now()).orElse(null);

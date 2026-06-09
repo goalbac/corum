@@ -1,6 +1,9 @@
 <template>
   <div class="adm-page">
     <AdminPageHeader title="대시보드 관리" desc="대시보드 위젯 추가 및 순서 설정">
+      <button class="adm-btn ghost" :disabled="!sortChanged || sortSaving" @click="saveSortOrder">
+        <i :class="['ti', sortSaving ? 'ti-loader-2 spinning' : 'ti-check']"></i> 순서 저장
+      </button>
       <button class="adm-btn primary" @click="openCreate"><i class="ti ti-plus"></i> 위젯 추가</button>
     </AdminPageHeader>
 
@@ -14,8 +17,12 @@
           <div class="at-col" style="width:70px;text-align:center">상태</div>
           <div class="at-col" style="width:90px;text-align:center">관리</div>
         </div>
-        <div v-for="row in widgets" :key="row.id" class="at-row">
-          <div class="at-col muted" style="width:52px;text-align:center">{{ row.sortOrder }}</div>
+        <div ref="widgetSortable">
+        <div v-for="row in widgets" :key="row.id" :data-id="row.id" class="at-row sortable-widget-row">
+          <div class="at-col muted order-col" style="width:52px;text-align:center">
+            <i class="ti ti-grip-vertical drag-handle" title="드래그해서 순서 변경"></i>
+            <span>{{ row.sortOrder }}</span>
+          </div>
           <div class="at-col" style="width:130px">
             <span class="adm-badge badge-primary">{{ typeLabel(row.widgetType) }}</span>
           </div>
@@ -28,6 +35,7 @@
             <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
             <button class="act-btn danger" @click="deleteWidget(row.id)"><i class="ti ti-trash"></i></button>
           </div>
+        </div>
         </div>
         <div v-if="!widgets.length && !loading" class="at-empty"><i class="ti ti-layout-dashboard"></i><span>등록된 위젯이 없습니다.</span></div>
       </div>
@@ -127,7 +135,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import Sortable from 'sortablejs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
@@ -136,8 +145,12 @@ const widgets = ref([])
 const boards  = ref([])
 const loading = ref(false)
 const saving  = ref(false)
+const sortSaving = ref(false)
+const sortChanged = ref(false)
 const showForm = ref(false)
 const editing  = ref(null)
+const widgetSortable = ref(null)
+let sortableInstance = null
 
 const defaultForm = () => ({ widgetType: 'RECENT_POSTS', title: '', targetBoardId: null, postCount: 5, sortOrder: 0, isActive: true })
 const form   = ref(defaultForm())
@@ -145,10 +158,49 @@ const config = ref({ slides: [], links: [] })
 
 async function fetchWidgets() {
   loading.value = true
-  try { const r = await api.get('/admin/dashboard/widgets'); widgets.value = r.data.data || [] }
+  try {
+    const r = await api.get('/admin/dashboard/widgets')
+    widgets.value = r.data.data || []
+    await nextTick()
+    initSortable()
+  }
   finally { loading.value = false }
 }
 async function fetchBoards() { const r = await api.get('/boards'); boards.value = r.data.data || [] }
+
+function initSortable() {
+  if (sortableInstance) {
+    sortableInstance.destroy()
+    sortableInstance = null
+  }
+  if (!widgetSortable.value) return
+
+  sortableInstance = Sortable.create(widgetSortable.value, {
+    animation: 150,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd: () => { sortChanged.value = true }
+  })
+}
+
+async function saveSortOrder() {
+  if (!widgetSortable.value) return
+  sortSaving.value = true
+  try {
+    const widgetIds = Array.from(widgetSortable.value.children)
+      .map(el => parseInt(el.dataset.id))
+      .filter(Boolean)
+    await api.put('/admin/dashboard/widgets/sort', widgetIds)
+    ElMessage.success('순서가 저장되었습니다.')
+    sortChanged.value = false
+    await fetchWidgets()
+  } catch (e) {
+    ElMessage.error('순서 저장에 실패했습니다.')
+  } finally {
+    sortSaving.value = false
+  }
+}
 
 function onTypeChange() { config.value = { slides: [], links: [] } }
 function openCreate() { editing.value = null; form.value = defaultForm(); config.value = { slides: [], links: [] }; showForm.value = true }
@@ -183,9 +235,26 @@ async function deleteWidget(id) {
 
 function typeLabel(t) { return { RECENT_POSTS: '최신 글', IMAGE_SLIDER: '슬라이더', LINK_LIST: '링크', MEMBER_STATS: '회원 현황', VISIT_STATS: '접속 통계' }[t] || t }
 onMounted(() => { fetchWidgets(); fetchBoards() })
+onBeforeUnmount(() => {
+  if (sortableInstance) sortableInstance.destroy()
+})
 </script>
 
 <style scoped>
 @import '@/assets/admin-table.css';
 .sub-item { background: var(--surface2); border: 0.5px solid var(--border2); border-radius: var(--radius-xs); padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.order-col { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.drag-handle {
+  font-size: 15px;
+  color: var(--t3);
+  cursor: grab;
+  transition: color 0.15s;
+}
+.drag-handle:active { cursor: grabbing; }
+.sortable-widget-row:hover .drag-handle { color: var(--t2); }
+</style>
+
+<style>
+.sortable-ghost { opacity: 0.4; background: var(--accent-bg) !important; }
+.sortable-drag { background: var(--surface) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; border-radius: 8px !important; }
 </style>
