@@ -1,6 +1,5 @@
 <template>
   <div :data-theme="themeStore.isDark ? 'dark' : undefined">
-    <AppProgress />
     <!-- 점검 모드: 로그인/관리자 경로는 항상 허용 -->
     <MaintenancePage
       v-if="maintenance.active && !isExemptPath"
@@ -9,11 +8,7 @@
     />
     <template v-else>
       <AppPopup />
-      <router-view v-slot="{ Component }">
-        <Transition name="page" mode="out-in">
-          <component :is="Component" :key="route.path" />
-        </Transition>
-      </router-view>
+      <router-view />
     </template>
   </div>
 </template>
@@ -25,7 +20,6 @@ import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import MaintenancePage from '@/pages/MaintenancePage.vue'
 import AppPopup from '@/components/common/AppPopup.vue'
-import AppProgress from '@/components/common/AppProgress.vue'
 import api from '@/api/axios'
 
 const themeStore = useThemeStore()
