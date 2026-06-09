@@ -180,7 +180,7 @@
               :disabled="(!inputText.trim() && !attachments.length) || sending"
               @click="sendMessage"
             >
-              <i class="ti ti-arrow-up"></i>
+              <i :class="['ti', sending ? 'ti-loader-2 spinning' : 'ti-arrow-up']"></i>
             </button>
           </div>
         </div>
@@ -256,13 +256,13 @@ const activePartner = computed(() =>
   conversations.value.find(c => c.partnerId === activePartnerId.value)
 )
 
-async function fetchConversations() {
-  convLoading.value = true
+async function fetchConversations({ showLoading = true } = {}) {
+  if (showLoading) convLoading.value = true
   try {
     const res = await api.get('/messages/conversations')
     conversations.value = res.data.data || []
   } finally {
-    convLoading.value = false
+    if (showLoading) convLoading.value = false
   }
 }
 
@@ -292,16 +292,16 @@ async function selectConversation(conv) {
   }
 }
 
-async function loadChat(partnerId) {
-  chatLoading.value = true
+async function loadChat(partnerId, { showLoading = true } = {}) {
+  if (showLoading) chatLoading.value = true
   try {
     const res = await api.get(`/messages/conversations/${partnerId}`)
     chatMessages.value = res.data.data || []
-    chatLoading.value = false
+    if (showLoading) chatLoading.value = false
     await nextTick()
     scrollToBottom()
   } catch (e) {
-    chatLoading.value = false
+    if (showLoading) chatLoading.value = false
     throw e
   }
 }
@@ -322,7 +322,7 @@ function scrollToBottom({ smooth = false } = {}) {
 
 async function loadChatAfterSend(partnerId) {
   const previousLastId = chatMessages.value.at(-1)?.id
-  await loadChat(partnerId)
+  await loadChat(partnerId, { showLoading: false })
 
   const latestMine = [...chatMessages.value].reverse()
     .find(msg => msg.isMine && msg.id !== previousLastId)
@@ -392,7 +392,7 @@ async function sendMessage() {
     attachments.value = []
     if (inputRef.value) inputRef.value.style.height = 'auto'
     await loadChatAfterSend(activePartnerId.value)
-    await fetchConversations()
+    await fetchConversations({ showLoading: false })
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '전송에 실패했습니다.')
   } finally {
@@ -1063,6 +1063,14 @@ onMounted(async () => {
   cursor: pointer;
 }
 .send-btn.active:hover { opacity: 0.88; }
+
+.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 /* ===== 새 쪽지 다이얼로그 ===== */
 .new-msg-form { display: flex; flex-direction: column; gap: 12px; }
