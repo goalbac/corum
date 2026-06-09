@@ -238,7 +238,8 @@ CREATE TABLE board_group_permissions (
     can_read     BOOLEAN NOT NULL DEFAULT TRUE,
     can_write    BOOLEAN NOT NULL DEFAULT FALSE,
     can_comment  BOOLEAN NOT NULL DEFAULT FALSE,
-    can_download BOOLEAN NOT NULL DEFAULT TRUE
+    can_download BOOLEAN NOT NULL DEFAULT TRUE,
+    can_manage   BOOLEAN NOT NULL DEFAULT FALSE  -- 게시판 관리자 (모든 글 수정/삭제)
 );
 CREATE UNIQUE INDEX idx_bgp_unique ON board_group_permissions(board_id, group_id);
 CREATE INDEX idx_bgp_board_id      ON board_group_permissions(board_id);
@@ -593,3 +594,36 @@ INSERT INTO terms (type, version, content, is_active, require_reagree)
 VALUES
     ('SERVICE', 1, '이용약관 내용을 입력해주세요.', TRUE, FALSE),
     ('PRIVACY', 1, '개인정보처리방침 내용을 입력해주세요.', TRUE, FALSE);
+
+-- 관리자 메뉴 (사이드바 구조 고정 시드)
+INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
+    (NULL, '대시보드',      '/admin',                   'ti ti-layout-dashboard', 1, TRUE),
+    (NULL, '콘텐츠',        NULL,                        'ti ti-folders',          2, TRUE),
+    (NULL, '운영',          NULL,                        'ti ti-settings-2',       3, TRUE),
+    (NULL, '회원',          NULL,                        'ti ti-users',            4, TRUE),
+    (NULL, '설정',          NULL,                        'ti ti-settings',         5, TRUE);
+
+-- 콘텐츠 하위
+INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
+    (2, '메뉴 관리',        '/admin/menus',              'ti ti-menu-2',           1, TRUE),
+    (2, '게시판 관리',      '/admin/boards',             'ti ti-layout-list',      2, TRUE),
+    (2, '대시보드 관리',    '/admin/dashboard-widgets',  'ti ti-layout-dashboard', 3, TRUE),
+    (2, '캘린더 관리',      '/admin/calendars',          'ti ti-calendar',         4, TRUE),
+    (2, '안내 페이지 관리', '/admin/content-pages',      'ti ti-file-text',        5, TRUE),
+    (2, '팝업/배너 관리',   '/admin/display',            'ti ti-speakerphone',     6, TRUE);
+
+-- 운영 하위
+INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
+    (3, '문의 관리',        '/admin/inquiries',          'ti ti-mail',             1, TRUE),
+    (3, '로그',             '/admin/stats',              'ti ti-list-details',     2, TRUE);
+
+-- 회원 하위
+INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
+    (4, '회원 관리',        '/admin/members',            'ti ti-users',            1, TRUE),
+    (4, '그룹 관리',        '/admin/groups',             'ti ti-shield',           2, TRUE),
+    (4, '약관 관리',        '/admin/terms',              'ti ti-file-check',       3, TRUE);
+
+-- 설정 하위
+INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
+    (5, '사이트 설정',      '/admin/settings',           'ti ti-settings',         1, TRUE),
+    (5, '관리자 메뉴 권한', '/admin/admin-permissions',  'ti ti-lock',             2, TRUE);

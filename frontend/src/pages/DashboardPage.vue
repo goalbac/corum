@@ -31,7 +31,8 @@
         </div>
 
         <!-- 최신 글 -->
-        <div v-else-if="widget.widgetType === 'RECENT_POSTS'" class="widget-half">
+        <div v-else-if="widget.widgetType === 'RECENT_POSTS'"
+             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
             <div class="wcard-head">
               <span class="wcard-title">{{ widget.title || widget.targetBoardName || '최신글' }}</span>
@@ -55,7 +56,8 @@
         </div>
 
         <!-- 링크 모음 -->
-        <div v-else-if="widget.widgetType === 'LINK_LIST'" class="widget-half">
+        <div v-else-if="widget.widgetType === 'LINK_LIST'"
+             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
             <div class="wcard-head">
               <span class="wcard-title">{{ widget.title || '링크 모음' }}</span>
@@ -73,6 +75,17 @@
               </a>
             </div>
             <div v-else class="wcard-empty">링크가 없습니다.</div>
+          </div>
+        </div>
+
+        <!-- 커스텀 위젯 -->
+        <div v-else-if="widget.widgetType === 'CUSTOM'"
+             :class="parseConfig(widget).size === 'half' ? 'widget-half' : 'widget-full'">
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="wcard-title">{{ widget.title }}</span>
+            </div>
+            <div class="custom-body ql-editor" v-html="parseConfig(widget).content || ''" />
           </div>
         </div>
 
@@ -384,6 +397,32 @@ onMounted(async () => {
   transition: color 0.15s;
 }
 .link-chip:hover .link-arrow { color: var(--accent-t); }
+
+/* ===== 커스텀 위젯 본문 ===== */
+.custom-body {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--t1);
+}
+/* TipTap/ProseMirror HTML 기본 스타일 */
+.custom-body :deep(p)  { margin: 0 0 10px; }
+.custom-body :deep(p:last-child) { margin-bottom: 0; }
+.custom-body :deep(h1), .custom-body :deep(h2), .custom-body :deep(h3) { font-weight: 700; line-height: 1.3; margin: 14px 0 8px; }
+.custom-body :deep(h1) { font-size: 20px; }
+.custom-body :deep(h2) { font-size: 17px; }
+.custom-body :deep(h3) { font-size: 15px; }
+.custom-body :deep(ul), .custom-body :deep(ol) { padding-left: 20px; margin: 8px 0; }
+.custom-body :deep(li) { margin-bottom: 4px; }
+.custom-body :deep(a)  { color: var(--accent-t); text-decoration: underline; }
+.custom-body :deep(blockquote) {
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+  margin: 10px 0;
+  color: var(--t2);
+}
+.custom-body :deep(code) { background: var(--surface2); border-radius: 3px; padding: 1px 5px; font-size: 13px; }
+.custom-body :deep(strong) { font-weight: 700; }
+.custom-body :deep(em) { font-style: italic; }
 
 /* ===== 통계 ===== */
 .stats-wcard { padding: 22px 28px; }
