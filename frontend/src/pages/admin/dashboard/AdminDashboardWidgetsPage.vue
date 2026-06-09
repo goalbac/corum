@@ -371,6 +371,8 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
 </script>
 
 <style scoped>
+@import '@/assets/admin-table.css';
+
 /* ===== 위젯 리스트 ===== */
 .widget-list {
   display: flex;
