@@ -52,12 +52,14 @@ public class DashboardWidgetService {
 
     @Transactional
     public DashboardWidgetResponse create(DashboardWidgetRequest request, Long memberId) {
+        // sortOrder 미지정 시 현재 최대값 + 1 (항상 맨 아래 추가)
+        int nextOrder = widgetRepository.findMaxSortOrder() + 1;
         DashboardWidget widget = widgetRepository.save(DashboardWidget.builder()
                 .widgetType(request.getWidgetType())
                 .title(request.getTitle())
                 .targetBoardId(request.getTargetBoardId())
                 .postCount(normalizePostCount(request.getPostCount()))
-                .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0)
+                .sortOrder(nextOrder)
                 .isActive(request.getIsActive() == null || request.getIsActive())
                 .extraConfig(request.getExtraConfig())
                 .updatedBy(memberId)
