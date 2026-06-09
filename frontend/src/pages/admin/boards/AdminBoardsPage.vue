@@ -1,6 +1,6 @@
 <template>
   <div class="adm-page">
-    <AdminPageHeader title="게시판 관리" desc="게시판 생성 및 권한 설정">
+    <AdminPageHeader title="게시판 관리" desc="게시판 생성 및 그룹 권한 설정">
       <button class="adm-btn primary" @click="openCreate">
         <i class="ti ti-plus"></i> 게시판 추가
       </button>
@@ -16,7 +16,7 @@
           <div class="at-col" style="width:60px;text-align:center">좋아요</div>
           <div class="at-col" style="width:110px;text-align:center">파일 용량</div>
           <div class="at-col" style="width:70px;text-align:center">상태</div>
-          <div class="at-col" style="width:100px;text-align:center">관리</div>
+          <div class="at-col" style="width:130px;text-align:center">관리</div>
         </div>
         <div v-for="row in boards" :key="row.id" class="at-row">
           <div class="at-col muted" style="width:60px;text-align:center">{{ row.id }}</div>
@@ -38,8 +38,11 @@
               {{ row.isActive ? '활성' : '비활성' }}
             </span>
           </div>
-          <div class="at-col at-actions" style="width:100px">
+          <div class="at-col at-actions" style="width:130px">
             <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+            <button class="act-btn primary" @click="openPermissions(row)" title="그룹 권한">
+              <i class="ti ti-shield-check"></i>
+            </button>
             <button class="act-btn danger" @click="deleteBoard(row.id)"><i class="ti ti-trash"></i></button>
           </div>
         </div>
@@ -49,7 +52,7 @@
       </div>
     </div>
 
-    <!-- 다이얼로그 -->
+    <!-- 기본 설정 다이얼로그 -->
     <el-dialog v-model="showForm" :title="editing ? '게시판 수정' : '게시판 추가'" width="480px" destroy-on-close>
       <div class="dlg-form">
         <div class="dlg-row">
@@ -96,6 +99,64 @@
         </button>
       </template>
     </el-dialog>
+
+    <!-- 그룹 권한 다이얼로그 -->
+    <el-dialog
+      v-model="showPerms"
+      :title="`그룹 권한 설정 — ${permBoard?.name}`"
+      width="760px"
+      destroy-on-close
+    >
+      <div class="perm-hint">
+        <i class="ti ti-info-circle"></i>
+        <span>
+          <strong>관리</strong> 권한이 있는 그룹은 해당 게시판의 모든 글을 수정·삭제할 수 있습니다.
+          전체 관리자(운영 그룹 소속)는 항상 모든 게시판의 관리 권한을 갖습니다.
+        </span>
+      </div>
+
+      <div class="perm-table-wrap" v-loading="permsLoading">
+        <table class="perm-table">
+          <thead>
+            <tr>
+              <th style="width:180px;text-align:left">그룹</th>
+              <th class="perm-col">조회</th>
+              <th class="perm-col">쓰기</th>
+              <th class="perm-col">댓글</th>
+              <th class="perm-col">다운로드</th>
+              <th class="perm-col manage-col">관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in permRows" :key="row.groupId">
+              <td class="perm-group">
+                <span class="perm-parent">{{ row.parentName }}</span>
+                <span class="perm-name">{{ row.groupName }}</span>
+                <span v-if="row.groupType === 'ADMIN'" class="adm-badge badge-purple" style="font-size:9px">관리자</span>
+              </td>
+              <td class="perm-col"><el-checkbox v-model="row.canRead" /></td>
+              <td class="perm-col"><el-checkbox v-model="row.canWrite" /></td>
+              <td class="perm-col"><el-checkbox v-model="row.canComment" /></td>
+              <td class="perm-col"><el-checkbox v-model="row.canDownload" /></td>
+              <td class="perm-col manage-col">
+                <el-checkbox v-model="row.canManage" />
+              </td>
+            </tr>
+            <tr v-if="!permRows.length && !permsLoading">
+              <td colspan="6" class="perm-empty">설정 가능한 그룹이 없습니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <template #footer>
+        <button class="adm-btn ghost" @click="showPerms = false">취소</button>
+        <button class="adm-btn primary" :disabled="permSaving" @click="savePermissions">
+          <i v-if="permSaving" class="ti ti-loader-2 spinning"></i>
+          {{ permSaving ? '저장 중...' : '저장' }}
+        </button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -105,6 +166,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
+// ===== 게시판 목록 =====
 const boards  = ref([])
 const loading = ref(false)
 const saving  = ref(false)
@@ -145,6 +207,36 @@ async function deleteBoard(id) {
   fetchBoards()
 }
 
+// ===== 그룹 권한 =====
+const showPerms   = ref(false)
+const permBoard   = ref(null)
+const permRows    = ref([])
+const permsLoading = ref(false)
+const permSaving  = ref(false)
+
+async function openPermissions(board) {
+  permBoard.value  = board
+  showPerms.value  = true
+  permsLoading.value = true
+  try {
+    const res = await api.get(`/admin/boards/${board.id}/permissions`)
+    permRows.value = res.data.data || []
+  } finally {
+    permsLoading.value = false
+  }
+}
+
+async function savePermissions() {
+  permSaving.value = true
+  try {
+    await api.put(`/admin/boards/${permBoard.value.id}/permissions`, permRows.value)
+    ElMessage.success('권한이 저장되었습니다.')
+    showPerms.value = false
+  } finally {
+    permSaving.value = false
+  }
+}
+
 function typeLabel(t) { return { POST: '일반', GALLERY: '갤러리', WEBZINE: '웹진', DOCUMENT: '자료실' }[t] || t }
 function typeBadge(t) { return { POST: 'badge-primary', GALLERY: 'badge-success', WEBZINE: 'badge-info', DOCUMENT: 'badge-warning' }[t] || '' }
 onMounted(fetchBoards)
@@ -152,4 +244,55 @@ onMounted(fetchBoards)
 
 <style scoped>
 @import '@/assets/admin-table.css';
+
+/* 권한 안내 */
+.perm-hint {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius-xs);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--t2);
+  margin-bottom: 16px;
+  line-height: 1.55;
+}
+.perm-hint i { color: var(--accent); font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* 권한 테이블 */
+.perm-table-wrap { overflow-x: auto; }
+.perm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.perm-table th {
+  padding: 8px 10px;
+  background: var(--surface2);
+  color: var(--t3);
+  font-weight: 700;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.perm-table td {
+  padding: 9px 10px;
+  border-bottom: 0.5px solid var(--border);
+}
+.perm-table tbody tr:hover { background: var(--surface2); }
+.perm-col { text-align: center; width: 80px; }
+.manage-col { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
+.perm-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.perm-parent { color: var(--t3); font-size: 12px; }
+.perm-parent::after { content: ' -'; }
+.perm-name { font-weight: 600; color: var(--t1); }
+.perm-empty { text-align: center; color: var(--t3); padding: 20px; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 0.7s linear infinite; display: inline-block; }
 </style>

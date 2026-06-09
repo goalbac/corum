@@ -40,3 +40,4 @@ logging:
   level:
     com.corum: DEBUG
     org.springframework.security: INFO
+    org.eclipse.angus.mail: DEBUG

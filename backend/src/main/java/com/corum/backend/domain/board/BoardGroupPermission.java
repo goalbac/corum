@@ -36,4 +36,9 @@ public class BoardGroupPermission {
     @Column(name = "can_download", nullable = false)
     @Builder.Default
     private Boolean canDownload = true;
+
+    /** 게시판 관리자: 모든 게시글 수정/삭제 가능 */
+    @Column(name = "can_manage", nullable = false)
+    @Builder.Default
+    private Boolean canManage = false;
 }

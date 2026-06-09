@@ -4,63 +4,37 @@
 
     <div class="admin-body">
       <aside class="admin-sidebar" :class="{ open: mobileOpen }">
-        <div class="sidebar-section">
-          <router-link to="/admin" class="sidebar-item" exact-active-class="active">
-            <i class="ti ti-layout-dashboard"></i> 대시보드
-          </router-link>
-        </div>
-
-        <div class="sidebar-section">
-          <div class="section-title">콘텐츠</div>
-          <router-link to="/admin/menus" class="sidebar-item" active-class="active">
-            <i class="ti ti-menu-2"></i> 메뉴 관리
-          </router-link>
-          <router-link to="/admin/boards" class="sidebar-item" active-class="active">
-            <i class="ti ti-layout-list"></i> 게시판 관리
-          </router-link>
-          <router-link to="/admin/dashboard-widgets" class="sidebar-item" active-class="active">
-            <i class="ti ti-layout-dashboard"></i> 대시보드 관리
-          </router-link>
-          <router-link to="/admin/calendars" class="sidebar-item" active-class="active">
-            <i class="ti ti-calendar"></i> 캘린더 관리
-          </router-link>
-          <router-link to="/admin/content-pages" class="sidebar-item" active-class="active">
-            <i class="ti ti-file-text"></i> 안내 페이지 관리
-          </router-link>
-          <router-link to="/admin/display" class="sidebar-item" active-class="active">
-            <i class="ti ti-speakerphone"></i> 팝업/배너 관리
-          </router-link>
-        </div>
-
-        <div class="sidebar-section">
-          <div class="section-title">운영</div>
-          <router-link to="/admin/inquiries" class="sidebar-item" active-class="active">
-            <i class="ti ti-mail"></i> 문의 관리
-          </router-link>
-          <router-link to="/admin/stats" class="sidebar-item" active-class="active">
-            <i class="ti ti-list-details"></i> 로그
-          </router-link>
-        </div>
-
-        <div class="sidebar-section">
-          <div class="section-title">회원</div>
-          <router-link to="/admin/members" class="sidebar-item" active-class="active">
-            <i class="ti ti-users"></i> 회원 관리
-          </router-link>
-          <router-link to="/admin/groups" class="sidebar-item" active-class="active">
-            <i class="ti ti-shield"></i> 그룹 관리
-          </router-link>
-          <router-link to="/admin/terms" class="sidebar-item" active-class="active">
-            <i class="ti ti-file-check"></i> 약관 관리
-          </router-link>
-        </div>
-
-        <div class="sidebar-section">
-          <div class="section-title">설정</div>
-          <router-link to="/admin/settings" class="sidebar-item" active-class="active">
-            <i class="ti ti-settings"></i> 사이트 설정
-          </router-link>
-        </div>
+        <template v-if="sidebarLoaded">
+          <template v-for="section in sidebar" :key="section.id">
+            <!-- 자식이 없는 단독 메뉴 (대시보드 등) -->
+            <div v-if="!section.children?.length" class="sidebar-section">
+              <router-link :to="section.url" class="sidebar-item" exact-active-class="active">
+                <i :class="section.icon"></i> {{ section.name }}
+              </router-link>
+            </div>
+            <!-- 섹션 그룹 -->
+            <div v-else class="sidebar-section">
+              <div class="section-title">{{ section.name }}</div>
+              <router-link
+                v-for="child in section.children"
+                :key="child.id"
+                :to="child.url"
+                class="sidebar-item"
+                active-class="active"
+              >
+                <i :class="child.icon"></i> {{ child.name }}
+              </router-link>
+            </div>
+          </template>
+        </template>
+        <!-- 로딩 중 폴백: 기존 하드코딩 구조 -->
+        <template v-else>
+          <div class="sidebar-section">
+            <router-link to="/admin" class="sidebar-item" exact-active-class="active">
+              <i class="ti ti-layout-dashboard"></i> 대시보드
+            </router-link>
+          </div>
+        </template>
       </aside>
 
       <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false" />
@@ -84,11 +58,14 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import api from '@/api/axios'
 
-const authStore = useAuthStore()
-const menuStore = useMenuStore()
-const router = useRouter()
+const authStore  = useAuthStore()
+const menuStore  = useMenuStore()
+const router     = useRouter()
 const mobileOpen = ref(false)
+const sidebar    = ref([])
+const sidebarLoaded = ref(false)
 
 onMounted(async () => {
   await menuStore.fetchMenus()
@@ -99,10 +76,50 @@ onMounted(async () => {
     router.push('/login')
     return
   }
-  if (authStore.member && !authStore.member.admin && !authStore.member.isAdmin) {
+  const m = authStore.member
+  if (m && !m.admin && !m.isAdmin) {
     router.push('/')
+    return
+  }
+
+  // 동적 사이드바 로드
+  try {
+    const res = await api.get('/admin/sidebar')
+    sidebar.value = res.data.data || []
+  } catch {
+    // API 실패 시 기본 구조 폴백
+    sidebar.value = getDefaultSidebar()
+  } finally {
+    sidebarLoaded.value = true
   }
 })
+
+function getDefaultSidebar() {
+  return [
+    { id: 0, name: '대시보드', url: '/admin', icon: 'ti ti-layout-dashboard', children: [] },
+    { id: 1, name: '콘텐츠', children: [
+      { id: 10, name: '메뉴 관리',        url: '/admin/menus',             icon: 'ti ti-menu-2' },
+      { id: 11, name: '게시판 관리',      url: '/admin/boards',            icon: 'ti ti-layout-list' },
+      { id: 12, name: '대시보드 관리',    url: '/admin/dashboard-widgets', icon: 'ti ti-layout-dashboard' },
+      { id: 13, name: '캘린더 관리',      url: '/admin/calendars',         icon: 'ti ti-calendar' },
+      { id: 14, name: '안내 페이지 관리', url: '/admin/content-pages',     icon: 'ti ti-file-text' },
+      { id: 15, name: '팝업/배너 관리',   url: '/admin/display',           icon: 'ti ti-speakerphone' },
+    ]},
+    { id: 2, name: '운영', children: [
+      { id: 20, name: '문의 관리', url: '/admin/inquiries', icon: 'ti ti-mail' },
+      { id: 21, name: '로그',      url: '/admin/stats',     icon: 'ti ti-list-details' },
+    ]},
+    { id: 3, name: '회원', children: [
+      { id: 30, name: '회원 관리', url: '/admin/members', icon: 'ti ti-users' },
+      { id: 31, name: '그룹 관리', url: '/admin/groups',  icon: 'ti ti-shield' },
+      { id: 32, name: '약관 관리', url: '/admin/terms',   icon: 'ti ti-file-check' },
+    ]},
+    { id: 4, name: '설정', children: [
+      { id: 40, name: '사이트 설정',      url: '/admin/settings',           icon: 'ti ti-settings' },
+      { id: 41, name: '관리자 메뉴 권한', url: '/admin/admin-permissions',  icon: 'ti ti-lock' },
+    ]},
+  ]
+}
 </script>
 
 <style scoped>

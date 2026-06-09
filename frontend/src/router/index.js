@@ -135,6 +135,7 @@ const routes = [
       { path: 'groups', name: 'AdminGroups', component: () => import('@/pages/admin/groups/AdminGroupsPage.vue') },
       { path: 'stats', name: 'AdminStats', component: () => import('@/pages/admin/stats/AdminStatsPage.vue') },
       { path: 'settings', name: 'AdminSettings', component: () => import('@/pages/admin/settings/AdminSettingsPage.vue') },
+      { path: 'admin-permissions', name: 'AdminMenuPermissions', component: () => import('@/pages/admin/settings/AdminMenuPermissionsPage.vue') },
       { path: 'calendars', name: 'AdminCalendars', component: () => import('@/pages/admin/calendar/AdminCalendarPage.vue') }
     ]
   },

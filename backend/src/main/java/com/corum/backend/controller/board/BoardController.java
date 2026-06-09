@@ -11,6 +11,7 @@ import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.dto.file.FileResponse;
+import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.service.board.BoardService;
 import com.corum.backend.service.comment.CommentService;
@@ -41,6 +42,7 @@ public class BoardController {
     private final FileStorageService fileStorageService;
     private final OperationLogService operationLogService;
     private final MemberGroupRepository memberGroupRepository;
+    private final BoardGroupPermissionRepository boardGroupPermissionRepository;
 
     // ===== 게시판 =====
 
@@ -150,8 +152,8 @@ public class BoardController {
             @Valid @RequestBody PostCreateRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(userDetails.getMemberId());
-        return ApiResponse.ok(postService.updatePost(postId, request, userDetails.getMemberId(), isAdmin));
+        boolean canManage = hasManagePermission(boardId, userDetails.getMemberId());
+        return ApiResponse.ok(postService.updatePost(postId, request, userDetails.getMemberId(), canManage));
     }
 
     @DeleteMapping("/api/boards/{boardId}/posts/{postId}")
@@ -160,8 +162,17 @@ public class BoardController {
             @PathVariable Long postId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        postService.deletePost(postId, userDetails.getMemberId(), false);
+        boolean canManage = hasManagePermission(boardId, userDetails.getMemberId());
+        postService.deletePost(postId, userDetails.getMemberId(), canManage);
         return ApiResponse.ok("게시글이 삭제되었습니다.");
+    }
+
+    /** 게시판 관리 권한: 전체 관리자(ADMIN 그룹) OR 해당 게시판의 can_manage 권한 */
+    private boolean hasManagePermission(Long boardId, Long memberId) {
+        if (memberGroupRepository.existsAdminGroupByMemberId(memberId)) return true;
+        java.util.List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        if (groupIds.isEmpty()) return false;
+        return boardGroupPermissionRepository.existsManagePermission(boardId, groupIds);
     }
 
     @PostMapping("/api/boards/{boardId}/posts/{postId}/like")
