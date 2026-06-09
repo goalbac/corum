@@ -61,14 +61,33 @@ public class MailService {
         sender.setPassword(setting.getSmtpPasswordEnc());
         sender.setDefaultEncoding(StandardCharsets.UTF_8.name());
 
+        int port = setting.getSmtpPort() != null ? setting.getSmtpPort() : 587;
+        boolean useTls = Boolean.TRUE.equals(setting.getSmtpUseTls());
+        // 포트 465 = SSL(SMTPS), 포트 587/25 = STARTTLS
+        boolean useSsl = (port == 465);
+
         Properties props = sender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", String.valueOf(Boolean.TRUE.equals(setting.getSmtpUseTls())));
-        props.put("mail.smtp.starttls.required", String.valueOf(Boolean.TRUE.equals(setting.getSmtpUseTls())));
         props.put("mail.smtp.connectiontimeout", "10000");
         props.put("mail.smtp.timeout", "10000");
         props.put("mail.smtp.writetimeout", "10000");
+
+        if (useSsl) {
+            // SSL-wrapped (포트 465) — STARTTLS 비활성화, SSL 활성화
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.ssl.trust", setting.getSmtpHost());
+            props.put("mail.smtp.starttls.enable", "false");
+            props.put("mail.smtp.starttls.required", "false");
+        } else if (useTls) {
+            // STARTTLS (포트 587)
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.starttls.required", "true");
+            props.put("mail.smtp.ssl.enable", "false");
+        } else {
+            props.put("mail.smtp.starttls.enable", "false");
+            props.put("mail.smtp.ssl.enable", "false");
+        }
         return sender;
     }
 
