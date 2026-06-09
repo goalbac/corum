@@ -59,6 +59,13 @@ public class GroupController {
         return ApiResponse.ok("그룹이 삭제되었습니다.");
     }
 
+    // 그룹 순서 저장: id 배열을 받아 index 순서대로 sortOrder 재배정
+    @PutMapping("/api/groups/sort")
+    public ApiResponse<Void> sortGroups(@RequestBody List<Long> ids) {
+        groupService.sortGroups(ids);
+        return ApiResponse.ok("순서가 저장되었습니다.");
+    }
+
     // ===== 회원 그룹 부여/회수 (/api/member-groups 로 분리) =====
 
     // 회원에게 그룹 부여

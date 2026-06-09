@@ -77,12 +77,17 @@ public class GroupService {
         type     = parent.getType();
         parentId = parent.getId();
 
+        // sortOrder 미지정 시 해당 부모의 마지막 순서 + 1
+        int sortOrder = (request.getSortOrder() != null)
+                ? request.getSortOrder()
+                : groupRepository.findMaxSortOrderByParentId(parentId) + 1;
+
         Group group = Group.builder()
                 .parentId(parentId)
                 .name(request.getName())
                 .description(request.getDescription())
                 .type(type)
-                .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0)
+                .sortOrder(sortOrder)
                 .isSystem(false)
                 .build();
 
@@ -122,6 +127,15 @@ public class GroupService {
         }
 
         groupRepository.delete(group);
+    }
+
+    // ===== 그룹 순서 저장 =====
+    @Transactional
+    public void sortGroups(List<Long> ids) {
+        for (int i = 0; i < ids.size(); i++) {
+            final int order = i;
+            groupRepository.findById(ids.get(i)).ifPresent(g -> g.update(g.getName(), g.getDescription(), order));
+        }
     }
 
     // ===== 회원에게 그룹 부여 =====

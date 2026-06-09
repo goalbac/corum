@@ -20,4 +20,8 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     // 특정 타입의 최상위 그룹
     @Query("SELECT g FROM Group g WHERE g.parentId IS NULL AND g.type = :type ORDER BY g.sortOrder ASC")
     List<Group> findRootGroupsByType(String type);
+
+    // 동일 부모 내 최대 sortOrder
+    @Query("SELECT COALESCE(MAX(g.sortOrder), -1) FROM Group g WHERE g.parentId = :parentId")
+    int findMaxSortOrderByParentId(Long parentId);
 }

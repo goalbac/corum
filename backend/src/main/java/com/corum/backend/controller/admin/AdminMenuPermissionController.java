@@ -188,10 +188,12 @@ public class AdminMenuPermissionController {
         return ApiResponse.ok(roots);
     }
 
-    /** ADMIN 타입 하위 그룹만 (최상위 운영 그룹 제외) */
+    /** ADMIN 타입 하위 그룹 중 최고관리자(is_system=true) 제외 */
     private List<Group> getAdminSubGroups() {
         return groupRepository.findAllByOrderBySortOrderAsc().stream()
-                .filter(g -> "ADMIN".equals(g.getType()) && g.getParentId() != null)
+                .filter(g -> "ADMIN".equals(g.getType())
+                        && g.getParentId() != null
+                        && !Boolean.TRUE.equals(g.getIsSystem()))
                 .collect(Collectors.toList());
     }
 
