@@ -79,6 +79,10 @@
                   </div>
                 </div>
                 <el-dropdown-item @click="$router.push('/mypage')">마이페이지</el-dropdown-item>
+                <el-dropdown-item @click="$router.push('/messages')">
+                  쪽지함
+                  <span v-if="unreadCount > 0" class="msg-badge">{{ unreadCount }}</span>
+                </el-dropdown-item>
                 <el-dropdown-item
                   v-if="authStore.member?.isAdmin || authStore.member?.admin"
                   @click="$router.push('/admin')"
@@ -116,17 +120,26 @@ const menuStore = useMenuStore()
 const themeStore = useThemeStore()
 const router = useRouter()
 
-const siteName = ref('')
-const logoUrl = ref('')
+const siteName   = ref('')
+const logoUrl    = ref('')
+const unreadCount = ref(0)
 
 onMounted(async () => {
   try {
     const res = await api.get('/site/public')
     const d = res.data.data
     siteName.value = d.siteName || ''
-    logoUrl.value = d.logoUrl || ''
+    logoUrl.value  = d.logoUrl  || ''
   } catch { /* ignore */ }
 })
+
+watch(() => authStore.isLoggedIn, async (loggedIn) => {
+  if (!loggedIn) { unreadCount.value = 0; return }
+  try {
+    const res = await api.get('/messages/unread-count')
+    unreadCount.value = res.data.data?.count || 0
+  } catch { /* ignore */ }
+}, { immediate: true })
 
 async function handleTopMenuClick(menu) {
   await menuStore.fetchMenus()
@@ -319,6 +332,21 @@ async function handleLogout() {
 }
 
 .user-arrow { font-size: 13px; color: var(--t3); }
+.msg-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 4px;
+  margin-left: 6px;
+}
+
 .admin-link {
   display: inline-flex;
   align-items: center;

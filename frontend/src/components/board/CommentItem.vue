@@ -19,7 +19,11 @@
 
       <div class="comment-body">
         <div class="comment-meta">
-          <span class="comment-writer">{{ comment.writerName }}</span>
+          <button
+            class="comment-writer"
+            :class="{ clickable: authStore.isLoggedIn && comment.memberId }"
+            @click="openProfile(comment.memberId)"
+          >{{ comment.writerName }}</button>
           <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
         </div>
 
@@ -120,6 +124,11 @@
       @refresh="$emit('refresh')"
     />
   </div>
+
+  <UserProfileModal
+    v-model="profileModalVisible"
+    :member-id="profileTargetId"
+  />
 </template>
 
 <script setup>
@@ -127,6 +136,7 @@ import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
+import UserProfileModal from '@/components/common/UserProfileModal.vue'
 
 const props = defineProps({
   comment:    { type: Object, required: true },
@@ -148,6 +158,15 @@ const replyContent = ref('')
 const isOwner = computed(() =>
   authStore.isLoggedIn && authStore.member?.id === props.comment.memberId
 )
+
+const profileModalVisible = ref(false)
+const profileTargetId     = ref(null)
+
+function openProfile(memberId) {
+  if (!memberId || !authStore.isLoggedIn) return
+  profileTargetId.value     = memberId
+  profileModalVisible.value = true
+}
 
 function startEdit() {
   editContent.value = props.comment.content
@@ -258,7 +277,20 @@ function formatDate(dateStr) {
   margin-bottom: 5px;
 }
 
-.comment-writer { font-size: 14px; font-weight: 700; color: var(--t1); }
+.comment-writer {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: default;
+}
+.comment-writer.clickable {
+  cursor: pointer;
+}
+.comment-writer.clickable:hover { color: var(--accent); }
 .comment-date   { font-size: 12px; color: var(--t3); }
 
 .comment-content {

@@ -37,7 +37,7 @@
             v-for="tab in tabs"
             :key="tab.name"
             :class="['pnav-item', { active: activeTab === tab.name }]"
-            @click="activeTab = tab.name"
+            @click="tab.name === 'messages' ? router.push('/messages') : (activeTab = tab.name)"
           >
             <i :class="`ti ${tab.icon}`"></i>
             {{ tab.label }}
@@ -173,14 +173,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 
 const router = useRouter()
+const route  = useRoute()
 const authStore = useAuthStore()
-const activeTab = ref('info')
+const activeTab = ref(route.query.tab || 'info')
 const loading = ref(false)
 const saving = ref(false)
 const pwSaving = ref(false)
@@ -194,6 +195,7 @@ const myAvatarError = ref(false)
 const tabs = [
   { name: 'info',     icon: 'ti-user',     label: '내 정보' },
   { name: 'password', icon: 'ti-lock',     label: '비밀번호 변경' },
+  { name: 'messages', icon: 'ti-messages', label: '쪽지' },
   { name: 'withdraw', icon: 'ti-door-exit', label: '회원 탈퇴' }
 ]
 

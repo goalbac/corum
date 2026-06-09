@@ -7,6 +7,8 @@ import com.corum.backend.domain.message.Message;
 import com.corum.backend.domain.message.MessageRecipient;
 import com.corum.backend.domain.message.MessageRecipientRepository;
 import com.corum.backend.domain.message.MessageRepository;
+import com.corum.backend.dto.message.ChatMessageResponse;
+import com.corum.backend.dto.message.ConversationSummary;
 import com.corum.backend.dto.message.MessageResponse;
 import com.corum.backend.dto.message.MessageSendRequest;
 import com.corum.backend.service.mail.MailService;
@@ -17,8 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,11 +34,15 @@ public class MessageService {
     // ===== 쪽지 발송 =====
     @Transactional
     public void send(MessageSendRequest request, Long senderId) {
+        String title = (request.getTitle() == null || request.getTitle().isBlank())
+                ? truncate(request.getContent(), 50)
+                : request.getTitle();
+
         Message message = Message.builder()
                 .senderId(senderId)
-                .title(request.getTitle())
+                .title(title)
                 .content(request.getContent())
-                .isNotice(request.getIsNotice())
+                .isNotice(request.getIsNotice() != null && request.getIsNotice())
                 .build();
         Message saved = messageRepository.save(message);
 
@@ -113,6 +118,134 @@ public class MessageService {
                 .countByRecipientIdAndIsReadFalseAndIsDeletedByRecipientFalse(memberId);
     }
 
+    // ===== 대화 목록 =====
+    @Transactional(readOnly = true)
+    public List<ConversationSummary> getConversations(Long memberId) {
+        // 1. 내가 받은 MR 전체
+        List<MessageRecipient> inboxMrs =
+                messageRecipientRepository.findAllByRecipientIdAndIsDeletedByRecipientFalse(memberId);
+        List<Long> inboxMsgIds = inboxMrs.stream().map(MessageRecipient::getMessageId).collect(Collectors.toList());
+        Map<Long, Message> inboxMsgMap = new HashMap<>();
+        if (!inboxMsgIds.isEmpty()) {
+            messageRepository.findAllById(inboxMsgIds).stream()
+                    .filter(m -> !m.getIsNotice())
+                    .forEach(m -> inboxMsgMap.put(m.getId(), m));
+        }
+        Map<Long, Boolean> inboxReadMap = inboxMrs.stream()
+                .collect(Collectors.toMap(MessageRecipient::getMessageId, MessageRecipient::getIsRead,
+                        (a, b) -> a));
+
+        // 2. 내가 보낸 메시지 전체 (공지 제외)
+        List<Message> sentMessages =
+                messageRepository.findBySenderIdAndIsNoticeFalseOrderByCreatedAtDesc(memberId);
+        List<Long> sentMsgIds = sentMessages.stream().map(Message::getId).collect(Collectors.toList());
+        Map<Long, Message> sentMsgMap = sentMessages.stream()
+                .collect(Collectors.toMap(Message::getId, m -> m));
+
+        // 3. 보낸 메시지의 수신자(MR) 목록
+        Map<Long, List<MessageRecipient>> sentMrsByMsgId = new HashMap<>();
+        if (!sentMsgIds.isEmpty()) {
+            messageRecipientRepository.findAllByMessageIdIn(sentMsgIds).forEach(mr -> {
+                if (!mr.getIsDeletedBySender()) {
+                    sentMrsByMsgId.computeIfAbsent(mr.getMessageId(), k -> new ArrayList<>()).add(mr);
+                }
+            });
+        }
+
+        // 4. 파트너별 ConversationData 집계
+        Map<Long, ConversationData> partnerData = new LinkedHashMap<>();
+
+        for (MessageRecipient mr : inboxMrs) {
+            Message msg = inboxMsgMap.get(mr.getMessageId());
+            if (msg == null) continue;
+            Long partnerId = msg.getSenderId();
+            if (partnerId.equals(memberId)) continue;
+
+            ConversationData data = partnerData.computeIfAbsent(partnerId, k -> new ConversationData());
+            if (data.lastAt == null || msg.getCreatedAt().isAfter(data.lastAt)) {
+                data.lastMsg    = msg;
+                data.lastAt     = msg.getCreatedAt();
+                data.lastIsMine = false;
+            }
+            if (!mr.getIsRead()) data.unreadCount++;
+        }
+
+        for (Message msg : sentMessages) {
+            List<MessageRecipient> mrs = sentMrsByMsgId.getOrDefault(msg.getId(), List.of());
+            for (MessageRecipient mr : mrs) {
+                Long partnerId = mr.getRecipientId();
+                if (partnerId.equals(memberId)) continue;
+
+                ConversationData data = partnerData.computeIfAbsent(partnerId, k -> new ConversationData());
+                if (data.lastAt == null || msg.getCreatedAt().isAfter(data.lastAt)) {
+                    data.lastMsg    = msg;
+                    data.lastAt     = msg.getCreatedAt();
+                    data.lastIsMine = true;
+                }
+            }
+        }
+
+        // 5. 파트너 멤버 정보 조회
+        List<Long> partnerIds = new ArrayList<>(partnerData.keySet());
+        Map<Long, Member> partnerMembers = memberRepository.findAllById(partnerIds).stream()
+                .collect(Collectors.toMap(Member::getId, m -> m));
+
+        // 6. 최신 순으로 정렬해 반환
+        return partnerData.entrySet().stream()
+                .map(entry -> {
+                    Long partnerId     = entry.getKey();
+                    ConversationData d = entry.getValue();
+                    Member partner     = partnerMembers.get(partnerId);
+                    return new ConversationSummary(
+                            partnerId,
+                            partner != null ? partner.getName() : "알 수 없음",
+                            partner != null ? partner.getProfileImageUrl() : null,
+                            truncate(d.lastMsg.getContent(), 60),
+                            d.lastAt,
+                            d.unreadCount,
+                            d.lastIsMine
+                    );
+                })
+                .sorted(Comparator.comparing(ConversationSummary::getLastAt).reversed())
+                .collect(Collectors.toList());
+    }
+
+    // ===== 특정 파트너와의 대화 내역 =====
+    @Transactional(readOnly = true)
+    public List<ChatMessageResponse> getConversation(Long me, Long partnerId) {
+        List<MessageRecipient> sent     = messageRecipientRepository.findSentToPartner(me, partnerId);
+        List<MessageRecipient> received = messageRecipientRepository.findReceivedFromPartner(me, partnerId);
+
+        List<Long> allIds = new ArrayList<>();
+        sent.forEach(mr -> allIds.add(mr.getMessageId()));
+        received.forEach(mr -> allIds.add(mr.getMessageId()));
+
+        Map<Long, Message> msgMap = messageRepository.findAllById(allIds).stream()
+                .collect(Collectors.toMap(Message::getId, m -> m));
+        Map<Long, Boolean> readMap = received.stream()
+                .collect(Collectors.toMap(MessageRecipient::getMessageId, MessageRecipient::getIsRead,
+                        (a, b) -> a));
+
+        List<ChatMessageResponse> result = new ArrayList<>();
+        sent.forEach(mr -> {
+            Message m = msgMap.get(mr.getMessageId());
+            if (m != null) result.add(new ChatMessageResponse(m, true, mr.getIsRead()));
+        });
+        received.forEach(mr -> {
+            Message m = msgMap.get(mr.getMessageId());
+            if (m != null) result.add(new ChatMessageResponse(m, false, mr.getIsRead()));
+        });
+
+        result.sort(Comparator.comparing(ChatMessageResponse::getCreatedAt));
+        return result;
+    }
+
+    // ===== 파트너에게서 받은 쪽지 일괄 읽음 처리 =====
+    @Transactional
+    public void markConversationRead(Long me, Long partnerId) {
+        messageRecipientRepository.markAllReadFromPartner(me, partnerId);
+    }
+
     // ===== 내부 메서드 =====
     private Page<MessageResponse> toMessageResponsePage(Page<MessageRecipient> page, Pageable pageable) {
         List<Long> messageIds = page.getContent().stream()
@@ -136,5 +269,17 @@ public class MessageService {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(responses, pageable, page.getTotalElements());
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max) + "…";
+    }
+
+    private static class ConversationData {
+        Message lastMsg;
+        java.time.LocalDateTime lastAt;
+        boolean lastIsMine;
+        long unreadCount;
     }
 }

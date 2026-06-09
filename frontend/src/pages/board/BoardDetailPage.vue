@@ -20,7 +20,11 @@
             />
             <span v-else class="writer-avatar-fallback">{{ post.writerName?.charAt(0) || 'U' }}</span>
             <div class="writer-texts">
-              <span class="writer-name">{{ post.writerName }}</span>
+              <button
+                class="writer-name"
+                :class="{ clickable: authStore.isLoggedIn && post.memberId }"
+                @click="openProfile(post.memberId)"
+              >{{ post.writerName }}</button>
               <span class="post-date">{{ formatDate(post.createdAt) }}</span>
             </div>
           </div>
@@ -128,6 +132,11 @@
       </div>
     </template>
   </div>
+
+  <UserProfileModal
+    v-model="profileModalVisible"
+    :member-id="profileTargetId"
+  />
 </template>
 
 <script setup>
@@ -138,6 +147,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 import CommentSection from '@/components/board/CommentSection.vue'
+import UserProfileModal from '@/components/common/UserProfileModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -151,6 +161,14 @@ const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menu
 
 const post = ref(null)
 const board = ref(null)
+const profileModalVisible = ref(false)
+const profileTargetId     = ref(null)
+
+function openProfile(memberId) {
+  if (!memberId || !authStore.isLoggedIn) return
+  profileTargetId.value     = memberId
+  profileModalVisible.value = true
+}
 const adjacent = ref(null)
 const loading = ref(false)
 const postAvatarError = ref(false)
@@ -324,7 +342,16 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 700;
   color: var(--t1);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: default;
 }
+.writer-name.clickable {
+  cursor: pointer;
+}
+.writer-name.clickable:hover { color: var(--accent); }
 
 .post-date {
   font-size: 12px;
