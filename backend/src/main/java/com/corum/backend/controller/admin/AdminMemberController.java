@@ -215,6 +215,7 @@ public class AdminMemberController {
     }
 
     @DeleteMapping("/{id}/groups/{groupId}")
+    @Transactional
     public ApiResponse<Void> removeGroup(@PathVariable Long id,
                                          @PathVariable Long groupId,
                                          @AuthenticationPrincipal CustomUserDetails userDetails,

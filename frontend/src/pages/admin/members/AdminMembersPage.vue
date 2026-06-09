@@ -11,8 +11,8 @@
     <div class="adm-card">
       <div class="adm-toolbar">
         <input v-model="keyword" class="adm-search-input" placeholder="이름/아이디/이메일 검색" @keyup.enter="fetchMembers(1)" />
-        <el-select v-model="groupFilter" style="width:130px" clearable placeholder="그룹 필터" @change="fetchMembers(1)">
-          <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+        <el-select v-model="groupFilter" style="width:160px" clearable placeholder="그룹 필터" @change="fetchMembers(1)">
+          <el-option v-for="g in filterGroupOptions" :key="g.id" :value="g.id" :label="g.label" />
         </el-select>
         <el-select v-model="statusFilter" style="width:110px" @change="fetchMembers(1)">
           <el-option value="" label="전체" />
@@ -81,8 +81,8 @@
           <span v-for="g in (detail.groups||[])" :key="g.id" class="adm-badge badge-primary" style="cursor:pointer" @click="removeGroup(g.id)">
             {{ g.name }} <i class="ti ti-x" style="font-size:10px"></i>
           </span>
-          <el-select v-model="addGroupId" placeholder="그룹 추가" style="width:150px" @change="addGroup">
-            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+          <el-select v-model="addGroupId" placeholder="그룹 추가..." style="width:180px" @change="addGroup">
+            <el-option v-for="g in subGroupOptions" :key="g.id" :value="g.id" :label="g.label" />
           </el-select>
         </div>
         <hr class="dlg-divider" />
@@ -176,7 +176,23 @@ const emptyCreateForm = () => ({
 })
 const createForm = ref(emptyCreateForm())
 
+// 전체 flat (그룹 필터용)
 const flatGroups = computed(() => { const r = []; const w = (n) => n.forEach(x => { r.push(x); if (x.children?.length) w(x.children) }); w(groups.value); return r })
+
+// 그룹 추가 셀렉터용: 최상위 제외, "운영 - 최고관리자" 형식
+const subGroupOptions = computed(() => {
+  const r = []
+  groups.value.forEach(root => {
+    if (!root.children?.length) return
+    root.children.forEach(child => {
+      r.push({ id: child.id, label: `${root.name} - ${child.name}` })
+    })
+  })
+  return r
+})
+
+// 목록 필터용 그룹 옵션도 동일 형식 (최상위 제외)
+const filterGroupOptions = computed(() => subGroupOptions.value)
 
 async function fetchMembers(p = page.value) {
   page.value = p; loading.value = true
