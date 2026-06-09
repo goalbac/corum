@@ -1,46 +1,67 @@
 <template>
   <div class="adm-page">
-    <AdminPageHeader title="대시보드 관리" desc="대시보드 위젯 추가 및 순서 설정">
-      <button class="adm-btn ghost" :disabled="!sortChanged || sortSaving" @click="saveSortOrder">
-        <i :class="['ti', sortSaving ? 'ti-loader-2 spinning' : 'ti-check']"></i> 순서 저장
+    <AdminPageHeader title="대시보드 관리" desc="드래그하여 위젯 순서를 변경하세요.">
+      <button
+        class="adm-btn"
+        :class="sortChanged ? 'primary' : 'ghost'"
+        :disabled="!sortChanged || sortSaving"
+        @click="saveSortOrder"
+      >
+        <i v-if="sortSaving" class="ti ti-loader-2 spinning"></i>
+        <i v-else class="ti ti-check"></i>
+        {{ sortSaving ? '저장 중...' : '순서 저장' }}
       </button>
-      <button class="adm-btn primary" @click="openCreate"><i class="ti ti-plus"></i> 위젯 추가</button>
+      <button class="adm-btn primary" @click="openCreate">
+        <i class="ti ti-plus"></i> 위젯 추가
+      </button>
     </AdminPageHeader>
 
     <div class="adm-card" v-loading="loading">
       <div class="at-wrap">
         <div class="at-head">
-          <div class="at-col" style="width:52px;text-align:center">순서</div>
+          <div class="at-col" style="width:36px"></div>
           <div class="at-col" style="width:130px">유형</div>
           <div class="at-col" style="flex:1">제목</div>
           <div class="at-col" style="width:140px">대상 게시판</div>
           <div class="at-col" style="width:70px;text-align:center">상태</div>
           <div class="at-col" style="width:90px;text-align:center">관리</div>
         </div>
-        <div ref="widgetSortable">
-        <div v-for="row in widgets" :key="row.id" :data-id="row.id" class="at-row sortable-widget-row">
-          <div class="at-col muted order-col" style="width:52px;text-align:center">
-            <i class="ti ti-grip-vertical drag-handle" title="드래그해서 순서 변경"></i>
-            <span>{{ row.sortOrder }}</span>
-          </div>
-          <div class="at-col" style="width:130px">
-            <span class="adm-badge badge-primary">{{ typeLabel(row.widgetType) }}</span>
-          </div>
-          <div class="at-col bold" style="flex:1">{{ row.title }}</div>
-          <div class="at-col muted" style="width:140px">{{ row.targetBoardName || '-' }}</div>
-          <div class="at-col" style="width:70px;text-align:center">
-            <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
-          </div>
-          <div class="at-col at-actions" style="width:90px">
-            <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
-            <button class="act-btn danger" @click="deleteWidget(row.id)"><i class="ti ti-trash"></i></button>
+
+        <!-- 드래그 가능한 목록 -->
+        <div ref="sortableEl">
+          <div
+            v-for="row in widgets"
+            :key="row.id"
+            :data-id="row.id"
+            class="at-row sortable-row"
+          >
+            <div class="at-col" style="width:36px;justify-content:center">
+              <i class="ti ti-grip-vertical drag-handle" title="드래그하여 순서 변경"></i>
+            </div>
+            <div class="at-col" style="width:130px">
+              <span class="adm-badge badge-primary">{{ typeLabel(row.widgetType) }}</span>
+            </div>
+            <div class="at-col bold" style="flex:1">{{ row.title || '-' }}</div>
+            <div class="at-col muted" style="width:140px">{{ row.targetBoardName || '-' }}</div>
+            <div class="at-col" style="width:70px;text-align:center">
+              <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">
+                {{ row.isActive ? '활성' : '비활성' }}
+              </span>
+            </div>
+            <div class="at-col at-actions" style="width:90px">
+              <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
+              <button class="act-btn danger" @click="deleteWidget(row.id)"><i class="ti ti-trash"></i></button>
+            </div>
           </div>
         </div>
+
+        <div v-if="!widgets.length && !loading" class="at-empty">
+          <i class="ti ti-layout-dashboard"></i><span>등록된 위젯이 없습니다.</span>
         </div>
-        <div v-if="!widgets.length && !loading" class="at-empty"><i class="ti ti-layout-dashboard"></i><span>등록된 위젯이 없습니다.</span></div>
       </div>
     </div>
 
+    <!-- 위젯 폼 다이얼로그 -->
     <el-dialog v-model="showForm" :title="editing ? '위젯 수정' : '위젯 추가'" width="520px" destroy-on-close>
       <div class="dlg-form">
         <div class="dlg-row">
@@ -60,10 +81,6 @@
           </div>
         </div>
         <div class="dlg-row">
-          <div class="dlg-field">
-            <label>순서</label>
-            <el-input-number v-model="form.sortOrder" :min="0" style="width:100%" />
-          </div>
           <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
             <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
           </div>
@@ -141,21 +158,54 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-const widgets = ref([])
-const boards  = ref([])
-const loading = ref(false)
-const saving  = ref(false)
-const sortSaving = ref(false)
+const widgets     = ref([])
+const boards      = ref([])
+const loading     = ref(false)
+const saving      = ref(false)
+const sortSaving  = ref(false)
 const sortChanged = ref(false)
-const showForm = ref(false)
-const editing  = ref(null)
-const widgetSortable = ref(null)
-let sortableInstance = null
+const showForm    = ref(false)
+const editing     = ref(null)
+
+const sortableEl  = ref(null)
+let   sortableInst = null
 
 const defaultForm = () => ({ widgetType: 'RECENT_POSTS', title: '', targetBoardId: null, postCount: 5, sortOrder: 0, isActive: true })
 const form   = ref(defaultForm())
 const config = ref({ slides: [], links: [] })
 
+// ===== SortableJS =====
+function initSortable() {
+  if (sortableInst) { sortableInst.destroy(); sortableInst = null }
+  if (!sortableEl.value) return
+  sortableInst = Sortable.create(sortableEl.value, {
+    animation: 180,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd() { sortChanged.value = true }
+  })
+}
+
+async function saveSortOrder() {
+  if (!sortableEl.value) return
+  sortSaving.value = true
+  try {
+    const ids = Array.from(sortableEl.value.children)
+      .map(el => parseInt(el.dataset.id))
+      .filter(Boolean)
+    await api.put('/admin/dashboard/widgets/sort', ids)
+    ElMessage.success('순서가 저장되었습니다.')
+    sortChanged.value = false
+    await fetchWidgets()
+  } catch {
+    ElMessage.error('순서 저장에 실패했습니다.')
+  } finally {
+    sortSaving.value = false
+  }
+}
+
+// ===== 데이터 =====
 async function fetchWidgets() {
   loading.value = true
   try {
@@ -163,47 +213,25 @@ async function fetchWidgets() {
     widgets.value = r.data.data || []
     await nextTick()
     initSortable()
-  }
-  finally { loading.value = false }
-}
-async function fetchBoards() { const r = await api.get('/boards'); boards.value = r.data.data || [] }
-
-function initSortable() {
-  if (sortableInstance) {
-    sortableInstance.destroy()
-    sortableInstance = null
-  }
-  if (!widgetSortable.value) return
-
-  sortableInstance = Sortable.create(widgetSortable.value, {
-    animation: 150,
-    handle: '.drag-handle',
-    ghostClass: 'sortable-ghost',
-    dragClass: 'sortable-drag',
-    onEnd: () => { sortChanged.value = true }
-  })
-}
-
-async function saveSortOrder() {
-  if (!widgetSortable.value) return
-  sortSaving.value = true
-  try {
-    const widgetIds = Array.from(widgetSortable.value.children)
-      .map(el => parseInt(el.dataset.id))
-      .filter(Boolean)
-    await api.put('/admin/dashboard/widgets/sort', widgetIds)
-    ElMessage.success('순서가 저장되었습니다.')
-    sortChanged.value = false
-    await fetchWidgets()
-  } catch (e) {
-    ElMessage.error('순서 저장에 실패했습니다.')
   } finally {
-    sortSaving.value = false
+    loading.value = false
   }
 }
+async function fetchBoards() {
+  try { const r = await api.get('/boards'); boards.value = r.data.data || [] } catch {}
+}
 
+// ===== 폼 =====
 function onTypeChange() { config.value = { slides: [], links: [] } }
-function openCreate() { editing.value = null; form.value = defaultForm(); config.value = { slides: [], links: [] }; showForm.value = true }
+
+function openCreate() {
+  editing.value = null
+  form.value = defaultForm()
+  form.value.sortOrder = widgets.value.length
+  config.value = { slides: [], links: [] }
+  showForm.value = true
+}
+
 function openEdit(w) {
   editing.value = w
   form.value = { ...w }
@@ -217,44 +245,64 @@ async function saveWidget() {
   try {
     const extra = {}
     if (form.value.widgetType === 'IMAGE_SLIDER') extra.slides = config.value.slides
-    if (form.value.widgetType === 'LINK_LIST') extra.links = config.value.links
+    if (form.value.widgetType === 'LINK_LIST')    extra.links  = config.value.links
     const payload = { ...form.value, extraConfig: JSON.stringify(extra) }
-    editing.value ? await api.put(`/admin/dashboard/widgets/${editing.value.id}`, payload) : await api.post('/admin/dashboard/widgets', payload)
+    editing.value
+      ? await api.put(`/admin/dashboard/widgets/${editing.value.id}`, payload)
+      : await api.post('/admin/dashboard/widgets', payload)
     ElMessage.success('저장되었습니다.')
     showForm.value = false
-    fetchWidgets()
-  } finally { saving.value = false }
+    sortChanged.value = false
+    await fetchWidgets()
+  } finally {
+    saving.value = false
+  }
 }
 
 async function deleteWidget(id) {
   await ElMessageBox.confirm('위젯을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' })
   await api.delete(`/admin/dashboard/widgets/${id}`)
   ElMessage.success('삭제되었습니다.')
-  fetchWidgets()
+  sortChanged.value = false
+  await fetchWidgets()
 }
 
-function typeLabel(t) { return { RECENT_POSTS: '최신 글', IMAGE_SLIDER: '슬라이더', LINK_LIST: '링크', MEMBER_STATS: '회원 현황', VISIT_STATS: '접속 통계' }[t] || t }
+function typeLabel(t) {
+  return { RECENT_POSTS: '최신 글', IMAGE_SLIDER: '슬라이더', LINK_LIST: '링크', MEMBER_STATS: '회원 현황', VISIT_STATS: '접속 통계' }[t] || t
+}
+
 onMounted(() => { fetchWidgets(); fetchBoards() })
-onBeforeUnmount(() => {
-  if (sortableInstance) sortableInstance.destroy()
-})
+onBeforeUnmount(() => { if (sortableInst) sortableInst.destroy() })
 </script>
 
 <style scoped>
 @import '@/assets/admin-table.css';
-.sub-item { background: var(--surface2); border: 0.5px solid var(--border2); border-radius: var(--radius-xs); padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
-.order-col { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+
 .drag-handle {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--t3);
   cursor: grab;
   transition: color 0.15s;
 }
 .drag-handle:active { cursor: grabbing; }
-.sortable-widget-row:hover .drag-handle { color: var(--t2); }
+.sortable-row:hover .drag-handle { color: var(--t1); }
+
+.sub-item {
+  background: var(--surface2);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 0.7s linear infinite; display: inline-block; }
 </style>
 
 <style>
-.sortable-ghost { opacity: 0.4; background: var(--accent-bg) !important; }
-.sortable-drag { background: var(--surface) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; border-radius: 8px !important; }
+.sortable-ghost { opacity: 0.35; background: var(--accent-bg) !important; }
+.sortable-drag  { background: var(--surface) !important; box-shadow: 0 4px 20px rgba(0,0,0,0.13) !important; border-radius: 8px !important; opacity: 1 !important; }
 </style>

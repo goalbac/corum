@@ -60,6 +60,12 @@ public class AdminDashboardWidgetController {
         return ApiResponse.ok(dashboardWidgetService.update(id, request, memberId));
     }
 
+    @PutMapping("/sort")
+    public ApiResponse<Void> reorder(@RequestBody List<Long> orderedIds) {
+        dashboardWidgetService.reorder(orderedIds);
+        return ApiResponse.ok("순서가 저장되었습니다.");
+    }
+
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         dashboardWidgetService.delete(id);
