@@ -103,8 +103,15 @@
     <el-dialog v-model="showForm" :title="editing ? '메뉴 수정' : '메뉴 추가'" width="520px" destroy-on-close>
       <el-form :model="form" label-position="top">
 
+        <!-- 1. 상위 메뉴: 추가 시만 선택 가능, 수정 시 비활성 -->
         <el-form-item label="상위 메뉴">
-          <el-select v-model="parentId" clearable placeholder="없음 (최상위 메뉴)" style="width:100%">
+          <el-select
+            v-model="parentId"
+            clearable
+            placeholder="없음 (최상위 메뉴)"
+            style="width:100%"
+            :disabled="!!editing"
+          >
             <el-option
               v-for="m in flatMenus"
               :key="m.id"
@@ -112,33 +119,47 @@
               :label="'　'.repeat(m.depth) + m.name"
             />
           </el-select>
+          <div v-if="editing" class="form-hint">상위 메뉴는 생성 후 변경할 수 없습니다.</div>
         </el-form-item>
 
+        <!-- 2. 메뉴명 -->
+        <el-form-item label="메뉴명">
+          <el-input v-model="form.name" placeholder="메뉴명을 입력하세요" />
+        </el-form-item>
+
+        <!-- 3. 설명 -->
+        <el-form-item label="설명">
+          <el-input v-model="form.description" placeholder="페이지 상단에 표시될 설명 (선택)" />
+        </el-form-item>
+
+        <!-- 4. 유형: 최상위(parentId 없음)이면 GROUP(폴더) 고정 -->
         <div class="form-row">
-          <el-form-item label="메뉴명">
-            <el-input v-model="form.name" />
-          </el-form-item>
           <el-form-item label="유형">
-            <el-select v-model="form.menuType" style="width:100%" :disabled="!!editing">
+            <template v-if="!parentId">
+              <el-input model-value="그룹(폴더)" disabled style="width:100%" />
+              <div class="form-hint">최상위 메뉴는 폴더로 고정됩니다.</div>
+            </template>
+            <el-select v-else v-model="form.menuType" style="width:100%" :disabled="!!editing">
               <el-option value="PAGE"  label="페이지" />
               <el-option value="LINK"  label="링크" />
               <el-option value="GROUP" label="그룹(폴더)" />
             </el-select>
           </el-form-item>
-        </div>
 
-        <el-form-item v-if="form.menuType === 'PAGE'" label="페이지 유형">
-          <el-select v-model="form.pageType" style="width:100%" :disabled="!!editing">
-            <el-option value="BOARD"     label="게시판" />
-            <el-option value="CALENDAR"  label="캘린더 (/calendar 자동 연결)" />
-            <el-option value="CONTENT"   label="안내 페이지" />
-            <el-option value="DASHBOARD" label="대시보드 (/ 자동 연결)" />
-          </el-select>
-        </el-form-item>
+          <!-- 페이지 유형: parentId 있고 PAGE인 경우만 -->
+          <el-form-item v-if="parentId && form.menuType === 'PAGE'" label="페이지 유형">
+            <el-select v-model="form.pageType" style="width:100%" :disabled="!!editing">
+              <el-option value="BOARD"     label="게시판" />
+              <el-option value="CALENDAR"  label="캘린더" />
+              <el-option value="CONTENT"   label="안내 페이지" />
+              <el-option value="DASHBOARD" label="대시보드" />
+            </el-select>
+          </el-form-item>
+        </div>
 
         <!-- 대시보드 자동 연결 안내 -->
         <el-alert
-          v-if="form.menuType === 'PAGE' && form.pageType === 'DASHBOARD'"
+          v-if="parentId && form.menuType === 'PAGE' && form.pageType === 'DASHBOARD'"
           title="대시보드(/)로 자동 연결됩니다."
           type="info"
           :closable="false"
@@ -147,63 +168,65 @@
         />
 
         <!-- 캘린더 선택 -->
-        <el-form-item v-if="form.menuType === 'PAGE' && form.pageType === 'CALENDAR'" label="연결할 캘린더 (선택)">
-          <el-select v-model="form.targetId" style="width:100%" placeholder="캘린더 선택 (미선택 시 전체 캘린더 표시)" clearable>
-            <el-option
-              v-for="c in calendars"
-              :key="c.id"
-              :value="c.id"
-              :label="c.name"
-            />
+        <el-form-item v-if="parentId && form.menuType === 'PAGE' && form.pageType === 'CALENDAR'" label="연결할 캘린더 (선택)">
+          <el-select v-model="form.targetId" style="width:100%" placeholder="미선택 시 전체 캘린더 표시" clearable>
+            <el-option v-for="c in calendars" :key="c.id" :value="c.id" :label="c.name" />
           </el-select>
         </el-form-item>
 
-        <el-form-item v-if="form.menuType === 'PAGE' && form.pageType === 'BOARD'" label="연결할 게시판">
-          <el-select v-model="form.targetId" style="width:100%" placeholder="게시판 선택">
-            <el-option
-              v-for="b in boards"
-              :key="b.id"
-              :value="b.id"
-              :label="`[${boardTypeLabel(b.boardType)}] ${b.name}`"
-            />
-          </el-select>
-        </el-form-item>
-
+        <!-- 5. URL 설정: 추가 시 자동/직접, 수정 시 현재 URL 표시 -->
         <template v-if="form.menuType !== 'GROUP'">
-          <el-form-item label="URL 설정">
-            <el-radio-group v-model="form.urlAuto">
-              <el-radio :value="true">자동 (/{id})</el-radio>
-              <el-radio :value="false">직접 입력</el-radio>
-            </el-radio-group>
+          <!-- 수정 시: 현재 URL 읽기 전용 표시 -->
+          <el-form-item v-if="editing" label="URL">
+            <div class="url-readonly">
+              <span class="url-badge">현재</span>
+              <code class="url-value">{{ form.url || `/${editing.id}` }}</code>
+            </div>
+            <div class="form-hint" style="margin-top:5px">URL은 생성 시 결정되며 변경할 수 없습니다.</div>
           </el-form-item>
-          <el-form-item v-if="!form.urlAuto || form.menuType === 'LINK'" label="URL">
-            <el-input v-model="form.url" :placeholder="form.menuType === 'LINK' ? 'https://...' : '/notice'" />
-          </el-form-item>
+          <!-- 추가 시: 자동/직접 선택 -->
+          <template v-else>
+            <el-form-item label="URL 설정">
+              <el-radio-group v-model="form.urlAuto">
+                <el-radio :value="true">자동 (/{id})</el-radio>
+                <el-radio :value="false">직접 입력</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="!form.urlAuto || form.menuType === 'LINK'" label="URL">
+              <el-input v-model="form.url" :placeholder="form.menuType === 'LINK' ? 'https://...' : '/notice'" />
+            </el-form-item>
+          </template>
         </template>
 
-        <el-form-item label="설명">
-          <el-input v-model="form.description" placeholder="페이지 상단에 표시될 설명" />
-        </el-form-item>
-
-        <div class="form-row">
-          <el-form-item label="접근 권한">
-            <el-select v-model="form.accessType" style="width:100%">
-              <el-option value="ALL"   label="모든 사용자" />
-              <el-option value="LOGIN" label="로그인 사용자" />
-              <el-option value="GROUP" label="그룹 지정" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="순서">
-            <el-input-number v-model="form.sortOrder" :min="0" style="width:100%" />
-          </el-form-item>
-        </div>
-
-        <el-form-item v-if="form.accessType === 'GROUP'" label="접근 허용 그룹">
-          <el-select v-model="form.allowedGroupIds" multiple filterable style="width:100%" placeholder="조회 가능한 그룹 선택">
-            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+        <!-- 6. 접근 권한 -->
+        <el-form-item label="접근 권한">
+          <el-select v-model="form.accessType" style="width:100%">
+            <el-option value="ALL"   label="모든 사용자" />
+            <el-option value="LOGIN" label="로그인 사용자" />
+            <el-option value="GROUP" label="그룹 지정" />
           </el-select>
         </el-form-item>
 
+        <!-- 접근 허용 그룹: 최상위 그룹 제외, "상위 - 하위" 형식 표시 -->
+        <el-form-item v-if="form.accessType === 'GROUP'" label="접근 허용 그룹">
+          <el-select
+            v-model="form.allowedGroupIds"
+            multiple
+            filterable
+            style="width:100%"
+            placeholder="허용할 그룹을 선택하세요"
+          >
+            <el-option
+              v-for="g in subGroupOptions"
+              :key="g.id"
+              :value="g.id"
+              :label="g.label"
+            />
+          </el-select>
+          <div class="form-hint">최상위 그룹은 표시되지 않습니다.</div>
+        </el-form-item>
+
+        <!-- 7. 체크박스 (순서 필드 제거) -->
         <div class="check-row">
           <el-checkbox v-model="form.isHidden">메뉴 숨김</el-checkbox>
           <el-checkbox v-model="form.hideIfNoPermission">권한 없을 때 숨김</el-checkbox>
@@ -311,7 +334,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import Sortable from 'sortablejs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
@@ -385,6 +408,32 @@ const flatGroups = computed(() => {
   })
   walk(groups.value)
   return result
+})
+
+// 접근 허용 그룹 선택용: 최상위 그룹 제외, "상위 - 하위" 레이블 형식
+const subGroupOptions = computed(() => {
+  const result = []
+  const walk = (nodes = [], parentLabel = '') => {
+    nodes.forEach(g => {
+      if (parentLabel) {
+        // 하위 그룹 — 선택 가능
+        result.push({ id: g.id, label: `${parentLabel} - ${g.name}` })
+        if (g.children?.length) walk(g.children, `${parentLabel} - ${g.name}`)
+      } else {
+        // 최상위 그룹 — 선택 제외, 하위만 탐색
+        if (g.children?.length) walk(g.children, g.name)
+      }
+    })
+  }
+  walk(groups.value)
+  return result
+})
+
+// parentId가 없으면(최상위) 유형을 GROUP으로 자동 고정
+watch(parentId, (val) => {
+  if (!val && !editing.value) {
+    form.value.menuType = 'GROUP'
+  }
 })
 
 function typeIcon(t) {
@@ -569,6 +618,11 @@ function openCreate(parent) {
   parentId.value = parent?.id || null
   form.value     = defaultForm()
 
+  // 최상위 메뉴는 GROUP(폴더) 고정
+  if (!parentId.value) {
+    form.value.menuType = 'GROUP'
+  }
+
   // 같은 레벨 형제 메뉴의 최대 sortOrder + 1 을 기본값으로
   const siblings = parent?.id
     ? (flatMenus.value.filter(m => m.parentId === parent.id))
@@ -707,6 +761,39 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-xs);
   background: transparent;
   cursor: pointer;
+}
+
+/* URL 읽기 전용 표시 */
+.url-readonly {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+}
+.url-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-t);
+  background: var(--accent-bg);
+  border: 0.5px solid var(--accent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+.url-value {
+  font-size: 13px;
+  color: var(--t1);
+  font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* 폼 힌트 텍스트 */
+.form-hint {
+  font-size: 12px;
+  color: var(--t3);
+  margin-top: 4px;
 }
 </style>
 
