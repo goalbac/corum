@@ -53,4 +53,7 @@ public class SiteSettingUpdateRequest {
     private Boolean smtpUseTls;
 
     private String footerHtml;
+    private String contactAddress;
+    private String contactPhone;
+    private String adminEmail;
 }

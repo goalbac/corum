@@ -26,6 +26,10 @@ public class SiteSettingResponse {
     private final String smtpPasswordEnc;
     private final Boolean smtpUseTls;
     private final String footerHtml;
+    private final String logoUrl;
+    private final String contactAddress;
+    private final String contactPhone;
+    private final String adminEmail;
     private final LocalDateTime updatedAt;
     private final Long updatedBy;
 
@@ -48,6 +52,10 @@ public class SiteSettingResponse {
         this.smtpPasswordEnc = setting.getSmtpPasswordEnc();
         this.smtpUseTls = setting.getSmtpUseTls();
         this.footerHtml = setting.getFooterHtml();
+        this.logoUrl = setting.getLogoUrl();
+        this.contactAddress = setting.getContactAddress();
+        this.contactPhone = setting.getContactPhone();
+        this.adminEmail = setting.getAdminEmail();
         this.updatedAt = setting.getUpdatedAt();
         this.updatedBy = setting.getUpdatedBy();
     }

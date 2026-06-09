@@ -5,15 +5,18 @@ import com.corum.backend.domain.setting.SiteSetting;
 import com.corum.backend.domain.setting.SiteSettingRepository;
 import com.corum.backend.dto.setting.SiteSettingResponse;
 import com.corum.backend.dto.setting.SiteSettingUpdateRequest;
+import com.corum.backend.service.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 public class SiteSettingService {
 
     private final SiteSettingRepository siteSettingRepository;
+    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public SiteSettingResponse getSetting() {
@@ -44,8 +47,29 @@ public class SiteSettingService {
                 request.getSmtpPasswordEnc(),
                 request.getSmtpUseTls(),
                 request.getFooterHtml(),
+                request.getContactAddress(),
+                request.getContactPhone(),
+                request.getAdminEmail(),
                 updatedBy
         );
+        return new SiteSettingResponse(setting);
+    }
+
+    @Transactional
+    public SiteSettingResponse uploadLogo(MultipartFile file, Long updatedBy) {
+        SiteSetting setting = siteSettingRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> BusinessException.notFound("사이트 설정을 찾을 수 없습니다."));
+        String url = fileStorageService.uploadSiteAsset("logo", file);
+        setting.updateLogoUrl(url);
+        return new SiteSettingResponse(setting);
+    }
+
+    @Transactional
+    public SiteSettingResponse uploadFavicon(MultipartFile file, Long updatedBy) {
+        SiteSetting setting = siteSettingRepository.findTopByOrderByIdAsc()
+                .orElseThrow(() -> BusinessException.notFound("사이트 설정을 찾을 수 없습니다."));
+        String url = fileStorageService.uploadSiteAsset("favicon", file);
+        setting.updateFaviconUrl(url);
         return new SiteSettingResponse(setting);
     }
 }

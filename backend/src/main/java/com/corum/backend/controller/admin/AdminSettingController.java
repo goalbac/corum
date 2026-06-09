@@ -9,10 +9,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,5 +35,21 @@ public class AdminSettingController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long updatedBy = userDetails != null ? userDetails.getMemberId() : null;
         return ApiResponse.ok("사이트 설정이 저장되었습니다.", siteSettingService.updateSetting(request, updatedBy));
+    }
+
+    @PostMapping("/logo")
+    public ApiResponse<SiteSettingResponse> uploadLogo(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long updatedBy = userDetails != null ? userDetails.getMemberId() : null;
+        return ApiResponse.ok("로고가 업로드되었습니다.", siteSettingService.uploadLogo(file, updatedBy));
+    }
+
+    @PostMapping("/favicon")
+    public ApiResponse<SiteSettingResponse> uploadFavicon(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long updatedBy = userDetails != null ? userDetails.getMemberId() : null;
+        return ApiResponse.ok("파비콘이 업로드되었습니다.", siteSettingService.uploadFavicon(file, updatedBy));
     }
 }

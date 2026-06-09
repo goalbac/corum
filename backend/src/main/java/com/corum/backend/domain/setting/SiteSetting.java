@@ -77,6 +77,18 @@ public class SiteSetting {
     @Column(name = "footer_html", columnDefinition = "TEXT")
     private String footerHtml;
 
+    @Column(name = "logo_url", length = 500)
+    private String logoUrl;
+
+    @Column(name = "contact_address", length = 500)
+    private String contactAddress;
+
+    @Column(name = "contact_phone", length = 100)
+    private String contactPhone;
+
+    @Column(name = "admin_email", length = 200)
+    private String adminEmail;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -101,6 +113,9 @@ public class SiteSetting {
             String smtpPasswordEnc,
             Boolean smtpUseTls,
             String footerHtml,
+            String contactAddress,
+            String contactPhone,
+            String adminEmail,
             Long updatedBy
     ) {
         this.siteName = siteName;
@@ -120,7 +135,20 @@ public class SiteSetting {
         this.smtpPasswordEnc = smtpPasswordEnc;
         this.smtpUseTls = smtpUseTls;
         this.footerHtml = footerHtml;
+        this.contactAddress = contactAddress;
+        this.contactPhone = contactPhone;
+        this.adminEmail = adminEmail;
         this.updatedBy = updatedBy;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateFaviconUrl(String faviconUrl) {
+        this.faviconUrl = faviconUrl;
         this.updatedAt = LocalDateTime.now();
     }
 }

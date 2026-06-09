@@ -183,6 +183,11 @@ CREATE TABLE site_settings (
     smtp_username           VARCHAR(200),
     smtp_password_enc       VARCHAR(500),
     smtp_use_tls            BOOLEAN      NOT NULL DEFAULT TRUE,
+    footer_html             TEXT,
+    logo_url                VARCHAR(500),
+    contact_address         VARCHAR(500),
+    contact_phone           VARCHAR(100),
+    admin_email             VARCHAR(200),
     updated_at              TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_by              BIGINT
 );

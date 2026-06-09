@@ -172,6 +172,41 @@ public class FileStorageService {
                 .build());
     }
 
+    // ===== 사이트 에셋 (로고, 파비콘) =====
+    public String uploadSiteAsset(String type, MultipartFile file) {
+        String ext = getExtension(file.getOriginalFilename());
+        String storedName = type + "_" + UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
+        String storagePath = "site/" + storedName;
+        try {
+            s3Client.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .contentType(file.getContentType())
+                    .contentLength(file.getSize())
+                    .build(),
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (IOException e) {
+            throw new BusinessException("파일 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return "/api/files/site/" + storedName;
+    }
+
+    public byte[] downloadSiteAsset(String storedName) {
+        String storagePath = "site/" + storedName;
+        try {
+            return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .build()
+            ).asByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("파일을 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
+        }
+    }
+
     // ===== 인라인 이미지 (에디터 본문 삽입용) =====
     public String uploadInlineImage(MultipartFile file, Long uploadedBy) {
         String ext = getExtension(file.getOriginalFilename());

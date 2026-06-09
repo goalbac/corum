@@ -6,7 +6,8 @@
       </button>
 
       <router-link to="/" class="logo" @click="menuStore.setActiveTopMenu(null)">
-        Corum
+        <img v-if="logoUrl" :src="logoUrl" :alt="siteName || 'Corum'" class="logo-img" />
+        <span v-else>{{ siteName || 'Corum' }}</span>
       </router-link>
 
       <nav class="top-nav" aria-label="주 메뉴">
@@ -100,20 +101,32 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useThemeStore } from '@/stores/theme'
 import { useRouter } from 'vue-router'
+import api from '@/api/axios'
 
 const emit = defineEmits(['toggle-mobile-menu'])
 const authStore = useAuthStore()
 const headerAvatarError = ref(false)
-// 프로필 이미지가 바뀌면 오류 상태 초기화
 watch(() => authStore.member?.profileImageUrl, () => { headerAvatarError.value = false })
 const menuStore = useMenuStore()
 const themeStore = useThemeStore()
 const router = useRouter()
+
+const siteName = ref('')
+const logoUrl = ref('')
+
+onMounted(async () => {
+  try {
+    const res = await api.get('/site/public')
+    const d = res.data.data
+    siteName.value = d.siteName || ''
+    logoUrl.value = d.logoUrl || ''
+  } catch { /* ignore */ }
+})
 
 async function handleTopMenuClick(menu) {
   await menuStore.fetchMenus()
@@ -172,11 +185,19 @@ async function handleLogout() {
 .hamburger:hover { background: var(--surface2); color: var(--t1); }
 
 .logo {
+  display: flex;
+  align-items: center;
   font-size: 18px;
   font-weight: 800;
   color: var(--accent);
   margin-right: 34px;
   flex-shrink: 0;
+}
+
+.logo-img {
+  height: 32px;
+  max-width: 140px;
+  object-fit: contain;
 }
 
 .top-nav {

@@ -116,4 +116,25 @@ public class FileController {
                 .contentLength(data.length)
                 .body(data);
     }
+
+    @GetMapping("/api/files/site/{storedName}")
+    public ResponseEntity<byte[]> siteAsset(@PathVariable String storedName) {
+        byte[] data = fileStorageService.downloadSiteAsset(storedName);
+
+        String ext = storedName.contains(".") ? storedName.substring(storedName.lastIndexOf('.') + 1).toLowerCase() : "png";
+        MediaType mediaType = switch (ext) {
+            case "png" -> MediaType.IMAGE_PNG;
+            case "gif" -> MediaType.IMAGE_GIF;
+            case "svg" -> MediaType.valueOf("image/svg+xml");
+            case "ico" -> MediaType.valueOf("image/x-icon");
+            case "webp" -> MediaType.valueOf("image/webp");
+            default -> MediaType.IMAGE_JPEG;
+        };
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS))
+                .contentLength(data.length)
+                .body(data);
+    }
 }

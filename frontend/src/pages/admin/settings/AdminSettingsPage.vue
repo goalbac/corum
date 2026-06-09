@@ -7,14 +7,22 @@
     </AdminPageHeader>
 
     <el-form v-loading="loading" :model="form" label-position="top" class="settings-form">
+
+      <!-- ① 기본 정보 -->
       <section class="settings-section">
         <h3>기본 정보</h3>
         <div class="form-grid">
           <el-form-item label="사이트명">
             <el-input v-model="form.siteName" />
           </el-form-item>
-          <el-form-item label="파비콘 URL">
-            <el-input v-model="form.faviconUrl" placeholder="/favicon.svg" />
+          <el-form-item label="관리자 이메일">
+            <el-input v-model="form.adminEmail" placeholder="admin@example.com" />
+          </el-form-item>
+          <el-form-item label="연락처">
+            <el-input v-model="form.contactPhone" placeholder="02-1234-5678" />
+          </el-form-item>
+          <el-form-item label="주소">
+            <el-input v-model="form.contactAddress" placeholder="서울시 강남구 테헤란로 123" />
           </el-form-item>
         </div>
         <el-form-item label="사이트 설명">
@@ -22,6 +30,55 @@
         </el-form-item>
       </section>
 
+      <!-- ② 로고 / 파비콘 -->
+      <section class="settings-section">
+        <h3>로고 / 파비콘</h3>
+        <div class="form-grid">
+          <!-- 로고 -->
+          <el-form-item label="사이트 로고">
+            <div class="asset-upload">
+              <div class="asset-preview logo-preview">
+                <img v-if="form.logoUrl" :src="form.logoUrl" alt="로고" class="preview-img" />
+                <span v-else class="preview-empty"><i class="ti ti-photo"></i></span>
+              </div>
+              <div class="asset-actions">
+                <el-button size="small" @click="$refs.logoInput.click()">
+                  <i class="ti ti-upload" style="margin-right:4px"></i>업로드
+                </el-button>
+                <el-button v-if="form.logoUrl" size="small" type="danger" @click="form.logoUrl = ''">
+                  <i class="ti ti-trash"></i>
+                </el-button>
+                <input ref="logoInput" type="file" accept="image/*" style="display:none" @change="uploadLogo" />
+                <span v-if="logoUploading" class="upload-hint">업로드 중...</span>
+                <span v-else class="upload-hint">PNG, SVG, JPG 권장 · 헤더 좌측 표시</span>
+              </div>
+            </div>
+          </el-form-item>
+
+          <!-- 파비콘 -->
+          <el-form-item label="파비콘">
+            <div class="asset-upload">
+              <div class="asset-preview favicon-preview">
+                <img v-if="form.faviconUrl" :src="form.faviconUrl" alt="파비콘" class="preview-img favicon-img" />
+                <span v-else class="preview-empty"><i class="ti ti-photo"></i></span>
+              </div>
+              <div class="asset-actions">
+                <el-button size="small" @click="$refs.faviconInput.click()">
+                  <i class="ti ti-upload" style="margin-right:4px"></i>업로드
+                </el-button>
+                <el-button v-if="form.faviconUrl" size="small" type="danger" @click="form.faviconUrl = ''">
+                  <i class="ti ti-trash"></i>
+                </el-button>
+                <input ref="faviconInput" type="file" accept="image/*,.ico" style="display:none" @change="uploadFavicon" />
+                <span v-if="faviconUploading" class="upload-hint">업로드 중...</span>
+                <span v-else class="upload-hint">ICO, PNG, SVG 지원 · 브라우저 탭 표시</span>
+              </div>
+            </div>
+          </el-form-item>
+        </div>
+      </section>
+
+      <!-- ③ 점검 모드 -->
       <section class="settings-section">
         <h3>점검 모드</h3>
         <el-form-item>
@@ -41,6 +98,7 @@
         </el-form-item>
       </section>
 
+      <!-- ④ 로그인 정책 -->
       <section class="settings-section">
         <h3>로그인 정책</h3>
         <div class="form-grid">
@@ -56,6 +114,7 @@
         </el-form-item>
       </section>
 
+      <!-- ⑤ 파일 정책 -->
       <section class="settings-section">
         <h3>파일 정책</h3>
         <div class="form-grid">
@@ -68,14 +127,15 @@
         </div>
       </section>
 
+      <!-- ⑥ 푸터 커스텀 HTML (고급) -->
       <section class="settings-section">
-        <h3>푸터 (Footer)</h3>
-        <p class="section-desc">비워두면 기본 푸터가 표시됩니다. HTML을 직접 입력하거나 아래 미리보기를 참고하세요.</p>
+        <h3>푸터 커스텀 HTML <span class="section-badge">고급</span></h3>
+        <p class="section-desc">비워두면 기본 정보(주소·연락처·약관 링크)가 자동 표시됩니다. HTML을 직접 입력하면 기본 푸터를 완전히 대체합니다.</p>
         <el-form-item label="푸터 HTML">
           <el-input
             v-model="form.footerHtml"
             type="textarea"
-            :rows="6"
+            :rows="5"
             placeholder="<p>© 2025 단체명. All rights reserved.</p>"
           />
         </el-form-item>
@@ -85,6 +145,7 @@
         </div>
       </section>
 
+      <!-- ⑦ SMTP -->
       <section class="settings-section">
         <h3>SMTP</h3>
         <div class="form-grid">
@@ -105,6 +166,7 @@
           <el-switch v-model="form.smtpUseTls" active-text="TLS 사용" inactive-text="TLS 미사용" />
         </el-form-item>
       </section>
+
     </el-form>
   </div>
 </template>
@@ -117,10 +179,17 @@ import api from '@/api/axios'
 
 const loading = ref(false)
 const saving = ref(false)
+const logoUploading = ref(false)
+const faviconUploading = ref(false)
+
 const form = ref({
   siteName: '',
   siteDescription: '',
   faviconUrl: '',
+  logoUrl: '',
+  contactAddress: '',
+  contactPhone: '',
+  adminEmail: '',
   maintenanceMode: false,
   maintenanceMessage: '',
   maintenanceUntil: null,
@@ -159,33 +228,151 @@ async function saveSettings() {
   }
 }
 
+async function uploadLogo(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  logoUploading.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await api.post('/admin/settings/logo', fd)
+    form.value.logoUrl = res.data.data?.logoUrl || ''
+    ElMessage.success('로고가 업로드되었습니다.')
+  } catch {
+    ElMessage.error('로고 업로드에 실패했습니다.')
+  } finally {
+    logoUploading.value = false
+    e.target.value = ''
+  }
+}
+
+async function uploadFavicon(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  faviconUploading.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await api.post('/admin/settings/favicon', fd)
+    form.value.faviconUrl = res.data.data?.faviconUrl || ''
+    ElMessage.success('파비콘이 업로드되었습니다.')
+  } catch {
+    ElMessage.error('파비콘 업로드에 실패했습니다.')
+  } finally {
+    faviconUploading.value = false
+    e.target.value = ''
+  }
+}
+
 onMounted(fetchSettings)
 </script>
 
 <style scoped>
 .settings-form { display: flex; flex-direction: column; gap: 16px; }
+
 .settings-section {
   background: var(--surface);
   border: 0.5px solid var(--border2);
   border-radius: var(--radius-sm);
   padding: 18px;
 }
+
 .settings-section h3 {
   margin: 0 0 14px;
   font-size: 14px;
+  font-weight: 700;
   color: var(--t1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
+.section-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface2);
+  color: var(--t3);
+  border: 0.5px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+
 .section-desc {
   font-size: 13px;
   color: var(--t3);
   margin: -8px 0 12px;
+  line-height: 1.6;
 }
 
+/* 에셋 업로드 */
+.asset-upload {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.asset-preview {
+  flex-shrink: 0;
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-preview {
+  width: 120px;
+  height: 48px;
+}
+
+.favicon-preview {
+  width: 48px;
+  height: 48px;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.favicon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.preview-empty {
+  font-size: 20px;
+  color: var(--t4, var(--t3));
+}
+
+.asset-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.asset-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.5;
+}
+
+/* 푸터 미리보기 */
 .footer-preview {
   margin-top: 10px;
   border: 0.5px solid var(--border);
@@ -211,5 +398,6 @@ onMounted(fetchSettings)
 
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }
+  .logo-preview { width: 90px; }
 }
 </style>

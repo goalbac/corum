@@ -21,28 +21,51 @@ public class SiteInfoController {
     @GetMapping("/public")
     public ApiResponse<SitePublicInfo> getPublicInfo() {
         SiteSetting s = siteSettingRepository.findTopByOrderByIdAsc().orElse(null);
-        if (s == null) return ApiResponse.ok(new SitePublicInfo(null, false, null, null, null));
+        if (s == null) return ApiResponse.ok(new SitePublicInfo(
+                null, null, null, false, null, null, null, null, null, null));
         boolean inMaintenance = Boolean.TRUE.equals(s.getMaintenanceMode()) &&
                 (s.getMaintenanceUntil() == null || s.getMaintenanceUntil().isAfter(LocalDateTime.now()));
-        return ApiResponse.ok(new SitePublicInfo(s.getSiteName(), inMaintenance,
-                s.getMaintenanceMessage(), s.getMaintenanceUntil(), s.getFooterHtml()));
+        return ApiResponse.ok(new SitePublicInfo(
+                s.getSiteName(),
+                s.getSiteDescription(),
+                s.getLogoUrl(),
+                inMaintenance,
+                s.getMaintenanceMessage(),
+                s.getMaintenanceUntil(),
+                s.getFooterHtml(),
+                s.getContactAddress(),
+                s.getContactPhone(),
+                s.getAdminEmail()
+        ));
     }
 
     @Getter
     public static class SitePublicInfo {
         private final String siteName;
+        private final String siteDescription;
+        private final String logoUrl;
         private final boolean maintenanceMode;
         private final String maintenanceMessage;
         private final LocalDateTime maintenanceUntil;
         private final String footerHtml;
+        private final String contactAddress;
+        private final String contactPhone;
+        private final String adminEmail;
 
-        public SitePublicInfo(String siteName, boolean maintenanceMode,
-                              String maintenanceMessage, LocalDateTime maintenanceUntil, String footerHtml) {
+        public SitePublicInfo(String siteName, String siteDescription, String logoUrl,
+                              boolean maintenanceMode, String maintenanceMessage,
+                              LocalDateTime maintenanceUntil, String footerHtml,
+                              String contactAddress, String contactPhone, String adminEmail) {
             this.siteName = siteName;
+            this.siteDescription = siteDescription;
+            this.logoUrl = logoUrl;
             this.maintenanceMode = maintenanceMode;
             this.maintenanceMessage = maintenanceMessage;
             this.maintenanceUntil = maintenanceUntil;
             this.footerHtml = footerHtml;
+            this.contactAddress = contactAddress;
+            this.contactPhone = contactPhone;
+            this.adminEmail = adminEmail;
         }
     }
 }
