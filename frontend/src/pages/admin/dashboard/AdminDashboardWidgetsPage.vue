@@ -34,6 +34,7 @@
         </div>
 
         <!-- 위젯 미리보기 본문 -->
+        <div class="pc-body-wrap">
         <div class="pc-body">
           <!-- 제목 -->
           <div class="pc-title">{{ w.title || '(제목 없음)' }}</div>
@@ -101,11 +102,12 @@
           </template>
         </div>
 
-        <!-- 수정/삭제 오버레이 -->
+        <!-- 수정/삭제 오버레이 (본문 영역에만) -->
         <div class="pc-overlay">
           <button class="pc-action-btn" @click="openEdit(w)"><i class="ti ti-edit"></i> 수정</button>
           <button class="pc-action-btn danger" @click="deleteWidget(w.id)"><i class="ti ti-trash"></i></button>
         </div>
+        </div><!-- /pc-body-wrap -->
       </div>
     </div>
 
@@ -459,6 +461,7 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 100px;
 }
 .pc-title {
   font-size: 14px;
@@ -549,7 +552,15 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   padding: 12px 0;
 }
 
-/* 수정/삭제 오버레이 */
+/* 본문 래퍼 — 오버레이 기준점 */
+.pc-body-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 수정/삭제 오버레이 (pc-body-wrap 영역만 덮음) */
 .pc-overlay {
   position: absolute;
   inset: 0;
@@ -560,7 +571,7 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   gap: 10px;
   opacity: 0;
   transition: opacity 0.18s ease;
-  border-radius: var(--radius-sm);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 .preview-card:hover .pc-overlay { opacity: 1; }
 .pc-action-btn {
