@@ -246,6 +246,13 @@ public class MessageService {
         messageRecipientRepository.markAllReadFromPartner(me, partnerId);
     }
 
+    // ===== 대화 전체 삭제 (양방향) =====
+    @Transactional
+    public void deleteConversation(Long me, Long partnerId) {
+        messageRecipientRepository.deleteReceivedFromPartner(me, partnerId);
+        messageRecipientRepository.deleteSentToPartner(me, partnerId);
+    }
+
     // ===== 내부 메서드 =====
     private Page<MessageResponse> toMessageResponsePage(Page<MessageRecipient> page, Pageable pageable) {
         List<Long> messageIds = page.getContent().stream()

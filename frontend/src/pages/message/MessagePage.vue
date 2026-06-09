@@ -44,6 +44,13 @@
               <span v-if="conv.unreadCount > 0" class="unread-dot">{{ conv.unreadCount }}</span>
             </div>
           </div>
+          <button
+            class="conv-del-btn"
+            title="대화 삭제"
+            @click.stop="deleteConversation(conv)"
+          >
+            <i class="ti ti-trash"></i>
+          </button>
         </li>
       </ul>
     </aside>
@@ -186,7 +193,7 @@
 import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Loading, Search } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api/axios'
 
 const route = useRoute()
@@ -282,6 +289,26 @@ function autoResize(e) {
   const el = e.target
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
+
+// ===== 대화 삭제 =====
+async function deleteConversation(conv) {
+  await ElMessageBox.confirm(
+    `${conv.partnerName}님과의 대화를 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.`,
+    '대화 삭제',
+    { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }
+  )
+  try {
+    await api.delete(`/messages/conversations/${conv.partnerId}`)
+    conversations.value = conversations.value.filter(c => c.partnerId !== conv.partnerId)
+    if (activePartnerId.value === conv.partnerId) {
+      activePartnerId.value = null
+      chatMessages.value = []
+    }
+    ElMessage.success('대화가 삭제되었습니다.')
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || '삭제에 실패했습니다.')
+  }
 }
 
 // ===== 새 쪽지 =====
@@ -496,7 +523,25 @@ onMounted(async () => {
 .conv-avatar-fallback.sm { font-size: 13px; }
 .conv-avatar-fallback.xs { font-size: 11px; }
 
-.conv-info { flex: 1; min-width: 0; }
+.conv-info { flex: 1; min-width: 0; overflow: hidden; }
+
+.conv-del-btn {
+  display: none;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  color: var(--t3);
+  font-size: 14px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.conv-del-btn:hover { color: #e03e52; background: #fff1f2; }
+.conv-item:hover .conv-del-btn { display: flex; }
 .conv-row1 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
 .conv-name { font-size: 14px; font-weight: 700; color: var(--t1); }
 .conv-time { font-size: 11px; color: var(--t3); flex-shrink: 0; }

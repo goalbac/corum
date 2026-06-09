@@ -107,4 +107,13 @@ public class MessageController {
         messageService.markConversationRead(userDetails.getMemberId(), partnerId);
         return ApiResponse.ok("읽음 처리되었습니다.");
     }
+
+    // 대화 전체 삭제
+    @DeleteMapping("/conversations/{partnerId}")
+    public ApiResponse<Void> deleteConversation(
+            @PathVariable Long partnerId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        messageService.deleteConversation(userDetails.getMemberId(), partnerId);
+        return ApiResponse.ok("대화가 삭제되었습니다.");
+    }
 }

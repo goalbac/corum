@@ -62,4 +62,24 @@ public interface MessageRecipientRepository extends JpaRepository<MessageRecipie
           AND mr.messageId IN (SELECT m.id FROM Message m WHERE m.senderId = :partner)
         """)
     int markAllReadFromPartner(@Param("me") Long me, @Param("partner") Long partner);
+
+    // 대화 삭제 - 내가 받은 쪽지 (partner → me) 전부 삭제 처리
+    @Modifying
+    @Query("""
+        UPDATE MessageRecipient mr
+        SET mr.isDeletedByRecipient = true
+        WHERE mr.recipientId = :me
+          AND mr.messageId IN (SELECT m.id FROM Message m WHERE m.senderId = :partner)
+        """)
+    int deleteReceivedFromPartner(@Param("me") Long me, @Param("partner") Long partner);
+
+    // 대화 삭제 - 내가 보낸 쪽지 (me → partner) 전부 삭제 처리
+    @Modifying
+    @Query("""
+        UPDATE MessageRecipient mr
+        SET mr.isDeletedBySender = true
+        WHERE mr.recipientId = :partner
+          AND mr.messageId IN (SELECT m.id FROM Message m WHERE m.senderId = :me)
+        """)
+    int deleteSentToPartner(@Param("me") Long me, @Param("partner") Long partner);
 }
