@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import { useLoadingStore } from '@/stores/loading'
 
 const routes = [
   {
@@ -172,6 +173,7 @@ function redirectLegacyBoardRoute(to, menuStore) {
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const menuStore = useMenuStore()
+  useLoadingStore().start()
 
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     return next({ name: 'Login', query: { redirect: to.fullPath } })
@@ -193,6 +195,10 @@ router.beforeEach(async (to, from, next) => {
   }
 
   next()
+})
+
+router.afterEach(() => {
+  useLoadingStore().finish()
 })
 
 export default router

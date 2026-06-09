@@ -285,6 +285,19 @@ input, textarea, select { font-family: inherit; }
 .el-select { font-size: 15px !important; }
 .el-dropdown-menu__item { font-size: 15px !important; }
 
+/* ===== 페이지 트랜지션 ===== */
+/* 레이아웃 전환 (로그인↔일반↔관리자): 페이드만 */
+.page-enter-active { transition: opacity 0.18s ease; }
+.page-leave-active { transition: opacity 0.12s ease; }
+.page-enter-from,
+.page-leave-to { opacity: 0; }
+
+/* 콘텐츠 영역 전환 (페이지 내부): 페이드 + 미묘한 슬라이드 */
+.page-inner-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.page-inner-leave-active { transition: opacity 0.12s ease, transform 0.12s ease; }
+.page-inner-enter-from { opacity: 0; transform: translateY(6px); }
+.page-inner-leave-to   { opacity: 0; transform: translateY(-4px); }
+
 /* ===== 스크롤바 ===== */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
