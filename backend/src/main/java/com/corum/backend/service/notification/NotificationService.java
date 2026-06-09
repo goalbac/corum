@@ -66,4 +66,19 @@ public class NotificationService {
     public void markAllAsRead(Long memberId) {
         notificationRepository.markAllReadByMemberId(memberId);
     }
+
+    @Transactional
+    public void delete(Long notificationId, Long memberId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> BusinessException.notFound("알림을 찾을 수 없습니다."));
+        if (!notification.getMemberId().equals(memberId)) {
+            throw BusinessException.forbidden("접근 권한이 없습니다.");
+        }
+        notificationRepository.delete(notification);
+    }
+
+    @Transactional
+    public void deleteAll(Long memberId) {
+        notificationRepository.deleteAllByMemberId(memberId);
+    }
 }

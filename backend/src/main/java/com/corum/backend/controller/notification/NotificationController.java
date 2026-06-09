@@ -59,4 +59,21 @@ public class NotificationController {
         notificationService.markAllAsRead(userDetails.getMemberId());
         return ApiResponse.ok("전체 읽음 처리되었습니다.");
     }
+
+    // 단건 삭제
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationService.delete(id, userDetails.getMemberId());
+        return ApiResponse.ok("삭제되었습니다.");
+    }
+
+    // 전체 삭제
+    @DeleteMapping
+    public ApiResponse<Void> deleteAll(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationService.deleteAll(userDetails.getMemberId());
+        return ApiResponse.ok("전체 삭제되었습니다.");
+    }
 }

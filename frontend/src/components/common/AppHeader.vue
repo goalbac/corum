@@ -59,11 +59,18 @@
               <div class="notif-dropdown">
                 <div class="notif-header">
                   <span class="notif-title">알림</span>
-                  <button
-                    v-if="notifStore.unreadCount > 0"
-                    class="notif-read-all"
-                    @click.stop="notifStore.markAllAsRead()"
-                  >모두 읽음</button>
+                  <div class="notif-actions">
+                    <button
+                      v-if="notifStore.unreadCount > 0"
+                      class="notif-action-btn"
+                      @click.stop="notifStore.markAllAsRead()"
+                    >모두 읽음</button>
+                    <button
+                      v-if="notifStore.notifications.length > 0"
+                      class="notif-action-btn delete"
+                      @click.stop="notifStore.removeAll()"
+                    >모두 삭제</button>
+                  </div>
                 </div>
                 <div class="notif-list">
                   <div v-if="notifStore.notifications.length === 0" class="notif-empty">
@@ -84,7 +91,11 @@
                       <p v-if="n.content" class="notif-item-content">{{ n.content }}</p>
                       <p class="notif-item-time">{{ formatTime(n.createdAt) }}</p>
                     </div>
-                    <span v-if="!n.isRead" class="notif-dot"></span>
+                    <button
+                      class="notif-del-btn"
+                      title="삭제"
+                      @click.stop="notifStore.remove(n.id)"
+                    ><i class="ti ti-x"></i></button>
                   </div>
                 </div>
               </div>
@@ -451,7 +462,13 @@ async function handleLogout() {
   color: var(--t1);
 }
 
-.notif-read-all {
+.notif-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-action-btn {
   font-size: 12px;
   font-weight: 600;
   color: var(--accent);
@@ -461,7 +478,9 @@ async function handleLogout() {
   padding: 0;
 }
 
-.notif-read-all:hover { opacity: 0.75; }
+.notif-action-btn:hover { opacity: 0.75; }
+.notif-action-btn.delete { color: var(--t3); }
+.notif-action-btn.delete:hover { color: #ef4444; opacity: 1; }
 
 .notif-list {
   max-height: 360px;
@@ -545,6 +564,27 @@ async function handleLogout() {
   flex-shrink: 0;
   margin-top: 6px;
 }
+
+.notif-del-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-size: 12px;
+  color: var(--t3);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.notif-del-btn:hover { background: var(--border2); color: #ef4444; }
+.notif-item:hover .notif-del-btn { display: flex; }
+.notif-item:hover .notif-dot { display: none; }
 
 /* 사용자 버튼 */
 .user-btn {
