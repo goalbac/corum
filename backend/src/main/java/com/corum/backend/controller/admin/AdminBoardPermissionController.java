@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 /**
  * 게시판별 그룹 권한 관리 API
@@ -32,7 +33,7 @@ public class AdminBoardPermissionController {
     public ApiResponse<List<Map<String, Object>>> getPermissions(@PathVariable Long boardId) {
         if (!boardRepository.existsById(boardId)) throw BusinessException.notFound("게시판을 찾을 수 없습니다.");
 
-        // 전체 그룹 트리
+        // 전체 그룹 트리 (운영 먼저, 각 타입 내 sortOrder 순)
         List<Group> allGroups = groupRepository.findAllByOrderBySortOrderAsc();
         Map<Long, Group> groupMap = allGroups.stream().collect(Collectors.toMap(Group::getId, g -> g));
 
@@ -40,10 +41,16 @@ public class AdminBoardPermissionController {
         Map<Long, BoardGroupPermission> permMap = boardGroupPermissionRepository.findByBoardId(boardId)
                 .stream().collect(Collectors.toMap(BoardGroupPermission::getGroupId, p -> p));
 
+        // 하위 그룹만 추출 → ADMIN 먼저(운영), NORMAL 다음(일반), 각 타입 내 sortOrder 순
+        List<Group> subGroups = allGroups.stream()
+                .filter(g -> g.getParentId() != null)
+                .sorted(Comparator
+                        .comparing((Group g) -> "ADMIN".equals(g.getType()) ? 0 : 1)
+                        .thenComparingInt(Group::getSortOrder))
+                .collect(Collectors.toList());
+
         List<Map<String, Object>> result = new ArrayList<>();
-        for (Group g : allGroups) {
-            // 최상위 그룹(운영/일반)은 제외 — 하위 그룹에만 권한 설정
-            if (g.getParentId() == null) continue;
+        for (Group g : subGroups) {
 
             Group parent = groupMap.get(g.getParentId());
             String label = (parent != null ? parent.getName() + " - " : "") + g.getName();

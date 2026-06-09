@@ -130,9 +130,11 @@
           <tbody>
             <tr v-for="row in permRows" :key="row.groupId">
               <td class="perm-group">
-                <span class="perm-parent">{{ row.parentName }}</span>
-                <span class="perm-name">{{ row.groupName }}</span>
-                <span v-if="row.groupType === 'ADMIN'" class="adm-badge badge-purple" style="font-size:9px">관리자</span>
+                <div class="perm-group-inner">
+                  <span class="perm-parent">{{ row.parentName }}</span>
+                  <span class="perm-name">{{ row.groupName }}</span>
+                  <span v-if="row.groupType === 'ADMIN'" class="adm-badge badge-purple" style="font-size:9px;flex-shrink:0">관리자</span>
+                </div>
               </td>
               <td class="perm-col"><el-checkbox v-model="row.canRead" /></td>
               <td class="perm-col"><el-checkbox v-model="row.canWrite" /></td>
@@ -279,18 +281,22 @@ onMounted(fetchBoards)
 .perm-table td {
   padding: 9px 10px;
   border-bottom: 0.5px solid var(--border);
+  vertical-align: middle;
 }
 .perm-table tbody tr:hover { background: var(--surface2); }
 .perm-col { text-align: center; width: 80px; }
 .manage-col { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
-.perm-group {
-  display: flex;
+/* flex 제거 — td에 flex 주면 row height 계산이 다른 td와 달라져 줄이 틀어짐 */
+.perm-group { vertical-align: middle; }
+.perm-group-inner {
+  display: inline-flex;
   align-items: center;
   gap: 5px;
+  flex-wrap: nowrap;
 }
-.perm-parent { color: var(--t3); font-size: 12px; }
+.perm-parent { color: var(--t3); font-size: 12px; white-space: nowrap; }
 .perm-parent::after { content: ' -'; }
-.perm-name { font-weight: 600; color: var(--t1); }
+.perm-name { font-weight: 600; color: var(--t1); white-space: nowrap; }
 .perm-empty { text-align: center; color: var(--t3); padding: 20px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
