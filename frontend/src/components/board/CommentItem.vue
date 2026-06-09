@@ -1,10 +1,8 @@
 <template>
   <div class="comment-item" :class="{ 'is-reply': comment.depth > 0 }">
-    <div class="comment-inner" :style="{ paddingLeft: `${28 + comment.depth * 28}px` }">
-      <!-- 답글 들여쓰기 선 -->
-      <div v-if="comment.depth > 0" class="reply-indent">
-        <i class="ti ti-corner-down-right reply-arrow"></i>
-      </div>
+    <div class="comment-inner" :style="{ paddingLeft: `${comment.depth > 0 ? comment.depth * 28 : 28}px` }">
+      <!-- 답글 화살표: flex 흐름에 포함하여 아바타 바로 앞에 위치 -->
+      <i v-if="comment.depth > 0" class="ti ti-corner-down-right reply-arrow"></i>
 
       <div class="comment-avatar">
         <img
@@ -225,16 +223,13 @@ function formatDate(dateStr) {
   position: relative;
 }
 
-/* 답글 들여쓰기 화살표 */
-.reply-indent {
-  position: absolute;
-  left: 8px;
-  top: 18px;
-}
-
+/* 답글 화살표: flex 흐름 내 아바타 바로 앞 */
 .reply-arrow {
-  font-size: 14px;
+  flex-shrink: 0;
+  font-size: 15px;
   color: var(--t4);
+  margin-top: 10px;
+  margin-right: 2px;
 }
 
 /* 아바타 */
