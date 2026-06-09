@@ -436,6 +436,7 @@ onMounted(async () => {
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 /* ===== 왼쪽 사이드바 ===== */
