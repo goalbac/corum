@@ -63,16 +63,30 @@ public class GroupService {
     // ===== 그룹 생성 =====
     @Transactional
     public GroupResponse createGroup(GroupCreateRequest request, Long createdBy) {
-        // 상위 그룹 존재 확인
-        Group parent = groupRepository.findById(request.getParentId())
-                .orElseThrow(() -> BusinessException.notFound("상위 그룹을 찾을 수 없습니다."));
+        String type;
+        Long parentId;
+
+        if (request.getParentId() == null) {
+            // 최상위 그룹 생성: type 필드 필수
+            if (request.getType() == null || request.getType().isBlank()) {
+                throw new BusinessException("최상위 그룹 생성 시 유형(ADMIN/NORMAL)을 선택해야 합니다.");
+            }
+            type     = request.getType();
+            parentId = null;
+        } else {
+            // 하위 그룹 생성: 상위 그룹 타입 상속
+            Group parent = groupRepository.findById(request.getParentId())
+                    .orElseThrow(() -> BusinessException.notFound("상위 그룹을 찾을 수 없습니다."));
+            type     = parent.getType();
+            parentId = parent.getId();
+        }
 
         Group group = Group.builder()
-                .parentId(parent.getId())
+                .parentId(parentId)
                 .name(request.getName())
                 .description(request.getDescription())
-                .type(parent.getType())   // 상위 그룹 타입 상속
-                .sortOrder(request.getSortOrder())
+                .type(type)
+                .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0)
                 .isSystem(false)
                 .build();
 
