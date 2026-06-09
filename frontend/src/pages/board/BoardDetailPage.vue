@@ -335,7 +335,9 @@ onMounted(async () => {
 .writer-texts {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
+  text-align: left;
 }
 
 .writer-name {
@@ -347,6 +349,7 @@ onMounted(async () => {
   padding: 0;
   font-family: inherit;
   cursor: default;
+  text-align: left;
 }
 .writer-name.clickable {
   cursor: pointer;
