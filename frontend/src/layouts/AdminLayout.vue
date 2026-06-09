@@ -67,7 +67,11 @@
 
       <main class="admin-main">
         <div class="admin-container">
-          <router-view />
+          <router-view v-slot="{ Component }">
+            <Transition name="page-inner">
+              <component :is="Component" :key="$route.path" />
+            </Transition>
+          </router-view>
         </div>
       </main>
     </div>
