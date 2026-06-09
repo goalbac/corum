@@ -6,9 +6,14 @@
     </div>
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="inquiry-form">
-      <el-form-item label="제목" prop="title">
-        <el-input v-model="form.title" placeholder="문의 제목을 입력하세요." />
-      </el-form-item>
+      <div class="form-row">
+        <el-form-item label="이름" prop="writerName">
+          <el-input v-model="form.writerName" placeholder="홍길동" />
+        </el-form-item>
+        <el-form-item label="제목" prop="title">
+          <el-input v-model="form.title" placeholder="문의 제목을 입력하세요." />
+        </el-form-item>
+      </div>
       <el-form-item label="내용" prop="content">
         <el-input v-model="form.content" type="textarea" :rows="7" placeholder="문의 내용을 입력하세요." resize="none" />
       </el-form-item>
@@ -19,6 +24,10 @@
         <el-form-item label="이메일">
           <el-input v-model="form.contactEmail" placeholder="example@email.com" />
         </el-form-item>
+      </div>
+      <div v-if="!authStore.isLoggedIn" class="form-notice">
+        <i class="ti ti-info-circle"></i>
+        비회원으로 접수하시는 경우, 위에 입력하신 연락처 또는 이메일로 답변을 드립니다.
       </div>
       <div class="form-actions">
         <el-button type="primary" size="large" :loading="loading" @click="handleSubmit">
@@ -49,6 +58,7 @@ const loading   = ref(false)
 const submitted = ref(false)
 
 const form = ref({
+  writerName: authStore.member?.name || '',
   title: '',
   content: '',
   contactPhone: authStore.member?.phone || '',
@@ -56,8 +66,9 @@ const form = ref({
 })
 
 const rules = {
-  title:   [{ required: true, message: '제목을 입력해주세요.' }],
-  content: [{ required: true, message: '내용을 입력해주세요.' }],
+  writerName: [{ required: true, message: '이름을 입력해주세요.' }],
+  title:      [{ required: true, message: '제목을 입력해주세요.' }],
+  content:    [{ required: true, message: '내용을 입력해주세요.' }],
 }
 
 async function handleSubmit() {
@@ -75,7 +86,13 @@ async function handleSubmit() {
 
 function resetForm() {
   submitted.value = false
-  form.value = { title: '', content: '', contactPhone: authStore.member?.phone || '', contactEmail: authStore.member?.email || '' }
+  form.value = {
+    writerName: authStore.member?.name || '',
+    title: '',
+    content: '',
+    contactPhone: authStore.member?.phone || '',
+    contactEmail: authStore.member?.email || '',
+  }
 }
 </script>
 
@@ -87,6 +104,19 @@ function resetForm() {
 .inquiry-form { display: flex; flex-direction: column; gap: 4px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+.form-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--t3);
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+.form-notice i { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
 
 .success-state {
   display: flex;

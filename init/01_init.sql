@@ -371,6 +371,7 @@ CREATE INDEX idx_mr_recipient_id ON message_recipients(recipient_id);
 CREATE TABLE inquiries (
     id             BIGSERIAL PRIMARY KEY,
     member_id      BIGINT,
+    writer_name    VARCHAR(100),
     title          VARCHAR(500) NOT NULL,
     content        TEXT,
     contact_phone  VARCHAR(50),

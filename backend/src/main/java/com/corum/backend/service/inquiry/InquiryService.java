@@ -36,6 +36,7 @@ public class InquiryService {
 
         Inquiry inquiry = Inquiry.builder()
                 .memberId(memberId)
+                .writerName(request.getWriterName())
                 .title(request.getTitle())
                 .content(request.getContent())
                 .contactPhone(request.getContactPhone())

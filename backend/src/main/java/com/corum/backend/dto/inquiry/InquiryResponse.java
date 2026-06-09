@@ -12,6 +12,7 @@ public class InquiryResponse {
 
     private final Long id;
     private final Long memberId;
+    private final String writerName;
     private final String title;
     private final String content;
     private final String contactPhone;
@@ -24,6 +25,7 @@ public class InquiryResponse {
     public InquiryResponse(Inquiry inquiry, List<InquiryMemo> memos) {
         this.id           = inquiry.getId();
         this.memberId     = inquiry.getMemberId();
+        this.writerName   = inquiry.getWriterName();
         this.title        = inquiry.getTitle();
         this.content      = inquiry.getContent();
         this.contactPhone = inquiry.getContactPhone();

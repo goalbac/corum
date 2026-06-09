@@ -77,9 +77,14 @@
         :rules="inquiryRules"
         label-position="top"
       >
-        <el-form-item label="제목" prop="title">
-          <el-input v-model="inquiryForm.title" placeholder="문의 제목을 입력하세요." />
-        </el-form-item>
+        <div class="inquiry-row">
+          <el-form-item label="이름" prop="writerName">
+            <el-input v-model="inquiryForm.writerName" placeholder="홍길동" />
+          </el-form-item>
+          <el-form-item label="제목" prop="title">
+            <el-input v-model="inquiryForm.title" placeholder="문의 제목을 입력하세요." />
+          </el-form-item>
+        </div>
         <el-form-item label="내용" prop="content">
           <el-input
             v-model="inquiryForm.content"
@@ -96,6 +101,10 @@
           <el-form-item label="이메일">
             <el-input v-model="inquiryForm.contactEmail" placeholder="example@email.com" />
           </el-form-item>
+        </div>
+        <div v-if="!authStore.isLoggedIn" class="inquiry-notice">
+          <i class="ti ti-info-circle"></i>
+          비회원으로 접수하시는 경우, 위에 입력하신 연락처 또는 이메일로 답변을 드립니다.
         </div>
       </el-form>
 
@@ -173,6 +182,7 @@ const inquirySubmitted = ref(false)
 const inquiryFormRef   = ref()
 
 const inquiryForm = ref({
+  writerName: '',
   title: '',
   content: '',
   contactPhone: '',
@@ -180,11 +190,13 @@ const inquiryForm = ref({
 })
 
 const inquiryRules = {
-  title:   [{ required: true, message: '제목을 입력해주세요.' }],
-  content: [{ required: true, message: '내용을 입력해주세요.' }],
+  writerName: [{ required: true, message: '이름을 입력해주세요.' }],
+  title:      [{ required: true, message: '제목을 입력해주세요.' }],
+  content:    [{ required: true, message: '내용을 입력해주세요.' }],
 }
 
 function openInquiry() {
+  inquiryForm.value.writerName   = authStore.member?.name || ''
   inquiryForm.value.contactPhone = authStore.member?.phone || ''
   inquiryForm.value.contactEmail = authStore.member?.email || ''
   inquiryVisible.value = true
@@ -192,7 +204,7 @@ function openInquiry() {
 
 function resetInquiry() {
   inquirySubmitted.value = false
-  inquiryForm.value = { title: '', content: '', contactPhone: '', contactEmail: '' }
+  inquiryForm.value = { writerName: '', title: '', content: '', contactPhone: '', contactEmail: '' }
 }
 
 async function submitInquiry() {
@@ -362,6 +374,19 @@ async function submitInquiry() {
 .inquiry-success i { font-size: 52px; color: var(--green); }
 .inquiry-success h3 { font-size: 17px; font-weight: 700; color: var(--t1); margin: 0; }
 .inquiry-success p  { font-size: 13px; color: var(--t3); margin: 0; }
+
+.inquiry-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--t3);
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+.inquiry-notice i { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
 
 @media (max-width: 768px) {
   .footer-inner { padding: 24px 16px 20px; }

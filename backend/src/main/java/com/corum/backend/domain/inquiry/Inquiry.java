@@ -20,6 +20,9 @@ public class Inquiry extends BaseEntity {
     @Column(name = "member_id")
     private Long memberId;
 
+    @Column(name = "writer_name", length = 100)
+    private String writerName;
+
     @Column(name = "title", nullable = false, length = 500)
     private String title;
 
