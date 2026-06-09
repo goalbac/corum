@@ -1,12 +1,10 @@
 <template>
   <div>
     <AdminPageHeader title="메뉴 관리" desc="드래그하여 순서를 변경하세요.">
-      <el-button size="small" :loading="sortSaving" @click="saveSortOrder" :disabled="!sortChanged">
-        <i class="ti ti-check" style="margin-right:4px"></i>순서 저장
-      </el-button>
-      <el-button type="primary" size="small" @click="openCreate(null)">
-        <i class="ti ti-plus" style="margin-right:4px"></i>메뉴 추가
-      </el-button>
+      <button class="adm-btn ghost" :disabled="!sortChanged || sortSaving" @click="saveSortOrder">
+        <i :class="['ti', sortSaving ? 'ti-loader-2 spinning' : 'ti-check']"></i> 순서 저장
+      </button>
+      <button class="adm-btn primary" @click="openCreate(null)"><i class="ti ti-plus"></i> 메뉴 추가</button>
     </AdminPageHeader>
 
     <div v-loading="loading" class="menu-tree">
@@ -626,6 +624,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@import '@/assets/admin-table.css';
 .menu-tree {
   background: var(--surface);
   border: 0.5px solid var(--border2);

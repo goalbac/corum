@@ -1,9 +1,7 @@
 <template>
   <div>
     <AdminPageHeader title="사이트 설정" desc="사이트 기본값과 로그인, 파일, SMTP 설정을 관리합니다.">
-      <el-button type="primary" size="small" :loading="saving" @click="saveSettings">
-        <i class="ti ti-device-floppy" style="margin-right:4px"></i>저장
-      </el-button>
+      <button class="adm-btn primary" @click="saveSettings"><i class="ti ti-device-floppy"></i> 저장</button>
     </AdminPageHeader>
 
     <el-form v-loading="loading" :model="form" label-position="top" class="settings-form">
@@ -268,6 +266,7 @@ onMounted(fetchSettings)
 </script>
 
 <style scoped>
+@import '@/assets/admin-table.css';
 .settings-form { display: flex; flex-direction: column; gap: 16px; }
 
 .settings-section {
