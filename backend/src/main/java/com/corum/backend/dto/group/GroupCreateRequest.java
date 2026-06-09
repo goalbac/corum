@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 public class GroupCreateRequest {
 
-    // null 허용 — null이면 최상위 그룹 생성 (type 필수)
+    // 상위 그룹 ID (필수 — UI에서 최상위 그룹은 시스템 고정이므로 항상 하위 그룹만 생성)
     private Long parentId;
 
     @NotBlank(message = "그룹명을 입력해주세요.")
@@ -15,7 +15,4 @@ public class GroupCreateRequest {
     private String description;
 
     private Integer sortOrder = 0;
-
-    // 최상위 그룹 생성 시 사용 (ADMIN / NORMAL)
-    private String type;
 }

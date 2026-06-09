@@ -67,19 +67,15 @@ public class GroupService {
         Long parentId;
 
         if (request.getParentId() == null) {
-            // 최상위 그룹 생성: type 필드 필수
-            if (request.getType() == null || request.getType().isBlank()) {
-                throw new BusinessException("최상위 그룹 생성 시 유형(ADMIN/NORMAL)을 선택해야 합니다.");
-            }
-            type     = request.getType();
-            parentId = null;
-        } else {
-            // 하위 그룹 생성: 상위 그룹 타입 상속
-            Group parent = groupRepository.findById(request.getParentId())
-                    .orElseThrow(() -> BusinessException.notFound("상위 그룹을 찾을 수 없습니다."));
-            type     = parent.getType();
-            parentId = parent.getId();
+            // 최상위 그룹(운영/일반)은 시스템 고정 — UI에서 생성 불가
+            throw new BusinessException("상위 그룹을 선택해주세요. 최상위 그룹은 시스템 고정입니다.");
         }
+
+        // 하위 그룹 생성: 상위 그룹 타입 상속
+        Group parent = groupRepository.findById(request.getParentId())
+                .orElseThrow(() -> BusinessException.notFound("상위 그룹을 찾을 수 없습니다."));
+        type     = parent.getType();
+        parentId = parent.getId();
 
         Group group = Group.builder()
                 .parentId(parentId)
