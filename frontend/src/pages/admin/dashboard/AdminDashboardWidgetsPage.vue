@@ -295,9 +295,11 @@ async function fetchWidgets() {
   try {
     const r = await api.get('/admin/dashboard/widgets')
     widgets.value = r.data.data || []
-    await nextTick()
-    initSortable()
-  } finally { loading.value = false }
+  } finally {
+    loading.value = false   // 먼저 loading 해제 → v-if 조건 충족 → DOM 생성
+  }
+  await nextTick()          // DOM 렌더 대기 후
+  initSortable()            // ref가 실제로 존재하는 시점에 초기화
 }
 async function fetchBoards() {
   const r = await api.get('/boards'); boards.value = r.data.data || []
