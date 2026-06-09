@@ -54,11 +54,6 @@ public class DashboardWidget {
     @Column(name = "updated_by")
     private Long updatedBy;
 
-    public void updateSortOrder(int sortOrder) {
-        this.sortOrder = sortOrder;
-        this.updatedAt = LocalDateTime.now();
-    }
-
     public void update(String widgetType, String title, Long targetBoardId, Integer postCount,
                        Integer sortOrder, Boolean isActive, String extraConfig, Long updatedBy) {
         this.widgetType = widgetType;

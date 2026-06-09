@@ -171,16 +171,6 @@ public class DashboardWidgetService {
         return List.of(new DashboardWidgetResponse(statsWidget, null, List.of(), stats));
     }
 
-    @Transactional
-    public void reorder(List<Long> orderedIds) {
-        for (int i = 0; i < orderedIds.size(); i++) {
-            Long id = orderedIds.get(i);
-            DashboardWidget widget = widgetRepository.findById(id)
-                    .orElseThrow(() -> BusinessException.notFound("대시보드 위젯을 찾을 수 없습니다."));
-            widget.updateSortOrder(i);
-        }
-    }
-
     private int normalizePostCount(Integer postCount) {
         if (postCount == null || postCount < 1) return 5;
         return Math.min(postCount, 20);
