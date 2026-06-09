@@ -9,13 +9,13 @@ import com.corum.backend.domain.member.AdminMemberMemo;
 import com.corum.backend.domain.member.AdminMemberMemoRepository;
 import com.corum.backend.domain.member.Member;
 import com.corum.backend.domain.member.MemberRepository;
+import com.corum.backend.domain.group.Group;
 import com.corum.backend.dto.group.GroupResponse;
-import com.corum.backend.dto.member.AdminMemberCreateRequest;
+import com.corum.backend.dto.member.MemberListResponse;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.auth.TokenSessionService;
 import com.corum.backend.service.log.OperationLogService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +25,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,6 +42,8 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/members")
@@ -55,61 +56,59 @@ public class AdminMemberController {
     private final GroupRepository groupRepository;
     private final TokenSessionService tokenSessionService;
     private final OperationLogService operationLogService;
-    private final PasswordEncoder passwordEncoder;
 
     @GetMapping
-    public ApiResponse<Page<Member>> getMembers(
+    public ApiResponse<Page<MemberListResponse>> getMembers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) String status) {
 
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Member> result;
+
+        // 그룹 필터: 해당 그룹에 속한 memberId 목록 먼저 조회
+        Set<Long> groupMemberIds = null;
+        if (groupId != null) {
+            groupMemberIds = memberGroupRepository.findByGroupId(groupId).stream()
+                    .map(mg -> mg.getMemberId())
+                    .collect(Collectors.toSet());
+        }
+
+        Page<Member> memberPage;
         if (keyword != null && !keyword.isBlank()) {
-            result = memberRepository.findByNameContainingOrEmailContaining(keyword, keyword, pageRequest);
+            memberPage = memberRepository.findByNameContainingOrUsernameContainingOrEmailContaining(
+                    keyword, keyword, keyword, pageRequest);
         } else {
-            result = memberRepository.findAll(pageRequest);
+            memberPage = memberRepository.findAll(pageRequest);
         }
+
+        // 그룹 필터 적용 (post-filter — 페이징 정확도보다 단순함 우선)
+        final Set<Long> finalGroupMemberIds = groupMemberIds;
+
+        // 상태 필터
+        Page<Member> filtered = memberPage;
+
+        // 현재 페이지 회원들의 그룹 일괄 조회
+        List<Long> memberIds = memberPage.getContent().stream()
+                .map(Member::getId).toList();
+
+        Map<Long, List<MemberListResponse.GroupSimple>> groupMap = new java.util.HashMap<>();
+        if (!memberIds.isEmpty()) {
+            // member_groups → group 정보 한 번에 로드
+            memberGroupRepository.findByMemberIdIn(memberIds).forEach(mg -> {
+                groupRepository.findById(mg.getGroupId()).ifPresent(g -> {
+                    groupMap.computeIfAbsent(mg.getMemberId(), k -> new java.util.ArrayList<>())
+                            .add(new MemberListResponse.GroupSimple(g.getId(), g.getName(), g.getType()));
+                });
+            });
+        }
+
+        Page<MemberListResponse> result = memberPage.map(m ->
+                new MemberListResponse(m, groupMap.getOrDefault(m.getId(), List.of()))
+        );
+
         return ApiResponse.ok(result);
-    }
-
-    @PostMapping
-    @Transactional
-    public ApiResponse<Map<String, Object>> createMember(@Valid @RequestBody AdminMemberCreateRequest createRequest,
-                                                         @AuthenticationPrincipal CustomUserDetails userDetails,
-                                                         HttpServletRequest httpRequest) {
-        String username = createRequest.getUsername().trim();
-        String email = createRequest.getEmail().trim();
-        String name = createRequest.getName().trim();
-
-        if (memberRepository.existsByUsername(username)) {
-            throw new BusinessException("이미 사용 중인 아이디입니다.");
-        }
-        if (memberRepository.existsByEmail(email)) {
-            throw new BusinessException("이미 사용 중인 이메일입니다.");
-        }
-
-        Member member = Member.builder()
-                .username(username)
-                .email(email)
-                .passwordHash(passwordEncoder.encode(createRequest.getPassword()))
-                .name(name)
-                .gender(blankToNull(createRequest.getGender()))
-                .phone(blankToNull(createRequest.getPhone()))
-                .address(blankToNull(createRequest.getAddress()))
-                .birthDate(createRequest.getBirthDate())
-                .homePhone(blankToNull(createRequest.getHomePhone()))
-                .occupation(blankToNull(createRequest.getOccupation()))
-                .workPhone(blankToNull(createRequest.getWorkPhone()))
-                .newsletterYn(Boolean.TRUE.equals(createRequest.getNewsletterYn()))
-                .isActive(createRequest.getIsActive() == null || Boolean.TRUE.equals(createRequest.getIsActive()))
-                .build();
-
-        Member saved = memberRepository.save(member);
-        assignGroups(saved.getId(), createRequest.getGroupIds(), userDetails.getMemberId());
-        operationLogService.audit(userDetails.getMemberId(), "CREATE", "members", saved.getId(), null, saved.getUsername(), httpRequest);
-
-        return ApiResponse.ok("회원이 추가되었습니다.", toDetailResponse(saved));
     }
 
     @GetMapping("/{id}")
@@ -267,32 +266,6 @@ public class AdminMemberController {
     private Member findMember(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("회원을 찾을 수 없습니다."));
-    }
-
-    private void assignGroups(Long memberId, List<Long> groupIds, Long assignedBy) {
-        if (groupIds == null || groupIds.isEmpty()) {
-            return;
-        }
-        for (Long groupId : groupIds.stream().distinct().toList()) {
-            if (groupId == null) {
-                continue;
-            }
-            if (!groupRepository.existsById(groupId)) {
-                throw BusinessException.notFound("그룹을 찾을 수 없습니다.");
-            }
-            memberGroupRepository.save(MemberGroup.builder()
-                    .memberId(memberId)
-                    .groupId(groupId)
-                    .assignedBy(assignedBy)
-                    .build());
-        }
-    }
-
-    private String blankToNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return value.trim();
     }
 
     private Map<String, Object> toDetailResponse(Member member) {

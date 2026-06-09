@@ -17,6 +17,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Page<Member> findByNameContainingOrEmailContaining(
             String name, String email, Pageable pageable);
 
+    Page<Member> findByNameContainingOrUsernameContainingOrEmailContaining(
+            String name, String username, String email, Pageable pageable);
+
     // 쪽지 수신자 검색 (이름 또는 아이디 포함, 활성 회원만)
     @org.springframework.data.jpa.repository.Query("""
         SELECT m FROM Member m
