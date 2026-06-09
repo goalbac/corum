@@ -111,11 +111,7 @@
                   <h1 class="page-title">{{ routeMenu.name }}</h1>
                   <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
                 </div>
-                <router-view v-slot="{ Component }">
-                  <Transition name="page-inner">
-                    <component :is="Component" :key="route.path" />
-                  </Transition>
-                </router-view>
+                <router-view />
               </div>
             </section>
 
@@ -123,11 +119,7 @@
         </template>
 
         <template v-else>
-          <router-view v-slot="{ Component }">
-            <Transition name="page-inner">
-              <component :is="Component" :key="route.path" />
-            </Transition>
-          </router-view>
+          <router-view />
         </template>
       </div>
 

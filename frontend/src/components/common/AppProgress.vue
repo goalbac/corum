@@ -14,11 +14,11 @@ const loading = useLoadingStore()
 <style scoped>
 .progress-bar {
   position: fixed;
-  top: 0;
+  top: var(--header-height);
   left: 0;
   right: 0;
   height: 3px;
-  z-index: 9999;
+  z-index: 99;
   pointer-events: none;
 }
 
