@@ -12,6 +12,7 @@ import com.corum.backend.dto.message.ConversationSummary;
 import com.corum.backend.dto.message.MessageResponse;
 import com.corum.backend.dto.message.MessageSendRequest;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -30,6 +31,7 @@ public class MessageService {
     private final MessageRecipientRepository messageRecipientRepository;
     private final MemberRepository memberRepository;
     private final MailService mailService;
+    private final NotificationService notificationService;
 
     // ===== 쪽지 발송 =====
     @Transactional
@@ -54,14 +56,25 @@ public class MessageService {
                 .collect(Collectors.toList());
         messageRecipientRepository.saveAll(recipients);
 
+        String senderName = memberRepository.findById(senderId)
+                .map(m -> m.getName()).orElse("알 수 없음");
+
         memberRepository.findAllById(request.getRecipientIds()).forEach(member -> {
             try {
                 mailService.send(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다",
                         "<p><strong>" + saved.getTitle() + "</strong></p><p>Corum에서 쪽지를 확인해주세요.</p>",
                         "MESSAGE_NOTIFY");
-            } catch (Exception ignored) {
-                // 메일 실패가 쪽지 발송을 막지 않도록 한다.
-            }
+            } catch (Exception ignored) { }
+            // 실시간 알림
+            try {
+                notificationService.create(
+                        member.getId(),
+                        "MESSAGE",
+                        senderName + "님이 쪽지를 보냈습니다",
+                        truncate(saved.getContent(), 50),
+                        "/messages"
+                );
+            } catch (Exception ignored) { }
         });
     }
 

@@ -4,8 +4,11 @@ import com.corum.backend.common.BusinessException;
 import com.corum.backend.domain.comment.Comment;
 import com.corum.backend.domain.comment.CommentRepository;
 import com.corum.backend.domain.member.MemberRepository;
+import com.corum.backend.domain.post.Post;
+import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.comment.CommentCreateRequest;
 import com.corum.backend.dto.comment.CommentResponse;
+import com.corum.backend.service.notification.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,8 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
+    private final PostRepository postRepository;
+    private final NotificationService notificationService;
 
     private static final int MAX_DEPTH = 2; // 0-based (0,1,2 = 3뎁스)
 
@@ -96,7 +101,22 @@ public class CommentService {
                 .clientIp(ip)
                 .build();
 
-        return new CommentResponse(commentRepository.save(comment));
+        Comment saved = commentRepository.save(comment);
+
+        // 내 글에 댓글이 달리면 알림 (본인 댓글 제외)
+        postRepository.findById(postId).ifPresent(post -> {
+            if (post.getMemberId() != null && !post.getMemberId().equals(memberId)) {
+                notificationService.create(
+                        post.getMemberId(),
+                        "COMMENT",
+                        "'" + truncate(post.getTitle(), 30) + "'에 새 댓글",
+                        writerName + ": " + truncate(request.getContent(), 50),
+                        "/board/" + post.getBoardId() + "/posts/" + postId
+                );
+            }
+        });
+
+        return new CommentResponse(saved);
     }
 
     // ===== 댓글 수정 =====
@@ -129,5 +149,10 @@ public class CommentService {
         } else {
             commentRepository.delete(comment);
         }
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 }

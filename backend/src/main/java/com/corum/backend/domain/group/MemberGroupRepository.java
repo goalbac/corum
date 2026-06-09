@@ -11,6 +11,11 @@ public interface MemberGroupRepository extends JpaRepository<MemberGroup, Long> 
 
     List<MemberGroup> findByGroupId(Long groupId);
 
+    List<MemberGroup> findByGroupIdIn(List<Long> groupIds);
+
+    @Query("SELECT DISTINCT mg.memberId FROM MemberGroup mg JOIN Group g ON g.id = mg.groupId WHERE g.type = 'ADMIN'")
+    List<Long> findAdminMemberIds();
+
     boolean existsByMemberIdAndGroupId(Long memberId, Long groupId);
 
     void deleteByMemberIdAndGroupId(Long memberId, Long groupId);

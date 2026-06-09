@@ -1,6 +1,7 @@
 package com.corum.backend.service.inquiry;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.inquiry.Inquiry;
 import com.corum.backend.domain.inquiry.InquiryMemo;
 import com.corum.backend.domain.inquiry.InquiryMemoRepository;
@@ -8,6 +9,7 @@ import com.corum.backend.domain.inquiry.InquiryRepository;
 import com.corum.backend.dto.inquiry.InquiryCreateRequest;
 import com.corum.backend.dto.inquiry.InquiryResponse;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.notification.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +28,8 @@ public class InquiryService {
     private final InquiryRepository inquiryRepository;
     private final InquiryMemoRepository inquiryMemoRepository;
     private final MailService mailService;
+    private final MemberGroupRepository memberGroupRepository;
+    private final NotificationService notificationService;
 
     // ===== 문의 접수 (비로그인 가능) =====
     @Transactional
@@ -49,9 +53,17 @@ public class InquiryService {
             mailService.sendToAdmin("[Corum] 새 문의가 접수되었습니다",
                     "<p><strong>" + saved.getTitle() + "</strong></p><p>" + saved.getContent() + "</p>",
                     "INQUIRY_NOTIFY");
-        } catch (Exception ignored) {
-            // 메일 실패가 문의 접수를 막지 않도록 한다.
-        }
+        } catch (Exception ignored) { }
+        // 관리자 그룹 회원들에게 알림
+        try {
+            List<Long> adminIds = memberGroupRepository.findAdminMemberIds();
+            notificationService.createForMembers(
+                    adminIds, "INQUIRY",
+                    "새 문의: " + truncate(saved.getTitle(), 30),
+                    (saved.getWriterName() != null ? saved.getWriterName() : "익명") + "님의 문의가 접수되었습니다.",
+                    "/admin/inquiries"
+            );
+        } catch (Exception ignored) { }
         return new InquiryResponse(saved, List.of());
     }
 
@@ -106,5 +118,10 @@ public class InquiryService {
     @Transactional
     public void deleteMemo(Long memoId) {
         inquiryMemoRepository.deleteById(memoId);
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 }

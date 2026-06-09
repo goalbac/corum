@@ -1,6 +1,7 @@
 package com.corum.backend.service.post;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.Post;
 import com.corum.backend.domain.post.PostLike;
@@ -13,6 +14,7 @@ import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
 import com.corum.backend.domain.comment.CommentRepository;
 import com.corum.backend.service.file.FileStorageService;
+import com.corum.backend.service.notification.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,6 +37,8 @@ public class PostService {
     private final MemberRepository memberRepository;
     private final FileStorageService fileStorageService;
     private final CommentRepository commentRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final NotificationService notificationService;
 
     // ===== 게시글 목록 =====
     @Transactional(readOnly = true)
@@ -115,6 +119,21 @@ public class PostService {
         if (files != null && !files.isEmpty()) {
             fileResponses = fileStorageService.uploadFiles("POST", saved.getId(), files, memberId);
         }
+
+        // 관리자 그룹 회원들에게 새 게시글 알림 (작성자 제외)
+        try {
+            List<Long> adminIds = memberGroupRepository.findAdminMemberIds().stream()
+                    .filter(id -> !id.equals(memberId))
+                    .collect(Collectors.toList());
+            if (!adminIds.isEmpty()) {
+                notificationService.createForMembers(
+                        adminIds, "POST",
+                        "새 게시글: " + truncate(request.getTitle(), 30),
+                        writerName + "님이 게시글을 작성했습니다.",
+                        "/board/" + boardId + "/posts/" + saved.getId()
+                );
+            }
+        } catch (Exception ignored) { }
 
         String savedProfileImageUrl = memberRepository.findById(memberId)
                 .map(m -> m.getProfileImageUrl()).orElse(null);
@@ -212,5 +231,10 @@ public class PostService {
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         return (ip == null || ip.isBlank()) ? request.getRemoteAddr() : ip;
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 }

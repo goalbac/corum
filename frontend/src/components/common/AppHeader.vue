@@ -47,17 +47,65 @@
         </div>
 
         <template v-if="authStore.isLoggedIn">
+          <!-- 알림 드롭다운 -->
+          <el-dropdown trigger="click" popper-class="notif-popper" @visible-change="onNotifDropdown">
+            <button type="button" class="notif-btn" aria-label="알림">
+              <i class="ti ti-bell"></i>
+              <span v-if="notifStore.unreadCount > 0" class="notif-badge">
+                {{ notifStore.unreadCount > 99 ? '99+' : notifStore.unreadCount }}
+              </span>
+            </button>
+            <template #dropdown>
+              <div class="notif-dropdown">
+                <div class="notif-header">
+                  <span class="notif-title">알림</span>
+                  <button
+                    v-if="notifStore.unreadCount > 0"
+                    class="notif-read-all"
+                    @click.stop="notifStore.markAllAsRead()"
+                  >모두 읽음</button>
+                </div>
+                <div class="notif-list">
+                  <div v-if="notifStore.notifications.length === 0" class="notif-empty">
+                    새 알림이 없습니다
+                  </div>
+                  <div
+                    v-for="n in notifStore.notifications.slice(0, 20)"
+                    :key="n.id"
+                    class="notif-item"
+                    :class="{ unread: !n.isRead }"
+                    @click="handleNotifClick(n)"
+                  >
+                    <div class="notif-icon" :class="n.type.toLowerCase()">
+                      <i :class="notifIcon(n.type)"></i>
+                    </div>
+                    <div class="notif-body">
+                      <p class="notif-item-title">{{ n.title }}</p>
+                      <p v-if="n.content" class="notif-item-content">{{ n.content }}</p>
+                      <p class="notif-item-time">{{ formatTime(n.createdAt) }}</p>
+                    </div>
+                    <span v-if="!n.isRead" class="notif-dot"></span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </el-dropdown>
+
+          <!-- 사용자 드롭다운 -->
           <el-dropdown trigger="click" popper-class="user-menu-popper">
             <button type="button" class="user-btn">
-              <div class="avatar">
-                <img
-                  v-if="authStore.member?.profileImageUrl && !headerAvatarError"
-                  :src="authStore.member.profileImageUrl"
-                  class="avatar-img"
-                  alt=""
-                  @error="headerAvatarError = true"
-                />
-                <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
+              <div class="avatar-wrap">
+                <div class="avatar">
+                  <img
+                    v-if="authStore.member?.profileImageUrl && !headerAvatarError"
+                    :src="authStore.member.profileImageUrl"
+                    class="avatar-img"
+                    alt=""
+                    @error="headerAvatarError = true"
+                  />
+                  <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
+                </div>
+                <span v-if="unreadMsgCount > 0" class="avatar-badge msg">{{ unreadMsgCount > 9 ? '9+' : unreadMsgCount }}</span>
               </div>
               <span class="user-name">{{ authStore.member?.name }}</span>
               <i class="ti ti-chevron-down user-arrow"></i>
@@ -81,7 +129,7 @@
                 <el-dropdown-item @click="$router.push('/mypage')">마이페이지</el-dropdown-item>
                 <el-dropdown-item @click="$router.push('/messages')">
                   쪽지함
-                  <span v-if="unreadCount > 0" class="msg-badge">{{ unreadCount }}</span>
+                  <span v-if="unreadMsgCount > 0" class="msg-badge">{{ unreadMsgCount }}</span>
                 </el-dropdown-item>
                 <el-dropdown-item
                   v-if="authStore.member?.isAdmin || authStore.member?.admin"
@@ -105,10 +153,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useThemeStore } from '@/stores/theme'
+import { useNotificationStore } from '@/stores/notification'
 import { useRouter } from 'vue-router'
 import api from '@/api/axios'
 
@@ -118,11 +167,12 @@ const headerAvatarError = ref(false)
 watch(() => authStore.member?.profileImageUrl, () => { headerAvatarError.value = false })
 const menuStore = useMenuStore()
 const themeStore = useThemeStore()
+const notifStore = useNotificationStore()
 const router = useRouter()
 
-const siteName   = ref('')
-const logoUrl    = ref('')
-const unreadCount = ref(0)
+const siteName       = ref('')
+const logoUrl        = ref('')
+const unreadMsgCount = ref(0)
 
 onMounted(async () => {
   try {
@@ -133,13 +183,65 @@ onMounted(async () => {
   } catch { /* ignore */ }
 })
 
+onUnmounted(() => {
+  notifStore.disconnect()
+})
+
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
-  if (!loggedIn) { unreadCount.value = 0; return }
+  if (!loggedIn) {
+    unreadMsgCount.value = 0
+    notifStore.disconnect()
+    return
+  }
   try {
     const res = await api.get('/messages/unread-count')
-    unreadCount.value = res.data.data?.count || 0
+    unreadMsgCount.value = res.data.data?.count || 0
   } catch { /* ignore */ }
+  await notifStore.fetchNotifications()
+  await notifStore.fetchUnreadCount()
+  const token = authStore.token
+  if (token) notifStore.connect(token)
 }, { immediate: true })
+
+// 쪽지 알림이 오면 쪽지 수 갱신
+watch(() => notifStore.notifications[0], async (latest) => {
+  if (latest?.type === 'MESSAGE') {
+    try {
+      const res = await api.get('/messages/unread-count')
+      unreadMsgCount.value = res.data.data?.count || 0
+    } catch { /* ignore */ }
+  }
+})
+
+async function onNotifDropdown(visible) {
+  if (visible) await notifStore.fetchNotifications()
+}
+
+function handleNotifClick(n) {
+  notifStore.markAsRead(n.id)
+  if (n.linkUrl) router.push(n.linkUrl)
+}
+
+function notifIcon(type) {
+  const map = {
+    COMMENT:  'ti ti-message-circle',
+    POST:     'ti ti-file-text',
+    INQUIRY:  'ti ti-help-circle',
+    MESSAGE:  'ti ti-mail',
+  }
+  return map[type] || 'ti ti-bell'
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diff = Math.floor((now - d) / 1000)
+  if (diff < 60) return '방금 전'
+  if (diff < 3600) return Math.floor(diff / 60) + '분 전'
+  if (diff < 86400) return Math.floor(diff / 3600) + '시간 전'
+  return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+}
 
 async function handleTopMenuClick(menu) {
   await menuStore.fetchMenus()
@@ -280,6 +382,171 @@ async function handleLogout() {
 .tp-btn.active { background: var(--accent); color: #fff; }
 .tp-btn:not(.active):hover { color: var(--t1); }
 
+/* 알림 버튼 */
+.notif-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-size: 19px;
+  color: var(--t2);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.notif-btn:hover { background: var(--surface2); color: var(--t1); }
+
+.notif-badge {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+/* 알림 드롭다운 */
+:global(.notif-popper.el-popper) {
+  border: 0 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 12px 36px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.06) !important;
+  padding: 0 !important;
+}
+
+:global(.notif-popper .el-popper__arrow) { display: none !important; }
+
+.notif-dropdown {
+  width: 320px;
+  background: var(--surface);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 0.5px solid var(--border2);
+}
+
+.notif-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--t1);
+}
+
+.notif-read-all {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notif-read-all:hover { opacity: 0.75; }
+
+.notif-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notif-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--t3);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.notif-item:hover { background: var(--surface2); }
+.notif-item.unread { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.notif-item.unread:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+.notif-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notif-icon.comment { background: #dbeafe; color: #2563eb; }
+.notif-icon.post    { background: #dcfce7; color: #16a34a; }
+.notif-icon.inquiry { background: #fef3c7; color: #d97706; }
+.notif-icon.message { background: #f3e8ff; color: #9333ea; }
+
+.notif-body { flex: 1; min-width: 0; }
+
+.notif-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t1);
+  line-height: 1.4;
+  margin: 0 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-item-content {
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.4;
+  margin: 0 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-item-time {
+  font-size: 11px;
+  color: var(--t3);
+  margin: 0;
+  font-weight: 500;
+}
+
+.notif-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* 사용자 버튼 */
 .user-btn {
   display: flex;
   align-items: center;
@@ -303,6 +570,11 @@ async function handleLogout() {
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
+.avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .avatar {
   width: 28px;
   height: 28px;
@@ -314,7 +586,6 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -325,6 +596,24 @@ async function handleLogout() {
   border-radius: 50%;
 }
 
+.avatar-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  font-size: 8px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid var(--surface);
+}
+
+.avatar-badge.msg { background: #9333ea; color: #fff; }
+
 .user-name {
   font-size: 14px;
   font-weight: 600;
@@ -332,6 +621,7 @@ async function handleLogout() {
 }
 
 .user-arrow { font-size: 13px; color: var(--t3); }
+
 .msg-badge {
   display: inline-flex;
   align-items: center;

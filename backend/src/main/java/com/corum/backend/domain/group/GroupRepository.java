@@ -15,6 +15,8 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
 
     boolean existsByName(String name);
 
+    List<Group> findByType(String type);
+
     // 특정 타입의 최상위 그룹
     @Query("SELECT g FROM Group g WHERE g.parentId IS NULL AND g.type = :type ORDER BY g.sortOrder ASC")
     List<Group> findRootGroupsByType(String type);
