@@ -158,12 +158,15 @@ const clockTimer = setInterval(() => {
 onBeforeUnmount(() => clearInterval(clockTimer))
 
 // ===== 경로 헬퍼 =====
-function boardListPath(widget) {
-  const menu = menuStore.findBoardMenu(widget.targetBoardId)
-  return menu ? `/menu/${menu.id}` : `/board/${widget.targetBoardId}`
+function boardListPath(widget, post = null) {
+  const boardId = widget.targetBoardId || post?.boardId
+  if (!boardId) return null
+  const menu = menuStore.findBoardMenu(boardId)
+  return menu ? `/menu/${menu.id}` : `/board/${boardId}`
 }
 function postPath(widget, post) {
-  return `${boardListPath(widget)}/posts/${post.id}`
+  const basePath = boardListPath(widget, post)
+  return basePath ? `${basePath}/posts/${post.id}` : '/'
 }
 function parseConfig(widget) {
   try { return widget.extraConfig ? JSON.parse(widget.extraConfig) : {} }
