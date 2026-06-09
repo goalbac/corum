@@ -313,7 +313,7 @@ onMounted(async () => {
               border-color 0.22s ease;
 }
 .wcard:hover {
-  transform: translateY(-4px);
+  transform: translateY(-1px);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13);
   border-color: var(--border);
 }
