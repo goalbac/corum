@@ -352,7 +352,7 @@ onMounted(() => { fetchBoards(); fetchGroups() })
 }
 .pg-name { justify-content: flex-start; padding-left: 10px; font-weight: 500; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pg-head.pg-name { font-weight: 700; color: var(--t3); }
-.pg-manage { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
+.pg-cell:not(.pg-head).pg-manage { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
 .pg-cell:not(.pg-head):hover { background: var(--surface2); }
 
 .del-btn {

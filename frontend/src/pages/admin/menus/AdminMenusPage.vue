@@ -982,7 +982,7 @@ onBeforeUnmount(() => {
 .pg-name { justify-content: flex-start; padding-left: 10px; font-weight: 500; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pg-head.pg-name { font-weight: 700; color: var(--t3); }
 .pg-chk { }
-.pg-manage { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
+.pg-cell:not(.pg-head).pg-manage { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
 .pg-del { }
 /* 데이터 행 hover: 6개 셀에 동시 배경 적용 불가 → 각 셀 hover로 대체 */
 .pg-cell:not(.pg-head):hover { background: var(--surface2); }
