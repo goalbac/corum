@@ -9,6 +9,7 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -41,6 +42,13 @@ public class MailService {
             saveLog(memberId, toEmail, subject, sendType, false, e.getMessage());
             throw new BusinessException("메일 발송에 실패했습니다: " + e.getMessage());
         }
+    }
+
+    @Async
+    public void sendAsync(Long memberId, String toEmail, String subject, String html, String sendType) {
+        try {
+            send(memberId, toEmail, subject, html, sendType);
+        } catch (Exception ignored) { }
     }
 
     public void sendToAdmin(String subject, String html, String sendType) {

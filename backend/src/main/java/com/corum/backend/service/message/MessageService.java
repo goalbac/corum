@@ -75,11 +75,9 @@ public class MessageService {
         String notifContent = safeContent.isBlank() ? "(파일)" : truncate(safeContent, 50);
 
         memberRepository.findAllById(recipientIds).forEach(member -> {
-            try {
-                mailService.send(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다",
+            mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다",
                         "<p><strong>" + saved.getTitle() + "</strong></p><p>Corum에서 쪽지를 확인해주세요.</p>",
                         "MESSAGE_NOTIFY");
-            } catch (Exception ignored) { }
             try {
                 notificationService.create(member.getId(), "MESSAGE",
                         senderName + "님이 쪽지를 보냈습니다", notifContent, "/messages");
