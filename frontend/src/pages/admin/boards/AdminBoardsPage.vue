@@ -347,10 +347,10 @@ onMounted(() => { fetchBoards(); fetchGroups() })
 }
 .perm-row:last-child { border-bottom: none; }
 .perm-row:hover { background: var(--surface2); }
-.pr-name { flex: 1; font-weight: 500; color: var(--t1); }
-.pr-chk { width: 72px; text-align: center; }
+.pr-name { flex: 1; font-weight: 500; color: var(--t1); min-width: 0; }
+.pr-chk { flex: 0 0 76px; width: 76px; text-align: center; }
 .manage-chk { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
-.pr-del { width: 32px; text-align: center; }
+.pr-del { flex: 0 0 36px; width: 36px; text-align: center; }
 
 .del-btn {
   width: 22px;
