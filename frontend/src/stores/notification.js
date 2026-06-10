@@ -5,6 +5,8 @@ import api from '@/api/axios'
 export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref([])
   const unreadCount = ref(0)
+  const unreadMsgCount = ref(0)
+  const toastNotif = ref(null)
   let eventSource = null
   let reconnectTimer = null
 
@@ -20,6 +22,17 @@ export const useNotificationStore = defineStore('notification', () => {
       const res = await api.get('/notifications/unread-count')
       unreadCount.value = res.data.data?.count || 0
     } catch { /* ignore */ }
+  }
+
+  async function fetchUnreadMsgCount() {
+    try {
+      const res = await api.get('/messages/unread-count')
+      unreadMsgCount.value = res.data.data?.count || 0
+    } catch { /* ignore */ }
+  }
+
+  function decrementMsgCount(by = 1) {
+    unreadMsgCount.value = Math.max(0, unreadMsgCount.value - by)
   }
 
   async function markAsRead(id) {
@@ -72,6 +85,8 @@ export const useNotificationStore = defineStore('notification', () => {
         const notif = JSON.parse(e.data)
         notifications.value.unshift(notif)
         unreadCount.value++
+        if (notif.type === 'MESSAGE') unreadMsgCount.value++
+        toastNotif.value = { ...notif, _ts: Date.now() }
       } catch { /* ignore */ }
     })
 
@@ -98,13 +113,19 @@ export const useNotificationStore = defineStore('notification', () => {
     }
     notifications.value = []
     unreadCount.value = 0
+    unreadMsgCount.value = 0
+    toastNotif.value = null
   }
 
   return {
     notifications,
     unreadCount,
+    unreadMsgCount,
+    toastNotif,
     fetchNotifications,
     fetchUnreadCount,
+    fetchUnreadMsgCount,
+    decrementMsgCount,
     markAsRead,
     markAllAsRead,
     remove,

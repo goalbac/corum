@@ -287,7 +287,9 @@ async function selectConversation(conv) {
   chatAvatarErr.value = false
   await loadChat(conv.partnerId)
   if (conv.unreadCount > 0) {
+    const readCount = conv.unreadCount
     conv.unreadCount = 0
+    notifStore.decrementMsgCount(readCount)
     await api.put(`/messages/conversations/${conv.partnerId}/read`).catch(() => {})
   }
 }

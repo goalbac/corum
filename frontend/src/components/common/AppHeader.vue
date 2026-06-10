@@ -164,7 +164,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ElNotification } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useThemeStore } from '@/stores/theme'
@@ -181,9 +182,9 @@ const themeStore = useThemeStore()
 const notifStore = useNotificationStore()
 const router = useRouter()
 
-const siteName       = ref('')
-const logoUrl        = ref('')
-const unreadMsgCount = ref(0)
+const siteName = ref('')
+const logoUrl  = ref('')
+const unreadMsgCount = computed(() => notifStore.unreadMsgCount)
 
 onMounted(async () => {
   try {
@@ -200,28 +201,32 @@ onUnmounted(() => {
 
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
   if (!loggedIn) {
-    unreadMsgCount.value = 0
     notifStore.disconnect()
     return
   }
-  try {
-    const res = await api.get('/messages/unread-count')
-    unreadMsgCount.value = res.data.data?.count || 0
-  } catch { /* ignore */ }
+  await notifStore.fetchUnreadMsgCount()
   await notifStore.fetchNotifications()
   await notifStore.fetchUnreadCount()
   const token = authStore.token
   if (token) notifStore.connect(token)
 }, { immediate: true })
 
-// 쪽지 알림이 오면 쪽지 수 갱신
-watch(() => notifStore.notifications[0], async (latest) => {
-  if (latest?.type === 'MESSAGE') {
-    try {
-      const res = await api.get('/messages/unread-count')
-      unreadMsgCount.value = res.data.data?.count || 0
-    } catch { /* ignore */ }
+// 새 알림 수신 시 토스트 표시
+watch(() => notifStore.toastNotif, (notif) => {
+  if (!notif) return
+  const iconMap = {
+    COMMENT: '💬', POST: '📄', INQUIRY: '❓', MESSAGE: '✉️',
   }
+  ElNotification({
+    title: notif.title || '새 알림',
+    message: notif.content || '',
+    icon: iconMap[notif.type] || '🔔',
+    duration: 4000,
+    position: 'bottom-right',
+    onClick() {
+      if (notif.linkUrl) router.push(notif.linkUrl)
+    },
+  })
 })
 
 async function onNotifDropdown(visible) {
