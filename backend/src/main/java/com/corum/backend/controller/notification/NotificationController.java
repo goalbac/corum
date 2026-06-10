@@ -76,4 +76,20 @@ public class NotificationController {
         notificationService.deleteAll(userDetails.getMemberId());
         return ApiResponse.ok("전체 삭제되었습니다.");
     }
+
+    // 내 수신 설정 조회
+    @GetMapping("/prefs")
+    public ApiResponse<List<Map<String, Object>>> getPrefs(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.ok(notificationService.getPrefs(userDetails.getMemberId()));
+    }
+
+    // 내 수신 설정 업데이트
+    @PutMapping("/prefs")
+    public ApiResponse<Void> updatePrefs(
+            @RequestBody Map<String, Boolean> updates,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        notificationService.updatePrefs(userDetails.getMemberId(), updates);
+        return ApiResponse.ok("저장되었습니다.");
+    }
 }

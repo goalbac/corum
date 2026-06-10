@@ -103,6 +103,7 @@
         :use-comment="board?.useComment ?? true"
         :can-comment="canComment"
         :is-admin="isAdmin"
+        :has-manage="hasManage"
       />
 
       <!-- ===== 이전/다음 글 ===== -->
@@ -175,9 +176,18 @@ const postAvatarError = ref(false)
 
 const isAdmin = computed(() => !!authStore.member?.isAdmin)
 
-const canEdit = computed(() => {
+const hasManage = computed(() => {
   if (!authStore.isLoggedIn) return false
   if (isAdmin.value) return true
+  const perms = board.value?.permissions || []
+  if (!perms.length) return false
+  const memberGroupIds = authStore.member?.groupIds || []
+  return perms.some(p => memberGroupIds.includes(p.groupId) && p.canManage)
+})
+
+const canEdit = computed(() => {
+  if (!authStore.isLoggedIn) return false
+  if (hasManage.value) return true
   return authStore.member?.id === post.value?.memberId
 })
 

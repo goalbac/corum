@@ -138,6 +138,23 @@
           </el-form>
         </section>
 
+        <!-- 알림 설정 -->
+        <section v-else-if="activeTab === 'notif'">
+          <div class="section-head">
+            <h2>알림 설정</h2>
+            <p>수신할 알림 유형을 선택합니다.</p>
+          </div>
+          <div class="notif-pref-list">
+            <div v-for="pref in notifPrefs" :key="pref.notifType" class="notif-pref-row">
+              <div class="notif-pref-label">{{ pref.label }}</div>
+              <el-switch v-model="pref.enabled" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <el-button type="primary" :loading="notifSaving" @click="saveNotifPrefs">저장</el-button>
+          </div>
+        </section>
+
         <!-- 회원 탈퇴 -->
         <section v-else-if="activeTab === 'withdraw'">
           <div class="section-head">
@@ -172,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
@@ -195,9 +212,31 @@ const myAvatarError = ref(false)
 const tabs = [
   { name: 'info',     icon: 'ti-user',     label: '내 정보' },
   { name: 'password', icon: 'ti-lock',     label: '비밀번호 변경' },
+  { name: 'notif',    icon: 'ti-bell',     label: '알림 설정' },
   { name: 'messages', icon: 'ti-messages', label: '쪽지' },
   { name: 'withdraw', icon: 'ti-door-exit', label: '회원 탈퇴' }
 ]
+
+// ===== 알림 설정 =====
+const notifPrefs = ref([])
+const notifSaving = ref(false)
+
+async function fetchNotifPrefs() {
+  const res = await api.get('/notifications/prefs')
+  notifPrefs.value = res.data.data || []
+}
+
+async function saveNotifPrefs() {
+  notifSaving.value = true
+  try {
+    const payload = {}
+    notifPrefs.value.forEach(p => { payload[p.notifType] = p.enabled })
+    await api.put('/notifications/prefs', payload)
+    ElMessage.success('알림 설정이 저장되었습니다.')
+  } finally {
+    notifSaving.value = false
+  }
+}
 
 const infoForm = ref({
   name: '', phone: '', gender: '', birthDate: '',
@@ -326,7 +365,14 @@ async function handleUploadPhoto() {
   }
 }
 
-onMounted(fetchMember)
+onMounted(() => {
+  fetchMember()
+  fetchNotifPrefs()
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'notif') fetchNotifPrefs()
+})
 </script>
 
 <style scoped>
@@ -520,6 +566,32 @@ onMounted(fetchMember)
   padding-left: 16px;
   font-size: 13px;
   line-height: 1.8;
+}
+
+.notif-pref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.notif-pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+}
+
+.notif-pref-row:last-child { border-bottom: none; }
+
+.notif-pref-label {
+  font-size: 14px;
+  color: var(--t1);
 }
 
 @media (max-width: 768px) {

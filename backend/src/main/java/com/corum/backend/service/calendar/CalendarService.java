@@ -2,10 +2,12 @@ package com.corum.backend.service.calendar;
 
 import com.corum.backend.common.BusinessException;
 import com.corum.backend.domain.calendar.*;
+import com.corum.backend.domain.group.MemberGroup;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.dto.calendar.CalendarCreateRequest;
 import com.corum.backend.dto.calendar.CalendarEventRequest;
 import com.corum.backend.dto.calendar.CalendarResponse;
+import com.corum.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ public class CalendarService {
     private final CalendarEventRepository calendarEventRepository;
     private final CalendarGroupPermissionRepository permissionRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final NotificationService notificationService;
 
     // ===== 캘린더 목록 (활성) =====
     @Transactional(readOnly = true)
@@ -110,7 +113,31 @@ public class CalendarService {
                 .recurrenceRule(request.getRecurrenceRule())
                 .createdBy(memberId)
                 .build();
-        return calendarEventRepository.save(event);
+        CalendarEvent saved = calendarEventRepository.save(event);
+
+        // 이 캘린더에 read 권한이 있는 회원들에게 알림 (등록자 제외)
+        try {
+            List<Long> readGroupIds = permissionRepository.findByCalendarId(request.getCalendarId()).stream()
+                    .filter(p -> Boolean.TRUE.equals(p.getCanRead()))
+                    .map(CalendarGroupPermission::getGroupId)
+                    .collect(Collectors.toList());
+            List<Long> recipientIds = readGroupIds.isEmpty() ? List.of()
+                    : memberGroupRepository.findByGroupIdIn(readGroupIds).stream()
+                            .map(MemberGroup::getMemberId)
+                            .filter(id -> !id.equals(memberId))
+                            .distinct()
+                            .collect(Collectors.toList());
+            if (!recipientIds.isEmpty()) {
+                String title = saved.getTitle();
+                notificationService.createForMembers(
+                        recipientIds, "CALENDAR_EVENT",
+                        "새 일정: " + (title.length() > 30 ? title.substring(0, 30) + "…" : title),
+                        null, "/calendar"
+                );
+            }
+        } catch (Exception ignored) { }
+
+        return saved;
     }
 
     // ===== 일정 수정 =====

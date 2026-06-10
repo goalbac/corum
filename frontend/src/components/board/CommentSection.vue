@@ -23,6 +23,7 @@
         :post-id="postId"
         :can-comment="canComment && useComment || isAdmin"
         :is-admin="isAdmin"
+        :has-manage="hasManage"
         @refresh="fetchComments"
       />
       <div v-if="!comments.length" class="cs-empty">
@@ -89,9 +90,10 @@ import CommentItem from './CommentItem.vue'
 const props = defineProps({
   boardId:    { type: [String, Number], required: true },
   postId:     { type: [String, Number], required: true },
-  useComment: { type: Boolean, default: true },
-  canComment: { type: Boolean, default: true },
-  isAdmin:    { type: Boolean, default: false },
+  useComment:  { type: Boolean, default: true },
+  canComment:  { type: Boolean, default: true },
+  isAdmin:     { type: Boolean, default: false },
+  hasManage:   { type: Boolean, default: false },
 })
 
 const authStore = useAuthStore()

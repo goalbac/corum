@@ -55,10 +55,10 @@
             >
               <i class="ti ti-corner-down-right"></i> 답글
             </button>
-            <button v-if="isOwner" class="action-btn" @click="startEdit">
+            <button v-if="isOwner || hasManage" class="action-btn" @click="startEdit">
               <i class="ti ti-edit"></i> 수정
             </button>
-            <button v-if="isOwner || isAdmin" class="action-btn danger" @click="handleDelete">
+            <button v-if="isOwner || isAdmin || hasManage" class="action-btn danger" @click="handleDelete">
               <i class="ti ti-trash"></i> 삭제
             </button>
           </div>
@@ -140,8 +140,9 @@ const props = defineProps({
   comment:    { type: Object, required: true },
   boardId:    { type: [String, Number], required: true },
   postId:     { type: [String, Number], required: true },
-  canComment: { type: Boolean, default: true },
-  isAdmin:    { type: Boolean, default: false },
+  canComment:  { type: Boolean, default: true },
+  isAdmin:     { type: Boolean, default: false },
+  hasManage:   { type: Boolean, default: false },
 })
 const emit = defineEmits(['refresh'])
 

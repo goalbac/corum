@@ -166,6 +166,23 @@
       </section>
 
     </el-form>
+
+    <!-- ⑦ 알림 기본 설정 -->
+    <section class="settings-section" style="margin-top: 28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="margin:0">알림 기본 설정</h3>
+        <button class="adm-btn primary" :disabled="notifSaving" @click="saveNotifDefaults">
+          <i class="ti ti-device-floppy"></i> 저장
+        </button>
+      </div>
+      <p class="settings-desc">신규 가입 회원에게 기본으로 활성화할 알림 유형을 설정합니다.</p>
+      <div class="notif-default-list" v-loading="notifLoading">
+        <div v-for="item in notifDefaults" :key="item.notifType" class="notif-default-row">
+          <div class="notif-default-label">{{ item.label }}</div>
+          <el-switch v-model="item.enabled" />
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -262,7 +279,37 @@ async function uploadFavicon(e) {
   }
 }
 
-onMounted(fetchSettings)
+// ===== 알림 기본값 =====
+const notifDefaults = ref([])
+const notifLoading = ref(false)
+const notifSaving = ref(false)
+
+async function fetchNotifDefaults() {
+  notifLoading.value = true
+  try {
+    const res = await api.get('/admin/notification-defaults')
+    notifDefaults.value = res.data.data || []
+  } finally {
+    notifLoading.value = false
+  }
+}
+
+async function saveNotifDefaults() {
+  notifSaving.value = true
+  try {
+    const payload = {}
+    notifDefaults.value.forEach(d => { payload[d.notifType] = d.enabled })
+    await api.put('/admin/notification-defaults', payload)
+    ElMessage.success('저장되었습니다.')
+  } finally {
+    notifSaving.value = false
+  }
+}
+
+onMounted(() => {
+  fetchSettings()
+  fetchNotifDefaults()
+})
 </script>
 
 <style scoped>
@@ -394,6 +441,30 @@ onMounted(fetchSettings)
   color: var(--t2);
   line-height: 1.7;
 }
+
+.settings-desc {
+  font-size: 13px;
+  color: var(--t3);
+  margin: -8px 0 16px;
+}
+
+.notif-default-list {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.notif-default-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.notif-default-row:last-child { border-bottom: none; }
 
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }

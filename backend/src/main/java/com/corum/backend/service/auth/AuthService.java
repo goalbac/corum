@@ -23,6 +23,7 @@ import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.group.GroupService;
 import com.corum.backend.service.log.OperationLogService;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.notification.NotificationService;
 import com.corum.backend.service.terms.TermsService;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,6 +54,7 @@ public class AuthService {
     private final SiteSettingRepository siteSettingRepository;
     private final TokenSessionService tokenSessionService;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     @Value("${jwt.login-fail-limit:5}")
     private int loginFailLimit;
@@ -79,6 +81,7 @@ public class AuthService {
 
         Member saved = memberRepository.save(member);
         operationLogService.audit(saved.getId(), "CREATE", "members", saved.getId(), null, saved.getUsername(), httpRequest);
+        notificationService.initPrefsForNewMember(saved.getId());
         sendVerificationEmail(saved);
         log.info("New member registered: {}", request.getUsername());
     }

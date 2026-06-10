@@ -1,8 +1,10 @@
 package com.corum.backend.service.comment;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.comment.Comment;
 import com.corum.backend.domain.comment.CommentRepository;
+import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.Post;
 import com.corum.backend.domain.post.PostRepository;
@@ -27,6 +29,8 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final NotificationService notificationService;
 
     private static final int MAX_DEPTH = 2; // 0-based (0,1,2 = 3뎁스)
@@ -103,16 +107,33 @@ public class CommentService {
 
         Comment saved = commentRepository.save(comment);
 
-        // 내 글에 댓글이 달리면 알림 (본인 댓글 제외)
         postRepository.findById(postId).ifPresent(post -> {
+            String link = "/board/" + post.getBoardId() + "/posts/" + postId;
+            // 내 글에 댓글이 달리면 알림 (본인 댓글 제외)
             if (post.getMemberId() != null && !post.getMemberId().equals(memberId)) {
                 notificationService.create(
                         post.getMemberId(),
-                        "COMMENT",
+                        "COMMENT_ON_MY_POST",
                         "'" + truncate(post.getTitle(), 30) + "'에 새 댓글",
                         writerName + ": " + truncate(request.getContent(), 50),
-                        "/board/" + post.getBoardId() + "/posts/" + postId
+                        link
                 );
+            }
+            // 내 댓글에 답글이 달리면 알림
+            if (request.getParentId() != null) {
+                commentRepository.findById(request.getParentId()).ifPresent(parent -> {
+                    if (parent.getMemberId() != null
+                            && !parent.getMemberId().equals(memberId)
+                            && !parent.getMemberId().equals(post.getMemberId())) { // 중복 방지
+                        notificationService.create(
+                                parent.getMemberId(),
+                                "REPLY_ON_MY_COMMENT",
+                                "내 댓글에 답글이 달렸습니다",
+                                writerName + ": " + truncate(request.getContent(), 50),
+                                link
+                        );
+                    }
+                });
             }
         });
 
@@ -125,8 +146,13 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> BusinessException.notFound("댓글을 찾을 수 없습니다."));
 
-        if (!comment.getMemberId().equals(memberId)) {
-            throw BusinessException.forbidden("수정 권한이 없습니다.");
+        boolean isOwner = comment.getMemberId() != null && comment.getMemberId().equals(memberId);
+        if (!isOwner) {
+            Post post = postRepository.findById(comment.getPostId()).orElse(null);
+            boolean hasBoardManage = post != null && !memberGroupRepository.findGroupIdsByMemberId(memberId).isEmpty()
+                    && boardGroupPermissionRepository.existsManagePermission(post.getBoardId(),
+                            memberGroupRepository.findGroupIdsByMemberId(memberId));
+            if (!hasBoardManage) throw BusinessException.forbidden("수정 권한이 없습니다.");
         }
 
         comment.update(content);
@@ -139,7 +165,17 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> BusinessException.notFound("댓글을 찾을 수 없습니다."));
 
-        if (!isAdmin && !comment.getMemberId().equals(memberId)) {
+        boolean hasBoardManage = false;
+        if (!isAdmin) {
+            Post post = postRepository.findById(comment.getPostId()).orElse(null);
+            if (post != null) {
+                List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+                hasBoardManage = !groupIds.isEmpty()
+                        && boardGroupPermissionRepository.existsManagePermission(post.getBoardId(), groupIds);
+            }
+        }
+
+        if (!isAdmin && !hasBoardManage && !comment.getMemberId().equals(memberId)) {
             throw BusinessException.forbidden("삭제 권한이 없습니다.");
         }
 

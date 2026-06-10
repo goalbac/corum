@@ -1,6 +1,7 @@
 package com.corum.backend.service.post;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.Post;
@@ -38,6 +39,7 @@ public class PostService {
     private final FileStorageService fileStorageService;
     private final CommentRepository commentRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final NotificationService notificationService;
 
     // ===== 게시글 목록 =====
@@ -120,14 +122,14 @@ public class PostService {
             fileResponses = fileStorageService.uploadFiles("POST", saved.getId(), files, memberId);
         }
 
-        // 관리자 그룹 회원들에게 새 게시글 알림 (작성자 제외)
+        // 해당 게시판 manage 권한자에게 새 게시글 알림 (작성자 제외)
         try {
-            List<Long> adminIds = memberGroupRepository.findAdminMemberIds().stream()
+            List<Long> managerIds = findBoardManagerMemberIds(boardId).stream()
                     .filter(id -> !id.equals(memberId))
                     .collect(Collectors.toList());
-            if (!adminIds.isEmpty()) {
+            if (!managerIds.isEmpty()) {
                 notificationService.createForMembers(
-                        adminIds, "POST",
+                        managerIds, "NEW_POST_ON_MANAGED_BOARD",
                         "새 게시글: " + truncate(request.getTitle(), 30),
                         writerName + "님이 게시글을 작성했습니다.",
                         "/board/" + boardId + "/posts/" + saved.getId()
@@ -155,7 +157,8 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
 
-        if (!isAdmin && !post.getMemberId().equals(memberId)) {
+        boolean hasManage = !isAdmin && hasManagePermission(post.getBoardId(), memberId);
+        if (!isAdmin && !hasManage && !post.getMemberId().equals(memberId)) {
             throw BusinessException.forbidden("수정 권한이 없습니다.");
         }
 
@@ -181,7 +184,8 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
 
-        if (!isAdmin && !post.getMemberId().equals(memberId)) {
+        boolean hasManage = !isAdmin && hasManagePermission(post.getBoardId(), memberId);
+        if (!isAdmin && !hasManage && !post.getMemberId().equals(memberId)) {
             throw BusinessException.forbidden("삭제 권한이 없습니다.");
         }
 
@@ -236,5 +240,24 @@ public class PostService {
     private static String truncate(String s, int max) {
         if (s == null) return "";
         return s.length() <= max ? s : s.substring(0, max) + "…";
+    }
+
+    public boolean hasManagePermission(Long boardId, Long memberId) {
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        if (groupIds.isEmpty()) return false;
+        return boardGroupPermissionRepository.existsManagePermission(boardId, groupIds);
+    }
+
+    /** 게시판 manage 권한을 가진 회원 ID 목록 */
+    private List<Long> findBoardManagerMemberIds(Long boardId) {
+        List<Long> manageGroupIds = boardGroupPermissionRepository.findByBoardId(boardId).stream()
+                .filter(p -> Boolean.TRUE.equals(p.getCanManage()))
+                .map(p -> p.getGroupId())
+                .collect(Collectors.toList());
+        if (manageGroupIds.isEmpty()) return List.of();
+        return memberGroupRepository.findByGroupIdIn(manageGroupIds).stream()
+                .map(mg -> mg.getMemberId())
+                .distinct()
+                .collect(Collectors.toList());
     }
 }
