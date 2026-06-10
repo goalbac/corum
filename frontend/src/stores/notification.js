@@ -14,6 +14,7 @@ export const useNotificationStore = defineStore('notification', () => {
     try {
       const res = await api.get('/notifications')
       notifications.value = res.data.data || []
+      unreadCount.value = notifications.value.filter(n => !n.isRead).length
     } catch { /* ignore */ }
   }
 

@@ -161,11 +161,34 @@
       </div>
     </div>
   </header>
+
+  <!-- 알림 토스트 -->
+  <Teleport to="body">
+    <TransitionGroup name="toast" tag="div" class="toast-container">
+      <div
+        v-for="t in toasts"
+        :key="t._key"
+        class="toast-card"
+        @click="handleToastClick(t)"
+      >
+        <div class="notif-icon" :class="t.type?.toLowerCase()">
+          <i :class="notifIcon(t.type)"></i>
+        </div>
+        <div class="notif-body">
+          <p class="notif-item-title">{{ t.title }}</p>
+          <p v-if="t.content" class="notif-item-content">{{ t.content }}</p>
+          <p class="notif-item-time">방금 전</p>
+        </div>
+        <button class="toast-close-btn" @click.stop="removeToast(t._key)">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+    </TransitionGroup>
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
-import { ElNotification } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useThemeStore } from '@/stores/theme'
@@ -211,23 +234,25 @@ watch(() => authStore.isLoggedIn, async (loggedIn) => {
   if (token) notifStore.connect(token)
 }, { immediate: true })
 
-// 새 알림 수신 시 토스트 표시
+const toasts = ref([])
+let toastKey = 0
+
 watch(() => notifStore.toastNotif, (notif) => {
   if (!notif) return
-  const iconMap = {
-    COMMENT: '💬', POST: '📄', INQUIRY: '❓', MESSAGE: '✉️',
-  }
-  ElNotification({
-    title: notif.title || '새 알림',
-    message: notif.content || '',
-    icon: iconMap[notif.type] || '🔔',
-    duration: 4000,
-    position: 'bottom-right',
-    onClick() {
-      if (notif.linkUrl) router.push(notif.linkUrl)
-    },
-  })
+  const key = ++toastKey
+  toasts.value.push({ ...notif, _key: key })
+  setTimeout(() => removeToast(key), 4000)
 })
+
+function removeToast(key) {
+  const idx = toasts.value.findIndex(t => t._key === key)
+  if (idx !== -1) toasts.value.splice(idx, 1)
+}
+
+function handleToastClick(t) {
+  removeToast(t._key)
+  if (t.linkUrl) router.push(t.linkUrl)
+}
 
 async function onNotifDropdown(visible) {
   if (visible) await notifStore.fetchNotifications()
@@ -816,4 +841,56 @@ async function handleLogout() {
   .logo { margin-right: auto; }
   .header-right { gap: 6px; }
 }
+
+/* 알림 토스트 */
+:global(.toast-container) {
+  position: fixed;
+  top: calc(var(--header-height, 56px) + 10px);
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+:global(.toast-card) {
+  pointer-events: all;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  width: 300px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.08);
+  border: 0.5px solid var(--border2);
+  cursor: pointer;
+}
+
+:global(.toast-card:hover) { background: var(--surface2); }
+
+:global(.toast-close-btn) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-size: 12px;
+  color: var(--t3);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.15s, color 0.15s;
+}
+
+:global(.toast-close-btn:hover) { background: var(--border2); color: #ef4444; }
+
+:global(.toast-enter-active),
+:global(.toast-leave-active) { transition: opacity 0.25s, transform 0.25s; }
+:global(.toast-enter-from) { opacity: 0; transform: translateX(40px); }
+:global(.toast-leave-to) { opacity: 0; transform: translateX(40px); }
 </style>
