@@ -11,10 +11,12 @@ import com.corum.backend.domain.member.Member;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.group.Group;
 import com.corum.backend.dto.group.GroupResponse;
+import com.corum.backend.dto.member.AdminMemberCreateRequest;
 import com.corum.backend.dto.member.MemberListResponse;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.auth.TokenSessionService;
 import com.corum.backend.service.log.OperationLogService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -56,6 +58,50 @@ public class AdminMemberController {
     private final GroupRepository groupRepository;
     private final TokenSessionService tokenSessionService;
     private final OperationLogService operationLogService;
+    private final PasswordEncoder passwordEncoder;
+
+    @PostMapping
+    @Transactional
+    public ApiResponse<Void> createMember(@RequestBody AdminMemberCreateRequest request,
+                                          @AuthenticationPrincipal CustomUserDetails userDetails,
+                                          HttpServletRequest httpRequest) {
+        if (memberRepository.existsByUsername(request.getUsername())) {
+            throw new BusinessException("이미 사용 중인 아이디입니다.");
+        }
+        if (memberRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException("이미 사용 중인 이메일입니다.");
+        }
+        Member member = Member.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .name(request.getName())
+                .gender(request.getGender())
+                .phone(request.getPhone())
+                .address(request.getAddress())
+                .birthDate(request.getBirthDate())
+                .homePhone(request.getHomePhone())
+                .occupation(request.getOccupation())
+                .workPhone(request.getWorkPhone())
+                .newsletterYn(Boolean.TRUE.equals(request.getNewsletterYn()))
+                .isActive(request.getIsActive() == null || request.getIsActive())
+                .build();
+        Member saved = memberRepository.save(member);
+
+        if (request.getGroupIds() != null) {
+            for (Long groupId : request.getGroupIds()) {
+                if (groupRepository.existsById(groupId) && !memberGroupRepository.existsByMemberIdAndGroupId(saved.getId(), groupId)) {
+                    memberGroupRepository.save(MemberGroup.builder()
+                            .memberId(saved.getId())
+                            .groupId(groupId)
+                            .assignedBy(userDetails.getMemberId())
+                            .build());
+                }
+            }
+        }
+        operationLogService.audit(userDetails.getMemberId(), "CREATE", "members", saved.getId(), null, request.getUsername(), httpRequest);
+        return ApiResponse.ok("회원이 추가되었습니다.");
+    }
 
     @GetMapping
     public ApiResponse<Page<MemberListResponse>> getMembers(
