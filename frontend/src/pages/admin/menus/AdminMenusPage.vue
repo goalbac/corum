@@ -242,6 +242,9 @@
 
     <el-dialog v-model="showResourceForm" :title="resourceButtonLabel(resourceMenu) || '리소스 관리'" width="720px" destroy-on-close>
       <div v-if="resourceType === 'BOARD'" class="resource-form">
+
+        <!-- 기본 정보 -->
+        <div class="res-section-title">기본 정보</div>
         <div class="form-row">
           <el-form-item label="게시판명">
             <el-input v-model="boardForm.name" />
@@ -255,8 +258,20 @@
             </el-select>
           </el-form-item>
         </div>
+
+        <!-- 기능 설정 -->
+        <div class="res-section-title">기능 설정</div>
+        <div class="check-row">
+          <el-checkbox v-model="boardForm.useComment">댓글 사용</el-checkbox>
+          <el-checkbox v-model="boardForm.useLike">좋아요 사용</el-checkbox>
+          <el-checkbox v-model="boardForm.useNotice">공지 사용</el-checkbox>
+          <el-checkbox v-model="boardForm.isActive">활성화</el-checkbox>
+        </div>
+
+        <!-- 파일 설정 -->
+        <div class="res-section-title">파일 설정</div>
         <div class="form-row">
-          <el-form-item label="파일 최대 용량 (MB)">
+          <el-form-item label="최대 용량 (MB)">
             <el-input-number v-model="boardForm.fileMaxSizeMb" :min="1" :max="500" style="width:100%" />
           </el-form-item>
           <el-form-item label="최대 파일 수">
@@ -266,25 +281,72 @@
         <el-form-item label="허용 확장자">
           <el-input v-model="boardForm.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
         </el-form-item>
-        <div class="check-row">
-          <el-checkbox v-model="boardForm.useComment">댓글 사용</el-checkbox>
-          <el-checkbox v-model="boardForm.useLike">좋아요 사용</el-checkbox>
-          <el-checkbox v-model="boardForm.useNotice">공지 사용</el-checkbox>
-          <el-checkbox v-model="boardForm.isActive">활성화</el-checkbox>
+
+        <!-- 그룹 권한 -->
+        <div class="res-section-title">그룹 권한</div>
+        <div class="perm-hint-sm">
+          <i class="ti ti-info-circle"></i>
+          <span><strong>관리</strong> 권한이 있는 그룹은 해당 게시판의 모든 글을 수정·삭제할 수 있습니다.</span>
         </div>
-        <div class="perm-block">
-          <div class="perm-title">게시판 그룹 권한</div>
-          <div v-for="(p, i) in boardForm.permissions" :key="i" class="perm-row">
-            <el-select v-model="p.groupId" placeholder="그룹 선택" style="flex:1">
-              <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
-            </el-select>
-            <el-checkbox v-model="p.canRead">조회</el-checkbox>
-            <el-checkbox v-model="p.canWrite">관리</el-checkbox>
-            <el-checkbox v-model="p.canComment">댓글</el-checkbox>
-            <el-checkbox v-model="p.canDownload">다운로드</el-checkbox>
-            <button class="tree-btn danger" @click="boardForm.permissions.splice(i, 1)"><i class="ti ti-trash"></i></button>
-          </div>
-          <button class="tree-btn resource add-perm-btn" @click="addBoardPerm"><i class="ti ti-plus"></i> 그룹 권한 추가</button>
+        <div class="perm-table-wrap" v-loading="boardPermLoading">
+          <table class="perm-table">
+            <thead>
+              <tr>
+                <th style="text-align:left">그룹</th>
+                <th class="perm-col">
+                  <div class="th-inner"><span>조회</span>
+                    <button class="col-all-btn" @click="toggleBoardCol('canRead')">전체</button>
+                  </div>
+                </th>
+                <th class="perm-col">
+                  <div class="th-inner"><span>댓글</span>
+                    <button class="col-all-btn" @click="toggleBoardCol('canComment')">전체</button>
+                  </div>
+                </th>
+                <th class="perm-col">
+                  <div class="th-inner"><span>다운로드</span>
+                    <button class="col-all-btn" @click="toggleBoardCol('canDownload')">전체</button>
+                  </div>
+                </th>
+                <th class="perm-col manage-col">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in boardPermRows" :key="row.groupId">
+                <td class="perm-group">
+                  <div class="perm-group-inner">
+                    <span class="perm-parent">{{ row.parentName }}</span>
+                    <span class="perm-name">{{ row.groupName }}</span>
+                    <span v-if="row.groupType === 'ADMIN'" class="adm-badge badge-purple" style="font-size:9px;flex-shrink:0">관리자</span>
+                    <button class="row-all-btn" @click="boardGrantAll(row)" title="조회·댓글·다운로드 전체 부여">전체</button>
+                  </div>
+                </td>
+                <td class="perm-col">
+                  <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top">
+                    <el-checkbox v-model="row.canRead" />
+                  </el-tooltip>
+                </td>
+                <td class="perm-col">
+                  <el-tooltip content="게시물에 댓글을 작성할 수 있습니다" placement="top">
+                    <el-checkbox v-model="row.canComment" />
+                  </el-tooltip>
+                </td>
+                <td class="perm-col">
+                  <el-tooltip content="첨부파일을 다운로드할 수 있습니다" placement="top">
+                    <el-checkbox v-model="row.canDownload" />
+                  </el-tooltip>
+                </td>
+                <td class="perm-col manage-col">
+                  <el-tooltip content="게시판의 모든 글을 수정·삭제할 수 있습니다" placement="top">
+                    <el-checkbox v-model="row.canManage" />
+                  </el-tooltip>
+                </td>
+              </tr>
+              <tr v-if="!boardPermRows.length && !boardPermLoading">
+                <td colspan="5" class="perm-empty">설정 가능한 그룹이 없습니다.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -360,6 +422,8 @@ const resourceSaving = ref(false)
 const resourceMenu = ref(null)
 const resourceType = ref('')
 const boardForm = ref({})
+const boardPermRows = ref([])
+const boardPermLoading = ref(false)
 const calendarForm = ref({})
 const contentForm = ref({ title: '', content: '' })
 
@@ -410,17 +474,16 @@ const flatGroups = computed(() => {
   return result
 })
 
-// 접근 허용 그룹 선택용: 최상위 그룹 제외, "상위 - 하위" 레이블 형식
+// 접근 허용 그룹 선택용: 최상위·시스템 그룹 제외, "상위 - 하위" 레이블 형식
 const subGroupOptions = computed(() => {
   const result = []
   const walk = (nodes = [], parentLabel = '') => {
     nodes.forEach(g => {
+      if (g.isSystem) return
       if (parentLabel) {
-        // 하위 그룹 — 선택 가능
         result.push({ id: g.id, label: `${parentLabel} - ${g.name}` })
         if (g.children?.length) walk(g.children, `${parentLabel} - ${g.name}`)
       } else {
-        // 최상위 그룹 — 선택 제외, 하위만 탐색
         if (g.children?.length) walk(g.children, g.name)
       }
     })
@@ -556,10 +619,13 @@ async function openResourceManager(menu) {
   resourceSaving.value = false
   if (menu.pageType === 'BOARD') {
     const res = await api.get(`/boards/${menu.targetId}`)
-    boardForm.value = {
-      ...defaultBoardForm(),
-      ...res.data.data,
-      permissions: JSON.parse(JSON.stringify(res.data.data?.permissions || [])),
+    boardForm.value = { ...defaultBoardForm(), ...res.data.data }
+    boardPermLoading.value = true
+    try {
+      const permRes = await api.get(`/admin/boards/${menu.targetId}/permissions`)
+      boardPermRows.value = permRes.data.data || []
+    } finally {
+      boardPermLoading.value = false
     }
   } else if (menu.pageType === 'CALENDAR') {
     const res = await api.get(`/calendars/admin`)
@@ -583,8 +649,15 @@ async function openResourceManager(menu) {
   showResourceForm.value = true
 }
 
-function addBoardPerm() {
-  boardForm.value.permissions.push({ groupId: null, canRead: true, canWrite: false, canComment: false, canDownload: true })
+function toggleBoardCol(field) {
+  const allChecked = boardPermRows.value.every(r => r[field])
+  boardPermRows.value.forEach(r => { r[field] = !allChecked })
+}
+
+function boardGrantAll(row) {
+  row.canRead = true
+  row.canComment = true
+  row.canDownload = true
 }
 
 function addCalendarPerm() {
@@ -597,6 +670,7 @@ async function saveResource() {
   try {
     if (resourceType.value === 'BOARD') {
       await api.put(`/boards/${resourceMenu.value.targetId}`, boardForm.value)
+      await api.put(`/admin/boards/${resourceMenu.value.targetId}/permissions`, boardPermRows.value)
       await fetchBoards()
     } else if (resourceType.value === 'CALENDAR') {
       await api.put(`/calendars/${resourceMenu.value.targetId}`, calendarForm.value)
@@ -795,6 +869,78 @@ onBeforeUnmount(() => {
   color: var(--t3);
   margin-top: 4px;
 }
+
+/* 리소스 폼 섹션 제목 */
+.res-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+/* 권한 안내 (소형) */
+.perm-hint-sm {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius-xs);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--t2);
+  line-height: 1.5;
+}
+.perm-hint-sm i { color: var(--accent); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+/* 권한 테이블 (리소스 폼 내) */
+.perm-table-wrap { overflow-x: auto; }
+.perm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.perm-table th {
+  padding: 7px 8px;
+  background: var(--surface2);
+  color: var(--t3);
+  font-weight: 700;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.perm-table td {
+  padding: 8px;
+  border-bottom: 0.5px solid var(--border);
+  vertical-align: middle;
+}
+.perm-table tbody tr:hover { background: var(--surface2); }
+.perm-col { text-align: center; width: 72px; }
+.manage-col { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
+.perm-group { vertical-align: middle; }
+.perm-group-inner { display: inline-flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+.perm-parent { color: var(--t3); font-size: 12px; white-space: nowrap; }
+.perm-parent::after { content: ' -'; }
+.perm-name { font-weight: 600; color: var(--t1); white-space: nowrap; }
+.perm-empty { text-align: center; color: var(--t3); padding: 16px; }
+.th-inner { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.col-all-btn {
+  font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: 4px; border: 1px solid var(--accent);
+  color: var(--accent-t); background: var(--accent-bg);
+  cursor: pointer; transition: all .12s; white-space: nowrap;
+}
+.col-all-btn:hover { background: var(--accent); color: #fff; }
+.row-all-btn {
+  margin-left: 4px; font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: 4px; border: 1px solid var(--border);
+  color: var(--t3); background: var(--surface2);
+  cursor: pointer; transition: all .12s; white-space: nowrap; flex-shrink: 0;
+}
+.row-all-btn:hover { border-color: var(--accent); color: var(--accent-t); background: var(--accent-bg); }
 </style>
 
 <style>

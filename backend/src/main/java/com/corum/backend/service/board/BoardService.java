@@ -114,6 +114,7 @@ public class BoardService {
                         .canWrite(r.getCanWrite())
                         .canComment(r.getCanComment())
                         .canDownload(r.getCanDownload())
+                        .canManage(Boolean.TRUE.equals(r.getCanManage()))
                         .build())
                 .collect(Collectors.toList());
         boardGroupPermissionRepository.saveAll(permissions);

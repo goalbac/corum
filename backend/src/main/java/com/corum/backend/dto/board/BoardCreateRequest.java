@@ -32,5 +32,6 @@ public class BoardCreateRequest {
         private Boolean canWrite = false;
         private Boolean canComment = false;
         private Boolean canDownload = true;
+        private Boolean canManage = false;
     }
 }

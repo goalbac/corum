@@ -74,6 +74,15 @@
           </div>
         </div>
 
+        <!-- 기능 설정 -->
+        <div class="dlg-section-title">기능 설정</div>
+        <div class="dlg-checks">
+          <label class="chk-item"><el-checkbox v-model="form.useComment" />댓글 사용</label>
+          <label class="chk-item"><el-checkbox v-model="form.useLike" />좋아요 사용</label>
+          <label class="chk-item"><el-checkbox v-model="form.useNotice" />공지 사용</label>
+          <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
+        </div>
+
         <!-- 파일 설정 -->
         <div class="dlg-section-title">파일 설정</div>
         <div class="dlg-row">
@@ -89,15 +98,6 @@
         <div class="dlg-field">
           <label>허용 확장자 <span class="label-hint">(빈칸=전체 허용)</span></label>
           <el-input v-model="form.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
-        </div>
-
-        <!-- 기능 설정 -->
-        <div class="dlg-section-title">기능 설정</div>
-        <div class="dlg-checks">
-          <label class="chk-item"><el-checkbox v-model="form.useComment" />댓글 사용</label>
-          <label class="chk-item"><el-checkbox v-model="form.useLike" />좋아요 사용</label>
-          <label class="chk-item"><el-checkbox v-model="form.useNotice" />공지 사용</label>
-          <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
         </div>
       </div>
       <template #footer>
