@@ -14,13 +14,15 @@ public class NotificationDefault {
     @Column(name = "notif_type", length = 60)
     private String notifType;
 
-    @Column(name = "enabled", nullable = false)
-    private Boolean enabled;
+    @Column(name = "system_enabled", nullable = false)
+    private Boolean systemEnabled;
+
+    @Column(name = "email_enabled", nullable = false)
+    private Boolean emailEnabled;
 
     @Column(name = "label", nullable = false, length = 100)
     private String label;
 
-    public void setEnabled(Boolean enabled) {
-        this.enabled = enabled;
-    }
+    public void setSystemEnabled(Boolean v) { this.systemEnabled = v; }
+    public void setEmailEnabled(Boolean v)  { this.emailEnabled  = v; }
 }

@@ -142,12 +142,22 @@
         <section v-else-if="activeTab === 'notif'">
           <div class="section-head">
             <h2>알림 설정</h2>
-            <p>수신할 알림 유형을 선택합니다.</p>
+            <p>수신할 알림 유형과 채널을 선택합니다.</p>
           </div>
           <div class="notif-pref-list">
+            <div class="notif-pref-row notif-pref-header">
+              <div class="notif-pref-label"></div>
+              <div class="notif-pref-channels">
+                <span>시스템 알림</span>
+                <span>이메일 알림</span>
+              </div>
+            </div>
             <div v-for="pref in notifPrefs" :key="pref.notifType" class="notif-pref-row">
               <div class="notif-pref-label">{{ pref.label }}</div>
-              <el-switch v-model="pref.enabled" />
+              <div class="notif-pref-channels">
+                <el-switch v-model="pref.systemEnabled" />
+                <el-switch v-model="pref.emailEnabled" />
+              </div>
             </div>
           </div>
           <div class="form-actions">
@@ -230,7 +240,9 @@ async function saveNotifPrefs() {
   notifSaving.value = true
   try {
     const payload = {}
-    notifPrefs.value.forEach(p => { payload[p.notifType] = p.enabled })
+    notifPrefs.value.forEach(p => {
+      payload[p.notifType] = { system: p.systemEnabled, email: p.emailEnabled }
+    })
     await api.put('/notifications/prefs', payload)
     ElMessage.success('알림 설정이 저장되었습니다.')
   } finally {
@@ -571,7 +583,6 @@ watch(activeTab, (tab) => {
 .notif-pref-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
   border: 1px solid var(--border2);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -582,16 +593,36 @@ watch(activeTab, (tab) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--border2);
   background: var(--surface);
 }
 
 .notif-pref-row:last-child { border-bottom: none; }
 
+.notif-pref-header {
+  background: var(--surface2);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+}
+
 .notif-pref-label {
+  flex: 1;
   font-size: 14px;
   color: var(--t1);
+}
+
+.notif-pref-channels {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  text-align: center;
+}
+
+.notif-pref-channels span {
+  width: 68px;
+  display: inline-block;
 }
 
 @media (max-width: 768px) {

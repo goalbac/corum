@@ -23,15 +23,18 @@ public class MemberNotificationPref {
     @Column(name = "notif_type", nullable = false, length = 60)
     private String notifType;
 
-    @Column(name = "enabled", nullable = false)
+    @Column(name = "system_enabled", nullable = false)
     @Builder.Default
-    private Boolean enabled = true;
+    private Boolean systemEnabled = true;
+
+    @Column(name = "email_enabled", nullable = false)
+    @Builder.Default
+    private Boolean emailEnabled = false;
 
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    public void setEnabled(Boolean enabled) {
-        this.enabled = enabled;
-    }
+    public void setSystemEnabled(Boolean v) { this.systemEnabled = v; }
+    public void setEmailEnabled(Boolean v)  { this.emailEnabled  = v; }
 }

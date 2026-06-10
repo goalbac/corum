@@ -22,7 +22,7 @@ public class AdminNotificationDefaultController {
     }
 
     @PutMapping
-    public ApiResponse<Void> updateDefaults(@RequestBody Map<String, Boolean> updates) {
+    public ApiResponse<Void> updateDefaults(@RequestBody Map<String, Map<String, Boolean>> updates) {
         notificationService.updateDefaults(updates);
         return ApiResponse.ok("저장되었습니다.");
     }

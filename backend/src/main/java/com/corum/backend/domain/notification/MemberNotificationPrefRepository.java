@@ -12,6 +12,6 @@ public interface MemberNotificationPrefRepository extends JpaRepository<MemberNo
 
     Optional<MemberNotificationPref> findByMemberIdAndNotifType(Long memberId, String notifType);
 
-    @Query("SELECT p.enabled FROM MemberNotificationPref p WHERE p.memberId = :memberId AND p.notifType = :notifType")
-    Optional<Boolean> findEnabledByMemberIdAndNotifType(Long memberId, String notifType);
+    @Query("SELECT p FROM MemberNotificationPref p WHERE p.memberId = :memberId AND p.notifType = :notifType")
+    Optional<MemberNotificationPref> findPref(Long memberId, String notifType);
 }

@@ -177,9 +177,19 @@
       </div>
       <p class="settings-desc">신규 가입 회원에게 기본으로 활성화할 알림 유형을 설정합니다.</p>
       <div class="notif-default-list" v-loading="notifLoading">
+        <div class="notif-default-row notif-default-header">
+          <div class="notif-default-label"></div>
+          <div class="notif-default-channels">
+            <span>시스템 알림</span>
+            <span>이메일 알림</span>
+          </div>
+        </div>
         <div v-for="item in notifDefaults" :key="item.notifType" class="notif-default-row">
           <div class="notif-default-label">{{ item.label }}</div>
-          <el-switch v-model="item.enabled" />
+          <div class="notif-default-channels">
+            <el-switch v-model="item.systemEnabled" />
+            <el-switch v-model="item.emailEnabled" />
+          </div>
         </div>
       </div>
     </section>
@@ -298,7 +308,9 @@ async function saveNotifDefaults() {
   notifSaving.value = true
   try {
     const payload = {}
-    notifDefaults.value.forEach(d => { payload[d.notifType] = d.enabled })
+    notifDefaults.value.forEach(d => {
+      payload[d.notifType] = { system: d.systemEnabled, email: d.emailEnabled }
+    })
     await api.put('/admin/notification-defaults', payload)
     ElMessage.success('저장되었습니다.')
   } finally {
@@ -465,6 +477,27 @@ onMounted(() => {
 }
 
 .notif-default-row:last-child { border-bottom: none; }
+
+.notif-default-header {
+  background: var(--surface2);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+}
+
+.notif-default-label { flex: 1; }
+
+.notif-default-channels {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+.notif-default-channels span {
+  width: 68px;
+  text-align: center;
+  display: inline-block;
+}
 
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }

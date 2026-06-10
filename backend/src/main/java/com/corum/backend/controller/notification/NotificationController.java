@@ -87,7 +87,7 @@ public class NotificationController {
     // 내 수신 설정 업데이트
     @PutMapping("/prefs")
     public ApiResponse<Void> updatePrefs(
-            @RequestBody Map<String, Boolean> updates,
+            @RequestBody Map<String, Map<String, Boolean>> updates,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         notificationService.updatePrefs(userDetails.getMemberId(), updates);
         return ApiResponse.ok("저장되었습니다.");
