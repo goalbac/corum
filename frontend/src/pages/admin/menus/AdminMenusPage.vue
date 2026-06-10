@@ -305,43 +305,43 @@
         </div>
 
         <div v-loading="boardPermLoading">
-          <div v-if="boardPermRows.length" class="perm-rows">
-            <div class="perm-rows-head">
-              <div class="pr-name">그룹</div>
-              <div class="pr-chk" title="게시물 목록·내용을 볼 수 있습니다">조회</div>
-              <div class="pr-chk" title="게시물에 댓글을 작성할 수 있습니다">댓글</div>
-              <div class="pr-chk" title="첨부파일을 다운로드할 수 있습니다">다운로드</div>
-              <div class="pr-chk manage-chk" title="게시판의 모든 글을 수정·삭제할 수 있습니다">관리</div>
-              <div class="pr-del"></div>
-            </div>
-            <div v-for="row in boardPermRows" :key="row.groupId" class="perm-row">
-              <div class="pr-name">{{ row.label }}</div>
-              <div class="pr-chk">
+          <div v-if="boardPermRows.length" class="perm-grid">
+            <!-- 헤더 행 (grid 자식 6개) -->
+            <div class="pg-cell pg-head pg-name">그룹</div>
+            <div class="pg-cell pg-head pg-chk" title="게시물 목록·내용을 볼 수 있습니다">조회</div>
+            <div class="pg-cell pg-head pg-chk" title="게시물에 댓글을 작성할 수 있습니다">댓글</div>
+            <div class="pg-cell pg-head pg-chk" title="첨부파일을 다운로드할 수 있습니다">다운로드</div>
+            <div class="pg-cell pg-head pg-chk pg-manage" title="게시판의 모든 글을 수정·삭제할 수 있습니다">관리</div>
+            <div class="pg-cell pg-head pg-del"></div>
+            <!-- 데이터 행 (v-for, 각 행 = grid 자식 6개) -->
+            <template v-for="row in boardPermRows" :key="row.groupId">
+              <div class="pg-cell pg-name pg-row-start">{{ row.label }}</div>
+              <div class="pg-cell pg-chk">
                 <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top">
                   <el-checkbox v-model="row.canRead" />
                 </el-tooltip>
               </div>
-              <div class="pr-chk">
+              <div class="pg-cell pg-chk">
                 <el-tooltip content="게시물에 댓글을 작성할 수 있습니다" placement="top">
                   <el-checkbox v-model="row.canComment" />
                 </el-tooltip>
               </div>
-              <div class="pr-chk">
+              <div class="pg-cell pg-chk">
                 <el-tooltip content="첨부파일을 다운로드할 수 있습니다" placement="top">
                   <el-checkbox v-model="row.canDownload" />
                 </el-tooltip>
               </div>
-              <div class="pr-chk manage-chk">
+              <div class="pg-cell pg-chk pg-manage">
                 <el-tooltip content="게시판의 모든 글을 수정·삭제할 수 있습니다" placement="top">
                   <el-checkbox v-model="row.canManage" />
                 </el-tooltip>
               </div>
-              <div class="pr-del">
+              <div class="pg-cell pg-del">
                 <button class="del-btn" @click="removeBoardPermRow(row.groupId)" title="삭제">
                   <i class="ti ti-x"></i>
                 </button>
               </div>
-            </div>
+            </template>
           </div>
           <div v-else class="perm-empty-msg">위에서 그룹을 선택해 권한을 추가하세요.</div>
         </div>
@@ -958,28 +958,34 @@ onBeforeUnmount(() => {
 
 .perm-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
 .adm-btn.sm { padding: 0 12px; height: 32px; font-size: 13px; }
-.perm-rows { border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; }
-.perm-rows-head,
-.perm-row {
+.perm-grid {
   display: grid;
   grid-template-columns: 1fr 76px 76px 76px 76px 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+.pg-cell {
+  display: flex;
   align-items: center;
+  justify-content: center;
+  padding: 7px 6px;
+  border-bottom: 0.5px solid var(--border);
+  font-size: 13px;
 }
-.perm-rows-head {
+.pg-cell:nth-last-child(-n+6) { border-bottom: none; }
+.pg-head {
   background: var(--surface2);
-  padding: 6px 10px; font-size: 11px; font-weight: 700; color: var(--t3);
-  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--t3);
+  border-bottom: 1px solid var(--border) !important;
 }
-.perm-row {
-  padding: 7px 10px;
-  border-bottom: 0.5px solid var(--border); font-size: 13px;
-}
-.perm-row:last-child { border-bottom: none; }
-.perm-row:hover { background: var(--surface2); }
-.pr-name { font-weight: 500; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pr-chk { text-align: center; }
-.manage-chk { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
-.pr-del { text-align: center; }
+.pg-name { justify-content: flex-start; padding-left: 10px; font-weight: 500; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-head.pg-name { font-weight: 700; color: var(--t3); }
+.pg-chk { }
+.pg-manage { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
+.pg-del { }
+/* 데이터 행 hover: 6개 셀에 동시 배경 적용 불가 → 각 셀 hover로 대체 */
+.pg-cell:not(.pg-head):hover { background: var(--surface2); }
 .del-btn {
   width: 22px; height: 22px; border-radius: 4px;
   border: 1px solid var(--border); background: transparent; color: var(--t3);
