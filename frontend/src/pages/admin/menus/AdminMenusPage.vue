@@ -288,65 +288,54 @@
           <i class="ti ti-info-circle"></i>
           <span><strong>관리</strong> 권한이 있는 그룹은 해당 게시판의 모든 글을 수정·삭제할 수 있습니다.</span>
         </div>
-        <div class="perm-table-wrap" v-loading="boardPermLoading">
-          <table class="perm-table">
-            <thead>
-              <tr>
-                <th style="text-align:left">그룹</th>
-                <th class="perm-col">
-                  <div class="th-inner"><span>조회</span>
-                    <button class="col-all-btn" @click="toggleBoardCol('canRead')">전체</button>
-                  </div>
-                </th>
-                <th class="perm-col">
-                  <div class="th-inner"><span>댓글</span>
-                    <button class="col-all-btn" @click="toggleBoardCol('canComment')">전체</button>
-                  </div>
-                </th>
-                <th class="perm-col">
-                  <div class="th-inner"><span>다운로드</span>
-                    <button class="col-all-btn" @click="toggleBoardCol('canDownload')">전체</button>
-                  </div>
-                </th>
-                <th class="perm-col manage-col">관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in boardPermRows" :key="row.groupId">
-                <td class="perm-group">
-                  <div class="perm-group-inner">
-                    <span class="perm-parent">{{ row.parentName }}</span>
-                    <span class="perm-name">{{ row.groupName }}</span>
-                    <span v-if="row.groupType === 'ADMIN'" class="adm-badge badge-purple" style="font-size:9px;flex-shrink:0">관리자</span>
-                    <button class="row-all-btn" @click="boardGrantAll(row)" title="조회·댓글·다운로드 전체 부여">전체</button>
-                  </div>
-                </td>
-                <td class="perm-col">
-                  <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top">
-                    <el-checkbox v-model="row.canRead" />
-                  </el-tooltip>
-                </td>
-                <td class="perm-col">
-                  <el-tooltip content="게시물에 댓글을 작성할 수 있습니다" placement="top">
-                    <el-checkbox v-model="row.canComment" />
-                  </el-tooltip>
-                </td>
-                <td class="perm-col">
-                  <el-tooltip content="첨부파일을 다운로드할 수 있습니다" placement="top">
-                    <el-checkbox v-model="row.canDownload" />
-                  </el-tooltip>
-                </td>
-                <td class="perm-col manage-col">
-                  <el-tooltip content="게시판의 모든 글을 수정·삭제할 수 있습니다" placement="top">
-                    <el-checkbox v-model="row.canManage" />
-                  </el-tooltip>
-                </td>
-              </tr>
-              <tr v-if="!boardPermRows.length && !boardPermLoading">
-                <td colspan="5" class="perm-empty">설정 가능한 그룹이 없습니다.</td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="perm-add-row">
+          <el-select
+            v-model="boardAddGroupId"
+            placeholder="그룹 선택"
+            style="flex:1"
+            filterable
+            no-data-text="추가 가능한 그룹이 없습니다"
+          >
+            <el-option v-for="g in boardAvailableGroups" :key="g.id" :value="g.id" :label="g.label" />
+          </el-select>
+          <button class="adm-btn primary sm" @click="addBoardPermRow" :disabled="!boardAddGroupId">
+            <i class="ti ti-plus"></i> 추가
+          </button>
+        </div>
+
+        <div v-loading="boardPermLoading">
+          <div v-if="boardPermRows.length" class="perm-rows">
+            <div class="perm-rows-head">
+              <div class="pr-name">그룹</div>
+              <div class="pr-chk">
+                <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top"><span>조회</span></el-tooltip>
+              </div>
+              <div class="pr-chk">
+                <el-tooltip content="게시물에 댓글을 작성할 수 있습니다" placement="top"><span>댓글</span></el-tooltip>
+              </div>
+              <div class="pr-chk">
+                <el-tooltip content="첨부파일을 다운로드할 수 있습니다" placement="top"><span>다운로드</span></el-tooltip>
+              </div>
+              <div class="pr-chk manage-chk">
+                <el-tooltip content="게시판의 모든 글을 수정·삭제할 수 있습니다" placement="top"><span>관리</span></el-tooltip>
+              </div>
+              <div class="pr-del"></div>
+            </div>
+            <div v-for="row in boardPermRows" :key="row.groupId" class="perm-row">
+              <div class="pr-name">{{ row.label }}</div>
+              <div class="pr-chk"><el-checkbox v-model="row.canRead" /></div>
+              <div class="pr-chk"><el-checkbox v-model="row.canComment" /></div>
+              <div class="pr-chk"><el-checkbox v-model="row.canDownload" /></div>
+              <div class="pr-chk manage-chk"><el-checkbox v-model="row.canManage" /></div>
+              <div class="pr-del">
+                <button class="del-btn" @click="removeBoardPermRow(row.groupId)" title="삭제">
+                  <i class="ti ti-x"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="perm-empty-msg">위에서 그룹을 선택해 권한을 추가하세요.</div>
         </div>
       </div>
 
@@ -620,10 +609,21 @@ async function openResourceManager(menu) {
   if (menu.pageType === 'BOARD') {
     const res = await api.get(`/boards/${menu.targetId}`)
     boardForm.value = { ...defaultBoardForm(), ...res.data.data }
+    boardAddGroupId.value = null
+    boardPermRows.value = []
     boardPermLoading.value = true
     try {
       const permRes = await api.get(`/admin/boards/${menu.targetId}/permissions`)
-      boardPermRows.value = permRes.data.data || []
+      boardPermRows.value = (permRes.data.data || [])
+        .filter(r => r.canRead || r.canComment || r.canDownload || r.canManage || r.canWrite)
+        .map(r => ({
+          groupId: r.groupId,
+          label: r.label || (r.parentName ? `${r.parentName} - ${r.groupName}` : r.groupName),
+          canRead: !!r.canRead,
+          canComment: !!r.canComment,
+          canDownload: !!r.canDownload,
+          canManage: !!r.canManage,
+        }))
     } finally {
       boardPermLoading.value = false
     }
@@ -649,15 +649,23 @@ async function openResourceManager(menu) {
   showResourceForm.value = true
 }
 
-function toggleBoardCol(field) {
-  const allChecked = boardPermRows.value.every(r => r[field])
-  boardPermRows.value.forEach(r => { r[field] = !allChecked })
+const boardAddGroupId = ref(null)
+
+const boardAvailableGroups = computed(() => {
+  const usedIds = new Set(boardPermRows.value.map(r => r.groupId))
+  return subGroupOptions.value.filter(g => !usedIds.has(g.id))
+})
+
+function addBoardPermRow() {
+  if (!boardAddGroupId.value) return
+  const option = subGroupOptions.value.find(g => g.id === boardAddGroupId.value)
+  if (!option) return
+  boardPermRows.value.push({ groupId: option.id, label: option.label, canRead: true, canComment: false, canDownload: true, canManage: false })
+  boardAddGroupId.value = null
 }
 
-function boardGrantAll(row) {
-  row.canRead = true
-  row.canComment = true
-  row.canDownload = true
+function removeBoardPermRow(groupId) {
+  boardPermRows.value = boardPermRows.value.filter(r => r.groupId !== groupId)
 }
 
 function addCalendarPerm() {
@@ -941,6 +949,32 @@ onBeforeUnmount(() => {
   cursor: pointer; transition: all .12s; white-space: nowrap; flex-shrink: 0;
 }
 .row-all-btn:hover { border-color: var(--accent); color: var(--accent-t); background: var(--accent-bg); }
+
+.perm-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.adm-btn.sm { padding: 0 12px; height: 32px; font-size: 13px; }
+.perm-rows { border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; }
+.perm-rows-head {
+  display: flex; align-items: center; background: var(--surface2);
+  padding: 6px 10px; font-size: 11px; font-weight: 700; color: var(--t3);
+  border-bottom: 1px solid var(--border);
+}
+.perm-row {
+  display: flex; align-items: center; padding: 7px 10px;
+  border-bottom: 0.5px solid var(--border); font-size: 13px;
+}
+.perm-row:last-child { border-bottom: none; }
+.perm-row:hover { background: var(--surface2); }
+.pr-name { flex: 1; font-weight: 500; color: var(--t1); }
+.pr-chk { width: 72px; text-align: center; }
+.pr-del { width: 32px; text-align: center; }
+.del-btn {
+  width: 22px; height: 22px; border-radius: 4px;
+  border: 1px solid var(--border); background: transparent; color: var(--t3);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; transition: all .12s;
+}
+.del-btn:hover { border-color: var(--color-danger); color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
+.perm-empty-msg { text-align: center; color: var(--t3); font-size: 13px; padding: 16px 0; }
 </style>
 
 <style>
