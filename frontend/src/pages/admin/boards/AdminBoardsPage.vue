@@ -190,13 +190,11 @@ const subGroupOptions = computed(() => {
   const result = []
   const walk = (nodes = [], parentLabel = '') => {
     nodes.forEach(g => {
-      if (g.isSystem) return
-      if (parentLabel) {
-        result.push({ id: g.id, label: `${parentLabel} - ${g.name}` })
-        if (g.children?.length) walk(g.children, `${parentLabel} - ${g.name}`)
-      } else {
-        if (g.children?.length) walk(g.children, g.name)
+      const label = parentLabel ? `${parentLabel} - ${g.name}` : g.name
+      if (parentLabel && !g.isSystem) {
+        result.push({ id: g.id, label })
       }
+      if (g.children?.length) walk(g.children, label)
     })
   }
   walk(groups.value)
