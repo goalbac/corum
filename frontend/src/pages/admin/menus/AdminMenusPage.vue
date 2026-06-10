@@ -959,20 +959,27 @@ onBeforeUnmount(() => {
 .perm-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
 .adm-btn.sm { padding: 0 12px; height: 32px; font-size: 13px; }
 .perm-rows { border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; }
+.perm-rows-head,
+.perm-row {
+  display: grid;
+  grid-template-columns: 1fr 76px 76px 76px 76px 36px;
+  align-items: center;
+}
 .perm-rows-head {
-  display: flex; align-items: center; background: var(--surface2);
+  background: var(--surface2);
   padding: 6px 10px; font-size: 11px; font-weight: 700; color: var(--t3);
   border-bottom: 1px solid var(--border);
 }
 .perm-row {
-  display: flex; align-items: center; padding: 7px 10px;
+  padding: 7px 10px;
   border-bottom: 0.5px solid var(--border); font-size: 13px;
 }
 .perm-row:last-child { border-bottom: none; }
 .perm-row:hover { background: var(--surface2); }
-.pr-name { flex: 1; font-weight: 500; color: var(--t1); min-width: 0; }
-.pr-chk { flex: 0 0 76px; width: 76px; text-align: center; }
-.pr-del { flex: 0 0 36px; width: 36px; text-align: center; }
+.pr-name { font-weight: 500; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-chk { text-align: center; }
+.manage-chk { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
+.pr-del { text-align: center; }
 .del-btn {
   width: 22px; height: 22px; border-radius: 4px;
   border: 1px solid var(--border); background: transparent; color: var(--t3);
