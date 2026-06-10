@@ -306,19 +306,23 @@
 
         <div v-loading="boardPermLoading">
           <div v-if="boardPermRows.length" class="perm-grid">
-            <!-- 헤더 행 (grid 자식 6개) -->
             <div class="pg-cell pg-head pg-name">그룹</div>
             <div class="pg-cell pg-head pg-chk" title="게시물 목록·내용을 볼 수 있습니다">조회</div>
+            <div class="pg-cell pg-head pg-chk" title="게시물을 작성할 수 있습니다">쓰기</div>
             <div class="pg-cell pg-head pg-chk" title="게시물에 댓글을 작성할 수 있습니다">댓글</div>
             <div class="pg-cell pg-head pg-chk" title="첨부파일을 다운로드할 수 있습니다">다운로드</div>
             <div class="pg-cell pg-head pg-chk pg-manage" title="게시판의 모든 글을 수정·삭제할 수 있습니다">관리</div>
             <div class="pg-cell pg-head pg-del"></div>
-            <!-- 데이터 행 (v-for, 각 행 = grid 자식 6개) -->
             <template v-for="row in boardPermRows" :key="row.groupId">
               <div class="pg-cell pg-name pg-row-start">{{ row.label }}</div>
               <div class="pg-cell pg-chk">
                 <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top">
                   <el-checkbox v-model="row.canRead" />
+                </el-tooltip>
+              </div>
+              <div class="pg-cell pg-chk">
+                <el-tooltip content="게시물을 작성할 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canWrite" />
                 </el-tooltip>
               </div>
               <div class="pg-cell pg-chk">
@@ -626,6 +630,7 @@ async function openResourceManager(menu) {
           groupId: r.groupId,
           label: r.label || (r.parentName ? `${r.parentName} - ${r.groupName}` : r.groupName),
           canRead: !!r.canRead,
+          canWrite: !!r.canWrite,
           canComment: !!r.canComment,
           canDownload: !!r.canDownload,
           canManage: !!r.canManage,
@@ -666,7 +671,7 @@ function addBoardPermRow() {
   if (!boardAddGroupId.value) return
   const option = subGroupOptions.value.find(g => g.id === boardAddGroupId.value)
   if (!option) return
-  boardPermRows.value.push({ groupId: option.id, label: option.label, canRead: true, canComment: false, canDownload: true, canManage: false })
+  boardPermRows.value.push({ groupId: option.id, label: option.label, canRead: true, canWrite: false, canComment: false, canDownload: true, canManage: false })
   boardAddGroupId.value = null
 }
 
@@ -960,7 +965,7 @@ onBeforeUnmount(() => {
 .adm-btn.sm { padding: 0 12px; height: 32px; font-size: 13px; }
 .perm-grid {
   display: grid;
-  grid-template-columns: 1fr 76px 76px 76px 76px 36px;
+  grid-template-columns: 1fr 76px 76px 76px 76px 76px 36px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -973,7 +978,7 @@ onBeforeUnmount(() => {
   border-bottom: 0.5px solid var(--border);
   font-size: 13px;
 }
-.pg-cell:nth-last-child(-n+6) { border-bottom: none; }
+.pg-cell:nth-last-child(-n+7) { border-bottom: none; }
 .pg-head {
   background: var(--surface2);
   font-size: 11px; font-weight: 700; color: var(--t3);
