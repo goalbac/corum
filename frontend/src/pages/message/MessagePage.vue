@@ -393,13 +393,15 @@ async function sendMessage() {
     inputText.value = ''
     attachments.value = []
     if (inputRef.value) inputRef.value.style.height = 'auto'
-    await loadChatAfterSend(activePartnerId.value)
-    await fetchConversations({ showLoading: false })
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '전송에 실패했습니다.')
+    return
   } finally {
     sending.value = false
   }
+  // 전송 완료 후 화면 갱신은 백그라운드로 (스피너 차단 없음)
+  loadChatAfterSend(activePartnerId.value)
+  fetchConversations({ showLoading: false })
 }
 
 function newline(e) {
