@@ -53,8 +53,11 @@
     </div>
 
     <!-- 기본 설정 다이얼로그 -->
-    <el-dialog v-model="showForm" :title="editing ? '게시판 수정' : '게시판 추가'" width="480px" destroy-on-close>
+    <el-dialog v-model="showForm" :title="editing ? '게시판 수정' : '게시판 추가'" width="500px" destroy-on-close>
       <div class="dlg-form">
+
+        <!-- 기본 정보 -->
+        <div class="dlg-section-title">기본 정보</div>
         <div class="dlg-row">
           <div class="dlg-field">
             <label>게시판명</label>
@@ -70,9 +73,12 @@
             </el-select>
           </div>
         </div>
+
+        <!-- 파일 설정 -->
+        <div class="dlg-section-title">파일 설정</div>
         <div class="dlg-row">
           <div class="dlg-field">
-            <label>파일 최대 용량 (MB)</label>
+            <label>최대 용량 (MB)</label>
             <el-input-number v-model="form.fileMaxSizeMb" :min="1" :max="500" style="width:100%" placeholder="전역 설정 사용" />
           </div>
           <div class="dlg-field">
@@ -84,6 +90,9 @@
           <label>허용 확장자 <span class="label-hint">(빈칸=전체 허용)</span></label>
           <el-input v-model="form.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
         </div>
+
+        <!-- 기능 설정 -->
+        <div class="dlg-section-title">기능 설정</div>
         <div class="dlg-checks">
           <label class="chk-item"><el-checkbox v-model="form.useComment" />댓글 사용</label>
           <label class="chk-item"><el-checkbox v-model="form.useLike" />좋아요 사용</label>
@@ -104,7 +113,7 @@
     <el-dialog
       v-model="showPerms"
       :title="`그룹 권한 설정 — ${permBoard?.name}`"
-      width="760px"
+      width="680px"
       destroy-on-close
     >
       <div class="perm-hint">
@@ -124,12 +133,6 @@
                 <div class="th-inner">
                   <span>조회</span>
                   <button class="col-all-btn" @click="toggleAllCol('canRead')" title="전체 선택/해제">전체</button>
-                </div>
-              </th>
-              <th class="perm-col">
-                <div class="th-inner">
-                  <span>쓰기</span>
-                  <button class="col-all-btn" @click="toggleAllCol('canWrite')" title="전체 선택/해제">전체</button>
                 </div>
               </th>
               <th class="perm-col">
@@ -154,19 +157,32 @@
                   <span class="perm-parent">{{ row.parentName }}</span>
                   <span class="perm-name">{{ row.groupName }}</span>
                   <span v-if="row.groupType === 'ADMIN'" class="adm-badge badge-purple" style="font-size:9px;flex-shrink:0">관리자</span>
-                  <button class="row-all-btn" @click="grantAll(row)" title="조회·쓰기·댓글·다운로드 전체 부여">전체</button>
+                  <button class="row-all-btn" @click="grantAll(row)" title="조회·댓글·다운로드 전체 부여">전체</button>
                 </div>
               </td>
-              <td class="perm-col"><el-checkbox v-model="row.canRead" /></td>
-              <td class="perm-col"><el-checkbox v-model="row.canWrite" /></td>
-              <td class="perm-col"><el-checkbox v-model="row.canComment" /></td>
-              <td class="perm-col"><el-checkbox v-model="row.canDownload" /></td>
+              <td class="perm-col">
+                <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canRead" />
+                </el-tooltip>
+              </td>
+              <td class="perm-col">
+                <el-tooltip content="게시물에 댓글을 작성할 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canComment" />
+                </el-tooltip>
+              </td>
+              <td class="perm-col">
+                <el-tooltip content="첨부파일을 다운로드할 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canDownload" />
+                </el-tooltip>
+              </td>
               <td class="perm-col manage-col">
-                <el-checkbox v-model="row.canManage" />
+                <el-tooltip content="게시판의 모든 글을 수정·삭제할 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canManage" />
+                </el-tooltip>
               </td>
             </tr>
             <tr v-if="!permRows.length && !permsLoading">
-              <td colspan="6" class="perm-empty">설정 가능한 그룹이 없습니다.</td>
+              <td colspan="5" class="perm-empty">설정 가능한 그룹이 없습니다.</td>
             </tr>
           </tbody>
         </table>
@@ -255,10 +271,9 @@ function toggleAllCol(field) {
   permRows.value.forEach(r => { r[field] = !allChecked })
 }
 
-/** 행 전체 부여 (조회·쓰기·댓글·다운로드) */
+/** 행 전체 부여 (조회·댓글·다운로드) */
 function grantAll(row) {
   row.canRead = true
-  row.canWrite = true
   row.canComment = true
   row.canDownload = true
 }
@@ -281,6 +296,19 @@ onMounted(fetchBoards)
 
 <style scoped>
 @import '@/assets/admin-table.css';
+
+/* 섹션 제목 */
+.dlg-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--border);
+  margin: 16px 0 12px;
+}
+.dlg-section-title:first-child { margin-top: 0; }
 
 /* 권한 안내 */
 .perm-hint {
@@ -321,7 +349,6 @@ onMounted(fetchBoards)
 .perm-table tbody tr:hover { background: var(--surface2); }
 .perm-col { text-align: center; width: 80px; }
 .manage-col { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
-/* flex 제거 — td에 flex 주면 row height 계산이 다른 td와 달라져 줄이 틀어짐 */
 .perm-group { vertical-align: middle; }
 .perm-group-inner {
   display: inline-flex;
