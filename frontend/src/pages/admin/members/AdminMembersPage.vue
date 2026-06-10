@@ -128,7 +128,7 @@
         <div class="dlg-field">
           <label>그룹</label>
           <el-select v-model="createForm.groupIds" multiple clearable placeholder="그룹 선택" style="width:100%">
-            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+            <el-option v-for="g in subGroupOptions" :key="g.id" :value="g.id" :label="g.label" />
           </el-select>
         </div>
         <div class="create-options">
@@ -179,12 +179,13 @@ const createForm = ref(emptyCreateForm())
 // 전체 flat (그룹 필터용)
 const flatGroups = computed(() => { const r = []; const w = (n) => n.forEach(x => { r.push(x); if (x.children?.length) w(x.children) }); w(groups.value); return r })
 
-// 그룹 추가 셀렉터용: 최상위 제외, "운영 - 최고관리자" 형식
+// 그룹 추가 셀렉터용: 최상위 제외, 시스템 그룹 제외, "운영 - 정회원" 형식
 const subGroupOptions = computed(() => {
   const r = []
   groups.value.forEach(root => {
     if (!root.children?.length) return
     root.children.forEach(child => {
+      if (child.isSystem) return
       r.push({ id: child.id, label: `${root.name} - ${child.name}` })
     })
   })
