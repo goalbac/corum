@@ -123,26 +123,34 @@
           <div v-if="boardPermRows.length" class="perm-rows">
             <div class="perm-rows-head">
               <div class="pr-name">그룹</div>
-              <div class="pr-chk">
-                <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top"><span>조회</span></el-tooltip>
-              </div>
-              <div class="pr-chk">
-                <el-tooltip content="게시물에 댓글을 작성할 수 있습니다" placement="top"><span>댓글</span></el-tooltip>
-              </div>
-              <div class="pr-chk">
-                <el-tooltip content="첨부파일을 다운로드할 수 있습니다" placement="top"><span>다운로드</span></el-tooltip>
-              </div>
-              <div class="pr-chk manage-chk">
-                <el-tooltip content="게시판의 모든 글을 수정·삭제할 수 있습니다" placement="top"><span>관리</span></el-tooltip>
-              </div>
+              <div class="pr-chk" title="게시물 목록·내용을 볼 수 있습니다">조회</div>
+              <div class="pr-chk" title="게시물에 댓글을 작성할 수 있습니다">댓글</div>
+              <div class="pr-chk" title="첨부파일을 다운로드할 수 있습니다">다운로드</div>
+              <div class="pr-chk manage-chk" title="게시판의 모든 글을 수정·삭제할 수 있습니다">관리</div>
               <div class="pr-del"></div>
             </div>
             <div v-for="row in boardPermRows" :key="row.groupId" class="perm-row">
               <div class="pr-name">{{ row.label }}</div>
-              <div class="pr-chk"><el-checkbox v-model="row.canRead" /></div>
-              <div class="pr-chk"><el-checkbox v-model="row.canComment" /></div>
-              <div class="pr-chk"><el-checkbox v-model="row.canDownload" /></div>
-              <div class="pr-chk manage-chk"><el-checkbox v-model="row.canManage" /></div>
+              <div class="pr-chk">
+                <el-tooltip content="게시물 목록·내용을 볼 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canRead" />
+                </el-tooltip>
+              </div>
+              <div class="pr-chk">
+                <el-tooltip content="게시물에 댓글을 작성할 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canComment" />
+                </el-tooltip>
+              </div>
+              <div class="pr-chk">
+                <el-tooltip content="첨부파일을 다운로드할 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canDownload" />
+                </el-tooltip>
+              </div>
+              <div class="pr-chk manage-chk">
+                <el-tooltip content="게시판의 모든 글을 수정·삭제할 수 있습니다" placement="top">
+                  <el-checkbox v-model="row.canManage" />
+                </el-tooltip>
+              </div>
               <div class="pr-del">
                 <button class="del-btn" @click="removePermRow(row.groupId)" title="삭제">
                   <i class="ti ti-x"></i>
