@@ -32,8 +32,9 @@ public class MenuController {
         List<Long> groupIds = isLoggedIn
                 ? memberGroupRepository.findGroupIdsByMemberId(userDetails.getMemberId())
                 : List.of();
+        boolean isAdmin = isLoggedIn && memberGroupRepository.existsAdminGroupByMemberId(userDetails.getMemberId());
 
-        return ApiResponse.ok(menuService.getMenuTreeForMember(groupIds, isLoggedIn));
+        return ApiResponse.ok(menuService.getMenuTreeForMember(groupIds, isLoggedIn, isAdmin));
     }
 
     // 관리자용 전체 메뉴 트리 (숨김 포함)

@@ -46,10 +46,12 @@ public class MenuService {
 
     // ===== 사용자용 메뉴 트리 (권한 필터링) =====
     @Transactional(readOnly = true)
-    public List<MenuResponse> getMenuTreeForMember(List<Long> memberGroupIds, boolean isLoggedIn) {
+    public List<MenuResponse> getMenuTreeForMember(List<Long> memberGroupIds, boolean isLoggedIn, boolean isAdmin) {
         List<Menu> all = menuRepository.findByIsActiveTrueOrderBySortOrderAsc();
 
-        // 권한 필터링
+        // 관리자 그룹은 모든 메뉴 접근 허용
+        if (isAdmin) return buildTree(all);
+
         List<Menu> filtered = all.stream()
                 .filter(menu -> canAccess(menu, memberGroupIds, isLoggedIn))
                 .collect(Collectors.toList());

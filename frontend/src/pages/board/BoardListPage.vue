@@ -274,6 +274,7 @@ const isVisualBoard = computed(() => isGalleryBoard.value || isWebzineBoard.valu
 
 const canWrite = computed(() => {
   if (!board.value) return false
+  if (authStore.member?.isAdmin) return true
   const perms = board.value.permissions || []
   if (!perms.length) return true
   if (!authStore.isLoggedIn) return false
