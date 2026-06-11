@@ -1,6 +1,16 @@
 <template>
   <div class="board-detail" v-loading="loading">
-    <template v-if="post">
+    <div v-if="accessDenied" class="access-denied">
+      <i class="ti ti-lock"></i>
+      <h2>접근할 수 없는 페이지입니다.</h2>
+      <p>이 게시글을 볼 수 있는 권한이 없습니다.</p>
+      <button class="action-btn primary" @click="router.push(basePath)">
+        <i class="ti ti-layout-list"></i>
+        <span class="btn-label">목록</span>
+      </button>
+    </div>
+
+    <template v-else-if="post">
 
       <!-- ===== 게시글 헤더 ===== -->
       <div class="post-header">
@@ -173,6 +183,7 @@ function openProfile(memberId) {
 const adjacent = ref(null)
 const loading = ref(false)
 const postAvatarError = ref(false)
+const accessDenied = ref(false)
 
 const isAdmin = computed(() => !!authStore.member?.isAdmin)
 
@@ -202,6 +213,7 @@ const canComment = computed(() => {
 async function fetchPost() {
   if (!boardId.value || !postId.value) return
   loading.value = true
+  accessDenied.value = false
   try {
     const [postRes, boardRes, adjRes] = await Promise.all([
       api.get(`/boards/${boardId.value}/posts/${postId.value}`),
@@ -212,6 +224,14 @@ async function fetchPost() {
     if (boardRes) board.value = boardRes.data.data
     adjacent.value = adjRes.data.data
     postAvatarError.value = false
+  } catch (error) {
+    if (error.response?.status === 403) {
+      post.value = null
+      adjacent.value = null
+      accessDenied.value = true
+      return
+    }
+    throw error
   } finally {
     loading.value = false
   }
@@ -269,6 +289,35 @@ onMounted(async () => {
 
 <style scoped>
 .board-detail { color: var(--t1); }
+
+.access-denied {
+  min-height: 360px;
+  padding: 64px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  color: var(--t2);
+}
+
+.access-denied i {
+  font-size: 42px;
+  color: var(--t3);
+}
+
+.access-denied h2 {
+  margin: 8px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--t1);
+}
+
+.access-denied p {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
 
 /* ===== 헤더 ===== */
 .post-header {
