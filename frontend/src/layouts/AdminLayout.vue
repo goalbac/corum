@@ -88,7 +88,8 @@ onMounted(async () => {
     sidebar.value = res.data.data || []
   } catch {
     // API 실패 시 기본 구조 폴백
-    sidebar.value = getDefaultSidebar()
+    sidebar.value = []
+    router.push('/')
   } finally {
     sidebarLoaded.value = true
   }

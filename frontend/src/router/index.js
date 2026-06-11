@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import api from '@/api/axios'
 
 const routes = [
   {
@@ -152,6 +153,46 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 })
 })
 
+let adminAccessCache = null
+let adminAccessCacheToken = null
+
+function normalizeAdminPath(path) {
+  if (!path) return ''
+  if (path.length > 1 && path.endsWith('/')) return path.slice(0, -1)
+  return path
+}
+
+function flattenAdminUrls(items = []) {
+  return items.flatMap(item => [
+    item.url,
+    ...flattenAdminUrls(item.children || [])
+  ]).filter(Boolean)
+}
+
+async function getAccessibleAdminUrls(authStore) {
+  const cacheToken = authStore.token
+  if (adminAccessCache && adminAccessCacheToken === cacheToken) {
+    return adminAccessCache
+  }
+
+  const res = await api.get('/admin/sidebar')
+  adminAccessCache = new Set(flattenAdminUrls(res.data.data || []).map(normalizeAdminPath))
+  adminAccessCacheToken = cacheToken
+  return adminAccessCache
+}
+
+function canAccessAdminPath(path, accessibleUrls) {
+  const adminPath = normalizeAdminPath(path)
+  return [...accessibleUrls].some(url => {
+    if (url === '/admin') return adminPath === url
+    return adminPath === url || adminPath.startsWith(`${url}/`)
+  })
+}
+
+function firstAccessibleAdminPath(accessibleUrls) {
+  return [...accessibleUrls].find(url => url !== '/admin') || [...accessibleUrls][0] || '/'
+}
+
 function redirectLegacyBoardRoute(to, menuStore) {
   if (!to.path.startsWith('/board/')) return null
 
@@ -184,6 +225,24 @@ router.beforeEach(async (to, from, next) => {
   }
   if (authStore.isLoggedIn && authStore.member?.requiresTermsAgreement && !to.meta.allowPendingTerms) {
     return next({ name: 'TermsAgreement' })
+  }
+
+  if (to.path.startsWith('/admin')) {
+    if (!authStore.member?.isAdmin && !authStore.member?.admin) {
+      return next({ name: 'Dashboard' })
+    }
+
+    try {
+      const accessibleUrls = await getAccessibleAdminUrls(authStore)
+      if (!accessibleUrls.size) {
+        return next({ name: 'Dashboard' })
+      }
+      if (!canAccessAdminPath(to.path, accessibleUrls)) {
+        return next(firstAccessibleAdminPath(accessibleUrls))
+      }
+    } catch {
+      return next({ name: 'Dashboard' })
+    }
   }
 
   if (to.path.startsWith('/board/')) {

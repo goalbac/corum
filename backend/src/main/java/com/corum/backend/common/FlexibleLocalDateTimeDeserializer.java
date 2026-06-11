@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 
 public class FlexibleLocalDateTimeDeserializer extends JsonDeserializer<LocalDateTime> {
 
@@ -18,16 +20,16 @@ public class FlexibleLocalDateTimeDeserializer extends JsonDeserializer<LocalDat
         if (value == null || value.isBlank()) {
             return null;
         }
+
         String normalized = value.trim();
-        if (normalized.endsWith("Z")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
+        try {
+            return LocalDateTime.parse(normalized);
+        } catch (RuntimeException ignored) {
         }
-        if (normalized.length() > 19) {
-            char offsetSign = normalized.charAt(19);
-            if (offsetSign == '+' || offsetSign == '-') {
-                normalized = normalized.substring(0, 19);
-            }
+        try {
+            return OffsetDateTime.parse(normalized).toLocalDateTime();
+        } catch (RuntimeException ignored) {
         }
-        return LocalDateTime.parse(normalized);
+        return ZonedDateTime.parse(normalized).toLocalDateTime();
     }
 }
