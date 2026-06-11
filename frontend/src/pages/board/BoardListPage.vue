@@ -262,7 +262,7 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const size = ref(15)
-const gallerySize = ref(15)
+const gallerySize = ref(8)
 const keyword = ref('')
 const searchType = ref('title')
 
