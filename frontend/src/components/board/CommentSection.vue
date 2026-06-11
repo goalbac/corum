@@ -4,7 +4,7 @@
     <!-- 헤더 -->
     <div class="cs-header">
       <span class="cs-title">댓글</span>
-      <span class="cs-count">{{ comments.length }}</span>
+      <span class="cs-count">{{ totalCommentCount }}</span>
     </div>
 
     <!-- 댓글 비활성화 안내 -->
@@ -101,6 +101,11 @@ const comments = ref([])
 const newComment = ref('')
 const submitting = ref(false)
 const avatarError = ref(false)
+
+function countComments(list) {
+  return list.reduce((sum, c) => sum + 1 + countComments(c.children || []), 0)
+}
+const totalCommentCount = computed(() => countComments(comments.value))
 
 const showWriteArea = computed(() => {
   if (!authStore.isLoggedIn) return false
