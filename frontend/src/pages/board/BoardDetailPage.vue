@@ -323,6 +323,7 @@ onMounted(async () => {
 .post-header {
   padding: 26px 28px 20px;
   border-bottom: 1px solid var(--border2);
+  background: var(--surface2);
 }
 
 .post-header-top {
