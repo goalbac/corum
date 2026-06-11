@@ -23,6 +23,9 @@
               <span class="gallery-date">{{ formatDate(post.createdAt) }}</span>
             </div>
             <div class="gallery-stats">
+              <span v-if="showViewCount" class="stat-chip">
+                <i class="ti ti-eye"></i> {{ post.viewCount }}
+              </span>
               <span v-if="board?.useLike" class="stat-chip">
                 <i class="ti ti-heart"></i> {{ post.likeCount }}
               </span>
@@ -838,6 +841,9 @@ onMounted(async () => {
     border-radius: 16px;
     overflow: hidden;
     border-bottom: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border: 0.5px solid var(--border2);
+    background: var(--surface);
   }
 
   .webzine-thumb {
