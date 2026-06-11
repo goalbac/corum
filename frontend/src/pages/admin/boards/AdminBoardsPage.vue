@@ -18,9 +18,14 @@
           <div class="at-col" style="width:70px;text-align:center">상태</div>
           <div class="at-col" style="width:100px;text-align:center">관리</div>
         </div>
-        <div v-for="row in boards" :key="row.id" class="at-row">
+        <div v-for="row in sortedBoards" :key="row.id" class="at-row">
           <div class="at-col muted" style="width:60px;text-align:center">{{ row.id }}</div>
-          <div class="at-col bold" style="flex:1">{{ row.name }}</div>
+          <div class="at-col bold" style="flex:1">
+            {{ row.name }}
+            <span v-if="menuPathMap.get(row.menuId)" class="menu-path">
+              {{ menuPathMap.get(row.menuId) }}
+            </span>
+          </div>
           <div class="at-col" style="width:90px;text-align:center">
             <span :class="['adm-badge', typeBadge(row.boardType)]">{{ typeLabel(row.boardType) }}</span>
           </div>
@@ -182,6 +187,46 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
+import { useMenuStore } from '@/stores/menu'
+
+const menuStore = useMenuStore()
+
+// menuId → "상위 > 하위" 브레드크럼 경로
+const menuPathMap = computed(() => {
+  const map = new Map()
+  const walk = (items, ancestors = []) => {
+    for (const menu of items) {
+      const path = [...ancestors, menu.name]
+      if (menu.id != null) map.set(Number(menu.id), path.join(' > '))
+      if (menu.children?.length) walk(menu.children, path)
+    }
+  }
+  walk(menuStore.menus)
+  return map
+})
+
+// menuId → DFS 순서 인덱스 (메뉴 정렬용)
+const menuSortMap = computed(() => {
+  const map = new Map()
+  let idx = 0
+  const walk = (items) => {
+    for (const menu of items) {
+      if (menu.id != null) map.set(Number(menu.id), idx++)
+      if (menu.children?.length) walk(menu.children)
+    }
+  }
+  walk(menuStore.menus)
+  return map
+})
+
+// 메뉴 순서대로 정렬 (연결된 메뉴 없는 게시판은 맨 뒤)
+const sortedBoards = computed(() => {
+  return [...boards.value].sort((a, b) => {
+    const ai = menuSortMap.value.has(a.menuId) ? menuSortMap.value.get(a.menuId) : Infinity
+    const bi = menuSortMap.value.has(b.menuId) ? menuSortMap.value.get(b.menuId) : Infinity
+    return ai - bi
+  })
+})
 
 const boards  = ref([])
 const loading = ref(false)
@@ -300,7 +345,7 @@ async function deleteBoard(id) {
 function typeLabel(t) { return { POST: '일반', GALLERY: '갤러리', WEBZINE: '웹진', DOCUMENT: '자료실' }[t] || t }
 function typeBadge(t) { return { POST: 'badge-primary', GALLERY: 'badge-success', WEBZINE: 'badge-info', DOCUMENT: 'badge-warning' }[t] || '' }
 
-onMounted(() => { fetchBoards(); fetchGroups() })
+onMounted(() => { fetchBoards(); fetchGroups(); menuStore.fetchMenus() })
 </script>
 
 <style scoped>
@@ -379,6 +424,23 @@ onMounted(() => { fetchBoards(); fetchGroups() })
 .del-btn:hover { border-color: var(--color-danger); color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
 
 .perm-empty-msg { text-align: center; color: var(--t3); font-size: 13px; padding: 16px 0; }
+
+.menu-path {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--t3);
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { animation: spin 0.7s linear infinite; display: inline-block; }
