@@ -365,6 +365,7 @@ onMounted(async () => {
   text-decoration: none;
   transition: background 0.12s;
   border-radius: 4px;
+  min-width: 0;
 }
 .post-row:first-child { padding-top: 0; }
 .post-row:last-child  { border-bottom: none; padding-bottom: 0; }
@@ -507,13 +508,36 @@ onMounted(async () => {
 
 /* ===== 반응형 ===== */
 @media (max-width: 768px) {
-  .widget-area { grid-template-columns: 1fr; }
+  .dashboard { gap: 0; }
+
+  .widget-area {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
   .widget-half { grid-column: 1; }
-  .welcome-card { padding: 22px 20px; }
+
+  /* 웰컴 카드: radius 제거, 상하 여백만 */
+  .welcome-card {
+    padding: 22px 18px;
+    border-radius: 0;
+  }
   .welcome-content { flex-direction: column; align-items: flex-start; gap: 10px; }
   .welcome-right { text-align: left; }
   .welcome-time-line { font-size: 22px; }
   .welcome-name { font-size: 17px; }
+
+  /* 위젯 카드: 카드 외곽 제거, 구분선만 */
+  .wcard {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: 0.5px solid var(--border2);
+    box-shadow: none;
+    padding: 18px 16px;
+  }
+  .wcard:hover { transform: none; box-shadow: none; }
+
   .stats-row { flex-wrap: wrap; }
   .stat-divider { display: none; }
   .stat-box { min-width: 45%; }
