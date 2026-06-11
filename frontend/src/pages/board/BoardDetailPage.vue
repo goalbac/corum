@@ -1,12 +1,12 @@
 <template>
   <div class="board-detail" v-loading="loading">
     <div v-if="accessDenied" class="access-denied">
-      <i class="ti ti-lock"></i>
+      <i class="ti ti-lock access-denied-icon"></i>
       <h2>접근할 수 없는 페이지입니다.</h2>
       <p>이 게시글을 볼 수 있는 권한이 없습니다.</p>
-      <button class="action-btn primary" @click="goToAccessDeniedFallback">
-        <i class="ti ti-layout-list"></i>
-        <span class="btn-label">목록</span>
+      <button class="action-btn primary" @click="goHome">
+        <i class="ti ti-home"></i>
+        <span class="btn-label">홈으로 가기</span>
       </button>
     </div>
 
@@ -408,8 +408,8 @@ function showAccessDenied() {
   loading.value = false
 }
 
-function goToAccessDeniedFallback() {
-  router.push(boardId.value ? basePath.value : '/')
+function goHome() {
+  router.push('/')
 }
 
 function stripHtml(html) {
@@ -470,9 +470,14 @@ onMounted(async () => {
   color: var(--t2);
 }
 
-.access-denied i {
+.access-denied-icon {
   font-size: 42px;
   color: var(--t3);
+}
+
+.access-denied .action-btn i {
+  font-size: 15px;
+  color: inherit;
 }
 
 .access-denied h2 {
