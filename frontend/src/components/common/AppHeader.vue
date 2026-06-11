@@ -286,6 +286,10 @@ function formatTime(dateStr) {
 
 async function handleTopMenuClick(menu) {
   await menuStore.fetchMenus()
+  if (menu.menuType === 'GROUP') {
+    menuStore.setActiveTopMenu(menu.id)
+    return
+  }
   const url = menuStore.resolveMenuPath(menu)
   if (!url) {
     menuStore.setActiveTopMenu(menu.id)
