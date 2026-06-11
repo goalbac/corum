@@ -266,12 +266,23 @@ async function fetchConversations({ showLoading = true } = {}) {
   }
 }
 
-// 새 쪽지 알림이 오면 대화 목록 + 열린 채팅도 새로고침
+// 현재 열린 대화를 읽음 처리 (conversations 갱신 후 호출)
+async function markActiveConversationRead() {
+  const conv = conversations.value.find(c => c.partnerId === activePartnerId.value)
+  if (!conv || conv.unreadCount <= 0) return
+  const readCount = conv.unreadCount
+  conv.unreadCount = 0
+  notifStore.decrementMsgCount(readCount)
+  await api.put(`/messages/conversations/${conv.partnerId}/read`).catch(() => {})
+}
+
+// 새 쪽지 알림이 오면 대화 목록 + 열린 채팅도 새로고침 + 읽음 처리
 watch(() => notifStore.notifications[0], async (latest) => {
   if (latest?.type === 'MESSAGE') {
     await fetchConversations()
     if (activePartnerId.value) {
       await loadChat(activePartnerId.value)
+      await markActiveConversationRead()
     }
   }
 })
@@ -286,12 +297,7 @@ async function selectConversation(conv) {
   activePartnerId.value = conv.partnerId
   chatAvatarErr.value = false
   await loadChat(conv.partnerId)
-  if (conv.unreadCount > 0) {
-    const readCount = conv.unreadCount
-    conv.unreadCount = 0
-    notifStore.decrementMsgCount(readCount)
-    await api.put(`/messages/conversations/${conv.partnerId}/read`).catch(() => {})
-  }
+  await markActiveConversationRead()
 }
 
 async function loadChat(partnerId, { showLoading = true } = {}) {
@@ -401,7 +407,7 @@ async function sendMessage() {
   }
   // 전송 완료 후 화면 갱신은 백그라운드로 (스피너 차단 없음)
   loadChatAfterSend(activePartnerId.value)
-  fetchConversations({ showLoading: false })
+  fetchConversations({ showLoading: false }).then(() => markActiveConversationRead())
 }
 
 function newline(e) {
