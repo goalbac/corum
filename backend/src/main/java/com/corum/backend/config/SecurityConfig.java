@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -40,23 +41,32 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
                         // 공개 API
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/signup",
+                                "/api/auth/check",
+                                "/api/auth/request-password-reset",
+                                "/api/auth/reset-password"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/auth/verify-email",
+                                "/api/auth/check"
+                        ).permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/calendars",
                                 "/api/calendars/events"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/health",
-                                "/api/auth/login",
-                                "/api/auth/register",
-                                "/api/auth/verify-email",
-                                "/api/auth/request-password-reset",
-                                "/api/auth/reset-password",
                                 "/api/terms/active",
                                 "/api/menus",
                                 "/api/inquiries",

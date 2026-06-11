@@ -26,6 +26,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    allowedHosts: true,
     proxy: {
       // Spring Boot API 프록시 (CORS 우회)
       '/api': {
