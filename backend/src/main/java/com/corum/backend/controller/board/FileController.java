@@ -99,6 +99,28 @@ public class FileController {
                 .body(data);
     }
 
+    /** 대시보드용 소형 썸네일 (300px) */
+    @GetMapping("/api/files/{fileId}/small-thumb")
+    public ResponseEntity<byte[]> smallThumbnail(@PathVariable Long fileId) {
+        byte[] data = fileStorageService.readSmallThumbnailBytes(fileId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS))
+                .contentLength(data.length)
+                .body(data);
+    }
+
+    /** 인라인 이미지 소형 썸네일 (대시보드용) */
+    @GetMapping("/api/files/inline-thumb/{storedName}")
+    public ResponseEntity<byte[]> inlineThumbnail(@PathVariable String storedName) {
+        byte[] data = fileStorageService.downloadInlineThumbnail(storedName);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS))
+                .contentLength(data.length)
+                .body(data);
+    }
+
     @GetMapping("/api/files/{fileId}/view")
     public ResponseEntity<byte[]> viewImage(@PathVariable Long fileId) {
         UploadFile uploadFile = fileStorageService.getUploadFile(fileId);

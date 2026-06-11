@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -21,20 +22,24 @@ public class DashboardController {
 
     /** 전체 위젯 데이터 (기존 호환용 — 사용 지양) */
     @GetMapping("/widgets")
-    public ApiResponse<List<DashboardWidgetResponse>> getWidgets() {
-        return ApiResponse.ok(dashboardWidgetService.getActiveWidgets());
+    public ApiResponse<List<DashboardWidgetResponse>> getWidgets(
+            @RequestParam(required = false) Long menuId) {
+        return ApiResponse.ok(dashboardWidgetService.getActiveWidgets(menuId));
     }
 
     /** 위젯 레이아웃만 (메타데이터, 데이터 없음 — 빠름) */
     @GetMapping("/widgets/layout")
-    public ApiResponse<List<DashboardWidgetResponse>> getWidgetLayouts() {
-        return ApiResponse.ok(dashboardWidgetService.getActiveWidgetLayouts());
+    public ApiResponse<List<DashboardWidgetResponse>> getWidgetLayouts(
+            @RequestParam(required = false) Long menuId) {
+        return ApiResponse.ok(dashboardWidgetService.getActiveWidgetLayouts(menuId));
     }
 
     /** 단일 위젯 데이터 로드 */
     @GetMapping("/widgets/{id}")
-    public ApiResponse<DashboardWidgetResponse> getWidgetData(@PathVariable Long id) {
-        return ApiResponse.ok(dashboardWidgetService.getWidgetData(id));
+    public ApiResponse<DashboardWidgetResponse> getWidgetData(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int weekOffset) {
+        return ApiResponse.ok(dashboardWidgetService.getWidgetData(id, weekOffset));
     }
 
     @GetMapping("/stats")

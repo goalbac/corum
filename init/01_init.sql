@@ -628,3 +628,7 @@ INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALU
 INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
     (5, '사이트 설정',      '/admin/settings',           'ti ti-settings',         1, TRUE),
     (5, '관리자 메뉴 권한', '/admin/admin-permissions',  'ti ti-lock',             2, TRUE);
+-- ===== dashboard_widgets 컬럼 추가 (다중 대시보드 + 위젯 설명) =====
+ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS menu_id BIGINT;
+ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS description VARCHAR(500);
+CREATE INDEX IF NOT EXISTS idx_dashboard_widgets_menu_id ON dashboard_widgets(menu_id);

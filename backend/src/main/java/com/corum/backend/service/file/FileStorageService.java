@@ -42,6 +42,8 @@ public class FileStorageService {
     private String bucket;
 
     private static final int THUMB_WIDTH = 600;
+    private static final int SMALL_THUMB_WIDTH = 300;
+    private static final double SMALL_THUMB_QUALITY = 0.72;
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
     );
@@ -101,32 +103,31 @@ public class FileStorageService {
     }
 
     private String generateAndUploadThumbnail(byte[] imageBytes, String originalPath, String mimeType) {
-        try {
-            String thumbPath = "thumb/" + originalPath;
-            String outputFormat = mimeType.equalsIgnoreCase("image/png") ? "png" : "jpeg";
+        return generateAndUploadToPath(imageBytes, "thumb/" + originalPath, mimeType, THUMB_WIDTH, 0.82);
+    }
 
+    private String generateAndUploadToPath(byte[] imageBytes, String thumbPath, String mimeType, int width, double quality) {
+        try {
+            String outputFormat = mimeType.equalsIgnoreCase("image/png") ? "png" : "jpeg";
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             Thumbnails.of(new ByteArrayInputStream(imageBytes))
-                    .width(THUMB_WIDTH)
+                    .width(width)
                     .outputFormat(outputFormat)
-                    .outputQuality(0.82)
+                    .outputQuality(quality)
                     .toOutputStream(out);
-
             byte[] thumbBytes = out.toByteArray();
-            String thumbMime = "image/" + outputFormat;
-
             s3Client.putObject(
                 PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(thumbPath)
-                    .contentType(thumbMime)
+                    .contentType("image/" + outputFormat)
                     .contentLength((long) thumbBytes.length)
                     .build(),
                 RequestBody.fromBytes(thumbBytes)
             );
             return thumbPath;
         } catch (Exception e) {
-            log.warn("썸네일 생성 실패, 원본 사용: {}", e.getMessage());
+            log.warn("썸네일 생성 실패: {}", e.getMessage());
             return null;
         }
     }
@@ -145,6 +146,23 @@ public class FileStorageService {
             ).asByteArray();
         } catch (Exception e) {
             throw new BusinessException("파일을 불러올 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /** 대시보드용 소형 썸네일 (300px) — 기존 썸네일을 추가 리사이징 */
+    @Transactional(readOnly = true)
+    public byte[] readSmallThumbnailBytes(Long fileId) {
+        byte[] source = readThumbnailBytes(fileId);
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Thumbnails.of(new ByteArrayInputStream(source))
+                    .width(SMALL_THUMB_WIDTH)
+                    .outputFormat("jpeg")
+                    .outputQuality(SMALL_THUMB_QUALITY)
+                    .toOutputStream(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            return source;
         }
     }
 
@@ -281,15 +299,21 @@ public class FileStorageService {
         String storedName = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
         String storagePath = "inline/" + storedName;
         try {
+            byte[] bytes = file.getBytes();
             s3Client.putObject(
                 PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(storagePath)
                     .contentType(file.getContentType())
-                    .contentLength(file.getSize())
+                    .contentLength((long) bytes.length)
                     .build(),
-                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+                RequestBody.fromBytes(bytes)
             );
+            // 대시보드용 소형 썸네일도 생성
+            String mimeType = file.getContentType();
+            if (mimeType != null && IMAGE_MIME_TYPES.contains(mimeType.toLowerCase())) {
+                generateAndUploadToPath(bytes, "inline/thumb/" + storedName, mimeType, SMALL_THUMB_WIDTH, SMALL_THUMB_QUALITY);
+            }
         } catch (IOException e) {
             throw new BusinessException("이미지 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -300,13 +324,23 @@ public class FileStorageService {
         String storagePath = "inline/" + storedName;
         try {
             return s3Client.getObjectAsBytes(
-                GetObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(storagePath)
-                    .build()
+                GetObjectRequest.builder().bucket(bucket).key(storagePath).build()
             ).asByteArray();
         } catch (Exception e) {
             throw new BusinessException("이미지를 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
+        }
+    }
+
+    /** 인라인 이미지 소형 썸네일 (대시보드용) */
+    public byte[] downloadInlineThumbnail(String storedName) {
+        String thumbPath = "inline/thumb/" + storedName;
+        try {
+            return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder().bucket(bucket).key(thumbPath).build()
+            ).asByteArray();
+        } catch (Exception e) {
+            // 썸네일 없으면 원본 반환 (기존 업로드된 파일)
+            return downloadInlineImage(storedName);
         }
     }
 

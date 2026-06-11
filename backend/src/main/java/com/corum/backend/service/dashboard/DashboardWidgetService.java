@@ -14,9 +14,12 @@ import com.corum.backend.domain.file.UploadFile;
 import com.corum.backend.domain.file.UploadFileRepository;
 import com.corum.backend.domain.inquiry.InquiryRepository;
 import com.corum.backend.domain.member.MemberRepository;
+import com.corum.backend.domain.menu.Menu;
+import com.corum.backend.domain.menu.MenuRepository;
 import com.corum.backend.domain.post.Post;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.dashboard.DashboardCalendarEventResponse;
+import com.corum.backend.dto.dashboard.DashboardInfoResponse;
 import com.corum.backend.dto.dashboard.DashboardPostResponse;
 import com.corum.backend.dto.dashboard.DashboardStatsResponse;
 import com.corum.backend.dto.dashboard.DashboardWidgetRequest;
@@ -51,30 +54,32 @@ public class DashboardWidgetService {
     private final CalendarRepository calendarRepository;
     private final CalendarEventRepository calendarEventRepository;
     private final UploadFileRepository uploadFileRepository;
+    private final MenuRepository menuRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
-    public List<DashboardWidgetResponse> getAdminWidgets() {
-        return widgetRepository.findAllByOrderBySortOrderAscIdAsc().stream()
+    public List<DashboardWidgetResponse> getAdminWidgets(Long menuId) {
+        return widgetRepository.findByMenuId(menuId).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<DashboardWidgetResponse> getActiveWidgets() {
-        List<DashboardWidget> widgets = widgetRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc();
+    public List<DashboardWidgetResponse> getActiveWidgets(Long menuId) {
+        List<DashboardWidget> widgets = widgetRepository.findActiveByMenuId(menuId);
         if (widgets.isEmpty()) {
-            return getDefaultWidgets();
+            return menuId == null ? getDefaultWidgets() : List.of();
         }
         return widgets.stream().map(this::toResponse).toList();
     }
 
     /** 데이터 없이 위젯 메타데이터만 반환 (빠른 레이아웃 로드용) */
     @Transactional(readOnly = true)
-    public List<DashboardWidgetResponse> getActiveWidgetLayouts() {
-        List<DashboardWidget> widgets = widgetRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc();
+    public List<DashboardWidgetResponse> getActiveWidgetLayouts(Long menuId) {
+        List<DashboardWidget> widgets = widgetRepository.findActiveByMenuId(menuId);
         if (widgets.isEmpty()) {
-            // 기본 위젯도 레이아웃만
+            if (menuId != null) return List.of();
+            // 홈 대시보드 기본 위젯도 레이아웃만
             return boardRepository.findByIsActiveTrueOrderByIdAsc().stream()
                     .limit(4)
                     .map(board -> DashboardWidget.builder()
@@ -100,26 +105,73 @@ public class DashboardWidgetService {
                 .toList();
     }
 
+    /** 대시보드 목록 (홈 + 메뉴 대시보드) */
+    @Transactional(readOnly = true)
+    public List<DashboardInfoResponse> getDashboardList() {
+        // 모든 메뉴 맵 (경로 빌딩용)
+        Map<Long, Menu> menuMap = menuRepository.findAllByOrderBySortOrderAsc().stream()
+                .collect(Collectors.toMap(Menu::getId, m -> m));
+
+        List<DashboardInfoResponse> result = new java.util.ArrayList<>();
+
+        // 홈 대시보드
+        int homeCount = widgetRepository.findByMenuId(null).size();
+        result.add(new DashboardInfoResponse(null, "홈 대시보드", "홈 대시보드", homeCount, true));
+
+        // 메뉴 연결 대시보드
+        List<Menu> dashboardMenus = menuRepository.findByPageType("DASHBOARD");
+        for (Menu menu : dashboardMenus) {
+            int count = widgetRepository.findByMenuId(menu.getId()).size();
+            String path = buildMenuPath(menu, menuMap);
+            result.add(new DashboardInfoResponse(menu.getId(), path, menu.getName(), count, false));
+        }
+        return result;
+    }
+
+    private String buildMenuPath(Menu menu, Map<Long, Menu> menuMap) {
+        java.util.Deque<String> parts = new java.util.ArrayDeque<>();
+        Menu cur = menu;
+        while (cur != null) {
+            parts.addFirst(cur.getName());
+            cur = cur.getParentId() != null ? menuMap.get(cur.getParentId()) : null;
+        }
+        return String.join(" > ", parts);
+    }
+
     /** 단일 위젯의 실제 데이터 로드 */
     @Transactional(readOnly = true)
-    public DashboardWidgetResponse getWidgetData(Long id) {
-        // id가 음수면 기본 위젯(DB 미등록) → getDefaultWidgets에서 처리하기 어려우므로 빈 응답
+    public DashboardWidgetResponse getWidgetData(Long id, int weekOffset) {
         if (id < 0) {
             return widgetRepository.findById(-id)
-                    .map(this::toResponse)
+                    .map(w -> toResponseWithOffset(w, weekOffset))
                     .orElseThrow(() -> BusinessException.notFound("위젯을 찾을 수 없습니다."));
         }
         DashboardWidget widget = widgetRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("위젯을 찾을 수 없습니다."));
+        return toResponseWithOffset(widget, weekOffset);
+    }
+
+    private DashboardWidgetResponse toResponseWithOffset(DashboardWidget widget, int weekOffset) {
+        if (weekOffset == 0) return toResponse(widget);
+        // weekOffset != 0 이면 캘린더만 특별 처리, 나머지는 기존과 동일
+        if ("CALENDAR_WEEKLY".equals(widget.getWidgetType())) {
+            String boardName = widget.getTargetBoardId() != null
+                    ? boardRepository.findById(widget.getTargetBoardId()).map(b -> b.getName()).orElse(null)
+                    : null;
+            List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget, weekOffset);
+            return new DashboardWidgetResponse(widget, boardName, List.of(), null, events);
+        }
         return toResponse(widget);
     }
 
     @Transactional
     public DashboardWidgetResponse create(DashboardWidgetRequest request, Long memberId) {
-        int nextOrder = widgetRepository.findMaxSortOrder() + 1;
+        int nextOrder = widgetRepository.findMaxSortOrderByMenuId(request.getMenuId()) + 1;
         DashboardWidget widget = widgetRepository.save(DashboardWidget.builder()
                 .widgetType(request.getWidgetType())
                 .title(request.getTitle())
+                .description(request.getDescription())
+                .menuId(request.getMenuId())
                 .targetBoardId(request.getTargetBoardId())
                 .postCount(normalizePostCount(request.getPostCount()))
                 .sortOrder(nextOrder)
@@ -137,6 +189,7 @@ public class DashboardWidgetService {
         widget.update(
                 request.getWidgetType(),
                 request.getTitle(),
+                request.getDescription(),
                 request.getTargetBoardId(),
                 normalizePostCount(request.getPostCount()),
                 request.getSortOrder() != null ? request.getSortOrder() : 0,
@@ -266,19 +319,32 @@ public class DashboardWidgetService {
         int start = srcIdx + 5;
         int end = content.indexOf("\"", start);
         if (end < 0) return null;
-        return content.substring(start, end);
+        return toInlineThumbnailUrl(content.substring(start, end));
+    }
+
+    /** 인라인 이미지 URL을 대시보드용 소형 썸네일 URL로 변환 */
+    private String toInlineThumbnailUrl(String url) {
+        if (url == null) return null;
+        if (url.contains("/api/files/inline/")) {
+            return url.replace("/api/files/inline/", "/api/files/inline-thumb/");
+        }
+        return url;
     }
 
     private String buildFileUrl(UploadFile f) {
         return f.getThumbnailPath() != null
-                ? "/api/files/" + f.getId() + "/thumbnail"
+                ? "/api/files/" + f.getId() + "/small-thumb"
                 : "/api/files/" + f.getId() + "/view";
     }
 
     private List<DashboardCalendarEventResponse> buildCalendarEvents(DashboardWidget widget) {
+        return buildCalendarEvents(widget, 0);
+    }
+
+    private List<DashboardCalendarEventResponse> buildCalendarEvents(DashboardWidget widget, int weekOffset) {
         Long calendarId = parseCalendarId(widget.getExtraConfig());
 
-        LocalDateTime weekStart = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
+        LocalDateTime weekStart = LocalDate.now().with(DayOfWeek.MONDAY).plusWeeks(weekOffset).atStartOfDay();
         LocalDateTime weekEnd   = weekStart.plusDays(7).minusNanos(1);
 
         List<CalendarEntity> calendarList;

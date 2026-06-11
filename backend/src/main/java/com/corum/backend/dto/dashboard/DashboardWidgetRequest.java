@@ -12,9 +12,12 @@ public class DashboardWidgetRequest {
     private String widgetType;
 
     private String title;
+    private String description;
     private Long targetBoardId;
     private Integer postCount = 5;
     private Integer sortOrder = 0;
     private Boolean isActive = true;
     private String extraConfig;
+    /** null = 홈 대시보드, non-null = 메뉴 대시보드 */
+    private Long menuId;
 }

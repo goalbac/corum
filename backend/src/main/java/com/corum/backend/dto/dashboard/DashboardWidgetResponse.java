@@ -12,6 +12,8 @@ public class DashboardWidgetResponse {
     private final Long id;
     private final String widgetType;
     private final String title;
+    private final String description;
+    private final Long menuId;
     private final Long targetBoardId;
     private final String targetBoardName;
     private final Integer postCount;
@@ -32,19 +34,21 @@ public class DashboardWidgetResponse {
     public DashboardWidgetResponse(DashboardWidget widget, String targetBoardName,
                                    List<DashboardPostResponse> posts, DashboardStatsResponse stats,
                                    List<DashboardCalendarEventResponse> calendarEvents) {
-        this.id             = widget.getId();
-        this.widgetType     = widget.getWidgetType();
-        this.title          = widget.getTitle();
-        this.targetBoardId  = widget.getTargetBoardId();
+        this.id              = widget.getId();
+        this.widgetType      = widget.getWidgetType();
+        this.title           = widget.getTitle();
+        this.description     = widget.getDescription();
+        this.menuId          = widget.getMenuId();
+        this.targetBoardId   = widget.getTargetBoardId();
         this.targetBoardName = targetBoardName;
-        this.postCount      = widget.getPostCount();
-        this.sortOrder      = widget.getSortOrder();
-        this.isActive       = widget.getIsActive();
-        this.extraConfig    = widget.getExtraConfig();
-        this.updatedAt      = widget.getUpdatedAt();
-        this.updatedBy      = widget.getUpdatedBy();
-        this.posts          = posts;
-        this.stats          = stats;
-        this.calendarEvents = calendarEvents;
+        this.postCount       = widget.getPostCount();
+        this.sortOrder       = widget.getSortOrder();
+        this.isActive        = widget.getIsActive();
+        this.extraConfig     = widget.getExtraConfig();
+        this.updatedAt       = widget.getUpdatedAt();
+        this.updatedBy       = widget.getUpdatedBy();
+        this.posts           = posts;
+        this.stats           = stats;
+        this.calendarEvents  = calendarEvents;
     }
 }

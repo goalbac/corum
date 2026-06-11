@@ -32,6 +32,9 @@ public class DashboardWidget {
     @Column(length = 200)
     private String title;
 
+    @Column(name = "description", length = 500)
+    private String description;
+
     @Column(name = "target_board_id")
     private Long targetBoardId;
 
@@ -47,6 +50,10 @@ public class DashboardWidget {
     @Column(name = "extra_config", columnDefinition = "TEXT")
     private String extraConfig;
 
+    /** null = 홈 대시보드, non-null = 해당 menuId의 대시보드 */
+    @Column(name = "menu_id")
+    private Long menuId;
+
     @Builder.Default
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -54,10 +61,12 @@ public class DashboardWidget {
     @Column(name = "updated_by")
     private Long updatedBy;
 
-    public void update(String widgetType, String title, Long targetBoardId, Integer postCount,
+    public void update(String widgetType, String title, String description,
+                       Long targetBoardId, Integer postCount,
                        Integer sortOrder, Boolean isActive, String extraConfig, Long updatedBy) {
         this.widgetType = widgetType;
         this.title = title;
+        this.description = description;
         this.targetBoardId = targetBoardId;
         this.postCount = postCount;
         this.sortOrder = sortOrder;
