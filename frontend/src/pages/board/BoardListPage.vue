@@ -9,7 +9,7 @@
             <template v-if="post.thumbnailUrl">
               <div class="thumb-spinner"><div class="spinner-ring"></div></div>
               <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img"
-                @load="e => e.target.classList.add('loaded')"
+                @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
                 @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }" />
             </template>
             <div v-else class="no-thumb"><i class="ti ti-photo-off"></i></div>
@@ -86,7 +86,7 @@
             <template v-if="post.thumbnailUrl">
               <div class="thumb-spinner"><div class="spinner-ring"></div></div>
               <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img"
-                @load="e => e.target.classList.add('loaded')"
+                @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
                 @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }" />
             </template>
             <div v-else class="no-thumb"><i class="ti ti-news"></i></div>
