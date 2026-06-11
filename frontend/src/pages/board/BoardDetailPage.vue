@@ -4,7 +4,7 @@
       <i class="ti ti-lock"></i>
       <h2>접근할 수 없는 페이지입니다.</h2>
       <p>이 게시글을 볼 수 있는 권한이 없습니다.</p>
-      <button class="action-btn primary" @click="router.push(basePath)">
+      <button class="action-btn primary" @click="goToAccessDeniedFallback">
         <i class="ti ti-layout-list"></i>
         <span class="btn-label">목록</span>
       </button>
@@ -287,7 +287,11 @@ const canComment = computed(() => {
 })
 
 async function fetchPost() {
-  if (!boardId.value || !postId.value) return
+  if (!postId.value) return
+  if (!boardId.value) {
+    if (route.params.menuId && menuStore.loaded) showAccessDenied()
+    return
+  }
   loading.value = true
   accessDenied.value = false
   try {
@@ -302,9 +306,7 @@ async function fetchPost() {
     postAvatarError.value = false
   } catch (error) {
     if (error.response?.status === 403) {
-      post.value = null
-      adjacent.value = null
-      accessDenied.value = true
+      showAccessDenied()
       return
     }
     throw error
@@ -399,6 +401,17 @@ async function sendPostMessage() {
   }
 }
 
+function showAccessDenied() {
+  post.value = null
+  adjacent.value = null
+  accessDenied.value = true
+  loading.value = false
+}
+
+function goToAccessDeniedFallback() {
+  router.push(boardId.value ? basePath.value : '/')
+}
+
 function stripHtml(html) {
   if (!html) return ''
   const div = document.createElement('div')
@@ -434,6 +447,10 @@ function fileIcon(name) {
 watch([boardId, postId], fetchPost)
 onMounted(async () => {
   if (route.params.menuId) await menuStore.fetchMenus()
+  if (route.params.menuId && !activeMenu.value) {
+    showAccessDenied()
+    return
+  }
   fetchPost()
 })
 </script>
