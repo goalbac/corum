@@ -478,9 +478,9 @@ onMounted(async () => {
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1px;
-  background: var(--border2);
-  border-top: 1px solid var(--border2);
+  gap: 16px;
+  background: transparent;
+  padding: 16px 20px;
 }
 
 .gallery-card {
@@ -488,6 +488,9 @@ onMounted(async () => {
   cursor: pointer;
   transition: var(--transition);
   overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 0.5px solid var(--border2);
 }
 
 .gallery-card:hover { background: var(--surface2); }
@@ -517,7 +520,7 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 700;
   padding: 2px 7px;
-  border-radius: 3px;
+  border-radius: 8px;
 }
 
 .gallery-info { padding: 10px 12px 12px; }
@@ -798,28 +801,11 @@ onMounted(async () => {
   .pt-col.date { width: 72px; font-size: 12px; }
   .search-input { width: 130px; }
 
-  /* ===== 갤러리 : 동글동글 카드 ===== */
+  /* ===== 갤러리 : 모바일 2열 ===== */
   .gallery-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    background: transparent;
-    border-top: none;
     padding: 14px;
-  }
-
-  .gallery-card {
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    border: 0.5px solid var(--border2);
-  }
-
-  .gallery-thumb {
-    border-radius: 0;
-  }
-
-  .gallery-notice-badge {
-    border-radius: 8px;
   }
 
   /* ===== 웹진 : 이미지 상단 full-width 카드 ===== */
