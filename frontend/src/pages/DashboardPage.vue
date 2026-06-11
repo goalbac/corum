@@ -107,8 +107,9 @@
                       :key="ev.id"
                       class="cal-event-chip"
                       :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
-                      :title="ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
+                      :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
                     >
+                      <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
                       <span class="cal-ev-title">{{ ev.title }}</span>
                       <span v-if="ev.calendarName && !parseCalendarId(widget)" class="cal-ev-cal">{{ ev.calendarName }}</span>
                     </div>
@@ -345,6 +346,12 @@ const currentWeekRange = computed(() => {
   const l = new Date(last.date)
   return `${f.getMonth()+1}/${f.getDate()} – ${l.getMonth()+1}/${l.getDate()}`
 })
+
+function formatEventTime(dt) {
+  if (!dt) return ''
+  const d = new Date(dt)
+  return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
 
 function getEventsForDay(widget, dateStr) {
   return (widget.calendarEvents || []).filter(ev => {
@@ -682,6 +689,14 @@ onMounted(async () => {
   padding: 3px 5px;
   cursor: default;
   overflow: hidden;
+}
+.cal-ev-time {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
+  letter-spacing: -0.2px;
+  line-height: 1.2;
 }
 .cal-ev-title {
   display: block;
