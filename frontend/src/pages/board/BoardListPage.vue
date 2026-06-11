@@ -793,20 +793,73 @@ onMounted(async () => {
 .pagination { display: flex; justify-content: center; padding: 24px 0 20px; }
 
 @media (max-width: 600px) {
+  /* ===== 테이블 ===== */
   .pt-col.writer, .pt-col.count { display: none; }
   .pt-col.date { width: 72px; font-size: 12px; }
   .search-input { width: 130px; }
-  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
-  .webzine-item {
-    grid-template-columns: 96px 1fr;
+
+  /* ===== 갤러리 : 동글동글 카드 ===== */
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    padding: 14px 12px;
+    background: transparent;
+    border-top: none;
+    padding: 14px;
   }
-  .webzine-title { font-size: 15px; }
+
+  .gallery-card {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border: 0.5px solid var(--border2);
+  }
+
+  .gallery-thumb {
+    border-radius: 0;
+  }
+
+  .gallery-notice-badge {
+    border-radius: 8px;
+  }
+
+  /* ===== 웹진 : 이미지 상단 full-width, 텍스트 하단 ===== */
+  .webzine-list {
+    border-top: none;
+  }
+
+  .webzine-item {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0 0 4px;
+    border-bottom: 8px solid var(--surface2);
+    border-radius: 0;
+  }
+
+  .webzine-item:last-child {
+    border-bottom: none;
+  }
+
+  .webzine-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+  }
+
+  .webzine-body {
+    padding: 12px 16px 14px;
+    gap: 6px;
+  }
+
+  .webzine-title {
+    font-size: 16px;
+    -webkit-line-clamp: 2;
+  }
+
   .webzine-excerpt {
     font-size: 12px;
     -webkit-line-clamp: 2;
   }
+
   .webzine-meta { gap: 5px; font-size: 11px; }
 }
 </style>
