@@ -15,6 +15,8 @@ import com.corum.backend.dto.message.MessageSendRequest;
 import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.mail.MailService;
 import com.corum.backend.service.notification.NotificationService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -36,6 +38,7 @@ public class MessageService {
     private final MailService mailService;
     private final NotificationService notificationService;
     private final FileStorageService fileStorageService;
+    private final ObjectMapper objectMapper;
 
     // ===== 쪽지 발송 (파일 포함, 컨트롤러 진입점) =====
     @Transactional
@@ -44,7 +47,7 @@ public class MessageService {
         String safeContent = content == null ? "" : content;
         boolean hasFiles = files != null && files.stream().anyMatch(f -> f != null && !f.isEmpty());
 
-        String title = safeContent.isBlank() ? "(파일)" : truncate(safeContent, 50);
+        String title = messageTitle(safeContent, hasFiles);
 
         Message message = Message.builder()
                 .senderId(senderId)
@@ -72,7 +75,7 @@ public class MessageService {
         String senderName = memberRepository.findById(senderId)
                 .map(Member::getName).orElse("알 수 없음");
 
-        String notifContent = safeContent.isBlank() ? "(파일)" : truncate(safeContent, 50);
+        String notifContent = messagePreview(safeContent, hasFiles, 50);
 
         memberRepository.findAllById(recipientIds).forEach(member -> {
             mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다",
@@ -197,7 +200,7 @@ public class MessageService {
                     Long partnerId     = entry.getKey();
                     ConversationData d = entry.getValue();
                     Member partner     = partnerMembers.get(partnerId);
-                    String preview     = d.lastMsg.getContent().isBlank() ? "(파일)" : truncate(d.lastMsg.getContent(), 60);
+                    String preview     = messagePreview(d.lastMsg.getContent(), false, 60);
                     return new ConversationSummary(
                             partnerId,
                             partner != null ? partner.getName() : "알 수 없음",
@@ -286,6 +289,33 @@ public class MessageService {
     private static String truncate(String s, int max) {
         if (s == null) return "";
         return s.length() <= max ? s : s.substring(0, max) + "…";
+    }
+
+    private String messageTitle(String content, boolean hasFiles) {
+        return readPostLinkPayload(content)
+                .map(payload -> "게시글 공유: " + postLinkTitle(payload))
+                .orElseGet(() -> content.isBlank() ? (hasFiles ? "(파일)" : "") : truncate(content, 50));
+    }
+
+    private String messagePreview(String content, boolean hasFiles, int max) {
+        return readPostLinkPayload(content)
+                .map(payload -> "게시글 공유: " + postLinkTitle(payload))
+                .orElseGet(() -> content == null || content.isBlank() ? (hasFiles ? "(파일)" : "") : truncate(content, max));
+    }
+
+    private Optional<JsonNode> readPostLinkPayload(String content) {
+        if (content == null || !content.trim().startsWith("{")) return Optional.empty();
+        try {
+            JsonNode payload = objectMapper.readTree(content);
+            return "POST_LINK".equals(payload.path("type").asText()) ? Optional.of(payload) : Optional.empty();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private static String postLinkTitle(JsonNode payload) {
+        String title = payload.path("preview").path("title").asText("");
+        return title.isBlank() ? "게시글" : title;
     }
 
     private static class ConversationData {

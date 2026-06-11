@@ -94,11 +94,11 @@
           </div>
           <template v-else>
             <div
-              v-for="(msg, idx) in chatMessages"
+              v-for="(msg, idx) in renderedChatMessages"
               :key="msg.id"
             >
               <!-- 날짜 구분선 -->
-              <div v-if="showDateSep(chatMessages, idx)" class="date-sep">
+              <div v-if="showDateSep(renderedChatMessages, idx)" class="date-sep">
                 <span>{{ dateLabel(msg.createdAt) }}</span>
               </div>
 
@@ -116,7 +116,21 @@
 
                 <div class="bubble-col" :class="msg.isMine ? 'col-mine' : 'col-theirs'">
                   <div :class="['bubble', msg.isMine ? 'bubble-mine' : 'bubble-theirs']">
-                    <span v-if="msg.content">{{ msg.content }}</span>
+                    <template v-if="msg.postLink">
+                      <span v-if="msg.postLink.text" class="bubble-text">{{ msg.postLink.text }}</span>
+                      <button class="post-link-preview" @click.stop="openPostLink(msg.postLink.preview)">
+                        <span class="post-link-type">{{ msg.postLink.preview.boardName || '게시글' }}</span>
+                        <span class="post-link-title">{{ msg.postLink.preview.title }}</span>
+                        <span v-if="msg.postLink.preview.description" class="post-link-desc">
+                          {{ msg.postLink.preview.description }}
+                        </span>
+                        <span class="post-link-meta">
+                          <i class="ti ti-external-link"></i>
+                          게시글로 이동
+                        </span>
+                      </button>
+                    </template>
+                    <span v-else-if="msg.content">{{ msg.content }}</span>
                     <!-- 첨부 파일 -->
                     <div v-if="msg.files && msg.files.length" class="bubble-files">
                       <template v-for="f in msg.files" :key="f.id">
@@ -239,13 +253,14 @@
 
 <script setup>
 import { ref, nextTick, onMounted, watch, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Loading, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api/axios'
 import { useNotificationStore } from '@/stores/notification'
 
 const route = useRoute()
+const router = useRouter()
 const notifStore = useNotificationStore()
 
 // ===== 모바일 목록↔채팅 전환 =====
@@ -306,6 +321,12 @@ const chatMessages = ref([])
 const chatLoading  = ref(false)
 const chatBodyRef  = ref()
 const animatedMessageId = ref(null)
+const renderedChatMessages = computed(() =>
+  chatMessages.value.map(msg => ({
+    ...msg,
+    postLink: parsePostLinkContent(msg.content)
+  }))
+)
 
 async function selectConversation(conv) {
   activePartnerId.value = conv.partnerId
@@ -391,6 +412,31 @@ function previewUrl(file) {
 
 function openImage(src) {
   lightboxSrc.value = src
+}
+
+function parsePostLinkContent(content) {
+  if (!content || typeof content !== 'string' || !content.trim().startsWith('{')) return null
+  try {
+    const payload = JSON.parse(content)
+    if (payload?.type !== 'POST_LINK' || !payload.preview?.path) return null
+    return {
+      text: payload.text || '',
+      preview: {
+        title: payload.preview.title || '게시글',
+        description: payload.preview.description || '',
+        boardName: payload.preview.boardName || '',
+        writerName: payload.preview.writerName || '',
+        path: payload.preview.path
+      }
+    }
+  } catch {
+    return null
+  }
+}
+
+function openPostLink(preview) {
+  if (!preview?.path) return
+  router.push(preview.path)
 }
 
 function formatFileSize(bytes) {
@@ -873,6 +919,82 @@ onMounted(async () => {
   color: var(--t1);
   border: 0.5px solid var(--border2);
   border-bottom-left-radius: 4px;
+}
+
+.bubble-text {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.post-link-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: min(280px, 100%);
+  padding: 11px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--t1);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: normal;
+  transition: var(--transition);
+}
+
+.bubble-mine .post-link-preview {
+  border-color: rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+}
+
+.post-link-preview:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.bubble-mine .post-link-preview:hover {
+  border-color: rgba(255,255,255,0.62);
+}
+
+.post-link-type {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--t3);
+}
+
+.bubble-mine .post-link-type,
+.bubble-mine .post-link-desc,
+.bubble-mine .post-link-meta {
+  color: rgba(255,255,255,0.78);
+}
+
+.post-link-title {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.post-link-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--t2);
+  font-size: 12.5px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.post-link-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--accent-t);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .bubble-time {

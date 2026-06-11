@@ -89,6 +89,10 @@
             <i class="ti ti-printer"></i>
             <span class="btn-label">인쇄</span>
           </button>
+          <button class="action-btn ghost" @click="openShareDialog">
+            <i class="ti ti-send"></i>
+            <span class="btn-label">보내기</span>
+          </button>
         </div>
         <div class="actions-right">
           <button v-if="canEdit" class="action-btn ghost"
@@ -148,6 +152,71 @@
     v-model="profileModalVisible"
     :member-id="profileTargetId"
   />
+
+  <el-dialog
+    v-model="shareDialogVisible"
+    title="게시글 보내기"
+    width="460px"
+    destroy-on-close
+    @closed="resetShareDialog"
+  >
+    <div class="share-form">
+      <el-select
+        v-model="shareRecipientIds"
+        multiple
+        filterable
+        remote
+        reserve-keyword
+        :remote-method="searchShareMembers"
+        :loading="shareSearching"
+        placeholder="받는 사람 이름 또는 아이디 검색"
+        class="share-recipient-select"
+      >
+        <el-option
+          v-for="member in shareMemberOptions"
+          :key="member.id"
+          :label="`${member.name} (@${member.username})`"
+          :value="member.id"
+        >
+          <div class="share-member-option">
+            <span class="share-member-name">{{ member.name }}</span>
+            <span class="share-member-username">@{{ member.username }}</span>
+          </div>
+        </el-option>
+      </el-select>
+
+      <el-input
+        v-model="shareMessage"
+        type="textarea"
+        :rows="3"
+        maxlength="500"
+        show-word-limit
+        placeholder="함께 보낼 메시지를 입력하세요."
+      />
+
+      <div class="share-preview-card">
+        <div class="share-preview-label">게시글 미리보기</div>
+        <div class="share-preview-title">{{ post?.title }}</div>
+        <div class="share-preview-meta">
+          <span>{{ board?.name || '게시판' }}</span>
+          <span>{{ post?.writerName }}</span>
+        </div>
+        <p v-if="sharePreviewDescription" class="share-preview-desc">{{ sharePreviewDescription }}</p>
+      </div>
+    </div>
+
+    <template #footer>
+      <el-button @click="shareDialogVisible = false">취소</el-button>
+      <el-button
+        type="primary"
+        :loading="shareSending"
+        :disabled="!shareRecipientIds.length"
+        @click="sendPostMessage"
+      >
+        보내기
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -184,6 +253,13 @@ const adjacent = ref(null)
 const loading = ref(false)
 const postAvatarError = ref(false)
 const accessDenied = ref(false)
+const shareDialogVisible = ref(false)
+const shareRecipientIds = ref([])
+const shareMemberOptions = ref([])
+const shareMessage = ref('')
+const shareSearching = ref(false)
+const shareSending = ref(false)
+let shareSearchTimer = null
 
 const isAdmin = computed(() => !!authStore.member?.isAdmin)
 
@@ -254,6 +330,81 @@ async function handleDelete() {
 }
 
 function handlePrint() { window.print() }
+
+const sharePreviewDescription = computed(() => {
+  const text = stripHtml(post.value?.content || '').trim()
+  return text.length > 120 ? `${text.slice(0, 120)}...` : text
+})
+
+function openShareDialog() {
+  if (!authStore.isLoggedIn) {
+    ElMessage.warning('로그인이 필요합니다.')
+    return
+  }
+  shareDialogVisible.value = true
+}
+
+function resetShareDialog() {
+  shareRecipientIds.value = []
+  shareMemberOptions.value = []
+  shareMessage.value = ''
+  shareSearching.value = false
+  clearTimeout(shareSearchTimer)
+}
+
+function searchShareMembers(query) {
+  clearTimeout(shareSearchTimer)
+  const keyword = query.trim()
+  if (!keyword) {
+    shareMemberOptions.value = []
+    shareSearching.value = false
+    return
+  }
+  shareSearching.value = true
+  shareSearchTimer = setTimeout(async () => {
+    try {
+      const res = await api.get('/members/search', { params: { q: keyword } })
+      const myId = authStore.member?.id
+      shareMemberOptions.value = (res.data.data || []).filter(member => member.id !== myId)
+    } finally {
+      shareSearching.value = false
+    }
+  }, 250)
+}
+
+async function sendPostMessage() {
+  if (!shareRecipientIds.value.length || shareSending.value) return
+  shareSending.value = true
+  try {
+    const form = new FormData()
+    shareRecipientIds.value.forEach(id => form.append('recipientIds', id))
+    form.append('content', JSON.stringify({
+      type: 'POST_LINK',
+      text: shareMessage.value.trim(),
+      preview: {
+        title: post.value?.title || '',
+        description: sharePreviewDescription.value,
+        boardName: board.value?.name || '게시판',
+        writerName: post.value?.writerName || '',
+        path: router.resolve(`${basePath.value}/posts/${postId.value}`).href
+      }
+    }))
+    await api.post('/messages', form, { headers: { 'Content-Type': undefined } })
+    ElMessage.success('게시글을 쪽지로 보냈습니다.')
+    shareDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '게시글 보내기에 실패했습니다.')
+  } finally {
+    shareSending.value = false
+  }
+}
+
+function stripHtml(html) {
+  if (!html) return ''
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return div.textContent || div.innerText || ''
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -622,6 +773,70 @@ onMounted(async () => {
 .like-btn { color: var(--t3); }
 .like-btn:hover { color: #e03e52; border-color: #fecdd3; background: #fff1f2; }
 .like-btn.liked { color: #e03e52; border-color: #fecdd3; background: #fff1f2; }
+
+.share-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.share-recipient-select {
+  width: 100%;
+}
+
+.share-member-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.share-member-name {
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.share-member-username {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.share-preview-card {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface2);
+}
+
+.share-preview-label {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--t3);
+}
+
+.share-preview-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--t1);
+  word-break: break-word;
+}
+
+.share-preview-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.share-preview-desc {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--t2);
+  word-break: break-word;
+}
 
 /* ===== 이전/다음 ===== */
 .adjacent-nav { border-bottom: 1px solid var(--border2); }
