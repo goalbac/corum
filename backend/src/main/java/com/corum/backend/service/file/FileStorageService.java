@@ -19,8 +19,13 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import net.coobird.thumbnailator.Thumbnails;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,6 +40,11 @@ public class FileStorageService {
 
     @Value("${storage.s3.bucket}")
     private String bucket;
+
+    private static final int THUMB_WIDTH = 600;
+    private static final Set<String> IMAGE_MIME_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
+    );
 
     // ===== 파일 업로드 =====
     @Transactional
@@ -52,18 +62,27 @@ public class FileStorageService {
         String storedName = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
         String storagePath = targetType.toLowerCase() + "/" + targetId + "/" + storedName;
 
+        byte[] originalBytes;
         try {
-            s3Client.putObject(
-                PutObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(storagePath)
-                    .contentType(file.getContentType())
-                    .contentLength(file.getSize())
-                    .build(),
-                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
-            );
+            originalBytes = file.getBytes();
         } catch (IOException e) {
             throw new BusinessException("파일 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        s3Client.putObject(
+            PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(storagePath)
+                .contentType(file.getContentType())
+                .contentLength((long) originalBytes.length)
+                .build(),
+            RequestBody.fromBytes(originalBytes)
+        );
+
+        String thumbnailPath = null;
+        String mimeType = file.getContentType();
+        if (mimeType != null && IMAGE_MIME_TYPES.contains(mimeType.toLowerCase())) {
+            thumbnailPath = generateAndUploadThumbnail(originalBytes, storagePath, mimeType);
         }
 
         UploadFile uploadFile = UploadFile.builder()
@@ -72,12 +91,61 @@ public class FileStorageService {
                 .originalName(file.getOriginalFilename())
                 .storedName(storedName)
                 .storagePath(storagePath)
-                .mimeType(file.getContentType())
+                .thumbnailPath(thumbnailPath)
+                .mimeType(mimeType)
                 .fileSize(file.getSize())
                 .uploadedBy(uploadedBy)
                 .build();
 
         return new FileResponse(uploadFileRepository.save(uploadFile));
+    }
+
+    private String generateAndUploadThumbnail(byte[] imageBytes, String originalPath, String mimeType) {
+        try {
+            String thumbPath = "thumb/" + originalPath;
+            String outputFormat = mimeType.equalsIgnoreCase("image/png") ? "png" : "jpeg";
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Thumbnails.of(new ByteArrayInputStream(imageBytes))
+                    .width(THUMB_WIDTH)
+                    .outputFormat(outputFormat)
+                    .outputQuality(0.82)
+                    .toOutputStream(out);
+
+            byte[] thumbBytes = out.toByteArray();
+            String thumbMime = "image/" + outputFormat;
+
+            s3Client.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(thumbPath)
+                    .contentType(thumbMime)
+                    .contentLength((long) thumbBytes.length)
+                    .build(),
+                RequestBody.fromBytes(thumbBytes)
+            );
+            return thumbPath;
+        } catch (Exception e) {
+            log.warn("썸네일 생성 실패, 원본 사용: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // ===== 썸네일 조회 (없으면 원본 반환) =====
+    @Transactional(readOnly = true)
+    public byte[] readThumbnailBytes(Long fileId) {
+        UploadFile uploadFile = uploadFileRepository.findById(fileId)
+                .orElseThrow(() -> BusinessException.notFound("파일을 찾을 수 없습니다."));
+        String path = uploadFile.getThumbnailPath() != null
+                ? uploadFile.getThumbnailPath()
+                : uploadFile.getStoragePath();
+        try {
+            return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder().bucket(bucket).key(path).build()
+            ).asByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("파일을 불러올 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // ===== 파일 조회 (카운트 증가 없음, 이미지 인라인 표시용) =====

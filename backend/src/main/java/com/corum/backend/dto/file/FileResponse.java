@@ -12,6 +12,7 @@ public class FileResponse {
     private final Long fileSize;
     private final Integer downloadCount;
     private final String downloadUrl;
+    private final String thumbnailUrl;
 
     public FileResponse(UploadFile file) {
         this.id = file.getId();
@@ -20,5 +21,8 @@ public class FileResponse {
         this.fileSize = file.getFileSize();
         this.downloadCount = file.getDownloadCount();
         this.downloadUrl = "/api/files/" + file.getId() + "/download";
+        this.thumbnailUrl = file.getThumbnailPath() != null
+                ? "/api/files/" + file.getId() + "/thumbnail"
+                : "/api/files/" + file.getId() + "/view";
     }
 }

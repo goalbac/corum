@@ -300,6 +300,7 @@ CREATE TABLE files (
     original_name  VARCHAR(500) NOT NULL,
     stored_name    VARCHAR(500) NOT NULL,
     storage_path   VARCHAR(1000) NOT NULL,
+    thumbnail_path VARCHAR(1000),
     mime_type      VARCHAR(200),
     file_size      BIGINT       NOT NULL DEFAULT 0,
     download_count INT          NOT NULL DEFAULT 0,

@@ -79,6 +79,26 @@ public class FileController {
                 .body(data);
     }
 
+    @GetMapping("/api/files/{fileId}/thumbnail")
+    public ResponseEntity<byte[]> thumbnail(@PathVariable Long fileId) {
+        UploadFile uploadFile = fileStorageService.getUploadFile(fileId);
+        byte[] data = fileStorageService.readThumbnailBytes(fileId);
+
+        String mimeType = uploadFile.getMimeType();
+        MediaType mediaType;
+        try {
+            mediaType = mimeType != null ? MediaType.parseMediaType(mimeType) : MediaType.IMAGE_JPEG;
+        } catch (Exception e) {
+            mediaType = MediaType.IMAGE_JPEG;
+        }
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS))
+                .contentLength(data.length)
+                .body(data);
+    }
+
     @GetMapping("/api/files/{fileId}/view")
     public ResponseEntity<byte[]> viewImage(@PathVariable Long fileId) {
         UploadFile uploadFile = fileStorageService.getUploadFile(fileId);

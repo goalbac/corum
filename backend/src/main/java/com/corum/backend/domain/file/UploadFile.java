@@ -33,6 +33,9 @@ public class UploadFile {
     @Column(name = "storage_path", nullable = false, length = 1000)
     private String storagePath;
 
+    @Column(name = "thumbnail_path", length = 1000)
+    private String thumbnailPath;
+
     @Column(name = "mime_type", length = 200)
     private String mimeType;
 

@@ -61,13 +61,11 @@ public class PostService {
         for (int i = 0; i < postList.size(); i++) {
             Post p = postList.get(i);
             List<FileResponse> files = fileStorageService.getFiles("POST", p.getId());
-            String contentThumb = extractFirstImageFromContent(p.getContent());
-            String thumbnailUrl = contentThumb != null ? contentThumb
-                    : files.stream()
+            String thumbnailUrl = files.stream()
                             .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
                             .findFirst()
-                            .map(f -> "/api/files/" + f.getId() + "/view")
-                            .orElse(null);
+                            .map(FileResponse::getThumbnailUrl)
+                            .orElseGet(() -> extractFirstImageFromContent(p.getContent()));
             long rowNum = total - offset - i;
             int commentCount = commentRepository.countByPostIdAndIsDeletedFalse(p.getId());
             content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, rowNum));

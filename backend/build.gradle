@@ -44,6 +44,9 @@ dependencies {
     // S3 (MinIO 호환)
     implementation 'software.amazon.awssdk:s3:2.25.40'
 
+    // 이미지 썸네일 생성
+    implementation 'net.coobird:thumbnailator:0.4.19'
+
     // Lombok
     compileOnly    'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
