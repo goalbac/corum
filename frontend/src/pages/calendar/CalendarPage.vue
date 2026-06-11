@@ -183,6 +183,7 @@ const eventForm = ref({
 const writableCalendars = computed(() => {
   if (!authStore.isLoggedIn) return []
   return calendars.value.filter(c => {
+    if (authStore.member?.isAdmin) return true
     if (!c.permissions || c.permissions.length === 0) return true // 공개
     return c.permissions.some(p => p.canWrite)
   })
@@ -208,6 +209,7 @@ const canEditSelected = computed(() => {
   const calId = selectedEvent.value?.extendedProps?.calendarId
   const cal = calendars.value.find(c => c.id === calId)
   if (!cal) return false
+  if (authStore.member?.isAdmin) return true
   if (!cal.permissions || cal.permissions.length === 0) return authStore.isLoggedIn
   return cal.permissions.some(p => p.canWrite)
 })

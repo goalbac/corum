@@ -33,4 +33,14 @@ public interface MemberGroupRepository extends JpaRepository<MemberGroup, Long> 
         WHERE mg.memberId = :memberId AND g.type = 'ADMIN'
         """)
     boolean existsAdminGroupByMemberId(Long memberId);
+
+    @Query("""
+        SELECT COUNT(mg) > 0 FROM MemberGroup mg
+        JOIN Group g ON g.id = mg.groupId
+        WHERE mg.memberId = :memberId
+          AND g.type = 'ADMIN'
+          AND g.isSystem = true
+          AND g.parentId IS NOT NULL
+        """)
+    boolean existsSuperAdminGroupByMemberId(Long memberId);
 }

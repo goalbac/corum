@@ -1,6 +1,7 @@
 package com.corum.backend.controller.calendar;
 
 import com.corum.backend.common.ApiResponse;
+import com.corum.backend.common.FlexibleLocalDateTimeDeserializer;
 import com.corum.backend.domain.calendar.CalendarEvent;
 import com.corum.backend.dto.calendar.CalendarCreateRequest;
 import com.corum.backend.dto.calendar.CalendarEventRequest;
@@ -9,12 +10,10 @@ import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.calendar.CalendarService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -61,11 +60,15 @@ public class CalendarController {
     // ===== 기간별 일정 조회 (권한 필터) =====
     @GetMapping("/events")
     public ApiResponse<List<CalendarEvent>> getEvents(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
+            @RequestParam String start,
+            @RequestParam String end,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        return ApiResponse.ok(calendarService.getEvents(start, end, memberId));
+        return ApiResponse.ok(calendarService.getEvents(
+                FlexibleLocalDateTimeDeserializer.parse(start),
+                FlexibleLocalDateTimeDeserializer.parse(end),
+                memberId
+        ));
     }
 
     // ===== 일정 단건 조회 =====

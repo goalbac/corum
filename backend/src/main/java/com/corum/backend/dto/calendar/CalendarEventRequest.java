@@ -1,5 +1,7 @@
 package com.corum.backend.dto.calendar;
 
+import com.corum.backend.common.FlexibleLocalDateTimeDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -19,8 +21,10 @@ public class CalendarEventRequest {
     private String location;
 
     @NotNull(message = "시작 시간을 입력해주세요.")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime startAt;
 
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime endAt;
 
     private Boolean isAllDay = false;

@@ -53,6 +53,9 @@ public class CalendarService {
                     .filter(id -> permissionRepository.findByCalendarId(id).isEmpty())
                     .collect(Collectors.toList());
         }
+        if (isSuperAdmin(memberId)) {
+            return allActive;
+        }
         List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
         if (groupIds.isEmpty()) {
             return allActive.stream()
@@ -72,12 +75,17 @@ public class CalendarService {
     // ===== 쓰기 권한 체크 =====
     public boolean canWrite(Long calendarId, Long memberId) {
         if (memberId == null) return false;
+        if (isSuperAdmin(memberId)) return true;
         List<Long> perms = permissionRepository.findByCalendarId(calendarId).stream()
                 .map(p -> p.getGroupId()).collect(Collectors.toList());
         if (perms.isEmpty()) return true; // 공개 캘린더
         List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
         if (groupIds.isEmpty()) return false;
         return permissionRepository.canWrite(calendarId, groupIds);
+    }
+
+    private boolean isSuperAdmin(Long memberId) {
+        return memberId != null && memberGroupRepository.existsSuperAdminGroupByMemberId(memberId);
     }
 
     // ===== 기간별 일정 조회 (권한 필터) =====
