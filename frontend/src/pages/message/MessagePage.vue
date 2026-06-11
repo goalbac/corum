@@ -1,7 +1,7 @@
 <template>
-  <div class="msg-layout">
+  <div class="msg-layout" :class="{ 'mobile-chat-open': isMobileChatOpen }">
     <!-- ===== 왼쪽 대화 목록 ===== -->
-    <aside class="msg-sidebar">
+    <aside class="msg-sidebar" :class="{ 'mobile-hidden': isMobileChatOpen }">
       <div class="sidebar-head">
         <span class="sidebar-title">쪽지</span>
         <button class="new-btn" title="새 쪽지" @click="openNew">
@@ -71,6 +71,9 @@
         <!-- 헤더 -->
         <div class="chat-header">
           <div class="chat-header-left">
+            <button class="mobile-back-btn" @click="closeMobileChat" aria-label="목록으로">
+              <i class="ti ti-arrow-left"></i>
+            </button>
             <div class="chat-avatar">
               <img
                 v-if="activePartner?.partnerProfileImageUrl && !chatAvatarErr"
@@ -245,6 +248,17 @@ import { useNotificationStore } from '@/stores/notification'
 const route = useRoute()
 const notifStore = useNotificationStore()
 
+// ===== 모바일 목록↔채팅 전환 =====
+const isMobileChatOpen = ref(false)
+
+function openMobileChat() {
+  if (window.innerWidth <= 768) isMobileChatOpen.value = true
+}
+
+function closeMobileChat() {
+  isMobileChatOpen.value = false
+}
+
 // ===== 대화 목록 =====
 const conversations    = ref([])
 const convLoading      = ref(false)
@@ -296,6 +310,7 @@ const animatedMessageId = ref(null)
 async function selectConversation(conv) {
   activePartnerId.value = conv.partnerId
   chatAvatarErr.value = false
+  openMobileChat()
   await loadChat(conv.partnerId)
   await markActiveConversationRead()
 }
@@ -484,6 +499,7 @@ function startNewConversation(member) {
     activePartnerId.value = member.id
     chatMessages.value = []
     chatLoading.value = false
+    openMobileChat()
   }
 }
 
@@ -1125,18 +1141,73 @@ onMounted(async () => {
 
 .search-empty { font-size: 13px; color: var(--t3); text-align: center; padding: 16px; }
 
+/* ===== 모바일 뒤로가기 버튼 (데스크탑에서 숨김) ===== */
+.mobile-back-btn {
+  display: none;
+}
+
 /* ===== 반응형 ===== */
 @media (max-width: 768px) {
   .msg-layout {
     grid-template-columns: 1fr;
-    height: auto;
+    height: calc(100vh - var(--header-height) - 56px);
+    position: relative;
+    overflow: hidden;
   }
+
+  /* 목록 화면 */
   .msg-sidebar {
+    position: absolute;
+    inset: 0;
     border-right: none;
-    border-bottom: 0.5px solid var(--border2);
-    max-height: 300px;
+    border-bottom: none;
+    max-height: none;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s;
+    z-index: 1;
+    overflow-y: auto;
   }
-  .msg-main { min-height: 400px; }
+
+  .msg-sidebar.mobile-hidden {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 채팅 화면 */
+  .msg-main {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s;
+    z-index: 2;
+  }
+
+  .mobile-chat-open .msg-main {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  /* 뒤로가기 버튼 표시 */
+  .mobile-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--t2);
+    font-size: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: var(--transition);
+  }
+
+  .mobile-back-btn:hover { background: var(--surface2); color: var(--t1); }
+
   .bubble-col { max-width: 80%; }
 }
 </style>
