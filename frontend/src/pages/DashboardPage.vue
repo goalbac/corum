@@ -289,8 +289,8 @@ onMounted(async () => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
-.widget-full  { grid-column: 1 / -1; }
-.widget-half  { grid-column: span 1; }
+.widget-full  { grid-column: 1 / -1; min-width: 0; }
+.widget-half  { grid-column: span 1; min-width: 0; }
 
 /* 슬라이더처럼 wcard 없는 widget-full도 리프트 적용 */
 .widget-full:not(:has(.wcard)):hover,
@@ -354,7 +354,7 @@ onMounted(async () => {
 }
 
 /* ===== 최신 글 ===== */
-.post-list { display: flex; flex-direction: column; }
+.post-list { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .post-row {
   display: flex;
   align-items: center;
@@ -506,40 +506,60 @@ onMounted(async () => {
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { animation: spin 0.8s linear infinite; display: inline-block; }
 
-/* ===== 반응형 ===== */
+/* ===== 반응형 (모바일 토스 스타일) ===== */
 @media (max-width: 768px) {
-  .dashboard { gap: 0; }
-
-  .widget-area {
-    grid-template-columns: 1fr;
+  .dashboard {
     gap: 0;
+    background: var(--bg);
+  }
+
+  /* 웰컴 카드: 꽉 채우고, 하단 radius만 */
+  .welcome-card {
+    padding: 24px 20px 28px;
+    border-radius: 0 0 24px 24px;
+    margin-bottom: 4px;
+  }
+  .welcome-content { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .welcome-right { text-align: left; }
+  .welcome-time-line { font-size: 24px; }
+  .welcome-name { font-size: 18px; }
+
+  /* 위젯 그리드: 세로 1열, 좌우 패딩 + 카드 간격 */
+  .widget-area {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px 14px 24px;
   }
   .widget-half { grid-column: 1; }
 
-  /* 웰컴 카드: radius 제거, 상하 여백만 */
-  .welcome-card {
-    padding: 22px 18px;
-    border-radius: 0;
-  }
-  .welcome-content { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .welcome-right { text-align: left; }
-  .welcome-time-line { font-size: 22px; }
-  .welcome-name { font-size: 17px; }
-
-  /* 위젯 카드: 카드 외곽 제거, 구분선만 */
+  /* 위젯 카드: 토스 스타일 — 둥근 카드 + 부드러운 그림자 */
   .wcard {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    border-top: none;
-    border-bottom: 0.5px solid var(--border2);
-    box-shadow: none;
-    padding: 18px 16px;
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+    padding: 18px 18px 16px;
   }
-  .wcard:hover { transform: none; box-shadow: none; }
+  .wcard:hover { transform: none; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
 
+  /* 카드 헤더 */
+  .wcard-head { margin-bottom: 12px; }
+  .wcard-title { font-size: 14px; color: var(--t2); font-weight: 700; }
+  .wcard-more { font-size: 12px; }
+
+  /* 게시글 */
+  .post-row { padding: 10px 0; gap: 10px; }
+  .post-title-txt { font-size: 14px; }
+  .post-date-txt { font-size: 11.5px; }
+
+  /* 링크 그리드 */
+  .link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .link-chip { padding: 10px 12px; font-size: 13px; border-radius: 12px; }
+
+  /* 통계 */
   .stats-row { flex-wrap: wrap; }
   .stat-divider { display: none; }
   .stat-box { min-width: 45%; }
+  .stat-num { font-size: 24px; }
+  .stat-lbl { font-size: 12px; }
 }
 </style>
