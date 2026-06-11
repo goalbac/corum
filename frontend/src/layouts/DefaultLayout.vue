@@ -634,8 +634,13 @@ onMounted(async () => {
 
 /* ===== 반응형 ===== */
 @media (max-width: 768px) {
-  .page-container { padding: 18px 14px 28px; }
+  .page-container { padding: 0 0 28px; }
   .menu-shell { display: block; }
   .lnb { display: none; }
+  .content-card {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 </style>
