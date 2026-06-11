@@ -184,9 +184,17 @@ public class DashboardWidgetService {
         Map<Long, String> thumbMap = new HashMap<>();
         if (withThumbs) {
             List<Long> postIds = postList.stream().map(Post::getId).toList();
+            // 1순위: 첨부 이미지 파일 썸네일
             List<UploadFile> images = uploadFileRepository.findImageFilesByPostIds(postIds);
             for (UploadFile f : images) {
                 thumbMap.putIfAbsent(f.getTargetId(), buildFileUrl(f));
+            }
+            // 2순위: 본문 인라인 이미지 src 추출 (갤러리/웹진 TipTap 이미지)
+            for (Post p : postList) {
+                if (!thumbMap.containsKey(p.getId())) {
+                    String inlineUrl = extractFirstImageFromContent(p.getContent());
+                    if (inlineUrl != null) thumbMap.put(p.getId(), inlineUrl);
+                }
             }
         }
 
@@ -197,6 +205,18 @@ public class DashboardWidgetService {
                         withThumbs ? thumbMap.get(p.getId()) : null
                 ))
                 .toList();
+    }
+
+    private String extractFirstImageFromContent(String content) {
+        if (content == null || content.isBlank()) return null;
+        int idx = content.indexOf("<img ");
+        if (idx < 0) return null;
+        int srcIdx = content.indexOf("src=\"", idx);
+        if (srcIdx < 0) return null;
+        int start = srcIdx + 5;
+        int end = content.indexOf("\"", start);
+        if (end < 0) return null;
+        return content.substring(start, end);
     }
 
     private String buildFileUrl(UploadFile f) {
