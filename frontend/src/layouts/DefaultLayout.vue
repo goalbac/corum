@@ -208,8 +208,6 @@ function navigateMenu(menu) {
 function handleSideClick(menu) {
   if (menu.children?.length) {
     toggleOpen(menu.id)
-    const first = menuStore.firstNavigableMenu(menu)
-    if (first && first.id !== menu.id) navigateMenu(first)
     return
   }
   navigateMenu(menu)
