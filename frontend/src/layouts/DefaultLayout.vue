@@ -28,17 +28,35 @@
               <i class="ti ti-chevron-down" :class="{ rotated: activeTopMenu?.id === menu.id }"></i>
             </button>
             <template v-if="activeTopMenu?.id === menu.id">
-              <button
-                v-for="sub in menu.children || []"
-                :key="sub.id"
-                type="button"
-                class="drawer-sub-item"
-                :class="{ active: isActiveSideMenu(sub) }"
-                @click="handleMobileMenu(sub)"
-              >
-                {{ sub.name }}
-                <span v-if="hasNewBoardPost(sub)" class="new-badge new-post-badge">새 글</span>
-              </button>
+              <template v-for="sub in menu.children || []" :key="sub.id">
+                <button
+                  type="button"
+                  class="drawer-sub-item"
+                  :class="{ active: isActiveSideMenu(sub), 'has-children': sub.children?.length }"
+                  @click="handleMobileSubClick(sub)"
+                >
+                  <span>{{ sub.name }}</span>
+                  <span v-if="hasNewBoardPost(sub)" class="new-badge new-post-badge">새 글</span>
+                  <i
+                    v-if="sub.children?.length"
+                    class="ti ti-chevron-right drawer-sub-arrow"
+                    :class="{ rotated: mobileOpenIds.includes(Number(sub.id)) }"
+                  ></i>
+                </button>
+                <template v-if="sub.children?.length && mobileOpenIds.includes(Number(sub.id))">
+                  <button
+                    v-for="sub2 in sub.children"
+                    :key="sub2.id"
+                    type="button"
+                    class="drawer-sub-item depth-2"
+                    :class="{ active: isActiveSideMenu(sub2) }"
+                    @click="handleMobileMenu(sub2)"
+                  >
+                    <span>{{ sub2.name }}</span>
+                    <span v-if="hasNewBoardPost(sub2)" class="new-badge new-post-badge">새 글</span>
+                  </button>
+                </template>
+              </template>
             </template>
           </div>
         </div>
@@ -151,6 +169,7 @@ const authStore = useAuthStore()
 const menuStore = useMenuStore()
 const mobileMenuOpen = ref(false)
 const openMenuIds = ref([])
+const mobileOpenIds = ref([])
 
 const routeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
@@ -214,12 +233,24 @@ function handleSideClick(menu) {
 }
 
 function handleMobileTopMenu(menu) {
+  mobileOpenIds.value = []
   if (activeTopMenu.value?.id === menu.id) {
     navigateMenu(menu)
     return
   }
   const first = menuStore.firstNavigableMenu(menu)
   navigateMenu(first || menu)
+}
+
+function handleMobileSubClick(menu) {
+  if (menu.children?.length) {
+    const id = Number(menu.id)
+    const idx = mobileOpenIds.value.indexOf(id)
+    if (idx >= 0) mobileOpenIds.value.splice(idx, 1)
+    else mobileOpenIds.value.push(id)
+    return
+  }
+  handleMobileMenu(menu)
 }
 
 function handleMobileMenu(menu) {
@@ -565,6 +596,23 @@ onMounted(async () => {
   font-size: 15px;
   font-weight: 600;
 }
+
+.drawer-sub-item.depth-2 {
+  padding-left: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t3);
+}
+
+.drawer-sub-arrow {
+  font-size: 13px;
+  margin-left: auto;
+  color: var(--t3);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.drawer-sub-arrow.rotated { transform: rotate(90deg); }
 
 .drawer-top-item:hover,
 .drawer-sub-item:hover { background: var(--surface2); color: var(--t1); }
