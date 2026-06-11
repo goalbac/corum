@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -124,7 +125,16 @@ public class DashboardWidgetService {
         List<DashboardPostResponse> posts = List.of();
         DashboardStatsResponse stats = null;
         if ("RECENT_POSTS".equals(widget.getWidgetType())) {
-            posts = getRecentPosts(widget).stream().map(DashboardPostResponse::new).toList();
+            boolean isAll = widget.getTargetBoardId() == null;
+            if (isAll) {
+                Map<Long, String> boardNameMap = boardRepository.findByIsActiveTrueOrderByIdAsc()
+                        .stream().collect(java.util.stream.Collectors.toMap(Board::getId, Board::getName));
+                posts = getRecentPosts(widget).stream()
+                        .map(p -> new DashboardPostResponse(p, boardNameMap.get(p.getBoardId())))
+                        .toList();
+            } else {
+                posts = getRecentPosts(widget).stream().map(DashboardPostResponse::new).toList();
+            }
         }
         if ("MEMBER_STATS".equals(widget.getWidgetType()) || "VISIT_STATS".equals(widget.getWidgetType())) {
             stats = getStats();

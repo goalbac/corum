@@ -47,7 +47,10 @@
                 :to="postPath(widget, post)"
                 class="post-row"
               >
-                <span class="post-title-txt">{{ post.title }}</span>
+                <span class="post-title-wrap">
+                  <span v-if="post.boardName" class="post-board-tag">{{ post.boardName }}</span>
+                  <span class="post-title-txt">{{ post.title }}</span>
+                </span>
                 <span class="post-date-txt">{{ formatDate(post.createdAt) }}</span>
               </router-link>
             </div>
@@ -355,6 +358,24 @@ onMounted(async () => {
 
 /* ===== 최신 글 ===== */
 .post-list { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.post-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.post-board-tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-t);
+  background: var(--accent-bg);
+  border-radius: 5px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
 .post-row {
   display: flex;
   align-items: center;
