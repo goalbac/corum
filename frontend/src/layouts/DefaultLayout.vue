@@ -25,9 +25,9 @@
               @click="handleMobileTopMenu(menu)"
             >
               <span>{{ menu.name }}</span>
-              <i class="ti ti-chevron-down" :class="{ rotated: activeTopMenu?.id === menu.id }"></i>
+              <i v-if="menu.children?.length" class="ti ti-chevron-down" :class="{ rotated: mobileExpandedTopId === menu.id }"></i>
             </button>
-            <template v-if="activeTopMenu?.id === menu.id">
+            <template v-if="mobileExpandedTopId === menu.id || (!menu.children?.length && activeTopMenu?.id === menu.id)">
               <template v-for="sub in menu.children || []" :key="sub.id">
                 <button
                   type="button"
@@ -170,9 +170,15 @@ const menuStore = useMenuStore()
 const mobileMenuOpen = ref(false)
 const openMenuIds = ref([])
 const mobileOpenIds = ref([])
+const mobileExpandedTopId = ref(null)
 
 const routeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
+
+// 라우트 이동 시 해당 대메뉴 자동 펼침
+watch(activeTopMenu, (menu) => {
+  if (menu) mobileExpandedTopId.value = menu.id
+}, { immediate: true })
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 const showsMenuLayout = computed(() => !!activeTopMenu.value && sideMenus.value.length > 0)
 
@@ -234,12 +240,12 @@ function handleSideClick(menu) {
 
 function handleMobileTopMenu(menu) {
   mobileOpenIds.value = []
-  if (activeTopMenu.value?.id === menu.id) {
-    navigateMenu(menu)
+  if (menu.children?.length) {
+    mobileExpandedTopId.value = mobileExpandedTopId.value === menu.id ? null : menu.id
     return
   }
-  const first = menuStore.firstNavigableMenu(menu)
-  navigateMenu(first || menu)
+  mobileExpandedTopId.value = null
+  navigateMenu(menu)
 }
 
 function handleMobileSubClick(menu) {
