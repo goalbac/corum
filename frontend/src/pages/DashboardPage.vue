@@ -562,7 +562,7 @@ onMounted(async () => {
 /* 메뉴 대시보드: 갤러리 카드처럼 테두리 없이 그림자로 구분 */
 .dashboard-menu .wcard {
   background: var(--surface);
-  border: none;
+  border: 0.5px solid var(--border2);
   border-radius: 16px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
@@ -570,7 +570,7 @@ onMounted(async () => {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   background: var(--surface);
-  border: none;
+  border: 0.5px solid var(--border2);
 }
 /* 메뉴 대시보드: 로딩/빈 상태 */
 .dashboard-menu .loading-area,
@@ -1270,12 +1270,13 @@ onMounted(async () => {
   .dashboard-menu .wcard {
     border-radius: 16px;
     background: var(--surface);
-    border: none;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border: 0.5px solid var(--border2);
   }
   .dashboard-menu .wcard:hover {
     transform: none;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border: 0.5px solid var(--border2);
   }
 
   .wcard-head { margin-bottom: 12px; }
