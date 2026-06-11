@@ -69,6 +69,51 @@ public class DashboardWidgetService {
         return widgets.stream().map(this::toResponse).toList();
     }
 
+    /** 데이터 없이 위젯 메타데이터만 반환 (빠른 레이아웃 로드용) */
+    @Transactional(readOnly = true)
+    public List<DashboardWidgetResponse> getActiveWidgetLayouts() {
+        List<DashboardWidget> widgets = widgetRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc();
+        if (widgets.isEmpty()) {
+            // 기본 위젯도 레이아웃만
+            return boardRepository.findByIsActiveTrueOrderByIdAsc().stream()
+                    .limit(4)
+                    .map(board -> DashboardWidget.builder()
+                            .id(-board.getId())
+                            .widgetType("RECENT_POSTS")
+                            .title(board.getName())
+                            .targetBoardId(board.getId())
+                            .postCount(5)
+                            .sortOrder(board.getId().intValue())
+                            .isActive(true)
+                            .build())
+                    .map(w -> toLayoutResponse(w, w.getTargetBoardId() != null
+                            ? boardRepository.findById(w.getTargetBoardId()).map(b -> b.getName()).orElse(null)
+                            : null))
+                    .toList();
+        }
+        // boardId → name 일괄 조회 (N+1 방지)
+        Map<Long, String> boardNameMap = boardRepository.findByIsActiveTrueOrderByIdAsc().stream()
+                .collect(Collectors.toMap(Board::getId, Board::getName));
+        return widgets.stream()
+                .map(w -> toLayoutResponse(w, w.getTargetBoardId() != null
+                        ? boardNameMap.get(w.getTargetBoardId()) : null))
+                .toList();
+    }
+
+    /** 단일 위젯의 실제 데이터 로드 */
+    @Transactional(readOnly = true)
+    public DashboardWidgetResponse getWidgetData(Long id) {
+        // id가 음수면 기본 위젯(DB 미등록) → getDefaultWidgets에서 처리하기 어려우므로 빈 응답
+        if (id < 0) {
+            return widgetRepository.findById(-id)
+                    .map(this::toResponse)
+                    .orElseThrow(() -> BusinessException.notFound("위젯을 찾을 수 없습니다."));
+        }
+        DashboardWidget widget = widgetRepository.findById(id)
+                .orElseThrow(() -> BusinessException.notFound("위젯을 찾을 수 없습니다."));
+        return toResponse(widget);
+    }
+
     @Transactional
     public DashboardWidgetResponse create(DashboardWidgetRequest request, Long memberId) {
         int nextOrder = widgetRepository.findMaxSortOrder() + 1;
@@ -132,6 +177,11 @@ public class DashboardWidgetService {
     }
 
     // ===== 내부 변환 =====
+
+    /** 데이터 없는 레이아웃 전용 응답 */
+    private DashboardWidgetResponse toLayoutResponse(DashboardWidget widget, String boardName) {
+        return new DashboardWidgetResponse(widget, boardName, List.of(), null, List.of());
+    }
 
     private DashboardWidgetResponse toResponse(DashboardWidget widget) {
         String boardName = null;

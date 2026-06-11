@@ -22,8 +22,24 @@
     </div>
 
     <!-- 위젯 영역 -->
-    <div v-if="!loading && widgets.length" class="widget-area">
-      <template v-for="widget in widgets" :key="widget.id">
+    <div v-if="!layoutLoading && layouts.length" class="widget-area">
+      <template v-for="layout in layouts" :key="layout.id">
+        <!-- widget = 로드 완료 시 실제 데이터, 아니면 레이아웃 메타 -->
+        <!-- 위젯 콘텐츠 로딩 중이면 스켈레톤 카드 -->
+        <template v-if="widgetLoading[layout.id]">
+          <div :class="parseConfig(layout).size === 'full' || isFullWidget(layout.widgetType) ? 'widget-full' : 'widget-half'">
+            <div class="wcard wcard-loading">
+              <div class="wcard-head">
+                <span class="wcard-title skeleton-text">{{ layout.title || layout.targetBoardName || widgetTypeLabel(layout.widgetType) }}</span>
+              </div>
+              <div class="wcard-skeleton-body">
+                <i class="ti ti-loader-2 spinning" style="font-size:22px;color:var(--t4)"></i>
+              </div>
+            </div>
+          </div>
+        </template>
+        <!-- v-for 1개 배열로 widget 스코프 변수 생성 -->
+        <template v-else v-for="widget in [mergedWidget(layout)]" :key="'d' + widget.id">
 
         <!-- 이미지 슬라이더 -->
         <div v-if="widget.widgetType === 'IMAGE_SLIDER'" class="widget-full">
@@ -273,10 +289,12 @@
           </div>
         </div>
 
-      </template>
+        </template> <!-- end v-else widget v-for -->
+        </template> <!-- end v-else (not loading) -->
+      </template> <!-- end v-for layout -->
     </div>
 
-    <div v-else-if="loading" class="loading-area">
+    <div v-else-if="layoutLoading" class="loading-area">
       <i class="ti ti-loader-2 spinning"></i>
     </div>
 
@@ -297,8 +315,19 @@ import ImageSlider from '@/components/common/ImageSlider.vue'
 
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
-const widgets   = ref([])
-const loading   = ref(true)
+
+// layouts: 빠른 메타데이터 (즉시 표시)
+const layouts      = ref([])
+// widgetData: id → 실제 데이터 (비동기 로드)
+const widgetData   = ref({})
+// widgetLoading: id → boolean
+const widgetLoading = ref({})
+const layoutLoading = ref(true)
+
+// 실제 위젯 데이터 = 로드 완료된 경우 widgetData, 아니면 layout 그대로
+function mergedWidget(layout) {
+  return widgetData.value[layout.id] ?? layout
+}
 
 // ===== 웰컴 카드 마우스 glow =====
 const welcomeRef = ref(null)
@@ -369,6 +398,18 @@ function getEventsForDay(widget, dateStr) {
   })
 }
 
+const WIDGET_LABELS = {
+  RECENT_POSTS: '최신 글', RECENT_GALLERY: '갤러리 최신글',
+  CALENDAR_WEEKLY: '캘린더', IMAGE_SLIDER: '슬라이더',
+  IMAGE_GRID: '이미지', LINK_LIST: '링크', QUICK_LINKS: '바로가기',
+  MEMBER_STATS: '회원 현황', VISIT_STATS: '접속 통계', CUSTOM: '커스텀',
+}
+function widgetTypeLabel(t) { return WIDGET_LABELS[t] || t }
+
+function isFullWidget(t) {
+  return ['IMAGE_SLIDER', 'IMAGE_GRID'].includes(t)
+}
+
 function parseCalendarId(widget) {
   try {
     const cfg = widget.extraConfig ? JSON.parse(widget.extraConfig) : {}
@@ -403,14 +444,29 @@ function formatDate(d) {
   return `${dt.getMonth() + 1}.${String(dt.getDate()).padStart(2, '0')}`
 }
 
-onMounted(async () => {
+async function loadWidgetData(layout) {
+  widgetLoading.value = { ...widgetLoading.value, [layout.id]: true }
   try {
-    await menuStore.fetchMenus()
-    const res = await api.get('/dashboard/widgets')
-    widgets.value = res.data.data || []
+    const res = await api.get(`/dashboard/widgets/${layout.id}`)
+    widgetData.value = { ...widgetData.value, [layout.id]: res.data.data }
+  } catch {
+    // 데이터 로드 실패해도 레이아웃은 유지
   } finally {
-    loading.value = false
+    widgetLoading.value = { ...widgetLoading.value, [layout.id]: false }
   }
+}
+
+onMounted(async () => {
+  await menuStore.fetchMenus()
+  try {
+    // 1단계: 레이아웃(메타데이터) 빠르게 로드 → 즉시 화면 표시
+    const res = await api.get('/dashboard/widgets/layout')
+    layouts.value = res.data.data || []
+  } finally {
+    layoutLoading.value = false
+  }
+  // 2단계: 각 위젯 데이터를 병렬로 로드
+  Promise.all(layouts.value.map(loadWidgetData))
 })
 </script>
 
@@ -966,6 +1022,18 @@ onMounted(async () => {
   font-weight: 500;
 }
 .vstat-lbl i { font-size: 13px; }
+
+/* ===== 위젯 로딩 스켈레톤 ===== */
+.wcard-loading {
+  pointer-events: none;
+}
+.wcard-skeleton-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  color: var(--t4);
+}
 
 /* ===== 로딩 / 빈 상태 ===== */
 .loading-area {
