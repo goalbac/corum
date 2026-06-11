@@ -6,8 +6,12 @@
       <div v-loading="loading" class="gallery-grid">
         <div v-for="post in posts" :key="post.id" class="gallery-card" @click="goDetail(post)">
           <div class="gallery-thumb">
-            <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title"
-              @error="e => e.target.style.display='none'" />
+            <template v-if="post.thumbnailUrl">
+              <div class="thumb-spinner"><div class="spinner-ring"></div></div>
+              <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img"
+                @load="e => e.target.classList.add('loaded')"
+                @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }" />
+            </template>
             <div v-else class="no-thumb"><i class="ti ti-photo-off"></i></div>
             <div v-if="post.isNotice" class="gallery-notice-badge">공지</div>
           </div>
@@ -79,12 +83,12 @@
           @click="goDetail(post)"
         >
           <div class="webzine-thumb">
-            <img
-              v-if="post.thumbnailUrl"
-              :src="post.thumbnailUrl"
-              :alt="post.title"
-              @error="e => e.target.style.display='none'"
-            />
+            <template v-if="post.thumbnailUrl">
+              <div class="thumb-spinner"><div class="spinner-ring"></div></div>
+              <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img"
+                @load="e => e.target.classList.add('loaded')"
+                @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }" />
+            </template>
             <div v-else class="no-thumb"><i class="ti ti-news"></i></div>
           </div>
           <div class="webzine-body">
@@ -507,8 +511,28 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.gallery-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-.gallery-card:hover .gallery-thumb img { transform: scale(1.04); }
+.thumb-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s, transform 0.3s; }
+.thumb-img.loaded { opacity: 1; }
+.gallery-card:hover .thumb-img { transform: scale(1.04); }
+
+.thumb-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.spinner-ring {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .no-thumb { font-size: 28px; color: var(--t4); }
 
 .gallery-notice-badge {
@@ -610,14 +634,7 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.webzine-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s;
-}
-
-.webzine-item:hover .webzine-thumb img { transform: scale(1.03); }
+.webzine-item:hover .thumb-img { transform: scale(1.03); }
 
 .webzine-body {
   min-width: 0;
