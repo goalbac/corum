@@ -579,27 +579,34 @@ onMounted(async () => {
 .webzine-list {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border2);
+  gap: 12px;
+  padding: 16px 20px;
 }
 
 .webzine-item {
   display: grid;
   grid-template-columns: minmax(160px, 240px) 1fr;
   gap: 18px;
-  padding: 18px 20px;
-  border-bottom: 0.5px solid var(--border2);
+  border-radius: 16px;
+  overflow: hidden;
   cursor: pointer;
   background: var(--surface);
-  transition: background 0.15s;
+  border: 0.5px solid var(--border2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.18s, transform 0.18s;
 }
 
-.webzine-item:hover { background: var(--surface2); }
+.webzine-item:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
 .webzine-item.notice { background: var(--accent-bg); }
 
 .webzine-thumb {
   width: 100%;
   aspect-ratio: 16/10;
-  border-radius: var(--radius-xs);
+  border-radius: 0;
   overflow: hidden;
   background: var(--surface2);
   display: flex;
@@ -622,6 +629,7 @@ onMounted(async () => {
   flex-direction: column;
   justify-content: center;
   gap: 8px;
+  padding: 14px 18px 14px 0;
 }
 
 .webzine-kicker,
@@ -822,20 +830,18 @@ onMounted(async () => {
     border-radius: 8px;
   }
 
-  /* ===== 웹진 : 이미지 상단 full-width, 텍스트 하단 ===== */
+  /* ===== 웹진 : 이미지 상단 full-width 카드 ===== */
   .webzine-list {
-    border-top: none;
+    gap: 12px;
+    padding: 12px;
   }
 
   .webzine-item {
     grid-template-columns: 1fr;
     gap: 0;
-    padding: 0 0 4px;
-    border-bottom: 8px solid var(--surface2);
-    border-radius: 0;
-  }
-
-  .webzine-item:last-child {
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
     border-bottom: none;
   }
 
@@ -846,7 +852,7 @@ onMounted(async () => {
   }
 
   .webzine-body {
-    padding: 12px 16px 14px;
+    padding: 12px 14px 14px;
     gap: 6px;
   }
 
