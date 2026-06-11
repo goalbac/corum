@@ -362,8 +362,11 @@ async function handleLogout() {
   gap: 4px;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.top-nav::-webkit-scrollbar { display: none; }
 
 .nav-item {
   position: relative;
@@ -835,10 +838,16 @@ async function handleLogout() {
 
 .login-btn:hover { background: var(--accent-t); }
 
+@media (max-width: 1100px) {
+  .tp-label { display: none; }
+  .tp-btn { padding: 5px 8px; }
+  .nav-item { padding: 7px 10px; font-size: 14px; }
+  .user-name { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
 @media (max-width: 768px) {
   .hamburger { display: flex; }
   .top-nav { display: none; }
-  .tp-label { display: none; }
   .tp-btn { padding: 6px 8px; }
   .user-name { display: none; }
   .logo { margin-right: auto; }
