@@ -12,8 +12,8 @@
           <span class="cal-title">{{ currentTitle }}</span>
         </div>
         <div class="cal-right">
-          <!-- 캘린더 선택 드롭다운 -->
-          <div class="cal-filter-wrap" ref="filterWrap">
+          <!-- 캘린더 선택 드롭다운 (단일 캘린더 메뉴에서는 숨김) -->
+          <div v-if="!isSingleCalendar" class="cal-filter-wrap" ref="filterWrap">
             <button class="cal-btn" @click="showFilter = !showFilter">
               <i class="ti ti-filter"></i>
               캘린더
@@ -145,9 +145,13 @@ import interactionPlugin from '@fullcalendar/interaction'
 import koLocale from '@fullcalendar/core/locales/ko'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { useMenuStore } from '@/stores/menu'
+import { useRoute } from 'vue-router'
 import api from '@/api/axios'
 
 const authStore  = useAuthStore()
+const menuStore  = useMenuStore()
+const route      = useRoute()
 const calRef     = ref()
 const calApi     = computed(() => calRef.value?.getApi())
 const loading    = ref(false)
@@ -192,6 +196,12 @@ const selectedEventColor = computed(() => {
 const selectedEventCalName = computed(() => {
   const calId = selectedEvent.value?.extendedProps?.calendarId
   return calendars.value.find(c => c.id === calId)?.name || ''
+})
+
+// 메뉴에 특정 캘린더가 고정된 경우 (필터 UI 숨김)
+const isSingleCalendar = computed(() => {
+  const activeMenu = menuStore.findMenuById(route.params?.menuId)
+  return !!activeMenu?.targetId
 })
 
 const canEditSelected = computed(() => {
@@ -359,7 +369,11 @@ function onClickOutside(e) {
 onMounted(async () => {
   try {
     const res = await api.get('/calendars')
-    calendars.value = res.data.data || []
+    const all = res.data.data || []
+    // 메뉴에 특정 캘린더가 연결된 경우 해당 캘린더만 표시
+    const activeMenu = menuStore.findMenuById(route.params?.menuId)
+    const targetId = activeMenu?.targetId ? Number(activeMenu.targetId) : null
+    calendars.value = targetId ? all.filter(c => c.id === targetId) : all
     visibleCalendars.value = new Set(calendars.value.map(c => c.id))
   } catch {}
   currentTitle.value = calApi.value?.view.title || ''

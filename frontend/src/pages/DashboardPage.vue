@@ -1,8 +1,9 @@
 <template>
-  <div class="dashboard">
+  <div :class="['dashboard', { 'dashboard-menu': dashboardMenuId }]">
 
-    <!-- 웰컴 카드 -->
+    <!-- 웰컴 카드 (홈 대시보드만) -->
     <div
+      v-if="!dashboardMenuId"
       class="welcome-card"
       ref="welcomeRef"
       @mousemove="handleMouseMove"
@@ -46,6 +47,14 @@
           <ImageSlider :slides="parseConfig(widget).slides || []" :title="widget.title" />
         </div>
 
+        <!-- 구분선 -->
+        <div v-else-if="widget.widgetType === 'DIVIDER'" class="widget-full">
+          <div class="widget-divider">
+            <span v-if="widget.title" class="divider-label">{{ widget.title }}</span>
+            <hr v-else class="divider-line" />
+          </div>
+        </div>
+
         <!-- 최신 글 (텍스트 목록) -->
         <div v-else-if="widget.widgetType === 'RECENT_POSTS'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
@@ -56,6 +65,7 @@
                 더보기 <i class="ti ti-arrow-right"></i>
               </router-link>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="widget.posts?.length" class="post-list">
               <router-link
                 v-for="post in widget.posts"
@@ -84,6 +94,7 @@
                 더보기 <i class="ti ti-arrow-right"></i>
               </router-link>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="widget.posts?.length" class="gallery-grid">
               <router-link
                 v-for="post in widget.posts"
@@ -116,11 +127,26 @@
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '이번 주 일정' }}</span>
-              <span class="wcard-week-range">{{ currentWeekRange }}</span>
+              <div class="wcard-head-left">
+                <span class="wcard-title">{{ widget.title || '이번 주 일정' }}</span>
+                <span v-if="widget.description" class="wcard-desc-inline">{{ widget.description }}</span>
+              </div>
+              <div class="cal-week-nav">
+                <button class="cal-nav-btn" @click.stop="navigateWeek(widget, -1)" :disabled="calWeekLoading[widget.id]">
+                  <i class="ti ti-chevron-left"></i>
+                </button>
+                <span class="wcard-week-range">{{ getWeekRange(widget.id) }}</span>
+                <button class="cal-nav-btn" @click.stop="navigateWeek(widget, +1)" :disabled="calWeekLoading[widget.id]">
+                  <i class="ti ti-chevron-right"></i>
+                </button>
+              </div>
             </div>
-            <div class="cal-week">
-              <div v-for="day in weekDays" :key="day.date" class="cal-day-col">
+            <!-- 주 이동 로딩 오버레이 -->
+            <div v-if="calWeekLoading[widget.id]" class="cal-loading">
+              <i class="ti ti-loader-2 spinning"></i>
+            </div>
+            <div v-else class="cal-week">
+              <div v-for="day in getWeekDays(widget.id)" :key="day.date" class="cal-day-col">
                 <div :class="['cal-day-head', day.isToday ? 'today' : '', day.isSunday ? 'sunday' : '', day.isSaturday ? 'saturday' : '']">
                   <span class="cal-dow">{{ day.dow }}</span>
                   <span class="cal-dnum">{{ day.dnum }}</span>
@@ -153,6 +179,7 @@
             <div class="wcard-head">
               <span class="wcard-title">{{ widget.title || '링크 모음' }}</span>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="parseConfig(widget).links?.length" class="link-grid">
               <a
                 v-for="(link, i) in parseConfig(widget).links"
@@ -176,6 +203,7 @@
             <div class="wcard-head">
               <span class="wcard-title">{{ widget.title || '바로가기' }}</span>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="parseConfig(widget).links?.length" class="quick-links-grid">
               <component
                 :is="link.newWindow ? 'a' : 'router-link'"
@@ -197,9 +225,10 @@
         <!-- 이미지 그리드 -->
         <div v-else-if="widget.widgetType === 'IMAGE_GRID'" class="widget-full">
           <div class="wcard">
-            <div v-if="widget.title" class="wcard-head">
+            <div v-if="widget.title || widget.description" class="wcard-head">
               <span class="wcard-title">{{ widget.title }}</span>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="parseConfig(widget).images?.length" class="img-grid">
               <component
                 :is="img.linkUrl ? 'a' : 'div'"
@@ -208,7 +237,7 @@
                 v-bind="img.linkUrl ? { href: img.linkUrl, target: img.newWindow ? '_blank' : undefined } : {}"
                 class="img-grid-item"
               >
-                <img v-if="img.imageUrl" :src="img.imageUrl" :alt="img.title || ''" loading="lazy" class="img-grid-photo" />
+                <img v-if="img.imageUrl" :src="toSmallThumb(img.imageUrl)" :alt="img.title || ''" loading="lazy" class="img-grid-photo" />
                 <div v-else class="img-grid-placeholder"><i class="ti ti-photo"></i></div>
                 <div v-if="img.title || img.desc" class="img-grid-overlay">
                   <span v-if="img.title" class="img-grid-title">{{ img.title }}</span>
@@ -224,9 +253,10 @@
         <div v-else-if="widget.widgetType === 'CUSTOM'"
              :class="parseConfig(widget).size === 'half' ? 'widget-half' : 'widget-full'">
           <div class="wcard">
-            <div class="wcard-head">
+            <div v-if="widget.title" class="wcard-head">
               <span class="wcard-title">{{ widget.title }}</span>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div class="custom-body ql-editor" v-html="parseConfig(widget).content || ''" />
           </div>
         </div>
@@ -237,6 +267,7 @@
             <div class="wcard-head">
               <span class="wcard-title">{{ widget.title || '회원 현황' }}</span>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div class="mstats-grid">
               <div class="mstat-item">
                 <div class="mstat-icon" style="background:#EFF6FF;color:#2563EB"><i class="ti ti-users"></i></div>
@@ -270,6 +301,7 @@
               <span class="wcard-title">{{ widget.title || '오늘의 접속' }}</span>
               <span class="wcard-sub-date">{{ todayDateShort }}</span>
             </div>
+            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div class="vstats-row">
               <div class="vstat-item">
                 <div class="vstat-num">{{ widget.stats?.todayVisits ?? 0 }}</div>
@@ -290,7 +322,6 @@
         </div>
 
         </template> <!-- end v-else widget v-for -->
-        </template> <!-- end v-else (not loading) -->
       </template> <!-- end v-for layout -->
     </div>
 
@@ -308,6 +339,7 @@
 
 <script setup>
 import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
@@ -315,6 +347,13 @@ import ImageSlider from '@/components/common/ImageSlider.vue'
 
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
+const route = useRoute()
+
+// null = 홈 대시보드, number = 메뉴 연결 대시보드
+const dashboardMenuId = computed(() => {
+  const id = route.params?.menuId
+  return id ? Number(id) : null
+})
 
 // layouts: 빠른 메타데이터 (즉시 표시)
 const layouts      = ref([])
@@ -357,11 +396,22 @@ onBeforeUnmount(() => clearInterval(clockTimer))
 // ===== 캘린더 주간 뷰 =====
 const DOW_KO = ['일', '월', '화', '수', '목', '금', '토']
 
-const weekDays = computed(() => {
+// 위젯별 주 오프셋 (0 = 이번 주, -1 = 지난 주, +1 = 다음 주)
+const calWeekOffset  = ref({})  // widgetId → number
+// 네비게이션 후 로드된 이벤트 (widgetId → events[])
+const calWeekEvents  = ref({})  // widgetId → DashboardCalendarEventResponse[]
+const calWeekLoading = ref({})  // widgetId → boolean
+
+function getWeekOffset(widgetId) {
+  return calWeekOffset.value[widgetId] ?? 0
+}
+
+function getWeekDays(widgetId) {
+  const offset = getWeekOffset(widgetId)
   const today  = new Date()
   const dow    = today.getDay()
   const monday = new Date(today)
-  monday.setDate(today.getDate() - ((dow + 6) % 7))
+  monday.setDate(today.getDate() - ((dow + 6) % 7) + offset * 7)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday)
     d.setDate(monday.getDate() + i)
@@ -374,16 +424,29 @@ const weekDays = computed(() => {
       isSunday:   d.getDay() === 0,
     }
   })
-})
+}
 
-const currentWeekRange = computed(() => {
-  if (!weekDays.value.length) return ''
-  const first = weekDays.value[0]
-  const last  = weekDays.value[6]
-  const f = new Date(first.date)
-  const l = new Date(last.date)
+function getWeekRange(widgetId) {
+  const days = getWeekDays(widgetId)
+  const f = new Date(days[0].date)
+  const l = new Date(days[6].date)
   return `${f.getMonth()+1}/${f.getDate()} – ${l.getMonth()+1}/${l.getDate()}`
-})
+}
+
+async function navigateWeek(widget, delta) {
+  const wid = widget.id
+  const newOffset = (calWeekOffset.value[wid] ?? 0) + delta
+  calWeekOffset.value[wid] = newOffset
+  calWeekLoading.value[wid] = true
+  try {
+    const res = await api.get(`/dashboard/widgets/${wid}`, { params: { weekOffset: newOffset } })
+    calWeekEvents.value[wid] = res.data.data?.calendarEvents || []
+  } catch {
+    calWeekEvents.value[wid] = []
+  } finally {
+    calWeekLoading.value[wid] = false
+  }
+}
 
 function formatEventTime(dt) {
   if (!dt) return ''
@@ -392,10 +455,12 @@ function formatEventTime(dt) {
 }
 
 function getEventsForDay(widget, dateStr) {
-  return (widget.calendarEvents || []).filter(ev => {
-    const evDate = (ev.startAt || '').slice(0, 10)
-    return evDate === dateStr
-  })
+  const wid = widget.id
+  // 네비게이션 후 별도 로드된 이벤트가 있으면 우선 사용
+  const events = calWeekEvents.value[wid] !== undefined
+    ? calWeekEvents.value[wid]
+    : (widget.calendarEvents || [])
+  return events.filter(ev => (ev.startAt || '').slice(0, 10) === dateStr)
 }
 
 const WIDGET_LABELS = {
@@ -433,6 +498,13 @@ function parseConfig(widget) {
   catch { return {} }
 }
 
+/** 인라인 이미지 URL → 대시보드용 소형 썸네일 URL */
+function toSmallThumb(url) {
+  if (!url) return url
+  if (url.includes('/api/files/inline/')) return url.replace('/api/files/inline/', '/api/files/inline-thumb/')
+  return url
+}
+
 function formatDate(d) {
   if (!d) return ''
   const dt  = new Date(d)
@@ -445,22 +517,25 @@ function formatDate(d) {
 }
 
 async function loadWidgetData(layout) {
-  widgetLoading.value = { ...widgetLoading.value, [layout.id]: true }
+  // DIVIDER는 추가 데이터 불필요
+  if (layout.widgetType === 'DIVIDER') return
+  widgetLoading.value[layout.id] = true
   try {
     const res = await api.get(`/dashboard/widgets/${layout.id}`)
-    widgetData.value = { ...widgetData.value, [layout.id]: res.data.data }
+    widgetData.value[layout.id] = res.data.data
   } catch {
     // 데이터 로드 실패해도 레이아웃은 유지
   } finally {
-    widgetLoading.value = { ...widgetLoading.value, [layout.id]: false }
+    widgetLoading.value[layout.id] = false
   }
 }
 
 onMounted(async () => {
   await menuStore.fetchMenus()
+  const params = dashboardMenuId.value ? { menuId: dashboardMenuId.value } : {}
   try {
     // 1단계: 레이아웃(메타데이터) 빠르게 로드 → 즉시 화면 표시
-    const res = await api.get('/dashboard/widgets/layout')
+    const res = await api.get('/dashboard/widgets/layout', { params })
     layouts.value = res.data.data || []
   } finally {
     layoutLoading.value = false
@@ -475,6 +550,32 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.dashboard-menu {
+  padding: 0;
+}
+/* 메뉴 대시보드: 위젯 그리드 내부 패딩 */
+.dashboard-menu .widget-area {
+  padding: 16px 20px 20px;
+  gap: 12px;
+}
+/* 메뉴 대시보드: 갤러리 카드처럼 테두리 없이 그림자로 구분 */
+.dashboard-menu .wcard {
+  background: var(--surface);
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.dashboard-menu .wcard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  background: var(--surface);
+  border: none;
+}
+/* 메뉴 대시보드: 로딩/빈 상태 */
+.dashboard-menu .loading-area,
+.dashboard-menu .empty-area {
+  padding: 60px 20px;
 }
 
 /* ===== 웰컴 카드 ===== */
@@ -563,13 +664,12 @@ onMounted(async () => {
   padding: 20px 22px;
   height: 100%;
   box-sizing: border-box;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.22s ease,
-              border-color 0.22s ease;
+  will-change: transform;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .wcard:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
   border-color: var(--border);
 }
 .wcard-head {
@@ -595,6 +695,46 @@ onMounted(async () => {
   transition: opacity 0.15s;
 }
 .wcard-more:hover { opacity: 0.75; }
+.wcard-head-left { display: flex; flex-direction: column; gap: 1px; }
+.wcard-desc {
+  font-size: 12.5px;
+  color: var(--t4);
+  margin: -8px 0 10px;
+  line-height: 1.5;
+}
+.wcard-desc-inline {
+  font-size: 12px;
+  color: var(--t4);
+  font-weight: 400;
+}
+.widget-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+.divider-line {
+  flex: 1;
+  border: none;
+  border-top: 1.5px solid var(--border2);
+  margin: 0;
+}
+.divider-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t3);
+  letter-spacing: 0.5px;
+}
+.divider-label::before,
+.divider-label::after {
+  content: '';
+  flex: 1;
+  border-top: 1.5px solid var(--border2);
+}
 .wcard-sub-date {
   font-size: 12px;
   color: var(--t4);
@@ -602,8 +742,41 @@ onMounted(async () => {
 }
 .wcard-week-range {
   font-size: 12px;
+  color: var(--t3);
+  font-weight: 600;
+  min-width: 80px;
+  text-align: center;
+}
+.cal-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cal-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--t3);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.cal-nav-btn:hover:not(:disabled) { background: var(--surface2); color: var(--t1); }
+.cal-nav-btn:disabled { opacity: 0.35; cursor: default; }
+.cal-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
   color: var(--t4);
-  font-weight: 500;
+  font-size: 20px;
 }
 .wcard-empty {
   font-size: 14px;
@@ -676,7 +849,8 @@ onMounted(async () => {
   gap: 6px;
   border-radius: 10px;
   overflow: hidden;
-  transition: transform 0.18s;
+  will-change: transform;
+  transition: transform 0.18s ease;
 }
 .gallery-item:hover { transform: translateY(-2px); }
 .gallery-thumb {
@@ -705,6 +879,7 @@ onMounted(async () => {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+  will-change: transform;
 }
 .gw-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; display: block; }
 .gw-img.loaded { opacity: 1; }
@@ -894,7 +1069,8 @@ onMounted(async () => {
   background: var(--surface2);
   border: 0.5px solid var(--border2);
   cursor: pointer;
-  transition: transform 0.2s;
+  will-change: transform;
+  transition: transform 0.18s ease;
 }
 .img-grid-item:hover { transform: scale(1.02); }
 .img-grid-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1055,7 +1231,7 @@ onMounted(async () => {
 .empty-state i { font-size: 40px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
-.spinning { animation: spin 0.8s linear infinite; display: inline-block; }
+.spinning { animation: spin 0.8s linear infinite; display: inline-block; will-change: transform; }
 
 /* ===== 반응형 (모바일 토스 스타일) ===== */
 @media (max-width: 768px) {
@@ -1085,6 +1261,22 @@ onMounted(async () => {
     padding: 18px 18px 16px;
   }
   .wcard:hover { transform: none; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+
+  /* 메뉴 대시보드 모바일 */
+  .dashboard-menu .widget-area {
+    padding: 12px 14px 16px;
+    gap: 10px;
+  }
+  .dashboard-menu .wcard {
+    border-radius: 16px;
+    background: var(--surface);
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
+  .dashboard-menu .wcard:hover {
+    transform: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
 
   .wcard-head { margin-bottom: 12px; }
   .wcard-title { font-size: 14px; color: var(--t2); font-weight: 700; }

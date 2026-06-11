@@ -90,7 +90,7 @@
           <i v-if="imageUploading" class="ti ti-loader-2 spin"></i>
           <i v-else class="ti ti-photo"></i>
         </button>
-        <input ref="imageInput" type="file" accept="image/*" style="display:none" @change="handleImageUpload" />
+        <input ref="imageInput" type="file" accept="image/*" multiple style="display:none" @change="handleImageUpload" />
       </div>
       <!-- 글자색 -->
       <div class="toolbar-group">
@@ -195,23 +195,28 @@ function triggerImageUpload() {
 }
 
 async function handleImageUpload(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
+  const files = Array.from(e.target.files || [])
+  if (!files.length) return
   e.target.value = ''
 
   imageUploading.value = true
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await api.post('/files/inline-image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    const url = res.data.data.url
-    editor.chain().focus().setImage({ src: url }).run()
-  } catch {
-    ElMessage.error('이미지 업로드에 실패했습니다.')
-  } finally {
-    imageUploading.value = false
+  let failCount = 0
+  for (const file of files) {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api.post('/files/inline-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      const url = res.data.data.url
+      editor.chain().focus().setImage({ src: url }).run()
+    } catch {
+      failCount++
+    }
+  }
+  imageUploading.value = false
+  if (failCount > 0) {
+    ElMessage.error(`이미지 ${failCount}개 업로드에 실패했습니다.`)
   }
 }
 

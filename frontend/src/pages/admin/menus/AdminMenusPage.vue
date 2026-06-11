@@ -157,15 +157,6 @@
           </el-form-item>
         </div>
 
-        <!-- 대시보드 자동 연결 안내 -->
-        <el-alert
-          v-if="parentId && form.menuType === 'PAGE' && form.pageType === 'DASHBOARD'"
-          title="대시보드(/)로 자동 연결됩니다."
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom:12px"
-        />
 
         <!-- 캘린더 선택 -->
         <el-form-item v-if="parentId && form.menuType === 'PAGE' && form.pageType === 'CALENDAR'" label="연결할 캘린더 (선택)">

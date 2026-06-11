@@ -1,6 +1,6 @@
 <template>
   <div class="adm-page">
-    <AdminPageHeader title="대시보드 관리" desc="카드를 드래그해서 순서를 변경하세요">
+    <AdminPageHeader title="대시보드 관리" desc="대시보드를 선택하고 위젯을 관리하세요">
       <div style="display:flex;gap:8px;align-items:center">
         <transition name="fade">
           <button v-if="sortChanged" class="adm-btn ghost" :disabled="sortSaving" @click="saveSortOrder">
@@ -12,6 +12,21 @@
       </div>
     </AdminPageHeader>
 
+    <!-- 대시보드 선택 -->
+    <div class="db-selector">
+      <button
+        v-for="db in dashboards"
+        :key="db.isHome ? 'home' : db.menuId"
+        :class="['db-tab', { active: selectedMenuId === (db.menuId ?? null) }]"
+        @click="selectDashboard(db)"
+      >
+        <i :class="['ti', db.isHome ? 'ti-home' : 'ti-layout-dashboard']"></i>
+        <span class="db-tab-name">{{ db.menuName }}</span>
+        <span v-if="!db.isHome" class="db-tab-path">{{ db.menuPath }}</span>
+        <span class="db-tab-count">{{ db.widgetCount }}</span>
+      </button>
+    </div>
+
     <div v-if="!loading && widgets.length" ref="widgetSortable" class="widget-list">
       <div
         v-for="w in widgets"
@@ -22,7 +37,10 @@
         <div class="wcard-top">
           <i class="ti ti-grip-vertical drag-handle" title="드래그해서 순서 변경"></i>
           <span class="wtype-badge">{{ typeLabel(w.widgetType) }}</span>
-          <span class="wtitle">{{ w.title || '(제목 없음)' }}</span>
+          <div class="wtitle-wrap">
+            <span class="wtitle">{{ w.title || '(제목 없음)' }}</span>
+            <span v-if="w.description" class="wdesc">{{ w.description }}</span>
+          </div>
           <div class="wcard-meta">
             <span
               v-if="hasSizePicker(w.widgetType)"
@@ -138,6 +156,14 @@
             </div>
           </template>
 
+          <!-- DIVIDER -->
+          <template v-else-if="w.widgetType === 'DIVIDER'">
+            <div class="wp-divider">
+              <span v-if="w.title" class="wp-divider-label">{{ w.title }}</span>
+              <hr v-else class="wp-divider-line" />
+            </div>
+          </template>
+
           <!-- CUSTOM -->
           <template v-else-if="w.widgetType === 'CUSTOM'">
             <div class="wp-custom" v-html="parseConfig(w).content || ''" />
@@ -185,11 +211,22 @@
                 <el-option value="MEMBER_STATS"    label="회원 현황" />
                 <el-option value="VISIT_STATS"     label="접속 통계" />
               </el-option-group>
+              <el-option-group label="레이아웃">
+                <el-option value="DIVIDER"         label="구분선" />
+              </el-option-group>
             </el-select>
           </div>
           <div class="dlg-field">
             <label>제목</label>
             <el-input v-model="form.title" />
+          </div>
+        </div>
+
+        <!-- 설명 (DIVIDER 제외) -->
+        <div v-if="form.widgetType !== 'DIVIDER'" class="dlg-row" style="margin-top:-4px">
+          <div class="dlg-field" style="flex:1">
+            <label>설명 <span style="color:var(--t4);font-weight:400">(선택 · 위젯 제목 아래 표시)</span></label>
+            <el-input v-model="form.description" placeholder="위젯에 대한 간단한 설명" />
           </div>
         </div>
 
@@ -225,7 +262,7 @@
             <div class="dlg-field">
               <label>대상 게시판</label>
               <el-select v-model="form.targetBoardId" clearable placeholder="전체" style="width:100%">
-                <el-option v-for="b in boards" :key="b.id" :value="b.id" :label="b.name" />
+                <el-option v-for="b in boards" :key="b.id" :value="b.id" :label="boardLabel(b)" />
               </el-select>
             </div>
             <div class="dlg-field">
@@ -393,13 +430,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Sortable from 'sortablejs'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import RichEditor from '@/components/common/RichEditor.vue'
+import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 
+const menuStore = useMenuStore()
+
+const dashboards  = ref([])   // DashboardInfoResponse[]
+const selectedMenuId = ref(null)   // null = 홈, number = 메뉴 대시보드
 const widgets     = ref([])
 const boards      = ref([])
 const calendars   = ref([])
@@ -419,8 +461,9 @@ const SIZE_PICKER_TYPES = ['RECENT_POSTS', 'RECENT_GALLERY', 'CALENDAR_WEEKLY', 
 function hasSizePicker(type) { return SIZE_PICKER_TYPES.includes(type) }
 
 const defaultForm = () => ({
-  widgetType: 'RECENT_POSTS', title: '',
-  targetBoardId: null, postCount: 5, isActive: true
+  widgetType: 'RECENT_POSTS', title: '', description: '',
+  targetBoardId: null, postCount: 5, isActive: true,
+  menuId: selectedMenuId.value
 })
 const form   = ref(defaultForm())
 const config = ref({ slides: [], links: [], images: [], content: '', size: 'half', calendarId: null })
@@ -442,6 +485,7 @@ function typeLabel(t) {
     MEMBER_STATS:    '회원 현황',
     VISIT_STATS:     '접속 통계',
     CUSTOM:          '커스텀',
+    DIVIDER:         '구분선',
   }
   return MAP[t] || t
 }
@@ -455,10 +499,19 @@ function formatDate(d) {
   return `${dt.getMonth()+1}.${String(dt.getDate()).padStart(2,'0')}`
 }
 
+async function fetchDashboards() {
+  const r = await api.get('/admin/dashboard/list')
+  dashboards.value = r.data.data || []
+  // 홈 대시보드가 없으면 추가
+  if (!dashboards.value.find(d => d.isHome)) {
+    dashboards.value.unshift({ isHome: true, menuId: null, menuName: '홈 대시보드', menuPath: '홈 대시보드', widgetCount: 0 })
+  }
+}
 async function fetchWidgets() {
   loading.value = true
   try {
-    const r = await api.get('/admin/dashboard/widgets')
+    const params = selectedMenuId.value !== null ? { menuId: selectedMenuId.value } : {}
+    const r = await api.get('/admin/dashboard/widgets', { params })
     widgets.value = r.data.data || []
   } finally {
     loading.value = false
@@ -466,8 +519,34 @@ async function fetchWidgets() {
   await nextTick()
   initSortable()
 }
-async function fetchBoards()    { const r = await api.get('/boards');    boards.value    = r.data.data || [] }
+function selectDashboard(db) {
+  selectedMenuId.value = db.menuId ?? null
+  fetchWidgets()
+}
+async function fetchBoards() {
+  const r = await api.get('/boards')
+  boards.value = r.data.data || []
+}
 async function fetchCalendars() { const r = await api.get('/calendars'); calendars.value = r.data.data || [] }
+
+// 게시판의 메뉴 경로 빌드 (예: "홈 > 공지사항")
+// 트리를 순회하면서 각 menuId → 조상 경로 문자열 맵을 미리 계산
+const menuPathMap = computed(() => {
+  const map = {}
+  function walk(nodes, prefix) {
+    for (const m of nodes || []) {
+      const path = prefix ? `${prefix} > ${m.name}` : m.name
+      map[m.id] = path
+      if (m.children?.length) walk(m.children, path)
+    }
+  }
+  walk(menuStore.menus, null)
+  return map
+})
+function boardLabel(b) {
+  const path = b.menuId ? menuPathMap.value[b.menuId] : null
+  return path ? `${path} > ${b.name}` : b.name
+}
 
 function triggerImgUpload(idx) {
   imgInputRefs.value[idx]?.click()
@@ -525,13 +604,14 @@ function onTypeChange() {
 }
 
 function openCreate() {
-  editing.value = null; form.value = defaultForm()
+  editing.value = null
+  form.value = { ...defaultForm(), menuId: selectedMenuId.value, description: '' }
   config.value = { slides: [], links: [], images: [], content: '', size: 'half', calendarId: null }
   showForm.value = true
 }
 
 function openEdit(w) {
-  editing.value = w; form.value = { ...w }
+  editing.value = w; form.value = { ...w, description: w.description || '' }
   const ec = parseConfig(w)
   config.value = {
     slides:     ec.slides     || [],
@@ -555,7 +635,7 @@ async function saveWidget() {
     if (form.value.widgetType === 'CUSTOM')             extra.content    = config.value.content
     if (form.value.widgetType === 'CALENDAR_WEEKLY')    extra.calendarId = config.value.calendarId
 
-    const payload = { ...form.value, extraConfig: JSON.stringify(extra) }
+    const payload = { ...form.value, extraConfig: JSON.stringify(extra), menuId: selectedMenuId.value }
     editing.value
       ? await api.put(`/admin/dashboard/widgets/${editing.value.id}`, payload)
       : await api.post('/admin/dashboard/widgets', payload)
@@ -570,12 +650,33 @@ async function deleteWidget(id) {
   ElMessage.success('삭제되었습니다.'); fetchWidgets()
 }
 
-onMounted(() => { fetchWidgets(); fetchBoards(); fetchCalendars() })
+onMounted(() => { menuStore.fetchMenus(); fetchDashboards(); fetchWidgets(); fetchBoards(); fetchCalendars() })
 onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
 </script>
 
 <style scoped>
 @import '@/assets/admin-table.css';
+
+/* 대시보드 선택 탭 */
+.db-selector {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
+}
+.db-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface);
+  font-size: 13px; font-weight: 600; color: var(--t2);
+  cursor: pointer; transition: all .15s;
+}
+.db-tab:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.db-tab.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.db-tab-path { font-size: 11px; color: var(--t4); font-weight: 400; }
+.db-tab-count {
+  font-size: 11px; font-weight: 700; min-width: 20px; height: 18px;
+  border-radius: 10px; background: var(--border); color: var(--t3);
+  display: flex; align-items: center; justify-content: center; padding: 0 5px;
+}
+.db-tab.active .db-tab-count { background: var(--accent); color: #fff; }
 
 .widget-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -610,9 +711,14 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   flex-shrink: 0;
 }
+.wtitle-wrap { flex: 1; min-width: 0; }
 .wtitle {
-  font-size: 14px; font-weight: 700; color: var(--t1); flex: 1;
+  display: block; font-size: 14px; font-weight: 700; color: var(--t1);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wdesc {
+  display: block; font-size: 11px; color: var(--t4); font-weight: 400;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px;
 }
 .wcard-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
@@ -671,6 +777,15 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
 .wp-custom :deep(p) { margin: 0 0 4px; }
 
 .wp-empty { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--t4); padding: 6px 0; }
+.wp-divider { padding: 6px 0; }
+.wp-divider-line { border: none; border-top: 1.5px solid var(--border2); margin: 4px 0; }
+.wp-divider-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; font-weight: 700; color: var(--t3);
+}
+.wp-divider-label::before, .wp-divider-label::after {
+  content: ''; flex: 1; border-top: 1.5px solid var(--border2);
+}
 
 /* 크기 선택 UI */
 .size-picker { display: flex; gap: 10px; }

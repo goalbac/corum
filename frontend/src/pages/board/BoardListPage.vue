@@ -6,28 +6,32 @@
       <div v-loading="loading" class="gallery-grid">
         <div v-for="post in posts" :key="post.id" class="gallery-card" @click="goDetail(post)">
           <div class="gallery-thumb">
-            <template v-if="post.imageUrls?.length > 0">
-              <div class="thumb-spinner"><div class="spinner-ring"></div></div>
-              <img
-                :src="post.imageUrls[getImgIdx(post.id, post.imageUrls.length)]"
-                :alt="post.title"
-                class="thumb-img"
-                @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
-                @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }"
-              />
-              <!-- 여러 이미지일 때 이전/다음 버튼 -->
-              <template v-if="post.imageUrls.length > 1">
-                <button class="carousel-btn prev" @click.stop="prevImg(post.id, post.imageUrls.length)">
+            <template v-if="displayUrls(post).length > 0">
+              <!-- 트랙 방식 캐러셀: 이미지들을 가로 나열 후 translateX로 슬라이드 -->
+              <div
+                class="carousel-track"
+                :style="{ transform: `translateX(-${getImgIdx(post.id, displayUrls(post).length) * 100}%)` }"
+              >
+                <img
+                  v-for="(url, i) in displayUrls(post)"
+                  :key="i"
+                  :src="url"
+                  :alt="post.title"
+                  class="carousel-img"
+                />
+              </div>
+              <template v-if="displayUrls(post).length > 1">
+                <button class="carousel-btn prev" @click.stop="prevImg(post.id, displayUrls(post).length)">
                   <i class="ti ti-chevron-left"></i>
                 </button>
-                <button class="carousel-btn next" @click.stop="nextImg(post.id, post.imageUrls.length)">
+                <button class="carousel-btn next" @click.stop="nextImg(post.id, displayUrls(post).length)">
                   <i class="ti ti-chevron-right"></i>
                 </button>
                 <div class="carousel-dots">
                   <span
-                    v-for="(_, i) in post.imageUrls"
+                    v-for="(_, i) in displayUrls(post)"
                     :key="i"
-                    :class="['carousel-dot', i === getImgIdx(post.id, post.imageUrls.length) ? 'active' : '']"
+                    :class="['carousel-dot', i === getImgIdx(post.id, displayUrls(post).length) ? 'active' : '']"
                   ></span>
                 </div>
               </template>
@@ -301,17 +305,19 @@ const searchType = ref('title')
 
 // ===== 갤러리 이미지 캐러셀 =====
 const imgIndexMap = ref({})   // postId -> currentIndex
+
+function displayUrls(post) {
+  return (post.imageUrls || []).slice(0, 3)
+}
 function getImgIdx(postId, total) {
   const idx = imgIndexMap.value[postId] ?? 0
   return Math.min(idx, total - 1)
 }
 function nextImg(postId, total) {
-  const cur = getImgIdx(postId, total)
-  imgIndexMap.value[postId] = (cur + 1) % total
+  imgIndexMap.value[postId] = (getImgIdx(postId, total) + 1) % total
 }
 function prevImg(postId, total) {
-  const cur = getImgIdx(postId, total)
-  imgIndexMap.value[postId] = (cur - 1 + total) % total
+  imgIndexMap.value[postId] = (getImgIdx(postId, total) - 1 + total) % total
 }
 
 const noticePosts = computed(() => posts.value.filter(p => p.isNotice))
@@ -555,9 +561,31 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.thumb-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s, transform 0.3s; }
+.thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
 .thumb-img.loaded { opacity: 1; }
-.gallery-card:hover .thumb-img { transform: scale(1.04); }
+
+/* ===== 캐러셀 트랙 방식 ===== */
+.carousel-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.carousel-img {
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.gallery-card:hover .carousel-img { transform: scale(1.04); }
 
 .thumb-spinner {
   position: absolute;
