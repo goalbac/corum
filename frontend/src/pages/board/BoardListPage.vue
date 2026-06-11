@@ -579,34 +579,27 @@ onMounted(async () => {
 .webzine-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px 20px;
+  border-top: 1px solid var(--border2);
 }
 
 .webzine-item {
   display: grid;
   grid-template-columns: minmax(160px, 240px) 1fr;
   gap: 18px;
-  border-radius: 16px;
-  overflow: hidden;
+  padding: 18px 20px;
+  border-bottom: 0.5px solid var(--border2);
   cursor: pointer;
   background: var(--surface);
-  border: 0.5px solid var(--border2);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.18s, transform 0.18s;
+  transition: background 0.15s;
 }
 
-.webzine-item:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
+.webzine-item:hover { background: var(--surface2); }
 .webzine-item.notice { background: var(--accent-bg); }
 
 .webzine-thumb {
   width: 100%;
   aspect-ratio: 16/10;
-  border-radius: 0;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   background: var(--surface2);
   display: flex;
@@ -629,7 +622,6 @@ onMounted(async () => {
   flex-direction: column;
   justify-content: center;
   gap: 8px;
-  padding: 14px 18px 14px 0;
 }
 
 .webzine-kicker,
