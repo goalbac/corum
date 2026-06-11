@@ -76,8 +76,19 @@ export const useNotificationStore = defineStore('notification', () => {
     } catch { /* ignore */ }
   }
 
+  function closeStream() {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+    if (eventSource) {
+      eventSource.close()
+      eventSource = null
+    }
+  }
+
   function connect(token) {
-    disconnect()
+    closeStream()
     const url = `/api/notifications/stream?token=${encodeURIComponent(token)}`
     eventSource = new EventSource(url)
 
@@ -104,14 +115,7 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   function disconnect() {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer)
-      reconnectTimer = null
-    }
-    if (eventSource) {
-      eventSource.close()
-      eventSource = null
-    }
+    closeStream()
     notifications.value = []
     unreadCount.value = 0
     unreadMsgCount.value = 0
