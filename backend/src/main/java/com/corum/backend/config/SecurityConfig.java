@@ -66,7 +66,8 @@ public class SecurityConfig {
                                 "/api/files/profile/**",
                                 "/api/files/inline/**",
                                 "/api/files/site/**",
-                                "/api/files/*/view"
+                                "/api/files/*/view",
+                                "/api/files/*/thumbnail"
                         ).permitAll()
                         // 나머지 인증 필요
                         .anyRequest().authenticated()
