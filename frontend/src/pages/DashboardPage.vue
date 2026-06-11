@@ -30,7 +30,7 @@
           <ImageSlider :slides="parseConfig(widget).slides || []" :title="widget.title" />
         </div>
 
-        <!-- 최신 글 -->
+        <!-- 최신 글 (텍스트 목록) -->
         <div v-else-if="widget.widgetType === 'RECENT_POSTS'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
@@ -58,6 +58,68 @@
           </div>
         </div>
 
+        <!-- 갤러리 최신 글 (썸네일 그리드) -->
+        <div v-else-if="widget.widgetType === 'RECENT_GALLERY'"
+             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="wcard-title">{{ widget.title || widget.targetBoardName || '갤러리' }}</span>
+              <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="wcard-more">
+                더보기 <i class="ti ti-arrow-right"></i>
+              </router-link>
+            </div>
+            <div v-if="widget.posts?.length" class="gallery-grid">
+              <router-link
+                v-for="post in widget.posts"
+                :key="post.id"
+                :to="postPath(widget, post)"
+                class="gallery-item"
+              >
+                <div class="gallery-thumb">
+                  <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title" loading="lazy" />
+                  <div v-else class="gallery-no-img"><i class="ti ti-photo"></i></div>
+                </div>
+                <span class="gallery-title">{{ post.title }}</span>
+              </router-link>
+            </div>
+            <div v-else class="wcard-empty">등록된 글이 없습니다.</div>
+          </div>
+        </div>
+
+        <!-- 캘린더 위클리 -->
+        <div v-else-if="widget.widgetType === 'CALENDAR_WEEKLY'"
+             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="wcard-title">{{ widget.title || '이번 주 일정' }}</span>
+              <span class="wcard-week-range">{{ currentWeekRange }}</span>
+            </div>
+            <div class="cal-week">
+              <div v-for="day in weekDays" :key="day.date" class="cal-day-col">
+                <div :class="['cal-day-head', day.isToday ? 'today' : '', day.isSunday ? 'sunday' : '', day.isSaturday ? 'saturday' : '']">
+                  <span class="cal-dow">{{ day.dow }}</span>
+                  <span class="cal-dnum">{{ day.dnum }}</span>
+                </div>
+                <div class="cal-events">
+                  <template v-if="getEventsForDay(widget, day.date).length">
+                    <div
+                      v-for="ev in getEventsForDay(widget, day.date)"
+                      :key="ev.id"
+                      class="cal-event-chip"
+                      :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
+                      :title="ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
+                    >
+                      <span class="cal-ev-title">{{ ev.title }}</span>
+                      <span v-if="ev.calendarName && !parseCalendarId(widget)" class="cal-ev-cal">{{ ev.calendarName }}</span>
+                    </div>
+                  </template>
+                  <div v-else class="cal-no-event"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 링크 모음 -->
         <div v-else-if="widget.widgetType === 'LINK_LIST'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
@@ -81,7 +143,58 @@
           </div>
         </div>
 
-        <!-- 커스텀 위젯 -->
+        <!-- 바로가기 -->
+        <div v-else-if="widget.widgetType === 'QUICK_LINKS'"
+             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+          <div class="wcard">
+            <div class="wcard-head">
+              <span class="wcard-title">{{ widget.title || '바로가기' }}</span>
+            </div>
+            <div v-if="parseConfig(widget).links?.length" class="quick-links-grid">
+              <component
+                :is="link.newWindow ? 'a' : 'router-link'"
+                v-for="(link, i) in parseConfig(widget).links"
+                :key="i"
+                v-bind="link.newWindow ? { href: link.url, target: '_blank' } : { to: link.url }"
+                class="quick-link-item"
+              >
+                <div class="ql-icon-wrap">
+                  <i :class="'ti ' + (link.icon || 'ti-link')"></i>
+                </div>
+                <span class="ql-label">{{ link.label }}</span>
+              </component>
+            </div>
+            <div v-else class="wcard-empty">바로가기가 없습니다.</div>
+          </div>
+        </div>
+
+        <!-- 이미지 그리드 -->
+        <div v-else-if="widget.widgetType === 'IMAGE_GRID'" class="widget-full">
+          <div class="wcard">
+            <div v-if="widget.title" class="wcard-head">
+              <span class="wcard-title">{{ widget.title }}</span>
+            </div>
+            <div v-if="parseConfig(widget).images?.length" class="img-grid">
+              <component
+                :is="img.linkUrl ? 'a' : 'div'"
+                v-for="(img, i) in parseConfig(widget).images.slice(0,4)"
+                :key="i"
+                v-bind="img.linkUrl ? { href: img.linkUrl, target: img.newWindow ? '_blank' : undefined } : {}"
+                class="img-grid-item"
+              >
+                <img v-if="img.imageUrl" :src="img.imageUrl" :alt="img.title || ''" loading="lazy" class="img-grid-photo" />
+                <div v-else class="img-grid-placeholder"><i class="ti ti-photo"></i></div>
+                <div v-if="img.title || img.desc" class="img-grid-overlay">
+                  <span v-if="img.title" class="img-grid-title">{{ img.title }}</span>
+                  <span v-if="img.desc" class="img-grid-desc">{{ img.desc }}</span>
+                </div>
+              </component>
+            </div>
+            <div v-else class="wcard-empty">이미지가 없습니다.</div>
+          </div>
+        </div>
+
+        <!-- 커스텀 -->
         <div v-else-if="widget.widgetType === 'CUSTOM'"
              :class="parseConfig(widget).size === 'half' ? 'widget-half' : 'widget-full'">
           <div class="wcard">
@@ -92,31 +205,59 @@
           </div>
         </div>
 
-        <!-- 회원 현황 / 접속 통계 -->
-        <div v-else-if="widget.widgetType === 'MEMBER_STATS' || widget.widgetType === 'VISIT_STATS'" class="widget-full">
-          <div class="wcard stats-wcard">
+        <!-- 회원 현황 -->
+        <div v-else-if="widget.widgetType === 'MEMBER_STATS'" class="widget-half">
+          <div class="wcard member-stats-card">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '사이트 현황' }}</span>
+              <span class="wcard-title">{{ widget.title || '회원 현황' }}</span>
             </div>
-            <div class="stats-row">
-              <div class="stat-box">
-                <div class="stat-num">{{ widget.stats?.memberCount ?? 0 }}</div>
-                <div class="stat-lbl"><i class="ti ti-users"></i> 전체 회원</div>
+            <div class="mstats-grid">
+              <div class="mstat-item">
+                <div class="mstat-icon" style="background:#EFF6FF;color:#2563EB"><i class="ti ti-users"></i></div>
+                <div class="mstat-info">
+                  <div class="mstat-num">{{ widget.stats?.memberCount ?? 0 }}</div>
+                  <div class="mstat-lbl">전체 회원</div>
+                </div>
               </div>
-              <div class="stat-divider" />
-              <div class="stat-box">
-                <div class="stat-num">{{ widget.stats?.boardCount ?? 0 }}</div>
-                <div class="stat-lbl"><i class="ti ti-layout-list"></i> 게시판</div>
+              <div class="mstat-item">
+                <div class="mstat-icon" style="background:#ECFDF5;color:#10B981"><i class="ti ti-layout-list"></i></div>
+                <div class="mstat-info">
+                  <div class="mstat-num">{{ widget.stats?.boardCount ?? 0 }}</div>
+                  <div class="mstat-lbl">게시판</div>
+                </div>
               </div>
-              <div class="stat-divider" />
-              <div class="stat-box">
-                <div class="stat-num accent">{{ widget.stats?.pendingInquiryCount ?? 0 }}</div>
-                <div class="stat-lbl"><i class="ti ti-mail"></i> 미처리 문의</div>
+              <div class="mstat-item">
+                <div class="mstat-icon" style="background:#FEF2F2;color:#EF4444"><i class="ti ti-mail-question"></i></div>
+                <div class="mstat-info">
+                  <div class="mstat-num accent-red">{{ widget.stats?.pendingInquiryCount ?? 0 }}</div>
+                  <div class="mstat-lbl">미처리 문의</div>
+                </div>
               </div>
-              <div class="stat-divider" />
-              <div class="stat-box">
-                <div class="stat-num">{{ widget.stats?.todayVisits ?? 0 }}</div>
-                <div class="stat-lbl"><i class="ti ti-chart-bar"></i> 오늘 방문</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 접속 통계 -->
+        <div v-else-if="widget.widgetType === 'VISIT_STATS'" class="widget-half">
+          <div class="wcard visit-stats-card">
+            <div class="wcard-head">
+              <span class="wcard-title">{{ widget.title || '오늘의 접속' }}</span>
+              <span class="wcard-sub-date">{{ todayDateShort }}</span>
+            </div>
+            <div class="vstats-row">
+              <div class="vstat-item">
+                <div class="vstat-num">{{ widget.stats?.todayVisits ?? 0 }}</div>
+                <div class="vstat-lbl"><i class="ti ti-eye"></i> 전체 방문</div>
+              </div>
+              <div class="vstat-divider"></div>
+              <div class="vstat-item">
+                <div class="vstat-num">{{ widget.stats?.uniqueVisits ?? 0 }}</div>
+                <div class="vstat-lbl"><i class="ti ti-user-check"></i> 순 방문자</div>
+              </div>
+              <div class="vstat-divider"></div>
+              <div class="vstat-item">
+                <div class="vstat-num accent-blue">{{ widget.stats?.loginVisits ?? 0 }}</div>
+                <div class="vstat-lbl"><i class="ti ti-login"></i> 로그인</div>
               </div>
             </div>
           </div>
@@ -138,7 +279,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, reactive, onBeforeUnmount } from 'vue'
+import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
@@ -167,11 +308,57 @@ function handleMouseLeave() { glowStyle.value = { opacity: 0 } }
 
 // ===== 날짜/시각 =====
 const todayDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+const todayDateShort = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
 const todayTime = ref(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }))
 const clockTimer = setInterval(() => {
   todayTime.value = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 }, 10000)
 onBeforeUnmount(() => clearInterval(clockTimer))
+
+// ===== 캘린더 주간 뷰 =====
+const DOW_KO = ['일', '월', '화', '수', '목', '금', '토']
+
+const weekDays = computed(() => {
+  const today  = new Date()
+  const dow    = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((dow + 6) % 7))
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return {
+      date:       d.toISOString().slice(0, 10),
+      dow:        DOW_KO[d.getDay()],
+      dnum:       d.getDate(),
+      isToday:    d.toDateString() === today.toDateString(),
+      isSaturday: d.getDay() === 6,
+      isSunday:   d.getDay() === 0,
+    }
+  })
+})
+
+const currentWeekRange = computed(() => {
+  if (!weekDays.value.length) return ''
+  const first = weekDays.value[0]
+  const last  = weekDays.value[6]
+  const f = new Date(first.date)
+  const l = new Date(last.date)
+  return `${f.getMonth()+1}/${f.getDate()} – ${l.getMonth()+1}/${l.getDate()}`
+})
+
+function getEventsForDay(widget, dateStr) {
+  return (widget.calendarEvents || []).filter(ev => {
+    const evDate = (ev.startAt || '').slice(0, 10)
+    return evDate === dateStr
+  })
+}
+
+function parseCalendarId(widget) {
+  try {
+    const cfg = widget.extraConfig ? JSON.parse(widget.extraConfig) : {}
+    return cfg.calendarId || null
+  } catch { return null }
+}
 
 // ===== 경로 헬퍼 =====
 function boardListPath(widget, post = null) {
@@ -295,13 +482,6 @@ onMounted(async () => {
 .widget-full  { grid-column: 1 / -1; min-width: 0; }
 .widget-half  { grid-column: span 1; min-width: 0; }
 
-/* 슬라이더처럼 wcard 없는 widget-full도 리프트 적용 */
-.widget-full:not(:has(.wcard)):hover,
-.widget-half:not(:has(.wcard)):hover {
-  transform: translateY(-4px);
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 /* ===== 공통 위젯 카드 ===== */
 .wcard {
   background: var(--surface);
@@ -319,12 +499,6 @@ onMounted(async () => {
   transform: translateY(-1px);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13);
   border-color: var(--border);
-}
-
-/* widget-full 은 꽉 채워진 슬라이더/통계 카드라 부모 div에도 transition 필요 */
-.widget-full > .wcard,
-.widget-half > .wcard {
-  will-change: transform;
 }
 .wcard-head {
   display: flex;
@@ -349,6 +523,16 @@ onMounted(async () => {
   transition: opacity 0.15s;
 }
 .wcard-more:hover { opacity: 0.75; }
+.wcard-sub-date {
+  font-size: 12px;
+  color: var(--t4);
+  font-weight: 500;
+}
+.wcard-week-range {
+  font-size: 12px;
+  color: var(--t4);
+  font-weight: 500;
+}
 .wcard-empty {
   font-size: 14px;
   color: var(--t3);
@@ -407,6 +591,117 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+/* ===== 갤러리 최신 글 ===== */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.gallery-item {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.18s;
+}
+.gallery-item:hover { transform: translateY(-2px); }
+.gallery-thumb {
+  aspect-ratio: 4/3;
+  background: var(--surface2);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 0.5px solid var(--border2);
+}
+.gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s;
+}
+.gallery-no-img {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--t4);
+}
+.gallery-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+/* ===== 캘린더 위클리 ===== */
+.cal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  min-height: 80px;
+}
+.cal-day-col { display: flex; flex-direction: column; gap: 4px; }
+.cal-day-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 0 6px;
+  border-radius: 7px;
+}
+.cal-day-head.today { background: var(--accent-bg); }
+.cal-dow {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
+  letter-spacing: 0.3px;
+}
+.cal-dnum {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--t1);
+  line-height: 1;
+}
+.cal-day-head.today .cal-dnum {
+  color: var(--accent-t);
+}
+.cal-day-head.sunday .cal-dow,
+.cal-day-head.sunday .cal-dnum { color: #EF4444; }
+.cal-day-head.saturday .cal-dow,
+.cal-day-head.saturday .cal-dnum { color: #3B82F6; }
+.cal-events { display: flex; flex-direction: column; gap: 3px; }
+.cal-event-chip {
+  border-radius: 4px;
+  padding: 3px 5px;
+  cursor: default;
+  overflow: hidden;
+}
+.cal-ev-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-ev-cal {
+  display: block;
+  font-size: 10px;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-no-event { height: 4px; }
+
 /* ===== 링크 모음 ===== */
 .link-grid {
   display: grid;
@@ -433,21 +728,119 @@ onMounted(async () => {
   background: var(--accent-bg);
   color: var(--accent-t);
 }
-.link-arrow {
-  font-size: 13px;
-  color: var(--t3);
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
+.link-arrow { font-size: 13px; color: var(--t3); flex-shrink: 0; transition: color 0.15s; }
 .link-chip:hover .link-arrow { color: var(--accent-t); }
 
-/* ===== 커스텀 위젯 본문 ===== */
-.custom-body {
-  font-size: 14.5px;
-  line-height: 1.7;
-  color: var(--t1);
+/* ===== 바로가기 ===== */
+.quick-links-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
 }
-/* TipTap/ProseMirror HTML 기본 스타일 */
+.quick-link-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px 14px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  text-decoration: none;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.quick-link-item:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.ql-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 0.5px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--accent-t);
+  transition: var(--transition);
+}
+.quick-link-item:hover .ql-icon-wrap {
+  background: var(--accent-t);
+  color: #fff;
+  border-color: transparent;
+}
+.ql-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t2);
+  text-align: center;
+  line-height: 1.3;
+  transition: color 0.15s;
+}
+.quick-link-item:hover .ql-label { color: var(--accent-t); }
+
+/* ===== 이미지 그리드 ===== */
+.img-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.img-grid-item {
+  position: relative;
+  aspect-ratio: 3/2;
+  border-radius: 10px;
+  overflow: hidden;
+  display: block;
+  text-decoration: none;
+  background: var(--surface2);
+  border: 0.5px solid var(--border2);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.img-grid-item:hover { transform: scale(1.02); }
+.img-grid-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-grid-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--t4);
+}
+.img-grid-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 28px 10px 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.img-grid-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.img-grid-desc {
+  font-size: 11px;
+  color: rgba(255,255,255,0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 커스텀 위젯 본문 ===== */
+.custom-body { font-size: 14.5px; line-height: 1.7; color: var(--t1); }
 .custom-body :deep(p)  { margin: 0 0 10px; }
 .custom-body :deep(p:last-child) { margin-bottom: 0; }
 .custom-body :deep(h1), .custom-body :deep(h2), .custom-body :deep(h3) { font-weight: 700; line-height: 1.3; margin: 14px 0 8px; }
@@ -457,53 +850,83 @@ onMounted(async () => {
 .custom-body :deep(ul), .custom-body :deep(ol) { padding-left: 20px; margin: 8px 0; }
 .custom-body :deep(li) { margin-bottom: 4px; }
 .custom-body :deep(a)  { color: var(--accent-t); text-decoration: underline; }
-.custom-body :deep(blockquote) {
-  border-left: 3px solid var(--accent);
-  padding-left: 12px;
-  margin: 10px 0;
-  color: var(--t2);
-}
+.custom-body :deep(blockquote) { border-left: 3px solid var(--accent); padding-left: 12px; margin: 10px 0; color: var(--t2); }
 .custom-body :deep(code) { background: var(--surface2); border-radius: 3px; padding: 1px 5px; font-size: 13px; }
 .custom-body :deep(strong) { font-weight: 700; }
 .custom-body :deep(em) { font-style: italic; }
 
-/* ===== 통계 ===== */
-.stats-wcard { padding: 22px 28px; }
-.stats-row {
+/* ===== 회원 현황 ===== */
+.mstats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mstat-item {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border-radius: 10px;
+  border: 0.5px solid var(--border2);
 }
-.stat-box {
-  flex: 1;
-  text-align: center;
-  padding: 16px 10px;
-}
-.stat-divider {
-  width: 1px;
-  height: 52px;
-  background: var(--border2);
+.mstat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
   flex-shrink: 0;
 }
-.stat-num {
-  font-size: 30px;
+.mstat-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--t1);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.mstat-num.accent-red { color: #EF4444; }
+.mstat-lbl {
+  font-size: 13px;
+  color: var(--t3);
+  margin-top: 3px;
+}
+
+/* ===== 접속 통계 ===== */
+.vstats-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.vstat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 8px;
+}
+.vstat-divider { width: 1px; background: var(--border2); flex-shrink: 0; }
+.vstat-num {
+  font-size: 32px;
   font-weight: 800;
   color: var(--t1);
   letter-spacing: -1px;
   line-height: 1;
-  margin-bottom: 8px;
 }
-.stat-num.accent { color: var(--color-danger, #e53e3e); }
-.stat-lbl {
+.vstat-num.accent-blue { color: var(--accent-t); }
+.vstat-lbl {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 12.5px;
   color: var(--t3);
   font-weight: 500;
 }
-.stat-lbl i { font-size: 14px; }
+.vstat-lbl i { font-size: 13px; }
 
 /* ===== 로딩 / 빈 상태 ===== */
 .loading-area {
@@ -529,12 +952,8 @@ onMounted(async () => {
 
 /* ===== 반응형 (모바일 토스 스타일) ===== */
 @media (max-width: 768px) {
-  .dashboard {
-    gap: 0;
-    background: var(--bg);
-  }
+  .dashboard { gap: 0; background: var(--bg); }
 
-  /* 웰컴 카드: 꽉 채우고, 하단 radius만 */
   .welcome-card {
     padding: 24px 20px 28px;
     border-radius: 0 0 24px 24px;
@@ -545,7 +964,6 @@ onMounted(async () => {
   .welcome-time-line { font-size: 24px; }
   .welcome-name { font-size: 18px; }
 
-  /* 위젯 그리드: 세로 1열, 좌우 패딩 + 카드 간격 */
   .widget-area {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
@@ -553,7 +971,6 @@ onMounted(async () => {
   }
   .widget-half { grid-column: 1; }
 
-  /* 위젯 카드: 토스 스타일 — 둥근 카드 + 부드러운 그림자 */
   .wcard {
     border-radius: 16px;
     border: none;
@@ -562,25 +979,46 @@ onMounted(async () => {
   }
   .wcard:hover { transform: none; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
 
-  /* 카드 헤더 */
   .wcard-head { margin-bottom: 12px; }
   .wcard-title { font-size: 14px; color: var(--t2); font-weight: 700; }
   .wcard-more { font-size: 12px; }
 
-  /* 게시글 */
   .post-row { padding: 10px 0; gap: 10px; }
   .post-title-txt { font-size: 14px; }
   .post-date-txt { font-size: 11.5px; }
 
-  /* 링크 그리드 */
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .gallery-title { font-size: 12px; }
+
+  .cal-week { gap: 2px; }
+  .cal-day-head { padding: 4px 0 4px; }
+  .cal-dow { font-size: 9px; }
+  .cal-dnum { font-size: 13px; }
+  .cal-ev-title { font-size: 10px; }
+  .cal-ev-cal { display: none; }
+
   .link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .link-chip { padding: 10px 12px; font-size: 13px; border-radius: 12px; }
 
-  /* 통계 */
-  .stats-row { flex-wrap: wrap; }
-  .stat-divider { display: none; }
-  .stat-box { min-width: 45%; }
-  .stat-num { font-size: 24px; }
-  .stat-lbl { font-size: 12px; }
+  .quick-links-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .quick-link-item { padding: 12px 6px 10px; gap: 6px; }
+  .ql-icon-wrap { width: 38px; height: 38px; font-size: 18px; }
+  .ql-label { font-size: 11.5px; }
+
+  .img-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+  .vstats-row { flex-direction: column; gap: 0; }
+  .vstat-divider { width: 100%; height: 0.5px; }
+  .vstat-item { padding: 14px 8px; flex-direction: row; justify-content: space-between; }
+  .vstat-num { font-size: 24px; }
+  .vstat-lbl { font-size: 12px; }
+
+  .mstat-item { padding: 10px 12px; }
+  .mstat-num { font-size: 20px; }
+}
+
+@media (max-width: 480px) {
+  .quick-links-grid { grid-template-columns: repeat(3, 1fr); }
+  .img-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

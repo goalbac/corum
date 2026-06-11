@@ -3,27 +3,41 @@ package com.corum.backend.service.dashboard;
 import com.corum.backend.common.BusinessException;
 import com.corum.backend.domain.board.Board;
 import com.corum.backend.domain.board.BoardRepository;
+import com.corum.backend.domain.calendar.CalendarEntity;
+import com.corum.backend.domain.calendar.CalendarEventRepository;
+import com.corum.backend.domain.calendar.CalendarRepository;
 import com.corum.backend.domain.dashboard.DashboardWidget;
 import com.corum.backend.domain.dashboard.DashboardWidgetRepository;
 import com.corum.backend.domain.dashboard.VisitStats;
 import com.corum.backend.domain.dashboard.VisitStatsRepository;
+import com.corum.backend.domain.file.UploadFile;
+import com.corum.backend.domain.file.UploadFileRepository;
 import com.corum.backend.domain.inquiry.InquiryRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.Post;
 import com.corum.backend.domain.post.PostRepository;
+import com.corum.backend.dto.dashboard.DashboardCalendarEventResponse;
 import com.corum.backend.dto.dashboard.DashboardPostResponse;
 import com.corum.backend.dto.dashboard.DashboardStatsResponse;
 import com.corum.backend.dto.dashboard.DashboardWidgetRequest;
 import com.corum.backend.dto.dashboard.DashboardWidgetResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DashboardWidgetService {
@@ -34,6 +48,10 @@ public class DashboardWidgetService {
     private final MemberRepository memberRepository;
     private final InquiryRepository inquiryRepository;
     private final VisitStatsRepository visitStatsRepository;
+    private final CalendarRepository calendarRepository;
+    private final CalendarEventRepository calendarEventRepository;
+    private final UploadFileRepository uploadFileRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<DashboardWidgetResponse> getAdminWidgets() {
@@ -53,7 +71,6 @@ public class DashboardWidgetService {
 
     @Transactional
     public DashboardWidgetResponse create(DashboardWidgetRequest request, Long memberId) {
-        // sortOrder 미지정 시 현재 최대값 + 1 (항상 맨 아래 추가)
         int nextOrder = widgetRepository.findMaxSortOrder() + 1;
         DashboardWidget widget = widgetRepository.save(DashboardWidget.builder()
                 .widgetType(request.getWidgetType())
@@ -96,7 +113,7 @@ public class DashboardWidgetService {
     public void updateSortOrder(List<Long> widgetIds, Long memberId) {
         for (int i = 0; i < widgetIds.size(); i++) {
             DashboardWidget widget = widgetRepository.findById(widgetIds.get(i))
-                    .orElseThrow(() -> BusinessException.notFound("??쒕낫???꾩젽??李얠쓣 ???놁뒿?덈떎."));
+                    .orElseThrow(() -> BusinessException.notFound("위젯을 찾을 수 없습니다."));
             widget.updateSortOrder(i, memberId);
         }
     }
@@ -114,6 +131,8 @@ public class DashboardWidgetService {
         );
     }
 
+    // ===== 내부 변환 =====
+
     private DashboardWidgetResponse toResponse(DashboardWidget widget) {
         String boardName = null;
         if (widget.getTargetBoardId() != null) {
@@ -122,24 +141,105 @@ public class DashboardWidgetService {
                     .orElse(null);
         }
 
-        List<DashboardPostResponse> posts = List.of();
-        DashboardStatsResponse stats = null;
-        if ("RECENT_POSTS".equals(widget.getWidgetType())) {
-            boolean isAll = widget.getTargetBoardId() == null;
-            if (isAll) {
-                Map<Long, String> boardNameMap = boardRepository.findByIsActiveTrueOrderByIdAsc()
-                        .stream().collect(java.util.stream.Collectors.toMap(Board::getId, Board::getName));
-                posts = getRecentPosts(widget).stream()
-                        .map(p -> new DashboardPostResponse(p, boardNameMap.get(p.getBoardId())))
-                        .toList();
-            } else {
-                posts = getRecentPosts(widget).stream().map(DashboardPostResponse::new).toList();
+        String type = widget.getWidgetType();
+
+        // 최신 글 (텍스트 목록)
+        if ("RECENT_POSTS".equals(type)) {
+            List<DashboardPostResponse> posts = buildPostsResponse(widget, false);
+            return new DashboardWidgetResponse(widget, boardName, posts, null);
+        }
+
+        // 갤러리 최신 글 (썸네일 그리드)
+        if ("RECENT_GALLERY".equals(type)) {
+            List<DashboardPostResponse> posts = buildPostsResponse(widget, true);
+            return new DashboardWidgetResponse(widget, boardName, posts, null);
+        }
+
+        // 캘린더 위클리
+        if ("CALENDAR_WEEKLY".equals(type)) {
+            List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget);
+            return new DashboardWidgetResponse(widget, boardName, List.of(), null, events);
+        }
+
+        // 회원 현황 / 접속 통계
+        if ("MEMBER_STATS".equals(type) || "VISIT_STATS".equals(type)) {
+            DashboardStatsResponse stats = getStats();
+            return new DashboardWidgetResponse(widget, boardName, List.of(), stats);
+        }
+
+        // IMAGE_SLIDER, LINK_LIST, QUICK_LINKS, IMAGE_GRID, CUSTOM: extraConfig만 사용
+        return new DashboardWidgetResponse(widget, boardName, List.of(), null);
+    }
+
+    private List<DashboardPostResponse> buildPostsResponse(DashboardWidget widget, boolean withThumbs) {
+        List<Post> postList = getRecentPosts(widget);
+        if (postList.isEmpty()) return List.of();
+
+        boolean isAll = widget.getTargetBoardId() == null;
+        Map<Long, String> boardNameMap = isAll
+                ? boardRepository.findByIsActiveTrueOrderByIdAsc().stream()
+                        .collect(Collectors.toMap(Board::getId, Board::getName))
+                : Map.of();
+
+        Map<Long, String> thumbMap = new HashMap<>();
+        if (withThumbs) {
+            List<Long> postIds = postList.stream().map(Post::getId).toList();
+            List<UploadFile> images = uploadFileRepository.findImageFilesByPostIds(postIds);
+            for (UploadFile f : images) {
+                thumbMap.putIfAbsent(f.getTargetId(), buildFileUrl(f));
             }
         }
-        if ("MEMBER_STATS".equals(widget.getWidgetType()) || "VISIT_STATS".equals(widget.getWidgetType())) {
-            stats = getStats();
+
+        return postList.stream()
+                .map(p -> new DashboardPostResponse(
+                        p,
+                        isAll ? boardNameMap.get(p.getBoardId()) : null,
+                        withThumbs ? thumbMap.get(p.getId()) : null
+                ))
+                .toList();
+    }
+
+    private String buildFileUrl(UploadFile f) {
+        return f.getThumbnailPath() != null
+                ? "/api/files/" + f.getId() + "/thumbnail"
+                : "/api/files/" + f.getId() + "/view";
+    }
+
+    private List<DashboardCalendarEventResponse> buildCalendarEvents(DashboardWidget widget) {
+        Long calendarId = parseCalendarId(widget.getExtraConfig());
+
+        LocalDateTime weekStart = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
+        LocalDateTime weekEnd   = weekStart.plusDays(7).minusNanos(1);
+
+        List<CalendarEntity> calendarList;
+        if (calendarId != null) {
+            calendarList = calendarRepository.findById(calendarId)
+                    .map(List::of).orElse(List.of());
+        } else {
+            calendarList = calendarRepository.findByIsActiveTrueOrderByIdAsc();
         }
-        return new DashboardWidgetResponse(widget, boardName, posts, stats);
+        if (calendarList.isEmpty()) return List.of();
+
+        Map<Long, CalendarEntity> calMap = calendarList.stream()
+                .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
+        List<Long> calIds = calendarList.stream().map(CalendarEntity::getId).toList();
+
+        return calendarEventRepository.findByPeriod(calIds, weekStart, weekEnd)
+                .stream()
+                .map(e -> new DashboardCalendarEventResponse(e, calMap.get(e.getCalendarId())))
+                .toList();
+    }
+
+    private Long parseCalendarId(String extraConfig) {
+        if (extraConfig == null || extraConfig.isBlank()) return null;
+        try {
+            JsonNode node = objectMapper.readTree(extraConfig);
+            JsonNode cal = node.get("calendarId");
+            if (cal != null && !cal.isNull()) return cal.asLong();
+        } catch (Exception e) {
+            log.debug("extraConfig 파싱 실패: {}", e.getMessage());
+        }
+        return null;
     }
 
     private List<Post> getRecentPosts(DashboardWidget widget) {

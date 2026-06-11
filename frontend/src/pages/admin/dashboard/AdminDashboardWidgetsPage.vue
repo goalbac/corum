@@ -12,7 +12,6 @@
       </div>
     </AdminPageHeader>
 
-    <!-- 카드형 목록 (단일 컬럼 → SortableJS 안정 동작) -->
     <div v-if="!loading && widgets.length" ref="widgetSortable" class="widget-list">
       <div
         v-for="w in widgets"
@@ -20,17 +19,13 @@
         :data-id="w.id"
         :class="['wcard', { 'is-inactive': !w.isActive }]"
       >
-        <!-- 상단 바: 드래그 핸들 + 메타 -->
         <div class="wcard-top">
           <i class="ti ti-grip-vertical drag-handle" title="드래그해서 순서 변경"></i>
-
           <span class="wtype-badge">{{ typeLabel(w.widgetType) }}</span>
           <span class="wtitle">{{ w.title || '(제목 없음)' }}</span>
-
           <div class="wcard-meta">
-            <!-- 크기 인디케이터 -->
             <span
-              v-if="!['IMAGE_SLIDER','MEMBER_STATS','VISIT_STATS'].includes(w.widgetType)"
+              v-if="hasSizePicker(w.widgetType)"
               class="wsize-indicator"
               :title="getSize(w) === 'full' ? '1칸 (전체 너비)' : '반칸 (절반 너비)'"
             >
@@ -40,25 +35,22 @@
             </span>
             <span v-if="!w.isActive" class="wbadge-inactive">비활성</span>
           </div>
-
-          <!-- 수정/삭제 버튼 -->
           <div class="wcard-actions">
             <button class="act-btn" @click="openEdit(w)"><i class="ti ti-edit"></i> 수정</button>
             <button class="act-btn danger" @click="deleteWidget(w.id)"><i class="ti ti-trash"></i></button>
           </div>
         </div>
 
-        <!-- 본문 미리보기 -->
         <div class="wcard-preview">
-          <!-- RECENT_POSTS -->
-          <template v-if="w.widgetType === 'RECENT_POSTS'">
+          <!-- RECENT_POSTS / RECENT_GALLERY -->
+          <template v-if="w.widgetType === 'RECENT_POSTS' || w.widgetType === 'RECENT_GALLERY'">
             <div class="wp-post-list">
               <div v-for="post in (w.posts || []).slice(0,4)" :key="post.id" class="wp-post-row">
                 <span class="wp-post-title">{{ post.title }}</span>
                 <span class="wp-post-date">{{ formatDate(post.createdAt) }}</span>
               </div>
               <div v-if="!(w.posts||[]).length" class="wp-empty">
-                <i class="ti ti-file-text"></i>
+                <i :class="w.widgetType === 'RECENT_GALLERY' ? 'ti ti-photo' : 'ti ti-file-text'"></i>
                 {{ w.targetBoardName ? w.targetBoardName + ' 게시판' : '전체 게시판' }} 최신 글 표시
               </div>
             </div>
@@ -85,21 +77,64 @@
           <template v-else-if="w.widgetType === 'LINK_LIST'">
             <div class="wp-links">
               <template v-if="parseConfig(w).links?.length">
-                <span v-for="(l,i) in parseConfig(w).links.slice(0,8)" :key="i" class="wp-link-chip">
-                  {{ l.label || l.url }}
-                </span>
+                <span v-for="(l,i) in parseConfig(w).links.slice(0,8)" :key="i" class="wp-link-chip">{{ l.label || l.url }}</span>
               </template>
               <div v-else class="wp-empty"><i class="ti ti-link"></i> 링크 없음</div>
             </div>
           </template>
 
-          <!-- MEMBER_STATS / VISIT_STATS -->
-          <template v-else-if="w.widgetType === 'MEMBER_STATS' || w.widgetType === 'VISIT_STATS'">
+          <!-- QUICK_LINKS -->
+          <template v-else-if="w.widgetType === 'QUICK_LINKS'">
+            <div class="wp-links">
+              <template v-if="parseConfig(w).links?.length">
+                <span v-for="(l,i) in parseConfig(w).links.slice(0,8)" :key="i" class="wp-link-chip">
+                  <i v-if="l.icon" :class="'ti ' + l.icon" style="margin-right:4px"></i>{{ l.label || l.url }}
+                </span>
+              </template>
+              <div v-else class="wp-empty"><i class="ti ti-home"></i> 바로가기 없음</div>
+            </div>
+          </template>
+
+          <!-- CALENDAR_WEEKLY -->
+          <template v-else-if="w.widgetType === 'CALENDAR_WEEKLY'">
+            <div class="wp-empty" style="gap:6px">
+              <i class="ti ti-calendar-week"></i>
+              {{ parseConfig(w).calendarId ? (calendarName(parseConfig(w).calendarId)) : '모든 캘린더' }} 이번 주 일정 표시
+            </div>
+          </template>
+
+          <!-- IMAGE_GRID -->
+          <template v-else-if="w.widgetType === 'IMAGE_GRID'">
+            <div class="wp-slides">
+              <template v-if="parseConfig(w).images?.length">
+                <div
+                  v-for="(img,i) in parseConfig(w).images.slice(0,4)"
+                  :key="i"
+                  class="wp-slide"
+                  :style="img.imageUrl ? `background-image:url(${img.imageUrl})` : ''"
+                >
+                  <span v-if="!img.imageUrl">{{ img.title || `이미지 ${i+1}` }}</span>
+                </div>
+              </template>
+              <div v-else class="wp-empty"><i class="ti ti-layout-grid"></i> 이미지 없음</div>
+            </div>
+          </template>
+
+          <!-- MEMBER_STATS -->
+          <template v-else-if="w.widgetType === 'MEMBER_STATS'">
             <div class="wp-stats">
               <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">전체 회원</span></div>
               <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">게시판</span></div>
-              <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">문의</span></div>
-              <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">오늘 방문</span></div>
+              <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">미처리 문의</span></div>
+            </div>
+          </template>
+
+          <!-- VISIT_STATS -->
+          <template v-else-if="w.widgetType === 'VISIT_STATS'">
+            <div class="wp-stats">
+              <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">전체 방문</span></div>
+              <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">순 방문자</span></div>
+              <div class="wp-stat"><span class="wp-stat-n">—</span><span class="wp-stat-l">로그인</span></div>
             </div>
           </template>
 
@@ -124,7 +159,7 @@
     <el-dialog
       v-model="showForm"
       :title="editing ? '위젯 수정' : '위젯 추가'"
-      :width="form.widgetType === 'CUSTOM' ? '780px' : '520px'"
+      :width="form.widgetType === 'CUSTOM' ? '780px' : '560px'"
       destroy-on-close
     >
       <div class="dlg-form">
@@ -132,12 +167,24 @@
           <div class="dlg-field">
             <label>위젯 유형</label>
             <el-select v-model="form.widgetType" style="width:100%" @change="onTypeChange">
-              <el-option value="RECENT_POSTS"  label="최신 글" />
-              <el-option value="IMAGE_SLIDER"  label="이미지 슬라이더" />
-              <el-option value="LINK_LIST"     label="링크 목록" />
-              <el-option value="MEMBER_STATS"  label="회원 현황" />
-              <el-option value="VISIT_STATS"   label="접속 통계" />
-              <el-option value="CUSTOM"        label="커스텀" />
+              <el-option-group label="게시판">
+                <el-option value="RECENT_POSTS"    label="최신 글 (텍스트 목록)" />
+                <el-option value="RECENT_GALLERY"  label="최신 글 (갤러리/웹진)" />
+              </el-option-group>
+              <el-option-group label="캘린더">
+                <el-option value="CALENDAR_WEEKLY" label="캘린더 (주간)" />
+              </el-option-group>
+              <el-option-group label="콘텐츠">
+                <el-option value="IMAGE_SLIDER"    label="이미지 슬라이더" />
+                <el-option value="IMAGE_GRID"      label="이미지 그리드 (4칸)" />
+                <el-option value="LINK_LIST"       label="링크 목록" />
+                <el-option value="QUICK_LINKS"     label="바로가기" />
+                <el-option value="CUSTOM"          label="커스텀" />
+              </el-option-group>
+              <el-option-group label="통계">
+                <el-option value="MEMBER_STATS"    label="회원 현황" />
+                <el-option value="VISIT_STATS"     label="접속 통계" />
+              </el-option-group>
             </el-select>
           </div>
           <div class="dlg-field">
@@ -147,7 +194,7 @@
         </div>
 
         <!-- 크기 선택 -->
-        <div v-if="!['IMAGE_SLIDER','MEMBER_STATS','VISIT_STATS'].includes(form.widgetType)" class="dlg-row">
+        <div v-if="hasSizePicker(form.widgetType)" class="dlg-row">
           <div class="dlg-field">
             <label>위젯 크기</label>
             <div class="size-picker">
@@ -167,12 +214,12 @@
           </div>
         </div>
 
-        <div v-if="['IMAGE_SLIDER','MEMBER_STATS','VISIT_STATS'].includes(form.widgetType)" style="margin-bottom:8px">
+        <div v-if="!hasSizePicker(form.widgetType)" style="margin-bottom:8px">
           <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
         </div>
 
-        <!-- RECENT_POSTS -->
-        <template v-if="form.widgetType === 'RECENT_POSTS'">
+        <!-- RECENT_POSTS / RECENT_GALLERY -->
+        <template v-if="form.widgetType === 'RECENT_POSTS' || form.widgetType === 'RECENT_GALLERY'">
           <hr class="dlg-divider"/>
           <div class="dlg-row">
             <div class="dlg-field">
@@ -184,6 +231,24 @@
             <div class="dlg-field">
               <label>표시 개수</label>
               <el-input-number v-model="form.postCount" :min="1" :max="20" style="width:100%" />
+            </div>
+          </div>
+        </template>
+
+        <!-- CALENDAR_WEEKLY -->
+        <template v-if="form.widgetType === 'CALENDAR_WEEKLY'">
+          <hr class="dlg-divider"/>
+          <div class="dlg-row">
+            <div class="dlg-field">
+              <label>대상 캘린더</label>
+              <el-select v-model="config.calendarId" clearable placeholder="모든 캘린더" style="width:100%">
+                <el-option v-for="c in calendars" :key="c.id" :value="c.id" :label="c.name">
+                  <span style="display:flex;align-items:center;gap:8px">
+                    <span v-if="c.color" :style="{ display:'inline-block', width:'12px', height:'12px', borderRadius:'50%', background:c.color }"></span>
+                    {{ c.name }}
+                  </span>
+                </el-option>
+              </el-select>
             </div>
           </div>
         </template>
@@ -210,6 +275,30 @@
           </button>
         </template>
 
+        <!-- IMAGE_GRID -->
+        <template v-if="form.widgetType === 'IMAGE_GRID'">
+          <hr class="dlg-divider"/>
+          <div class="dlg-section-title">이미지 (최대 4개)</div>
+          <div v-for="(img, i) in config.images" :key="i" class="sub-item">
+            <div class="dlg-row">
+              <div class="dlg-field"><label>이미지 URL</label><el-input v-model="img.imageUrl" placeholder="https://..." /></div>
+              <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="img.title" /></div>
+            </div>
+            <div class="dlg-row">
+              <div class="dlg-field"><label>설명 (선택)</label><el-input v-model="img.desc" /></div>
+              <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="img.linkUrl" /></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <label class="chk-item"><el-checkbox v-model="img.newWindow" />새 창</label>
+              <button class="act-btn danger" @click="config.images.splice(i,1)"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <button v-if="config.images.length < 4" class="adm-btn ghost" style="width:100%"
+                  @click="config.images.push({imageUrl:'',title:'',desc:'',linkUrl:'',newWindow:false})">
+            <i class="ti ti-plus"></i> 이미지 추가 ({{ config.images.length }}/4)
+          </button>
+        </template>
+
         <!-- LINK_LIST -->
         <template v-if="form.widgetType === 'LINK_LIST'">
           <hr class="dlg-divider"/>
@@ -226,6 +315,36 @@
           </div>
           <button class="adm-btn ghost" style="width:100%" @click="config.links.push({label:'',url:'',newWindow:false})">
             <i class="ti ti-plus"></i> 링크 추가
+          </button>
+        </template>
+
+        <!-- QUICK_LINKS -->
+        <template v-if="form.widgetType === 'QUICK_LINKS'">
+          <hr class="dlg-divider"/>
+          <div class="dlg-section-title">바로가기 항목</div>
+          <div v-for="(l, i) in config.links" :key="i" class="sub-item">
+            <div class="dlg-row">
+              <div class="dlg-field"><label>레이블</label><el-input v-model="l.label" /></div>
+              <div class="dlg-field">
+                <label>아이콘 <a href="https://tabler.io/icons" target="_blank" style="font-size:11px;color:var(--accent-t);margin-left:4px">아이콘 목록 →</a></label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <el-input v-model="l.icon" placeholder="ti-home" style="flex:1" />
+                  <span style="font-size:22px;width:32px;text-align:center;color:var(--accent-t)">
+                    <i v-if="l.icon" :class="'ti ' + l.icon"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="dlg-row">
+              <div class="dlg-field"><label>URL</label><el-input v-model="l.url" placeholder="/board/1 또는 https://..." /></div>
+              <div class="dlg-field" style="flex-direction:row;align-items:flex-end;gap:10px;justify-content:space-between;padding-bottom:2px">
+                <label class="chk-item"><el-checkbox v-model="l.newWindow" />새 창</label>
+                <button class="act-btn danger" @click="config.links.splice(i,1)"><i class="ti ti-trash"></i></button>
+              </div>
+            </div>
+          </div>
+          <button class="adm-btn ghost" style="width:100%" @click="config.links.push({label:'',icon:'ti-link',url:'',newWindow:false})">
+            <i class="ti ti-plus"></i> 항목 추가
           </button>
         </template>
 
@@ -259,6 +378,7 @@ import api from '@/api/axios'
 
 const widgets     = ref([])
 const boards      = ref([])
+const calendars   = ref([])
 const loading     = ref(false)
 const saving      = ref(false)
 const sortSaving  = ref(false)
@@ -268,12 +388,16 @@ const editing     = ref(null)
 const widgetSortable = ref(null)
 let sortableInstance = null
 
+// 크기 선택이 있는 위젯 유형
+const SIZE_PICKER_TYPES = ['RECENT_POSTS', 'RECENT_GALLERY', 'CALENDAR_WEEKLY', 'LINK_LIST', 'QUICK_LINKS', 'CUSTOM']
+function hasSizePicker(type) { return SIZE_PICKER_TYPES.includes(type) }
+
 const defaultForm = () => ({
   widgetType: 'RECENT_POSTS', title: '',
   targetBoardId: null, postCount: 5, isActive: true
 })
 const form   = ref(defaultForm())
-const config = ref({ slides: [], links: [], content: '', size: 'half' })
+const config = ref({ slides: [], links: [], images: [], content: '', size: 'half', calendarId: null })
 
 function parseConfig(w) {
   try { return w.extraConfig ? (typeof w.extraConfig === 'string' ? JSON.parse(w.extraConfig) : w.extraConfig) : {} }
@@ -281,7 +405,22 @@ function parseConfig(w) {
 }
 function getSize(w) { return parseConfig(w).size || 'half' }
 function typeLabel(t) {
-  return { RECENT_POSTS:'최신 글', IMAGE_SLIDER:'슬라이더', LINK_LIST:'링크', MEMBER_STATS:'회원 현황', VISIT_STATS:'접속 통계', CUSTOM:'커스텀' }[t] || t
+  const MAP = {
+    RECENT_POSTS:    '최신 글',
+    RECENT_GALLERY:  '갤러리 최신글',
+    CALENDAR_WEEKLY: '캘린더 주간',
+    IMAGE_SLIDER:    '슬라이더',
+    IMAGE_GRID:      '이미지 그리드',
+    LINK_LIST:       '링크',
+    QUICK_LINKS:     '바로가기',
+    MEMBER_STATS:    '회원 현황',
+    VISIT_STATS:     '접속 통계',
+    CUSTOM:          '커스텀',
+  }
+  return MAP[t] || t
+}
+function calendarName(id) {
+  return calendars.value.find(c => c.id === id)?.name || `캘린더 #${id}`
 }
 function formatDate(d) {
   if (!d) return ''
@@ -296,14 +435,13 @@ async function fetchWidgets() {
     const r = await api.get('/admin/dashboard/widgets')
     widgets.value = r.data.data || []
   } finally {
-    loading.value = false   // 먼저 loading 해제 → v-if 조건 충족 → DOM 생성
+    loading.value = false
   }
-  await nextTick()          // DOM 렌더 대기 후
-  initSortable()            // ref가 실제로 존재하는 시점에 초기화
+  await nextTick()
+  initSortable()
 }
-async function fetchBoards() {
-  const r = await api.get('/boards'); boards.value = r.data.data || []
-}
+async function fetchBoards()    { const r = await api.get('/boards');    boards.value    = r.data.data || [] }
+async function fetchCalendars() { const r = await api.get('/calendars'); calendars.value = r.data.data || [] }
 
 function initSortable() {
   if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null }
@@ -332,26 +470,45 @@ async function saveSortOrder() {
 }
 
 function onTypeChange() {
-  config.value = { slides: [], links: [], content: '', size: config.value.size || 'half' }
+  config.value = {
+    slides: [], links: [], images: [], content: '',
+    size: config.value.size || 'half', calendarId: null
+  }
+  form.value.targetBoardId = null
+  form.value.postCount = 5
 }
+
 function openCreate() {
   editing.value = null; form.value = defaultForm()
-  config.value = { slides: [], links: [], content: '', size: 'half' }
+  config.value = { slides: [], links: [], images: [], content: '', size: 'half', calendarId: null }
   showForm.value = true
 }
+
 function openEdit(w) {
   editing.value = w; form.value = { ...w }
   const ec = parseConfig(w)
-  config.value = { slides: ec.slides||[], links: ec.links||[], content: ec.content||'', size: ec.size||'half' }
+  config.value = {
+    slides:     ec.slides     || [],
+    links:      ec.links      || [],
+    images:     ec.images     || [],
+    content:    ec.content    || '',
+    size:       ec.size       || 'half',
+    calendarId: ec.calendarId || null,
+  }
   showForm.value = true
 }
+
 async function saveWidget() {
   saving.value = true
   try {
-    const extra = { size: config.value.size }
-    if (form.value.widgetType === 'IMAGE_SLIDER') extra.slides  = config.value.slides
-    if (form.value.widgetType === 'LINK_LIST')    extra.links   = config.value.links
-    if (form.value.widgetType === 'CUSTOM')       extra.content = config.value.content
+    const extra = {}
+    if (hasSizePicker(form.value.widgetType))          extra.size       = config.value.size
+    if (form.value.widgetType === 'IMAGE_SLIDER')       extra.slides     = config.value.slides
+    if (form.value.widgetType === 'IMAGE_GRID')         extra.images     = config.value.images
+    if (['LINK_LIST','QUICK_LINKS'].includes(form.value.widgetType)) extra.links = config.value.links
+    if (form.value.widgetType === 'CUSTOM')             extra.content    = config.value.content
+    if (form.value.widgetType === 'CALENDAR_WEEKLY')    extra.calendarId = config.value.calendarId
+
     const payload = { ...form.value, extraConfig: JSON.stringify(extra) }
     editing.value
       ? await api.put(`/admin/dashboard/widgets/${editing.value.id}`, payload)
@@ -360,27 +517,22 @@ async function saveWidget() {
     showForm.value = false; fetchWidgets()
   } finally { saving.value = false }
 }
+
 async function deleteWidget(id) {
   await ElMessageBox.confirm('위젯을 삭제하시겠습니까?', '삭제', { type:'warning', confirmButtonText:'삭제', cancelButtonText:'취소' })
   await api.delete(`/admin/dashboard/widgets/${id}`)
   ElMessage.success('삭제되었습니다.'); fetchWidgets()
 }
 
-onMounted(() => { fetchWidgets(); fetchBoards() })
+onMounted(() => { fetchWidgets(); fetchBoards(); fetchCalendars() })
 onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
 </script>
 
 <style scoped>
 @import '@/assets/admin-table.css';
 
-/* ===== 위젯 리스트 ===== */
-.widget-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.widget-list { display: flex; flex-direction: column; gap: 10px; }
 
-/* ===== 위젯 카드 ===== */
 .wcard {
   background: var(--surface);
   border: 1px solid var(--border2);
@@ -393,7 +545,6 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
 .wcard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
 .wcard.is-inactive { opacity: 0.6; }
 
-/* ===== 상단 바 ===== */
 .wcard-top {
   display: flex;
   align-items: center;
@@ -403,156 +554,84 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   border-bottom: 0.5px solid var(--border2);
   cursor: default;
 }
-.drag-handle {
-  font-size: 18px;
-  color: var(--t4);
-  cursor: grab;
-  flex-shrink: 0;
-  transition: color 0.15s;
-  padding: 2px;
-}
+.drag-handle { font-size: 18px; color: var(--t4); cursor: grab; flex-shrink: 0; transition: color 0.15s; padding: 2px; }
 .drag-handle:active { cursor: grabbing; }
 .wcard:hover .drag-handle { color: var(--accent-t); }
 
 .wtype-badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 5px;
-  background: var(--accent-bg);
-  color: var(--accent-t);
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 5px;
+  background: var(--accent-bg); color: var(--accent-t);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   flex-shrink: 0;
 }
 .wtitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--t1);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 14px; font-weight: 700; color: var(--t1); flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.wcard-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
+.wcard-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
-/* 크기 인디케이터 */
 .wsize-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 8px 3px 5px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--surface);
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 8px 3px 5px; border: 1px solid var(--border);
+  border-radius: 5px; background: var(--surface);
 }
 .wsize-block {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--border);
-  transition: background 0.15s;
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 2px; background: var(--border); transition: background 0.15s;
 }
 .wsize-block.active { background: var(--accent); }
-.wsize-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--t3);
-  margin-left: 3px;
-}
+.wsize-label { font-size: 11px; font-weight: 700; color: var(--t3); margin-left: 3px; }
+
 .wbadge-inactive {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #fef3cd;
-  color: #b45309;
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  background: #fef3cd; color: #b45309;
 }
+.wcard-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.wcard-preview { padding: 12px 16px; }
 
-.wcard-actions {
-  display: flex;
-  gap: 5px;
-  flex-shrink: 0;
-}
-
-/* ===== 미리보기 본문 ===== */
-.wcard-preview {
-  padding: 12px 16px;
-}
-
-/* 최신 글 */
 .wp-post-list { display: flex; flex-direction: column; }
 .wp-post-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 0;
-  border-bottom: 0.5px solid var(--border2);
-  gap: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 0.5px solid var(--border2); gap: 12px;
 }
 .wp-post-row:last-child { border-bottom: none; }
 .wp-post-title { font-size: 13px; color: var(--t2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wp-post-date  { font-size: 12px; color: var(--t4); flex-shrink: 0; }
 
-/* 슬라이더 */
 .wp-slides { display: flex; gap: 8px; }
 .wp-slide {
-  flex: 1;
-  height: 60px;
-  border-radius: 6px;
+  flex: 1; height: 60px; border-radius: 6px;
   background: var(--surface2) center/cover no-repeat;
   border: 0.5px solid var(--border2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: var(--t3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--t3);
 }
 
-/* 링크 */
 .wp-links { display: flex; flex-wrap: wrap; gap: 5px; }
 .wp-link-chip {
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: var(--surface2);
-  border: 0.5px solid var(--border);
-  color: var(--t2);
-  white-space: nowrap;
+  font-size: 12px; padding: 3px 10px; border-radius: 20px;
+  background: var(--surface2); border: 0.5px solid var(--border); color: var(--t2); white-space: nowrap;
 }
 
-/* 통계 */
 .wp-stats { display: flex; gap: 0; }
 .wp-stat { flex: 1; text-align: center; padding: 8px; }
 .wp-stat-n { display: block; font-size: 20px; font-weight: 800; color: var(--t4); line-height: 1; margin-bottom: 4px; }
 .wp-stat-l { font-size: 11px; color: var(--t4); }
 
-/* 커스텀 */
 .wp-custom {
-  font-size: 13px; color: var(--t2); line-height: 1.6;
-  overflow: hidden; display: -webkit-box;
-  -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  font-size: 13px; color: var(--t2); line-height: 1.6; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
 }
 .wp-custom :deep(p) { margin: 0 0 4px; }
 
-/* 빈 상태 */
-.wp-empty {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: var(--t4); padding: 6px 0;
-}
+.wp-empty { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--t4); padding: 6px 0; }
 
 /* 크기 선택 UI */
 .size-picker { display: flex; gap: 10px; }
 .size-opt {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 7px; padding: 10px 8px;
-  border: 1.5px solid var(--border); border-radius: var(--radius-xs);
-  background: var(--surface); cursor: pointer; transition: all .15s;
+  gap: 7px; padding: 10px 8px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs); background: var(--surface); cursor: pointer; transition: all .15s;
   font-size: 12px; color: var(--t2);
 }
 .size-opt:hover { border-color: var(--accent); background: var(--accent-bg); }
@@ -569,7 +648,6 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px;
 }
 
-/* 순서 저장 버튼 fade */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateX(8px); }
 
