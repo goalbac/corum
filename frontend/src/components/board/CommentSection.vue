@@ -341,4 +341,8 @@ onMounted(fetchComments)
 @media (max-width: 768px) {
   .cs-header, .cs-write { padding-left: 18px; padding-right: 18px; }
 }
+
+@media (max-width: 1024px) {
+  .cs-hint { display: none; }
+}
 </style>

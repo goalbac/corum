@@ -367,6 +367,10 @@ function formatDate(dateStr) {
 
 .inline-hint { font-size: 11px; color: var(--t4); }
 
+@media (max-width: 1024px) {
+  .inline-hint { display: none; }
+}
+
 .inline-btns { display: flex; gap: 5px; }
 
 .inline-btn {
