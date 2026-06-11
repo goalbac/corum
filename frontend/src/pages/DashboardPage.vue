@@ -76,7 +76,16 @@
                 class="gallery-item"
               >
                 <div class="gallery-thumb">
-                  <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title" loading="lazy" />
+                  <template v-if="post.thumbnailUrl">
+                    <div class="gw-spinner"><div class="gw-ring"></div></div>
+                    <img
+                      :src="post.thumbnailUrl"
+                      :alt="post.title"
+                      class="gw-img"
+                      @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
+                      @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }"
+                    />
+                  </template>
                   <div v-else class="gallery-no-img"><i class="ti ti-photo"></i></div>
                 </div>
                 <span class="gallery-title">{{ post.title }}</span>
@@ -615,19 +624,34 @@ onMounted(async () => {
 }
 .gallery-item:hover { transform: translateY(-2px); }
 .gallery-thumb {
+  position: relative;
   aspect-ratio: 4/3;
   background: var(--surface2);
   border-radius: 8px;
   overflow: hidden;
   border: 0.5px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.gallery-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: opacity 0.2s;
+.gw-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
+.gw-ring {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.gw-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; display: block; }
+.gw-img.loaded { opacity: 1; }
 .gallery-no-img {
   width: 100%;
   height: 100%;

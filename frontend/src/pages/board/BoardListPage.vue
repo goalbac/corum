@@ -6,7 +6,33 @@
       <div v-loading="loading" class="gallery-grid">
         <div v-for="post in posts" :key="post.id" class="gallery-card" @click="goDetail(post)">
           <div class="gallery-thumb">
-            <template v-if="post.thumbnailUrl">
+            <template v-if="post.imageUrls?.length > 0">
+              <div class="thumb-spinner"><div class="spinner-ring"></div></div>
+              <img
+                :src="post.imageUrls[getImgIdx(post.id, post.imageUrls.length)]"
+                :alt="post.title"
+                class="thumb-img"
+                @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
+                @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }"
+              />
+              <!-- 여러 이미지일 때 이전/다음 버튼 -->
+              <template v-if="post.imageUrls.length > 1">
+                <button class="carousel-btn prev" @click.stop="prevImg(post.id, post.imageUrls.length)">
+                  <i class="ti ti-chevron-left"></i>
+                </button>
+                <button class="carousel-btn next" @click.stop="nextImg(post.id, post.imageUrls.length)">
+                  <i class="ti ti-chevron-right"></i>
+                </button>
+                <div class="carousel-dots">
+                  <span
+                    v-for="(_, i) in post.imageUrls"
+                    :key="i"
+                    :class="['carousel-dot', i === getImgIdx(post.id, post.imageUrls.length) ? 'active' : '']"
+                  ></span>
+                </div>
+              </template>
+            </template>
+            <template v-else-if="post.thumbnailUrl">
               <div class="thumb-spinner"><div class="spinner-ring"></div></div>
               <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img"
                 @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
@@ -273,6 +299,21 @@ const gallerySize = ref(8)
 const keyword = ref('')
 const searchType = ref('title')
 
+// ===== 갤러리 이미지 캐러셀 =====
+const imgIndexMap = ref({})   // postId -> currentIndex
+function getImgIdx(postId, total) {
+  const idx = imgIndexMap.value[postId] ?? 0
+  return Math.min(idx, total - 1)
+}
+function nextImg(postId, total) {
+  const cur = getImgIdx(postId, total)
+  imgIndexMap.value[postId] = (cur + 1) % total
+}
+function prevImg(postId, total) {
+  const cur = getImgIdx(postId, total)
+  imgIndexMap.value[postId] = (cur - 1 + total) % total
+}
+
 const noticePosts = computed(() => posts.value.filter(p => p.isNotice))
 const normalPosts = computed(() => posts.value.filter(p => !p.isNotice))
 const isGalleryBoard = computed(() => board.value?.boardType === 'GALLERY')
@@ -537,6 +578,55 @@ onMounted(async () => {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .no-thumb { font-size: 28px; color: var(--t4); }
+
+/* ===== 캐러셀 버튼 ===== */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.45);
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s, background 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+.carousel-btn.prev { left: 6px; }
+.carousel-btn.next { right: 6px; }
+.gallery-card:hover .carousel-btn { opacity: 1; }
+.carousel-btn:hover { background: rgba(0,0,0,0.7); }
+
+.carousel-dots {
+  position: absolute;
+  bottom: 7px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  z-index: 3;
+}
+.carousel-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  transition: background 0.15s, transform 0.15s;
+}
+.carousel-dot.active {
+  background: #fff;
+  transform: scale(1.3);
+}
 
 .gallery-notice-badge {
   position: absolute;

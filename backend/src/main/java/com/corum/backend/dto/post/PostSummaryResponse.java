@@ -4,6 +4,7 @@ import com.corum.backend.domain.post.Post;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 public class PostSummaryResponse {
@@ -20,17 +21,23 @@ public class PostSummaryResponse {
     private final int commentCount;
     private final boolean hasFile;
     private final String thumbnailUrl;
+    private final List<String> imageUrls;
     private final Long rowNum;
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile) {
-        this(post, commentCount, hasFile, null, null);
+        this(post, commentCount, hasFile, null, List.of(), null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl) {
-        this(post, commentCount, hasFile, thumbnailUrl, null);
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl, Long rowNum) {
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), rowNum);
+    }
+
+    public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
+                               String thumbnailUrl, List<String> imageUrls, Long rowNum) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.title = post.getTitle();
@@ -43,6 +50,7 @@ public class PostSummaryResponse {
         this.commentCount = commentCount;
         this.hasFile = hasFile;
         this.thumbnailUrl = thumbnailUrl;
+        this.imageUrls = imageUrls != null ? imageUrls : List.of();
         this.rowNum = rowNum;
     }
 

@@ -61,14 +61,27 @@ public class PostService {
         for (int i = 0; i < postList.size(); i++) {
             Post p = postList.get(i);
             List<FileResponse> files = fileStorageService.getFiles("POST", p.getId());
-            String thumbnailUrl = files.stream()
-                            .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
-                            .findFirst()
-                            .map(FileResponse::getThumbnailUrl)
-                            .orElseGet(() -> extractFirstImageFromContent(p.getContent()));
+            List<FileResponse> imageFiles = files.stream()
+                    .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
+                    .toList();
+
+            // 첨부 이미지 썸네일 URL 목록
+            List<String> imageUrls = imageFiles.stream()
+                    .map(FileResponse::getThumbnailUrl)
+                    .toList();
+
+            // 썸네일: 첨부 이미지 우선, 없으면 본문 인라인 이미지 추출
+            String thumbnailUrl;
+            if (!imageUrls.isEmpty()) {
+                thumbnailUrl = imageUrls.get(0);
+            } else {
+                thumbnailUrl = extractFirstImageFromContent(p.getContent());
+                if (thumbnailUrl != null) imageUrls = extractAllImagesFromContent(p.getContent());
+            }
+
             long rowNum = total - offset - i;
             int commentCount = commentRepository.countByPostIdAndIsDeletedFalse(p.getId());
-            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, rowNum));
+            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, imageUrls, rowNum));
         }
 
         return new PageImpl<>(content, pageable, posts.getTotalElements());
@@ -219,15 +232,26 @@ public class PostService {
     }
 
     private String extractFirstImageFromContent(String content) {
-        if (content == null || content.isBlank()) return null;
-        int idx = content.indexOf("<img ");
-        if (idx < 0) return null;
-        int srcIdx = content.indexOf("src=\"", idx);
-        if (srcIdx < 0) return null;
-        int start = srcIdx + 5;
-        int end = content.indexOf("\"", start);
-        if (end < 0) return null;
-        return content.substring(start, end);
+        List<String> all = extractAllImagesFromContent(content);
+        return all.isEmpty() ? null : all.get(0);
+    }
+
+    private List<String> extractAllImagesFromContent(String content) {
+        if (content == null || content.isBlank()) return List.of();
+        List<String> result = new java.util.ArrayList<>();
+        int pos = 0;
+        while (true) {
+            int idx = content.indexOf("<img ", pos);
+            if (idx < 0) break;
+            int srcIdx = content.indexOf("src=\"", idx);
+            if (srcIdx < 0) { pos = idx + 5; continue; }
+            int start = srcIdx + 5;
+            int end = content.indexOf("\"", start);
+            if (end < 0) break;
+            result.add(content.substring(start, end));
+            pos = end + 1;
+        }
+        return result;
     }
 
     private String getClientIp(HttpServletRequest request) {
