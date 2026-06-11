@@ -280,17 +280,41 @@
           <hr class="dlg-divider"/>
           <div class="dlg-section-title">이미지 (최대 4개)</div>
           <div v-for="(img, i) in config.images" :key="i" class="sub-item">
-            <div class="dlg-row">
-              <div class="dlg-field"><label>이미지 URL</label><el-input v-model="img.imageUrl" placeholder="https://..." /></div>
-              <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="img.title" /></div>
-            </div>
-            <div class="dlg-row">
-              <div class="dlg-field"><label>설명 (선택)</label><el-input v-model="img.desc" /></div>
-              <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="img.linkUrl" /></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <label class="chk-item"><el-checkbox v-model="img.newWindow" />새 창</label>
-              <button class="act-btn danger" @click="config.images.splice(i,1)"><i class="ti ti-trash"></i></button>
+            <!-- 이미지 업로드 영역 -->
+            <div class="img-upload-row">
+              <div
+                class="img-upload-preview"
+                :style="img.imageUrl ? `background-image:url(${img.imageUrl})` : ''"
+                @click="triggerImgUpload(i)"
+                :title="img.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
+              >
+                <template v-if="imgUploading[i]">
+                  <i class="ti ti-loader-2 spinning" style="font-size:22px;color:#fff"></i>
+                </template>
+                <template v-else-if="!img.imageUrl">
+                  <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--t4)"></i>
+                  <span style="font-size:12px;color:var(--t4);margin-top:4px">클릭해서 업로드</span>
+                </template>
+                <div v-if="img.imageUrl && !imgUploading[i]" class="img-upload-change-overlay">
+                  <i class="ti ti-refresh"></i> 변경
+                </div>
+              </div>
+              <input
+                :ref="el => imgInputRefs[i] = el"
+                type="file"
+                accept="image/*"
+                style="display:none"
+                @change="e => uploadGridImage(e, i)"
+              />
+              <div class="img-upload-fields">
+                <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="img.title" /></div>
+                <div class="dlg-field"><label>설명 (선택)</label><el-input v-model="img.desc" /></div>
+                <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="img.linkUrl" placeholder="https:// 또는 /path" /></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+                  <label class="chk-item"><el-checkbox v-model="img.newWindow" />새 창</label>
+                  <button class="act-btn danger" @click="config.images.splice(i,1)"><i class="ti ti-trash"></i></button>
+                </div>
+              </div>
             </div>
           </div>
           <button v-if="config.images.length < 4" class="adm-btn ghost" style="width:100%"
@@ -381,6 +405,8 @@ const boards      = ref([])
 const calendars   = ref([])
 const loading     = ref(false)
 const saving      = ref(false)
+const imgInputRefs  = ref([])
+const imgUploading  = ref({})  // index -> boolean
 const sortSaving  = ref(false)
 const sortChanged = ref(false)
 const showForm    = ref(false)
@@ -442,6 +468,26 @@ async function fetchWidgets() {
 }
 async function fetchBoards()    { const r = await api.get('/boards');    boards.value    = r.data.data || [] }
 async function fetchCalendars() { const r = await api.get('/calendars'); calendars.value = r.data.data || [] }
+
+function triggerImgUpload(idx) {
+  imgInputRefs.value[idx]?.click()
+}
+async function uploadGridImage(e, idx) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  imgUploading.value = { ...imgUploading.value, [idx]: true }
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await api.post('/files/inline-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    config.value.images[idx].imageUrl = res.data.data?.url || ''
+  } catch {
+    ElMessage.error('이미지 업로드에 실패했습니다.')
+  } finally {
+    imgUploading.value = { ...imgUploading.value, [idx]: false }
+    e.target.value = ''
+  }
+}
 
 function initSortable() {
   if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null }
@@ -646,6 +692,52 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   background: var(--surface2); border: 0.5px solid var(--border2);
   border-radius: var(--radius-xs); padding: 12px;
   display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px;
+}
+
+/* 이미지 그리드 업로드 */
+.img-upload-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.img-upload-preview {
+  flex-shrink: 0;
+  width: 120px;
+  height: 90px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--border);
+  background: var(--surface) center/cover no-repeat;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.img-upload-preview:hover { border-color: var(--accent); }
+.img-upload-change-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.img-upload-preview:hover .img-upload-change-overlay { opacity: 1; }
+.img-upload-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
