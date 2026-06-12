@@ -557,6 +557,17 @@ onMounted(async () => {
   gap: 6px;
   padding: 12px 20px 14px;
 }
+
+@media (max-width: 600px) {
+  .cat-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 10px 16px 12px;
+  }
+  .cat-chips::-webkit-scrollbar { display: none; }
+}
 .cat-chip {
   display: inline-flex;
   align-items: center;
@@ -582,8 +593,8 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 700;
   border: none;
-  background: var(--accent);
-  color: #fff;
+  background: var(--border2);
+  color: var(--t2);
   white-space: nowrap;
   flex-shrink: 0;
 }

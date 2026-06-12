@@ -312,13 +312,26 @@ function handleEventClick(info) {
   showDetail.value = true
 }
 
+// 현재 시각 기준 다음 정시부터 1시간 기본값 (예: 4:44 → 5:00~6:00)
+function defaultEventTimes(baseDate) {
+  const now = baseDate ? new Date(baseDate) : new Date()
+  const start = new Date(now)
+  start.setMinutes(0, 0, 0)
+  start.setHours(start.getHours() + 1)
+  const end = new Date(start)
+  end.setHours(end.getHours() + 1)
+  const fmt = d =>
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:00:00`
+  return { startAt: fmt(start), endAt: fmt(end) }
+}
+
 function handleDateClick(info) {
   if (!writableCalendars.value.length) return
+  const { startAt, endAt } = defaultEventTimes(info.date)
   eventForm.value = {
     calendarId: writableCalendars.value[0]?.id || null,
     title: '', location: '', description: '',
-    startAt: info.dateStr + 'T09:00:00',
-    endAt: info.dateStr + 'T10:00:00',
+    startAt, endAt,
     isAllDay: false, recurrenceType: 'NONE',
   }
   recurrenceEndDate.value = null
@@ -334,10 +347,11 @@ function changeView(view) {
 function openCreate() {
   editingEvent.value = null
   recurrenceEndDate.value = null
+  const { startAt, endAt } = defaultEventTimes()
   eventForm.value = {
     calendarId: writableCalendars.value[0]?.id || null,
     title: '', location: '', description: '',
-    startAt: '', endAt: '', isAllDay: false, recurrenceType: 'NONE',
+    startAt, endAt, isAllDay: false, recurrenceType: 'NONE',
   }
   showForm.value = true
 }
@@ -405,6 +419,8 @@ function onClickOutside(e) {
 
 onMounted(async () => {
   try {
+    // 메뉴 데이터가 로드되어 있어야 targetId를 정확히 찾을 수 있음
+    if (route.params?.menuId) await menuStore.fetchMenus()
     const res = await api.get('/calendars')
     const all = res.data.data || []
     // 메뉴에 특정 캘린더가 연결된 경우 해당 캘린더만 표시
