@@ -204,12 +204,14 @@
           @click="goDetail(post)"
         >
           <div class="lv-main">
-            <div class="lv-title-row">
-              <span class="lv-tag lv-tag-notice">공지</span>
+            <div class="lv-upper">
+              <div class="lv-kicker">
+                <span class="lv-tag lv-tag-notice">공지</span>
+                <span v-if="post.categoryName && selectedCategoryId === null" class="lv-category">{{ post.categoryName }}</span>
+              </div>
               <h3 class="lv-title">{{ post.title }}</h3>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+              <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
-            <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             <div class="lv-meta">
               <span class="lv-meta-chip lv-writer"><i class="ti ti-user"></i>{{ post.writerName }}</span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
@@ -234,11 +236,13 @@
           @click="goDetail(post)"
         >
           <div class="lv-main">
-            <div class="lv-title-row">
+            <div class="lv-upper">
+              <div v-if="post.categoryName && selectedCategoryId === null" class="lv-kicker">
+                <span class="lv-category">{{ post.categoryName }}</span>
+              </div>
               <h3 class="lv-title">{{ post.title }}</h3>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+              <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
-            <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             <div class="lv-meta">
               <span class="lv-meta-chip lv-writer"><i class="ti ti-user"></i>{{ post.writerName }}</span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
@@ -1043,7 +1047,7 @@ onMounted(async () => {
 
 .lv-item {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 14px;
   padding: 16px 28px;
   border-bottom: 0.5px solid var(--border2);
@@ -1062,14 +1066,29 @@ onMounted(async () => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 0;
 }
 
-.lv-title-row {
+.lv-upper {
   display: flex;
-  align-items: flex-start;
-  gap: 7px;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
   min-width: 0;
+}
+
+.lv-kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lv-category {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t3);
 }
 
 .lv-tags {
@@ -1103,7 +1122,6 @@ onMounted(async () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   transition: color 0.12s;
-  flex: 1;
   min-width: 0;
 }
 
@@ -1126,7 +1144,8 @@ onMounted(async () => {
   font-size: 12px;
   color: var(--t3);
   flex-wrap: wrap;
-  margin-top: 2px;
+  margin-top: 8px;
+  flex-shrink: 0;
 }
 
 .lv-meta-chip {
@@ -1166,8 +1185,10 @@ onMounted(async () => {
 
 .lv-thumb {
   flex-shrink: 0;
-  width: 140px;
-  height: 100px;
+  width: 130px;
+  align-self: stretch;
+  min-height: 90px;
+  max-height: 140px;
   border-radius: var(--radius-xs);
   overflow: hidden;
   background: var(--surface2);
@@ -1307,7 +1328,7 @@ onMounted(async () => {
 @media (max-width: 600px) {
   /* ===== 리스트형 ===== */
   .lv-item { padding: 14px 16px; gap: 12px; }
-  .lv-thumb { width: 80px; height: 68px; }
+  .lv-thumb { width: 90px; min-height: 72px; max-height: 120px; }
   .lv-title { font-size: 15px; }
   .lv-excerpt { font-size: 13px; }
 
