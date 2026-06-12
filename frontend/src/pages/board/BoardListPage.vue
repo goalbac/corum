@@ -334,7 +334,7 @@
               <span class="notice-tag">공지</span>
             </div>
             <div class="pt-col title">
-              <span v-if="post.categoryName" class="cat-name-chip">{{ post.categoryName }}</span>
+              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
               <span class="pt-title notice-title">{{ post.title }}</span>
               <span v-if="post.commentCount > 0" class="comment-chip">
                 <i class="ti ti-message-2"></i>{{ post.commentCount }}
@@ -359,7 +359,7 @@
               <span class="row-num">{{ post.rowNum }}</span>
             </div>
             <div class="pt-col title">
-              <span v-if="post.categoryName" class="cat-name-chip">{{ post.categoryName }}</span>
+              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
               <span class="pt-title">{{ post.title }}</span>
               <span v-if="post.commentCount > 0" class="comment-chip">
                 <i class="ti ti-message-2"></i>{{ post.commentCount }}
@@ -582,12 +582,13 @@ onMounted(async () => {
 .cat-name-chip {
   display: inline-flex;
   align-items: center;
-  padding: 1px 7px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: 600;
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  font-weight: 700;
+  border: none;
+  background: var(--accent);
+  color: #fff;
   white-space: nowrap;
   flex-shrink: 0;
 }
