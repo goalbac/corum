@@ -23,7 +23,16 @@ public class BoardCreateRequest {
     private String fileAllowedExtensions;
     private Integer fileMaxCount = 5;
     private Boolean isActive = true;
+    private Boolean useAllCategory = false;
     private List<BoardPermissionRequest> permissions;
+    private List<CategoryRequest> categories;
+
+    @Getter
+    public static class CategoryRequest {
+        private Long id;
+        private String name;
+        private Integer sortOrder;
+    }
 
     @Getter
     public static class BoardPermissionRequest {
