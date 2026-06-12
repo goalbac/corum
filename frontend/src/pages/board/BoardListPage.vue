@@ -178,6 +178,127 @@
       </div>
     </template>
 
+    <!-- ===== 리스트형 뷰 ===== -->
+    <template v-else-if="isListBoard">
+      <div v-loading="loading" class="lv-list">
+        <!-- 공지 -->
+        <div
+          v-for="post in noticePosts"
+          :key="`notice-${post.id}`"
+          class="lv-item lv-notice"
+          @click="goDetail(post)"
+        >
+          <div class="lv-main">
+            <div class="lv-tags">
+              <span class="lv-tag lv-tag-notice">공지</span>
+              <span v-if="isNew(post.createdAt)" class="lv-tag lv-tag-new">NEW</span>
+            </div>
+            <p class="lv-title">{{ post.title }}</p>
+            <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
+            <div class="lv-meta">
+              <span class="lv-writer">{{ post.writerName }}</span>
+              <span class="lv-sep">·</span>
+              <span>{{ formatRelativeDate(post.createdAt) }}</span>
+              <template v-if="showViewCount && post.viewCount > 0">
+                <span class="lv-sep">·</span>
+                <span>조회 {{ post.viewCount }}</span>
+              </template>
+              <div class="lv-stats">
+                <span v-if="board?.useLike && post.likeCount > 0" class="lv-stat">
+                  <i class="ti ti-thumb-up"></i>{{ post.likeCount }}
+                </span>
+                <span v-if="post.commentCount > 0" class="lv-stat lv-stat-comment">
+                  <i class="ti ti-message-circle"></i>{{ post.commentCount }}
+                </span>
+                <span v-if="post.hasFile" class="lv-stat">
+                  <i class="ti ti-paperclip"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div v-if="post.thumbnailUrl" class="lv-thumb">
+            <img :src="post.thumbnailUrl" :alt="post.title" />
+          </div>
+        </div>
+
+        <div v-if="noticePosts.length && normalPosts.length" class="lv-notice-divider" />
+
+        <!-- 일반 글 -->
+        <div
+          v-for="post in normalPosts"
+          :key="post.id"
+          class="lv-item"
+          @click="goDetail(post)"
+        >
+          <div class="lv-main">
+            <div v-if="isNew(post.createdAt)" class="lv-tags">
+              <span class="lv-tag lv-tag-new">NEW</span>
+            </div>
+            <p class="lv-title">{{ post.title }}</p>
+            <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
+            <div class="lv-meta">
+              <span class="lv-writer">{{ post.writerName }}</span>
+              <span class="lv-sep">·</span>
+              <span>{{ formatRelativeDate(post.createdAt) }}</span>
+              <template v-if="showViewCount && post.viewCount > 0">
+                <span class="lv-sep">·</span>
+                <span>조회 {{ post.viewCount }}</span>
+              </template>
+              <div class="lv-stats">
+                <span v-if="board?.useLike && post.likeCount > 0" class="lv-stat">
+                  <i class="ti ti-thumb-up"></i>{{ post.likeCount }}
+                </span>
+                <span v-if="post.commentCount > 0" class="lv-stat lv-stat-comment">
+                  <i class="ti ti-message-circle"></i>{{ post.commentCount }}
+                </span>
+                <span v-if="post.hasFile" class="lv-stat">
+                  <i class="ti ti-paperclip"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div v-if="post.thumbnailUrl" class="lv-thumb">
+            <img :src="post.thumbnailUrl" :alt="post.title" />
+          </div>
+        </div>
+
+        <div v-if="!loading && !posts.length" class="lv-empty">
+          <i class="ti ti-list"></i>
+          <p>등록된 게시글이 없습니다.</p>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <el-pagination v-model:current-page="page" :page-size="size" :total="total"
+          layout="prev, pager, next" background small @current-change="fetchPosts" />
+      </div>
+      <div class="list-toolbar">
+        <div class="search-group">
+          <div class="search-type-wrap">
+            <el-select v-model="searchType" size="small" class="search-type">
+              <el-option value="title" label="제목" />
+              <el-option value="content" label="내용" />
+              <el-option value="writer" label="작성자" />
+              <el-option value="all" label="전체" />
+            </el-select>
+          </div>
+          <div class="search-input-wrap">
+            <i class="ti ti-search search-icon"></i>
+            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
+              @keyup.enter="handleSearch" />
+            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <button class="search-btn" @click="handleSearch">검색</button>
+        </div>
+        <button v-if="canWrite" class="write-btn" @click="goWrite">
+          <i class="ti ti-pencil-plus"></i>
+          <span>글쓰기</span>
+        </button>
+      </div>
+    </template>
+
     <!-- ===== 일반/자료실 테이블 뷰 ===== -->
     <template v-else>
       <div class="post-table" v-loading="loading">
@@ -324,6 +445,7 @@ const noticePosts = computed(() => posts.value.filter(p => p.isNotice))
 const normalPosts = computed(() => posts.value.filter(p => !p.isNotice))
 const isGalleryBoard = computed(() => board.value?.boardType === 'GALLERY')
 const isWebzineBoard = computed(() => board.value?.boardType === 'WEBZINE')
+const isListBoard   = computed(() => board.value?.boardType === 'LIST')
 const isVisualBoard = computed(() => isGalleryBoard.value || isWebzineBoard.value)
 
 const canWrite = computed(() => {
@@ -378,6 +500,21 @@ function formatDate(d) {
 }
 
 function isNew(d) { return d && Date.now() - new Date(d).getTime() < 3 * 86400000 }
+
+function formatRelativeDate(d) {
+  if (!d) return ''
+  const diff = Date.now() - new Date(d).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return '방금 전'
+  if (min < 60) return `${min}분 전`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}시간 전`
+  const day = Math.floor(hr / 24)
+  if (day < 7) return `${day}일 전`
+  if (day < 30) return `${Math.floor(day / 7)}주 전`
+  if (day < 365) return `${Math.floor(day / 30)}개월 전`
+  return `${Math.floor(day / 365)}년 전`
+}
 
 watch(boardId, async () => {
   page.value = 1; keyword.value = ''
@@ -826,6 +963,148 @@ onMounted(async () => {
 
 .webzine-empty i { font-size: 36px; }
 
+/* ===== 리스트형 ===== */
+.lv-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border2);
+}
+
+.lv-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 0.5px solid var(--border2);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.lv-item:hover { background: var(--surface2); }
+.lv-item:hover .lv-title { color: var(--accent-t); }
+
+.lv-notice { background: var(--accent-bg); }
+.lv-notice:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+.lv-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.lv-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.lv-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lv-tag-notice { background: var(--accent); color: #fff; }
+.lv-tag-new    { background: var(--new); color: #fff; }
+
+.lv-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t1);
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  transition: color 0.12s;
+}
+
+.lv-excerpt {
+  margin: 0;
+  font-size: 13px;
+  color: var(--t3);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.lv-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--t3);
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.lv-writer { font-weight: 600; color: var(--t2); }
+.lv-sep    { color: var(--border); }
+
+.lv-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.lv-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.lv-stat i { font-size: 12px; }
+.lv-stat-comment { color: var(--accent-t); }
+
+.lv-thumb {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  background: var(--surface2);
+}
+
+.lv-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lv-notice-divider {
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+  opacity: 0.15;
+}
+
+.lv-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 60px 0;
+  color: var(--t4);
+  font-size: 14px;
+}
+
+.lv-empty i { font-size: 36px; }
+
 /* ===== 툴바 ===== */
 .list-toolbar {
   display: flex;
@@ -934,6 +1213,11 @@ onMounted(async () => {
 .pagination { display: flex; justify-content: center; padding: 24px 0 20px; }
 
 @media (max-width: 600px) {
+  /* ===== 리스트형 ===== */
+  .lv-item { padding: 14px 16px; gap: 12px; }
+  .lv-thumb { width: 68px; height: 68px; }
+  .lv-title { font-size: 14px; }
+
   /* ===== 테이블 ===== */
   .pt-col.writer, .pt-col.count { display: none; }
   .pt-col.date { width: 72px; font-size: 12px; }
