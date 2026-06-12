@@ -502,7 +502,8 @@ function restoreCategory() {
     const id = Number(saved)
     if (cats.some(c => c.id === id)) { selectedCategoryId.value = id; return }
   }
-  selectedCategoryId.value = cats[0].id
+  // 기본값: '전체' 기능을 쓰면 전체(null), 아니면 첫 번째 카테고리
+  selectedCategoryId.value = board.value?.useAllCategory ? null : cats[0].id
 }
 
 async function fetchPosts() {
