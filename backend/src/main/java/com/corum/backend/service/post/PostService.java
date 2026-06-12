@@ -78,16 +78,21 @@ public class PostService {
                     .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
                     .toList();
 
+            // 목록용 이미지: 첨부파일은 300px small-thumb, 인라인은 /view → /thumbnail 변환
             List<String> imageUrls = imageFiles.stream()
-                    .map(FileResponse::getThumbnailUrl)
+                    .map(f -> "/api/files/" + f.getId() + "/small-thumb")
                     .toList();
 
             String thumbnailUrl;
             if (!imageUrls.isEmpty()) {
                 thumbnailUrl = imageUrls.get(0);
             } else {
-                thumbnailUrl = extractFirstImageFromContent(p.getContent());
-                if (thumbnailUrl != null) imageUrls = extractAllImagesFromContent(p.getContent());
+                thumbnailUrl = toThumbnailUrl(extractFirstImageFromContent(p.getContent()));
+                if (thumbnailUrl != null) {
+                    imageUrls = extractAllImagesFromContent(p.getContent()).stream()
+                            .map(this::toThumbnailUrl)
+                            .toList();
+                }
             }
 
             long rowNum = total - offset - i;
@@ -245,6 +250,12 @@ public class PostService {
                 .stream()
                 .map(p -> new PostSummaryResponse(p, 0, false))
                 .collect(Collectors.toList());
+    }
+
+    // 인라인 이미지 URL을 썸네일 URL로 변환 (/view → /thumbnail, 그 외는 그대로)
+    private String toThumbnailUrl(String url) {
+        if (url == null) return null;
+        return url.endsWith("/view") ? url.substring(0, url.length() - 5) + "/thumbnail" : url;
     }
 
     private String extractFirstImageFromContent(String content) {
