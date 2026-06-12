@@ -204,31 +204,19 @@
           @click="goDetail(post)"
         >
           <div class="lv-main">
-            <div class="lv-tags">
+            <div class="lv-title-row">
               <span class="lv-tag lv-tag-notice">공지</span>
-              <span v-if="isNew(post.createdAt)" class="lv-tag lv-tag-new">NEW</span>
+              <h3 class="lv-title">{{ post.title }}</h3>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             </div>
-            <p class="lv-title">{{ post.title }}</p>
             <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             <div class="lv-meta">
-              <span class="lv-writer">{{ post.writerName }}</span>
-              <span class="lv-sep">·</span>
-              <span>{{ formatRelativeDate(post.createdAt) }}</span>
-              <template v-if="showViewCount && post.viewCount > 0">
-                <span class="lv-sep">·</span>
-                <span>조회 {{ post.viewCount }}</span>
-              </template>
-              <div class="lv-stats">
-                <span v-if="board?.useLike && post.likeCount > 0" class="lv-stat">
-                  <i class="ti ti-thumb-up"></i>{{ post.likeCount }}
-                </span>
-                <span v-if="post.commentCount > 0" class="lv-stat lv-stat-comment">
-                  <i class="ti ti-message-circle"></i>{{ post.commentCount }}
-                </span>
-                <span v-if="post.hasFile" class="lv-stat">
-                  <i class="ti ti-paperclip"></i>
-                </span>
-              </div>
+              <span class="lv-meta-chip lv-writer"><i class="ti ti-user"></i>{{ post.writerName }}</span>
+              <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
+              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
+              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
+              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
+              <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
             </div>
           </div>
           <div v-if="post.thumbnailUrl" class="lv-thumb">
@@ -246,30 +234,18 @@
           @click="goDetail(post)"
         >
           <div class="lv-main">
-            <div v-if="isNew(post.createdAt)" class="lv-tags">
-              <span class="lv-tag lv-tag-new">NEW</span>
+            <div class="lv-title-row">
+              <h3 class="lv-title">{{ post.title }}</h3>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             </div>
-            <p class="lv-title">{{ post.title }}</p>
             <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             <div class="lv-meta">
-              <span class="lv-writer">{{ post.writerName }}</span>
-              <span class="lv-sep">·</span>
-              <span>{{ formatRelativeDate(post.createdAt) }}</span>
-              <template v-if="showViewCount && post.viewCount > 0">
-                <span class="lv-sep">·</span>
-                <span>조회 {{ post.viewCount }}</span>
-              </template>
-              <div class="lv-stats">
-                <span v-if="board?.useLike && post.likeCount > 0" class="lv-stat">
-                  <i class="ti ti-thumb-up"></i>{{ post.likeCount }}
-                </span>
-                <span v-if="post.commentCount > 0" class="lv-stat lv-stat-comment">
-                  <i class="ti ti-message-circle"></i>{{ post.commentCount }}
-                </span>
-                <span v-if="post.hasFile" class="lv-stat">
-                  <i class="ti ti-paperclip"></i>
-                </span>
-              </div>
+              <span class="lv-meta-chip lv-writer"><i class="ti ti-user"></i>{{ post.writerName }}</span>
+              <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
+              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
+              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
+              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
+              <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
             </div>
           </div>
           <div v-if="post.thumbnailUrl" class="lv-thumb">
@@ -1058,7 +1034,7 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 16px 20px;
+  padding: 16px 28px;
   border-bottom: 0.5px solid var(--border2);
   cursor: pointer;
   transition: background 0.12s;
@@ -1076,6 +1052,13 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.lv-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
 }
 
 .lv-tags {
@@ -1099,7 +1082,7 @@ onMounted(async () => {
 
 .lv-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--t1);
   line-height: 1.45;
@@ -1109,11 +1092,13 @@ onMounted(async () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   transition: color 0.12s;
+  flex: 1;
+  min-width: 0;
 }
 
 .lv-excerpt {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t3);
   line-height: 1.5;
   overflow: hidden;
@@ -1126,11 +1111,23 @@ onMounted(async () => {
 .lv-meta {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   font-size: 12px;
   color: var(--t3);
   flex-wrap: wrap;
   margin-top: 2px;
+}
+
+.lv-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+}
+
+.lv-meta-chip i {
+  font-size: 13px;
+  color: var(--t3);
 }
 
 .lv-writer { font-weight: 600; color: var(--t2); }
@@ -1158,8 +1155,8 @@ onMounted(async () => {
 
 .lv-thumb {
   flex-shrink: 0;
-  width: 80px;
-  height: 80px;
+  width: 140px;
+  height: 100px;
   border-radius: var(--radius-xs);
   overflow: hidden;
   background: var(--surface2);
@@ -1299,8 +1296,9 @@ onMounted(async () => {
 @media (max-width: 600px) {
   /* ===== 리스트형 ===== */
   .lv-item { padding: 14px 16px; gap: 12px; }
-  .lv-thumb { width: 68px; height: 68px; }
-  .lv-title { font-size: 14px; }
+  .lv-thumb { width: 80px; height: 68px; }
+  .lv-title { font-size: 15px; }
+  .lv-excerpt { font-size: 13px; }
 
   /* ===== 테이블 ===== */
   .pt-col.writer, .pt-col.count { display: none; }
