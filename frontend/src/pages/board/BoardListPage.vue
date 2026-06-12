@@ -560,24 +560,24 @@ onMounted(async () => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 12px 20px 0;
+  padding: 12px 20px 14px;
 }
 .cat-chip {
   display: inline-flex;
   align-items: center;
-  padding: 5px 14px;
+  padding: 8px 18px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 500;
-  border: 1px solid var(--border2);
-  background: var(--surface);
+  border: none;
+  background: var(--border2);
   color: var(--t2);
   cursor: pointer;
   transition: all .15s;
   white-space: nowrap;
 }
-.cat-chip:hover { border-color: var(--accent); color: var(--accent); }
-.cat-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cat-chip:hover { background: var(--border); color: var(--accent); }
+.cat-chip.active { background: var(--accent); color: #fff; }
 
 .cat-name-chip {
   display: inline-flex;
