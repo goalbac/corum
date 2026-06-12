@@ -486,10 +486,23 @@ async function fetchBoard() {
   try {
     const res = await api.get(`/boards/${boardId.value}`)
     board.value = res.data.data
-    // 카테고리가 있으면 진입 시 첫 번째 카테고리를 기본 선택
-    const cats = board.value?.categories || []
-    selectedCategoryId.value = cats.length ? cats[0].id : null
+    restoreCategory()
   } catch {}
+}
+
+const categoryStorageKey = () => `board_cat_${boardId.value}`
+
+// 상세→목록 등 재진입 시 직전에 보던 카테고리 복원 (없으면 첫 번째)
+function restoreCategory() {
+  const cats = board.value?.categories || []
+  if (!cats.length) { selectedCategoryId.value = null; return }
+  const saved = sessionStorage.getItem(categoryStorageKey())
+  if (saved === 'all' && board.value?.useAllCategory) { selectedCategoryId.value = null; return }
+  if (saved && saved !== 'all') {
+    const id = Number(saved)
+    if (cats.some(c => c.id === id)) { selectedCategoryId.value = id; return }
+  }
+  selectedCategoryId.value = cats[0].id
 }
 
 async function fetchPosts() {
@@ -514,7 +527,12 @@ async function fetchPosts() {
 }
 
 function handleSearch() { page.value = 1; fetchPosts() }
-function selectCategory(id) { selectedCategoryId.value = id; page.value = 1; fetchPosts() }
+function selectCategory(id) {
+  selectedCategoryId.value = id
+  sessionStorage.setItem(categoryStorageKey(), id === null ? 'all' : String(id))
+  page.value = 1
+  fetchPosts()
+}
 function goWrite() { router.push(`${basePath.value}/write`) }
 function goDetail(row) { router.push(`${basePath.value}/posts/${row.id}`) }
 
