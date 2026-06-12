@@ -278,31 +278,43 @@ async function fetchEvents(info, success, failure) {
   try {
     // 캘린더 목록(필터 기준)이 준비될 때까지 대기
     await calendarsReady
+    // 표시할 캘린더 ID 목록을 서버에 전달 → 서버가 권한+필터를 함께 처리
+    const ids = [...visibleCalendars.value]
+    if (ids.length === 0) { success([]); return }
     const res = await api.get('/calendars/events', {
-      params: { start: info.startStr, end: info.endStr }
+      params: {
+        start: info.startStr,
+        end: info.endStr,
+        calendarIds: ids,
+      },
+      paramsSerializer: params => {
+        const parts = []
+        if (params.start) parts.push(`start=${encodeURIComponent(params.start)}`)
+        if (params.end) parts.push(`end=${encodeURIComponent(params.end)}`)
+        params.calendarIds.forEach(id => parts.push(`calendarIds=${id}`))
+        return parts.join('&')
+      }
     })
-    const events = (res.data.data || [])
-      .filter(e => visibleCalendars.value.has(e.calendarId))
-      .map(e => {
-        const cal = calendars.value.find(c => c.id === e.calendarId)
-        return {
-          id: String(e.id),
-          title: e.title,
-          start: e.startAt,
-          end: e.endAt,
-          allDay: e.isAllDay,
-          backgroundColor: cal?.color || '#2563EB',
-          borderColor: cal?.color || '#2563EB',
-          textColor: '#ffffff',
-          extendedProps: {
-            description: e.description,
-            location: e.location,
-            calendarId: e.calendarId,
-            recurrenceType: e.recurrenceType,
-            createdBy: e.createdBy,
-          }
+    const events = (res.data.data || []).map(e => {
+      const cal = calendars.value.find(c => c.id === e.calendarId)
+      return {
+        id: String(e.id),
+        title: e.title,
+        start: e.startAt,
+        end: e.endAt,
+        allDay: e.isAllDay,
+        backgroundColor: cal?.color || '#2563EB',
+        borderColor: cal?.color || '#2563EB',
+        textColor: '#ffffff',
+        extendedProps: {
+          description: e.description,
+          location: e.location,
+          calendarId: e.calendarId,
+          recurrenceType: e.recurrenceType,
+          createdBy: e.createdBy,
         }
-      })
+      }
+    })
     success(events)
   } catch { failure() }
 }

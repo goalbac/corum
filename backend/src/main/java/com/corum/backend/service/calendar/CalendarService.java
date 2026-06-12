@@ -90,8 +90,13 @@ public class CalendarService {
 
     // ===== 기간별 일정 조회 (권한 필터) =====
     @Transactional(readOnly = true)
-    public List<CalendarEvent> getEvents(LocalDateTime start, LocalDateTime end, Long memberId) {
-        List<Long> calendarIds = getReadableCalendarIds(memberId);
+    public List<CalendarEvent> getEvents(LocalDateTime start, LocalDateTime end, Long memberId, List<Long> requestedIds) {
+        List<Long> readable = getReadableCalendarIds(memberId);
+        if (readable.isEmpty()) return List.of();
+        // 요청된 캘린더 ID가 있으면 readable과 교집합, 없으면 readable 전체
+        List<Long> calendarIds = (requestedIds == null || requestedIds.isEmpty())
+                ? readable
+                : readable.stream().filter(requestedIds::contains).collect(Collectors.toList());
         if (calendarIds.isEmpty()) return List.of();
         return calendarEventRepository.findByPeriod(calendarIds, start, end);
     }

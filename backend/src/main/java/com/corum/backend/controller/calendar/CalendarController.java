@@ -62,12 +62,14 @@ public class CalendarController {
     public ApiResponse<List<CalendarEvent>> getEvents(
             @RequestParam String start,
             @RequestParam String end,
+            @RequestParam(required = false) List<Long> calendarIds,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
         return ApiResponse.ok(calendarService.getEvents(
                 FlexibleLocalDateTimeDeserializer.parse(start),
                 FlexibleLocalDateTimeDeserializer.parse(end),
-                memberId
+                memberId,
+                calendarIds
         ));
     }
 
