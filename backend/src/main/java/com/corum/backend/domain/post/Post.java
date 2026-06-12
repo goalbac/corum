@@ -53,6 +53,9 @@ public class Post extends BaseEntity {
     @Column(name = "updated_by")
     private Long updatedBy;
 
+    @Column(name = "category_id")
+    private Long categoryId;
+
     // ===== 비즈니스 메서드 =====
 
     public void increaseViewCount() {
@@ -68,11 +71,12 @@ public class Post extends BaseEntity {
     }
 
     public void update(String title, String content, Boolean isNotice, Boolean isHidden,
-                       Long updatedBy) {
+                       Long categoryId, Long updatedBy) {
         this.title = title;
         this.content = content;
         this.isNotice = isNotice;
         this.isHidden = isHidden;
+        this.categoryId = categoryId;
         this.updatedBy = updatedBy;
     }
 

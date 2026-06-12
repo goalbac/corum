@@ -23,21 +23,28 @@ public class PostSummaryResponse {
     private final String thumbnailUrl;
     private final List<String> imageUrls;
     private final Long rowNum;
+    private final Long categoryId;
+    private final String categoryName;
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile) {
-        this(post, commentCount, hasFile, null, List.of(), null);
+        this(post, commentCount, hasFile, null, List.of(), null, null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl) {
-        this(post, commentCount, hasFile, thumbnailUrl, List.of(), null);
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), null, null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl, Long rowNum) {
-        this(post, commentCount, hasFile, thumbnailUrl, List.of(), rowNum);
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), rowNum, null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
                                String thumbnailUrl, List<String> imageUrls, Long rowNum) {
+        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, null);
+    }
+
+    public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
+                               String thumbnailUrl, List<String> imageUrls, Long rowNum, String categoryName) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.title = post.getTitle();
@@ -52,6 +59,8 @@ public class PostSummaryResponse {
         this.thumbnailUrl = thumbnailUrl;
         this.imageUrls = imageUrls != null ? imageUrls : List.of();
         this.rowNum = rowNum;
+        this.categoryId = post.getCategoryId();
+        this.categoryName = categoryName;
     }
 
     private static String createExcerpt(String content) {

@@ -15,6 +15,8 @@ public class PostCreateRequest {
 
     private Boolean isNotice = false;
 
+    private Long categoryId;
+
     // 관리자 전용 편집 필드
     private LocalDateTime createdAt;
     private Integer likeCount;

@@ -25,8 +25,15 @@ public class PostResponse {
     private final List<FileResponse> files;
     private final boolean liked;
     private final int commentCount;
+    private final Long categoryId;
+    private final String categoryName;
 
     public PostResponse(Post post, List<FileResponse> files, boolean liked, int commentCount, String writerProfileImageUrl) {
+        this(post, files, liked, commentCount, writerProfileImageUrl, null);
+    }
+
+    public PostResponse(Post post, List<FileResponse> files, boolean liked, int commentCount,
+                        String writerProfileImageUrl, String categoryName) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.memberId = post.getMemberId();
@@ -42,5 +49,7 @@ public class PostResponse {
         this.files = files;
         this.liked = liked;
         this.commentCount = commentCount;
+        this.categoryId = post.getCategoryId();
+        this.categoryName = categoryName;
     }
 }

@@ -20,7 +20,15 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         """)
     Page<Post> findByBoardId(Long boardId, Pageable pageable);
 
-    // 검색
+    // 카테고리 필터
+    @Query("""
+        SELECT p FROM Post p
+        WHERE p.boardId = :boardId AND p.isHidden = false AND p.categoryId = :categoryId
+        ORDER BY p.isNotice DESC, p.createdAt DESC
+        """)
+    Page<Post> findByBoardIdAndCategoryId(Long boardId, Long categoryId, Pageable pageable);
+
+    // 검색 (카테고리 없음)
     @Query("""
         SELECT p FROM Post p
         WHERE p.boardId = :boardId AND p.isHidden = false
@@ -33,6 +41,20 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         ORDER BY p.isNotice DESC, p.createdAt DESC
         """)
     Page<Post> search(Long boardId, String searchType, String keyword, Pageable pageable);
+
+    // 검색 + 카테고리 필터
+    @Query("""
+        SELECT p FROM Post p
+        WHERE p.boardId = :boardId AND p.isHidden = false AND p.categoryId = :categoryId
+        AND (
+            (:searchType = 'title'   AND p.title LIKE %:keyword%) OR
+            (:searchType = 'content' AND p.content LIKE %:keyword%) OR
+            (:searchType = 'writer'  AND p.writerName LIKE %:keyword%) OR
+            (:searchType = 'all'     AND (p.title LIKE %:keyword% OR p.content LIKE %:keyword%))
+        )
+        ORDER BY p.isNotice DESC, p.createdAt DESC
+        """)
+    Page<Post> searchByCategory(Long boardId, Long categoryId, String searchType, String keyword, Pageable pageable);
 
     // 공지글 목록
     List<Post> findByBoardIdAndIsNoticeTrueOrderByCreatedAtDesc(Long boardId);
