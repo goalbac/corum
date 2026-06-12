@@ -62,12 +62,16 @@ public class Board extends BaseEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "use_all_category", nullable = false)
+    @Builder.Default
+    private Boolean useAllCategory = false;
+
     // ===== 비즈니스 메서드 =====
 
     public void update(String name, String boardType, Boolean useComment, Boolean useLike,
                        Boolean useAnonymous, Boolean useNotice, Integer noticeCountLimit,
                        Integer fileMaxSizeMb, String fileAllowedExtensions,
-                       Integer fileMaxCount, Boolean isActive) {
+                       Integer fileMaxCount, Boolean isActive, Boolean useAllCategory) {
         this.name = name;
         this.boardType = boardType;
         this.useComment = useComment;
@@ -79,5 +83,6 @@ public class Board extends BaseEntity {
         this.fileAllowedExtensions = fileAllowedExtensions;
         this.fileMaxCount = fileMaxCount;
         this.isActive = isActive;
+        this.useAllCategory = Boolean.TRUE.equals(useAllCategory);
     }
 }

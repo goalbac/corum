@@ -1,6 +1,7 @@
 package com.corum.backend.dto.board;
 
 import com.corum.backend.domain.board.Board;
+import com.corum.backend.domain.board.BoardCategory;
 import com.corum.backend.domain.board.BoardGroupPermission;
 import lombok.Getter;
 
@@ -22,9 +23,15 @@ public class BoardResponse {
     private final String fileAllowedExtensions;
     private final Integer fileMaxCount;
     private final Boolean isActive;
+    private final Boolean useAllCategory;
     private final List<BoardGroupPermission> permissions;
+    private final List<BoardCategory> categories;
 
     public BoardResponse(Board board, List<BoardGroupPermission> permissions) {
+        this(board, permissions, List.of());
+    }
+
+    public BoardResponse(Board board, List<BoardGroupPermission> permissions, List<BoardCategory> categories) {
         this.id = board.getId();
         this.menuId = board.getMenuId();
         this.name = board.getName();
@@ -38,6 +45,8 @@ public class BoardResponse {
         this.fileAllowedExtensions = board.getFileAllowedExtensions();
         this.fileMaxCount = board.getFileMaxCount();
         this.isActive = board.getIsActive();
+        this.useAllCategory = board.getUseAllCategory();
         this.permissions = permissions;
+        this.categories = categories != null ? categories : List.of();
     }
 }
