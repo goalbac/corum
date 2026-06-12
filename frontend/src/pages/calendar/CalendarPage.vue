@@ -406,6 +406,9 @@ onMounted(async () => {
     const targetId = activeMenu?.targetId ? Number(activeMenu.targetId) : null
     calendars.value = targetId ? all.filter(c => c.id === targetId) : all
     visibleCalendars.value = new Set(calendars.value.map(c => c.id))
+    // 캘린더 목록 로드 완료 후 이벤트 재요청 (필터 준비 전 fetchEvents가
+    // 먼저 실행되면 visibleCalendars가 비어 모든 일정이 걸러지는 경쟁 조건 방지)
+    calApi.value?.refetchEvents()
   } catch {}
   currentTitle.value = calApi.value?.view.title || ''
   document.addEventListener('click', onClickOutside)
