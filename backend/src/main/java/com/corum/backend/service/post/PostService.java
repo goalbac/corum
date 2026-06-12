@@ -1,6 +1,8 @@
 package com.corum.backend.service.post;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.board.BoardCategory;
+import com.corum.backend.domain.board.BoardCategoryRepository;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
@@ -40,18 +42,29 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
+    private final BoardCategoryRepository boardCategoryRepository;
     private final NotificationService notificationService;
 
     // ===== 게시글 목록 =====
     @Transactional(readOnly = true)
     public Page<PostSummaryResponse> getPosts(Long boardId, String searchType,
-                                               String keyword, Pageable pageable) {
+                                               String keyword, Long categoryId, Pageable pageable) {
         Page<Post> posts;
-        if (keyword != null && !keyword.isBlank()) {
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        if (categoryId != null) {
+            posts = hasKeyword
+                    ? postRepository.searchByCategory(boardId, categoryId, searchType, keyword, pageable)
+                    : postRepository.findByBoardIdAndCategoryId(boardId, categoryId, pageable);
+        } else if (hasKeyword) {
             posts = postRepository.search(boardId, searchType, keyword, pageable);
         } else {
             posts = postRepository.findByBoardId(boardId, pageable);
         }
+
+        // 카테고리 이름 맵
+        java.util.Map<Long, String> categoryNameMap = boardCategoryRepository
+                .findByBoardIdOrderBySortOrderAsc(boardId).stream()
+                .collect(java.util.stream.Collectors.toMap(BoardCategory::getId, BoardCategory::getName));
 
         long total = posts.getTotalElements();
         int offset = pageable.getPageNumber() * pageable.getPageSize();
@@ -65,12 +78,10 @@ public class PostService {
                     .filter(f -> f.getMimeType() != null && f.getMimeType().startsWith("image/"))
                     .toList();
 
-            // 첨부 이미지 썸네일 URL 목록
             List<String> imageUrls = imageFiles.stream()
                     .map(FileResponse::getThumbnailUrl)
                     .toList();
 
-            // 썸네일: 첨부 이미지 우선, 없으면 본문 인라인 이미지 추출
             String thumbnailUrl;
             if (!imageUrls.isEmpty()) {
                 thumbnailUrl = imageUrls.get(0);
@@ -81,7 +92,8 @@ public class PostService {
 
             long rowNum = total - offset - i;
             int commentCount = commentRepository.countByPostIdAndIsDeletedFalse(p.getId());
-            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, imageUrls, rowNum));
+            String catName = p.getCategoryId() != null ? categoryNameMap.get(p.getCategoryId()) : null;
+            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, imageUrls, rowNum, catName));
         }
 
         return new PageImpl<>(content, pageable, posts.getTotalElements());
@@ -104,7 +116,10 @@ public class PostService {
                         .map(m -> m.getProfileImageUrl()).orElse(null)
                 : null;
 
-        return new PostResponse(post, files, liked, 0, writerProfileImageUrl);
+        String categoryName = post.getCategoryId() != null
+                ? boardCategoryRepository.findById(post.getCategoryId()).map(BoardCategory::getName).orElse(null)
+                : null;
+        return new PostResponse(post, files, liked, 0, writerProfileImageUrl, categoryName);
     }
 
     // ===== 게시글 작성 =====
@@ -123,6 +138,7 @@ public class PostService {
                 .content(request.getContent())
                 .writerName(writerName)
                 .isNotice(request.getIsNotice())
+                .categoryId(request.getCategoryId())
                 .clientIp(getClientIp(httpRequest))
                 .build();
 
@@ -174,7 +190,7 @@ public class PostService {
         }
 
         post.update(request.getTitle(), request.getContent(),
-                request.getIsNotice(), post.getIsHidden(), memberId);
+                request.getIsNotice(), post.getIsHidden(), request.getCategoryId(), memberId);
 
         if (isAdmin && (request.getCreatedAt() != null || request.getLikeCount() != null)) {
             java.time.LocalDateTime createdAt = request.getCreatedAt() != null ? request.getCreatedAt() : post.getCreatedAt();

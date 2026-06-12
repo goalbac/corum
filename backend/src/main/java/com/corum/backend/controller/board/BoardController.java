@@ -84,11 +84,12 @@ public class BoardController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String searchType,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest httpRequest) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<PostSummaryResponse> result = postService.getPosts(boardId, searchType, keyword, pageable);
+        Page<PostSummaryResponse> result = postService.getPosts(boardId, searchType, keyword, categoryId, pageable);
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
         operationLogService.search(memberId, keyword, searchType, (int) result.getTotalElements(), httpRequest);
         return ApiResponse.ok(result);

@@ -103,6 +103,25 @@
           <el-input v-model="form.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
         </div>
 
+        <!-- 카테고리 설정 -->
+        <div class="dlg-section-title">카테고리 설정</div>
+        <div class="dlg-checks" style="margin-bottom:10px">
+          <label class="chk-item"><el-checkbox v-model="form.useAllCategory" />"전체" 카테고리 사용</label>
+        </div>
+        <div class="cat-add-row">
+          <el-input v-model="newCatName" placeholder="카테고리명 입력" size="small" @keyup.enter="addCategory" style="flex:1" />
+          <button class="adm-btn primary sm" @click="addCategory" :disabled="!newCatName.trim()">
+            <i class="ti ti-plus"></i> 추가
+          </button>
+        </div>
+        <div v-if="form.categories?.length" class="cat-list">
+          <div v-for="(cat, idx) in form.categories" :key="idx" class="cat-item">
+            <el-input v-model="cat.name" size="small" style="flex:1" />
+            <button class="del-btn" @click="removeCategory(idx)" title="삭제"><i class="ti ti-x"></i></button>
+          </div>
+        </div>
+        <div v-else class="perm-empty-msg">카테고리가 없으면 분류 없이 작성됩니다.</div>
+
         <!-- 그룹 권한 -->
         <div class="dlg-section-title">그룹 권한</div>
         <div class="perm-hint">
@@ -239,7 +258,20 @@ const defaultForm = () => ({
   name: '', boardType: 'POST', useComment: true, useLike: true,
   useNotice: true, isActive: true, fileMaxSizeMb: null,
   fileMaxCount: 5, fileAllowedExtensions: '',
+  useAllCategory: false, categories: [],
 })
+const newCatName = ref('')
+function addCategory() {
+  const name = newCatName.value.trim()
+  if (!name) return
+  if (!form.value.categories) form.value.categories = []
+  form.value.categories.push({ name, sortOrder: form.value.categories.length })
+  newCatName.value = ''
+}
+function removeCategory(idx) {
+  form.value.categories.splice(idx, 1)
+  form.value.categories.forEach((c, i) => { c.sortOrder = i })
+}
 const form = ref(defaultForm())
 
 const groups = ref([])
@@ -301,7 +333,8 @@ function openCreate() {
 
 async function openEdit(board) {
   editing.value = board
-  form.value = { ...board }
+  form.value = { ...board, categories: (board.categories || []).map(c => ({ ...c })) }
+  newCatName.value = ''
   addGroupId.value = null
   boardPermRows.value = []
   permLoading.value = true
@@ -328,7 +361,7 @@ async function saveBoard() {
   if (!form.value.name) return ElMessage.warning('게시판명을 입력해주세요.')
   saving.value = true
   try {
-    const payload = { ...form.value, permissions: boardPermRows.value }
+    const payload = { ...form.value, permissions: boardPermRows.value, categories: form.value.categories || [] }
     editing.value ? await api.put(`/boards/${editing.value.id}`, payload) : await api.post('/boards', payload)
     ElMessage.success('저장되었습니다.')
     showForm.value = false
@@ -445,4 +478,13 @@ onMounted(() => { fetchBoards(); fetchGroups(); menuStore.fetchMenus() })
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { animation: spin 0.7s linear infinite; display: inline-block; }
+
+.cat-add-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.cat-list { display: flex; flex-direction: column; gap: 6px; }
+.cat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
 </style>

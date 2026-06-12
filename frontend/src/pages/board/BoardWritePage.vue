@@ -25,6 +25,17 @@
         </el-form-item>
       </template>
 
+      <el-form-item v-if="boardCategories.length" label="카테고리" required>
+        <el-select v-model="form.categoryId" placeholder="카테고리를 선택하세요." style="width:240px">
+          <el-option
+            v-for="cat in boardCategories"
+            :key="cat.id"
+            :value="cat.id"
+            :label="cat.name"
+          />
+        </el-select>
+      </el-form-item>
+
       <el-form-item label="내용">
         <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="400px" style="width:100%" />
       </el-form-item>
@@ -86,7 +97,8 @@ const fileList = ref([])
 const files = ref([])
 const board = ref(null)
 
-const form = ref({ title: '', content: '', isNotice: false, createdAt: null, likeCount: 0 })
+const form = ref({ title: '', content: '', isNotice: false, createdAt: null, likeCount: 0, categoryId: null })
+const boardCategories = computed(() => board.value?.categories || [])
 
 async function fetchBoard() {
   if (!boardId.value) return
@@ -142,6 +154,10 @@ async function handleSubmit() {
     ElMessage.warning('제목을 입력해주세요.')
     return
   }
+  if (boardCategories.value.length && !form.value.categoryId) {
+    ElMessage.warning('카테고리를 선택해주세요.')
+    return
+  }
   if (!boardId.value) {
     ElMessage.error('연결된 게시판을 찾을 수 없습니다.')
     return
@@ -182,7 +198,8 @@ async function fetchPost() {
     content: p.content,
     isNotice: p.isNotice,
     createdAt: null,
-    likeCount: p.likeCount ?? 0
+    likeCount: p.likeCount ?? 0,
+    categoryId: p.categoryId ?? null,
   }
 }
 

@@ -1,6 +1,21 @@
 <template>
   <div class="board-list">
 
+    <!-- ===== 카테고리 필터 칩 ===== -->
+    <div v-if="boardCategories.length" class="cat-chips">
+      <button
+        v-if="board?.useAllCategory"
+        :class="['cat-chip', selectedCategoryId === null ? 'active' : '']"
+        @click="selectCategory(null)"
+      >전체</button>
+      <button
+        v-for="cat in boardCategories"
+        :key="cat.id"
+        :class="['cat-chip', selectedCategoryId === cat.id ? 'active' : '']"
+        @click="selectCategory(cat.id)"
+      >{{ cat.name }}</button>
+    </div>
+
     <!-- ===== 갤러리 뷰 ===== -->
     <template v-if="isGalleryBoard">
       <div v-loading="loading" class="gallery-grid">
@@ -319,6 +334,7 @@
               <span class="notice-tag">공지</span>
             </div>
             <div class="pt-col title">
+              <span v-if="post.categoryName" class="cat-name-chip">{{ post.categoryName }}</span>
               <span class="pt-title notice-title">{{ post.title }}</span>
               <span v-if="post.commentCount > 0" class="comment-chip">
                 <i class="ti ti-message-2"></i>{{ post.commentCount }}
@@ -343,6 +359,7 @@
               <span class="row-num">{{ post.rowNum }}</span>
             </div>
             <div class="pt-col title">
+              <span v-if="post.categoryName" class="cat-name-chip">{{ post.categoryName }}</span>
               <span class="pt-title">{{ post.title }}</span>
               <span v-if="post.commentCount > 0" class="comment-chip">
                 <i class="ti ti-message-2"></i>{{ post.commentCount }}
@@ -423,6 +440,9 @@ const size = ref(15)
 const gallerySize = ref(8)
 const keyword = ref('')
 const searchType = ref('title')
+const selectedCategoryId = ref(null)
+
+const boardCategories = computed(() => board.value?.categories || [])
 
 // ===== 갤러리 이미지 캐러셀 =====
 const imgIndexMap = ref({})   // postId -> currentIndex
@@ -479,6 +499,9 @@ async function fetchPosts() {
       params.keyword = keyword.value
       params.searchType = searchType.value
     }
+    if (selectedCategoryId.value !== null) {
+      params.categoryId = selectedCategoryId.value
+    }
     const res = await api.get(`/boards/${boardId.value}/posts`, { params })
     posts.value = res.data.data?.content || []
     total.value = res.data.data?.totalElements || 0
@@ -488,6 +511,7 @@ async function fetchPosts() {
 }
 
 function handleSearch() { page.value = 1; fetchPosts() }
+function selectCategory(id) { selectedCategoryId.value = id; page.value = 1; fetchPosts() }
 function goWrite() { router.push(`${basePath.value}/write`) }
 function goDetail(row) { router.push(`${basePath.value}/posts/${row.id}`) }
 
@@ -517,7 +541,7 @@ function formatRelativeDate(d) {
 }
 
 watch(boardId, async () => {
-  page.value = 1; keyword.value = ''
+  page.value = 1; keyword.value = ''; selectedCategoryId.value = null
   await fetchBoard(); fetchPosts()
 })
 
@@ -528,6 +552,43 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ===== 카테고리 칩 ===== */
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 20px 0;
+}
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.cat-chip:hover { border-color: var(--accent); color: var(--accent); }
+.cat-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.cat-name-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .board-list {
   display: flex;
   flex-direction: column;

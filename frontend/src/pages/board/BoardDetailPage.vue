@@ -16,6 +16,7 @@
       <div class="post-header">
         <div class="post-header-top">
           <span v-if="post.isNotice" class="notice-tag">공지</span>
+          <span v-if="post.categoryName" class="category-tag">{{ post.categoryName }}</span>
           <h1 class="post-title">{{ post.title }}</h1>
         </div>
 
@@ -515,6 +516,19 @@ onMounted(async () => {
   color: #fff;
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
   white-space: nowrap;
   margin-top: 4px;
   flex-shrink: 0;
