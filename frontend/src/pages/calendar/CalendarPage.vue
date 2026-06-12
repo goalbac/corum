@@ -237,25 +237,26 @@ function toggleCalendar(id) {
   calApi.value?.refetchEvents()
 }
 
-function mobileEventContent(arg) {
-  if (!isMobile.value) return null
+// null 반환 시 FullCalendar Vue3가 이벤트 DOM을 빈 노드로 처리 → 화면에 안 보임
+// 데스크탑/모바일 모두 동일 렌더러 사용: 시간 위·제목 아래, 컬러 좌측 보더
+function eventContent(arg) {
   const { event } = arg
-  const timeText = arg.timeText   // e.g. "10:00"
-  const title    = event.title
+  const timeText = arg.timeText
   const color    = event.backgroundColor || '#2563EB'
 
   const el = document.createElement('div')
-  el.className = 'mob-event'
+  el.className = 'fc-ev-custom'
   el.style.setProperty('--ev-color', color)
+
   if (timeText && !event.allDay) {
     const t = document.createElement('div')
-    t.className = 'mob-event-time'
+    t.className = 'fc-ev-time'
     t.textContent = timeText
     el.appendChild(t)
   }
   const n = document.createElement('div')
-  n.className = 'mob-event-title'
-  n.textContent = title
+  n.className = 'fc-ev-title'
+  n.textContent = event.title
   el.appendChild(n)
   return { domNodes: [el] }
 }
@@ -266,8 +267,8 @@ const calOptions = computed(() => ({
   locale: koLocale,
   headerToolbar: false,
   height: 'auto',
-  dayMaxEvents: isMobile.value ? 5 : true,
-  eventContent: mobileEventContent,
+  dayMaxEvents: 5,
+  eventContent,
   events: fetchEvents,
   eventClick: handleEventClick,
   dateClick: handleDateClick,
@@ -588,35 +589,42 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-toolbar) { display: none; }
 .cal-wrap :deep(.fc-more-link) { color: var(--accent-t) !important; }
 
-/* ===== 공통 ===== */
-/* ===== 모바일 커스텀 이벤트 카드 ===== */
-.mob-event {
+/* ===== 커스텀 이벤트 카드 (데스크탑 + 모바일 공통) ===== */
+.cal-wrap :deep(.fc-event) {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin-bottom: 2px !important;
+  border-radius: 0 !important;
+  overflow: visible;
+}
+
+.fc-ev-custom {
   display: flex;
   flex-direction: column;
   border-left: 3px solid var(--ev-color, var(--accent));
   background: color-mix(in srgb, var(--ev-color, var(--accent)) 12%, var(--surface));
   border-radius: 3px;
-  padding: 2px 4px;
-  min-height: 28px;
+  padding: 3px 5px;
   width: 100%;
   box-sizing: border-box;
   gap: 1px;
   cursor: pointer;
 }
-.mob-event-time {
-  font-size: 9px;
+.fc-ev-time {
+  font-size: 10px;
   color: var(--ev-color, var(--accent));
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
-.mob-event-title {
-  font-size: 10px;
+.fc-ev-title {
+  font-size: 11px;
   color: var(--t1);
   font-weight: 500;
-  line-height: 1.3;
-  word-break: break-all;
+  line-height: 1.35;
   white-space: normal;
+  word-break: break-all;
 }
 
 .cal-dot {
@@ -660,20 +668,15 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   /* 헤더 요일 */
   .cal-wrap :deep(.fc-col-header-cell) { font-size: 10px; padding: 4px 0; }
 
-  /* 이벤트 블록: 커스텀 렌더러 기반 */
-  .cal-wrap :deep(.fc-event) {
-    background: transparent !important;
-    padding: 0 !important;
-    margin-bottom: 2px !important;
-    border-radius: 0 !important;
-    min-height: 0;
-    overflow: visible;
-  }
   /* +N more 링크 */
   .cal-wrap :deep(.fc-more-link) { font-size: 9px !important; }
 
   /* 셀 높이: 자동으로 늘어남 */
   .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 50px; }
   .cal-wrap :deep(.fc-daygrid-day-events) { margin-top: 0; }
+
+  /* 모바일 이벤트 카드 폰트 축소 */
+  .fc-ev-time { font-size: 9px; }
+  .fc-ev-title { font-size: 10px; }
 }
 </style>
