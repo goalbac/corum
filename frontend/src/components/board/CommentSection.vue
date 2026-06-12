@@ -340,6 +340,7 @@ onMounted(fetchComments)
 /* ===== 반응형 ===== */
 @media (max-width: 768px) {
   .cs-header, .cs-write { padding-left: 18px; padding-right: 18px; }
+  .cs-textarea { font-size: 16px !important; }
 }
 
 @media (max-width: 1024px) {

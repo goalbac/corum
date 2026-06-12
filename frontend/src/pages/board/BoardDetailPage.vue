@@ -924,5 +924,7 @@ a.adj-item:hover .adj-title { color: var(--accent-t); }
   .post-title { font-size: 18px; }
   .btn-label { display: none; }
   .like-btn, .action-btn { padding: 7px 10px; }
+  :deep(.el-input__inner),
+  :deep(.el-textarea__inner) { font-size: 16px !important; }
 }
 </style>

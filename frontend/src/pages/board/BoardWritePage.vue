@@ -236,5 +236,7 @@ onMounted(async () => {
 
 @media (max-width: 768px) {
   .board-write { padding: 20px; }
+  :deep(.el-input__inner),
+  :deep(.el-textarea__inner) { font-size: 16px !important; }
 }
 </style>

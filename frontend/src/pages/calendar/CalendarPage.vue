@@ -550,5 +550,18 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .cal-toolbar { flex-direction: column; align-items: flex-start; }
   .cal-right { flex-wrap: wrap; }
   .form-row { grid-template-columns: 1fr; }
+  /* 모바일 입력 폼 줌 방지 */
+  :deep(.el-input__inner),
+  :deep(.el-textarea__inner),
+  :deep(.el-date-editor .el-input__inner) { font-size: 16px !important; }
+  /* 모바일 캘린더 이벤트 가시성 개선 */
+  .cal-wrap :deep(.fc-daygrid-day-number) { font-size: 11px; padding: 2px 4px; }
+  .cal-wrap :deep(.fc-event) { font-size: 10px; padding: 1px 3px; margin-bottom: 1px; }
+  .cal-wrap :deep(.fc-event-title) { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-wrap :deep(.fc-daygrid-event-dot) { margin: 0 2px; }
+  .cal-wrap :deep(.fc-col-header-cell) { font-size: 11px; padding: 4px 0; }
+  .cal-wrap :deep(.fc-more-link) { font-size: 10px; }
+  /* 모바일에서 월뷰 셀 최소 높이 축소 */
+  .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 50px; }
 }
 </style>
