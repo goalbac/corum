@@ -65,6 +65,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 비공개 제외 게시글 수 (rowNum 계산용)
     long countByBoardIdAndIsHiddenFalse(Long boardId);
 
+    // 카테고리별 게시글 수 (카테고리 삭제 가드용)
+    long countByCategoryId(Long categoryId);
+
     // 이전 글 (현재보다 id가 작은 것 중 최대)
     @Query("SELECT p FROM Post p WHERE p.boardId = :boardId AND p.isHidden = false AND p.id < :postId ORDER BY p.id DESC")
     List<Post> findPrevPost(@Param("boardId") Long boardId, @Param("postId") Long postId, Pageable pageable);

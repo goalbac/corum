@@ -486,6 +486,9 @@ async function fetchBoard() {
   try {
     const res = await api.get(`/boards/${boardId.value}`)
     board.value = res.data.data
+    // 카테고리가 있으면 진입 시 첫 번째 카테고리를 기본 선택
+    const cats = board.value?.categories || []
+    selectedCategoryId.value = cats.length ? cats[0].id : null
   } catch {}
 }
 

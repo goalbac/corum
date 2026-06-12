@@ -115,9 +115,20 @@
           </button>
         </div>
         <div v-if="form.categories?.length" class="cat-list">
-          <div v-for="(cat, idx) in form.categories" :key="idx" class="cat-item">
+          <div v-for="(cat, idx) in form.categories" :key="cat.id ?? cat._uid ?? idx" class="cat-item">
+            <div class="cat-ord-btns">
+              <button class="ord-btn" :disabled="idx === 0" @click="moveCategory(idx, -1)" title="위로">
+                <i class="ti ti-chevron-up"></i>
+              </button>
+              <button class="ord-btn" :disabled="idx === form.categories.length - 1" @click="moveCategory(idx, 1)" title="아래로">
+                <i class="ti ti-chevron-down"></i>
+              </button>
+            </div>
             <el-input v-model="cat.name" size="small" style="flex:1" />
-            <button class="del-btn" @click="removeCategory(idx)" title="삭제"><i class="ti ti-x"></i></button>
+            <span v-if="cat.postCount > 0" class="cat-count" title="이 카테고리의 게시글 수">{{ cat.postCount }}글</span>
+            <button class="del-btn" :class="{ disabled: cat.id && cat.postCount > 0 }" @click="removeCategory(idx)" title="삭제">
+              <i class="ti ti-x"></i>
+            </button>
           </div>
         </div>
         <div v-else class="perm-empty-msg">카테고리가 없으면 분류 없이 작성됩니다.</div>
@@ -265,12 +276,25 @@ function addCategory() {
   const name = newCatName.value.trim()
   if (!name) return
   if (!form.value.categories) form.value.categories = []
-  form.value.categories.push({ name, sortOrder: form.value.categories.length })
+  form.value.categories.push({ name, sortOrder: form.value.categories.length, _uid: Date.now() + Math.random() })
   newCatName.value = ''
 }
 function removeCategory(idx) {
+  const cat = form.value.categories[idx]
+  // 저장된 카테고리에 게시글이 있으면 삭제 불가
+  if (cat.id && cat.postCount > 0) {
+    return ElMessage.warning(`'${cat.name}' 카테고리에 게시글이 ${cat.postCount}건 있어 삭제할 수 없습니다.`)
+  }
   form.value.categories.splice(idx, 1)
   form.value.categories.forEach((c, i) => { c.sortOrder = i })
+}
+function moveCategory(idx, dir) {
+  const arr = form.value.categories
+  const target = idx + dir
+  if (target < 0 || target >= arr.length) return
+  const [item] = arr.splice(idx, 1)
+  arr.splice(target, 0, item)
+  arr.forEach((c, i) => { c.sortOrder = i })
 }
 const form = ref(defaultForm())
 
@@ -487,4 +511,39 @@ onMounted(() => { fetchBoards(); fetchGroups(); menuStore.fetchMenus() })
   gap: 6px;
   padding: 4px 0;
 }
+
+.cat-ord-btns { display: flex; flex-direction: column; gap: 2px; }
+.ord-btn {
+  width: 22px;
+  height: 13px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--t3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 3px;
+  transition: all .12s;
+}
+.ord-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.ord-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.cat-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.del-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+.del-btn.disabled:hover { border-color: var(--border); color: var(--t3); background: transparent; }
 </style>

@@ -7,6 +7,7 @@ import com.corum.backend.domain.board.BoardCategoryRepository;
 import com.corum.backend.domain.board.BoardGroupPermission;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.board.BoardRepository;
+import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.board.BoardCreateRequest;
 import com.corum.backend.dto.board.BoardResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +26,7 @@ public class BoardService {
     private final BoardRepository boardRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final BoardCategoryRepository boardCategoryRepository;
+    private final PostRepository postRepository;
 
     // ===== 게시판 목록 =====
     @Transactional(readOnly = true)
@@ -30,7 +34,7 @@ public class BoardService {
         return boardRepository.findByIsActiveTrueOrderByIdAsc().stream()
                 .map(b -> new BoardResponse(b,
                         boardGroupPermissionRepository.findByBoardId(b.getId()),
-                        boardCategoryRepository.findByBoardIdOrderBySortOrderAsc(b.getId())))
+                        categoriesWithCount(b.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -40,8 +44,14 @@ public class BoardService {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("게시판을 찾을 수 없습니다."));
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(id);
-        List<BoardCategory> categories = boardCategoryRepository.findByBoardIdOrderBySortOrderAsc(id);
-        return new BoardResponse(board, permissions, categories);
+        return new BoardResponse(board, permissions, categoriesWithCount(id));
+    }
+
+    // 카테고리 목록 + 각 카테고리의 게시글 수 채우기
+    private List<BoardCategory> categoriesWithCount(Long boardId) {
+        List<BoardCategory> cats = boardCategoryRepository.findByBoardIdOrderBySortOrderAsc(boardId);
+        cats.forEach(c -> c.setPostCount(postRepository.countByCategoryId(c.getId())));
+        return cats;
     }
 
     // ===== 게시판 생성 =====
@@ -68,8 +78,7 @@ public class BoardService {
         saveCategories(saved.getId(), request.getCategories());
 
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(saved.getId());
-        List<BoardCategory> categories = boardCategoryRepository.findByBoardIdOrderBySortOrderAsc(saved.getId());
-        return new BoardResponse(saved, permissions, categories);
+        return new BoardResponse(saved, permissions, categoriesWithCount(saved.getId()));
     }
 
     // ===== 게시판 수정 =====
@@ -86,8 +95,7 @@ public class BoardService {
         savePermissions(id, request.getPermissions());
         saveCategories(id, request.getCategories());
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(id);
-        List<BoardCategory> categories = boardCategoryRepository.findByBoardIdOrderBySortOrderAsc(id);
-        return new BoardResponse(board, permissions, categories);
+        return new BoardResponse(board, permissions, categoriesWithCount(id));
     }
 
     // ===== 게시판 삭제 =====
@@ -116,17 +124,45 @@ public class BoardService {
     }
 
     // ===== 내부 메서드 =====
+    // 카테고리 업서트: 기존 id는 유지(게시글의 category_id 참조 보존),
+    // 신규는 추가, 요청에서 빠진 기존 카테고리는 게시글이 없을 때만 삭제.
     private void saveCategories(Long boardId, List<BoardCreateRequest.CategoryRequest> reqs) {
-        boardCategoryRepository.deleteByBoardId(boardId);
-        if (reqs == null || reqs.isEmpty()) return;
+        List<BoardCategory> existing = boardCategoryRepository.findByBoardIdOrderBySortOrderAsc(boardId);
+        Map<Long, BoardCategory> existingById = existing.stream()
+                .collect(Collectors.toMap(BoardCategory::getId, c -> c));
+
+        List<Long> keepIds = (reqs == null) ? List.of()
+                : reqs.stream()
+                        .map(BoardCreateRequest.CategoryRequest::getId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+        // 삭제 대상: 기존에 있으나 요청 목록에서 빠진 카테고리
+        for (BoardCategory cat : existing) {
+            if (!keepIds.contains(cat.getId())) {
+                long count = postRepository.countByCategoryId(cat.getId());
+                if (count > 0) {
+                    throw new BusinessException(
+                            "'" + cat.getName() + "' 카테고리에 게시글이 " + count + "건 있어 삭제할 수 없습니다.");
+                }
+                boardCategoryRepository.delete(cat);
+            }
+        }
+
+        if (reqs == null) return;
         int order = 0;
         for (BoardCreateRequest.CategoryRequest r : reqs) {
-            if (r.getName() == null || r.getName().isBlank()) continue;
-            boardCategoryRepository.save(BoardCategory.builder()
-                    .boardId(boardId)
-                    .name(r.getName().trim())
-                    .sortOrder(r.getSortOrder() != null ? r.getSortOrder() : order)
-                    .build());
+            if (r.getName() == null || r.getName().isBlank()) { order++; continue; }
+            String name = r.getName().trim();
+            if (r.getId() != null && existingById.containsKey(r.getId())) {
+                existingById.get(r.getId()).update(name, order);   // 더티 체킹으로 반영
+            } else {
+                boardCategoryRepository.save(BoardCategory.builder()
+                        .boardId(boardId)
+                        .name(name)
+                        .sortOrder(order)
+                        .build());
+            }
             order++;
         }
     }
