@@ -52,7 +52,10 @@
     </div>
 
     <!-- 일정 등록/수정 다이얼로그 -->
-    <el-dialog v-model="showForm" :title="editingEvent ? '일정 수정' : '일정 등록'" width="520px" destroy-on-close>
+    <el-dialog v-model="showForm" :title="editingEvent ? '일정 수정' : '일정 등록'"
+      :width="isMobile ? '95vw' : '520px'"
+      :style="isMobile ? 'max-height:90dvh;overflow-y:auto' : ''"
+      destroy-on-close>
       <el-form :model="eventForm" label-position="top">
         <el-form-item label="캘린더">
           <el-select v-model="eventForm.calendarId" style="width:100%">
@@ -107,7 +110,7 @@
     </el-dialog>
 
     <!-- 일정 상세 팝업 -->
-    <el-dialog v-model="showDetail" width="400px" destroy-on-close>
+    <el-dialog v-model="showDetail" :width="isMobile ? '95vw' : '400px'" destroy-on-close>
       <template #header>
         <div class="detail-header">
           <span class="cal-dot lg" :style="{ background: selectedEventColor }"></span>
@@ -152,6 +155,7 @@ import api from '@/api/axios'
 const authStore  = useAuthStore()
 const menuStore  = useMenuStore()
 const route      = useRoute()
+const isMobile   = computed(() => window.innerWidth <= 768)
 const calRef     = ref()
 const calApi     = computed(() => calRef.value?.getApi())
 const loading    = ref(false)
@@ -235,6 +239,7 @@ const calOptions = computed(() => ({
   locale: koLocale,
   headerToolbar: false,
   height: 'auto',
+  dayMaxEvents: isMobile.value ? 2 : true,
   events: fetchEvents,
   eventClick: handleEventClick,
   dateClick: handleDateClick,
@@ -546,22 +551,57 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 @media (max-width: 768px) {
-  .cal-layout { padding: 12px 16px 20px; }
-  .cal-toolbar { flex-direction: column; align-items: flex-start; }
-  .cal-right { flex-wrap: wrap; }
+  .cal-layout { padding: 12px 12px 20px; }
+  .cal-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cal-right { flex-wrap: wrap; gap: 4px; }
   .form-row { grid-template-columns: 1fr; }
+
   /* 모바일 입력 폼 줌 방지 */
   :deep(.el-input__inner),
   :deep(.el-textarea__inner),
   :deep(.el-date-editor .el-input__inner) { font-size: 16px !important; }
-  /* 모바일 캘린더 이벤트 가시성 개선 */
-  .cal-wrap :deep(.fc-daygrid-day-number) { font-size: 11px; padding: 2px 4px; }
-  .cal-wrap :deep(.fc-event) { font-size: 10px; padding: 1px 3px; margin-bottom: 1px; }
-  .cal-wrap :deep(.fc-event-title) { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cal-wrap :deep(.fc-daygrid-event-dot) { margin: 0 2px; }
-  .cal-wrap :deep(.fc-col-header-cell) { font-size: 11px; padding: 4px 0; }
-  .cal-wrap :deep(.fc-more-link) { font-size: 10px; }
-  /* 모바일에서 월뷰 셀 최소 높이 축소 */
-  .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 50px; }
+
+  /* 모바일 다이얼로그 스크롤 */
+  :deep(.el-dialog__body) { max-height: calc(80dvh - 120px); overflow-y: auto; }
+
+  /* 모바일 캘린더: 날짜 숫자 */
+  .cal-wrap :deep(.fc-daygrid-day-number) {
+    font-size: 11px;
+    padding: 2px 3px;
+    line-height: 1.4;
+  }
+  /* 헤더 요일 */
+  .cal-wrap :deep(.fc-col-header-cell) { font-size: 10px; padding: 4px 0; }
+
+  /* 이벤트 블록: 더 촘촘하게 */
+  .cal-wrap :deep(.fc-event) {
+    font-size: 10px !important;
+    padding: 0 2px !important;
+    margin-bottom: 1px !important;
+    border-radius: 3px !important;
+    min-height: 14px;
+  }
+  .cal-wrap :deep(.fc-event-title) {
+    font-size: 10px !important;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cal-wrap :deep(.fc-event-time) { display: none !important; }
+
+  /* dot 형태 이벤트 */
+  .cal-wrap :deep(.fc-daygrid-event-dot) {
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    flex-shrink: 0;
+  }
+  /* +N more 링크 */
+  .cal-wrap :deep(.fc-more-link) { font-size: 9px !important; }
+
+  /* 셀 최소 높이: 이벤트 2개 + 날짜 표시 */
+  .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 60px; }
+  .cal-wrap :deep(.fc-daygrid-day-events) { margin-top: 0; }
 }
 </style>
