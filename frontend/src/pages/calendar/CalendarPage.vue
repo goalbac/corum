@@ -268,7 +268,7 @@ const calOptions = computed(() => ({
   headerToolbar: false,
   height: 'auto',
   dayMaxEvents: 5,
-  eventContent,
+  ...(isMobile.value ? { eventContent } : {}),
   events: fetchEvents,
   eventClick: handleEventClick,
   dateClick: handleDateClick,
