@@ -164,6 +164,10 @@ const showForm   = ref(false)
 const showDetail = ref(false)
 const calendars  = ref([])
 const visibleCalendars = ref(new Set())
+// 캘린더 목록 로드 완료를 기다리는 게이트 (fetchEvents가 필터 준비 전에
+// 먼저 실행되어 모든 일정이 걸러지는 경쟁 조건 방지)
+let resolveCalendarsReady
+const calendarsReady = new Promise(r => { resolveCalendarsReady = r })
 const currentTitle = ref('')
 const currentView  = ref('dayGridMonth')
 const editingEvent = ref(null)
@@ -272,6 +276,8 @@ const calOptions = computed(() => ({
 
 async function fetchEvents(info, success, failure) {
   try {
+    // 캘린더 목록(필터 기준)이 준비될 때까지 대기
+    await calendarsReady
     const res = await api.get('/calendars/events', {
       params: { start: info.startStr, end: info.endStr }
     })
@@ -406,10 +412,11 @@ onMounted(async () => {
     const targetId = activeMenu?.targetId ? Number(activeMenu.targetId) : null
     calendars.value = targetId ? all.filter(c => c.id === targetId) : all
     visibleCalendars.value = new Set(calendars.value.map(c => c.id))
-    // 캘린더 목록 로드 완료 후 이벤트 재요청 (필터 준비 전 fetchEvents가
-    // 먼저 실행되면 visibleCalendars가 비어 모든 일정이 걸러지는 경쟁 조건 방지)
-    calApi.value?.refetchEvents()
   } catch {}
+  finally {
+    // 목록 로드 완료(또는 실패) 후 게이트 해제 → fetchEvents 진행
+    resolveCalendarsReady()
+  }
   currentTitle.value = calApi.value?.view.title || ''
   document.addEventListener('click', onClickOutside)
 })
