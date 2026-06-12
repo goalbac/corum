@@ -274,46 +274,44 @@ const calOptions = computed(() => ({
   datesSet: () => { currentTitle.value = calApi.value?.view.title || '' },
 }))
 
-// async 함수는 Promise를 반환 → FullCalendar가 콜백(success/failure) 대신 반환값을 사용
-async function fetchEvents(info) {
-  // 캘린더 목록(필터 기준)이 준비될 때까지 대기
-  await calendarsReady
-  const ids = [...visibleCalendars.value]
-  if (ids.length === 0) return []
-  const res = await api.get('/calendars/events', {
-    params: {
-      start: info.startStr,
-      end: info.endStr,
-      calendarIds: ids,
-    },
-    paramsSerializer: params => {
-      const parts = []
-      if (params.start) parts.push(`start=${encodeURIComponent(params.start)}`)
-      if (params.end) parts.push(`end=${encodeURIComponent(params.end)}`)
-      params.calendarIds.forEach(id => parts.push(`calendarIds=${id}`))
-      return parts.join('&')
-    }
-  })
-  return (res.data.data || []).map(e => {
-    const cal = calendars.value.find(c => c.id === e.calendarId)
-    return {
-      id: String(e.id),
-      title: e.title,
-      start: e.startAt,
-      end: e.endAt,
-      allDay: e.isAllDay,
-      backgroundColor: cal?.color || '#2563EB',
-      borderColor: cal?.color || '#2563EB',
-      textColor: '#ffffff',
-      extendedProps: {
-        description: e.description,
-        location: e.location,
-        calendarId: e.calendarId,
-        recurrenceType: e.recurrenceType,
-        createdBy: e.createdBy,
+async function fetchEvents(info, successCallback, failureCallback) {
+  try {
+    await calendarsReady
+    const ids = [...visibleCalendars.value]
+    if (ids.length === 0) { successCallback([]); return }
+
+    // Axios v1.x paramsSerializer 호환 문제 회피: URLSearchParams로 직접 빌드
+    const qs = new URLSearchParams()
+    qs.append('start', info.startStr)
+    qs.append('end', info.endStr)
+    ids.forEach(id => qs.append('calendarIds', String(id)))
+
+    const res = await api.get(`/calendars/events?${qs.toString()}`)
+    const events = (res.data.data || []).map(e => {
+      const cal = calendars.value.find(c => c.id === e.calendarId)
+      return {
+        id: String(e.id),
+        title: e.title,
+        start: e.startAt,
+        end: e.endAt,
+        allDay: e.isAllDay,
+        backgroundColor: cal?.color || '#2563EB',
+        borderColor: cal?.color || '#2563EB',
+        textColor: '#ffffff',
+        extendedProps: {
+          description: e.description,
+          location: e.location,
+          calendarId: e.calendarId,
+          recurrenceType: e.recurrenceType,
+          createdBy: e.createdBy,
+        }
       }
-    }
-  })
+    })
+    successCallback(events)
+  } catch (e) {
+    console.error('캘린더 일정 로드 실패', e)
+    failureCallback(e)
+  }
 }
 
 function handleEventClick(info) {
