@@ -126,6 +126,7 @@ async function requestReset() {
 /* ===== 전체 배경 ===== */
 .login-wrap {
   min-height: 100vh;
+  min-height: 100dvh; /* iOS Safari 주소창 포함 오버플로우 방지 */
   display: flex;
   align-items: center;
   justify-content: center;
