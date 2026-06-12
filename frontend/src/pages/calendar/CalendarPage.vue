@@ -233,13 +233,37 @@ function toggleCalendar(id) {
   calApi.value?.refetchEvents()
 }
 
+function mobileEventContent(arg) {
+  if (!isMobile.value) return null
+  const { event } = arg
+  const timeText = arg.timeText   // e.g. "10:00"
+  const title    = event.title
+  const color    = event.backgroundColor || '#2563EB'
+
+  const el = document.createElement('div')
+  el.className = 'mob-event'
+  el.style.setProperty('--ev-color', color)
+  if (timeText && !event.allDay) {
+    const t = document.createElement('div')
+    t.className = 'mob-event-time'
+    t.textContent = timeText
+    el.appendChild(t)
+  }
+  const n = document.createElement('div')
+  n.className = 'mob-event-title'
+  n.textContent = title
+  el.appendChild(n)
+  return { domNodes: [el] }
+}
+
 const calOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
   initialView: 'dayGridMonth',
   locale: koLocale,
   headerToolbar: false,
   height: 'auto',
-  dayMaxEvents: isMobile.value ? 2 : true,
+  dayMaxEvents: isMobile.value ? 5 : true,
+  eventContent: mobileEventContent,
   events: fetchEvents,
   eventClick: handleEventClick,
   dateClick: handleDateClick,
@@ -532,6 +556,36 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-more-link) { color: var(--accent-t) !important; }
 
 /* ===== 공통 ===== */
+/* ===== 모바일 커스텀 이벤트 카드 ===== */
+.mob-event {
+  display: flex;
+  flex-direction: column;
+  border-left: 3px solid var(--ev-color, var(--accent));
+  background: color-mix(in srgb, var(--ev-color, var(--accent)) 12%, var(--surface));
+  border-radius: 3px;
+  padding: 2px 4px;
+  min-height: 28px;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 1px;
+  cursor: pointer;
+}
+.mob-event-time {
+  font-size: 9px;
+  color: var(--ev-color, var(--accent));
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.mob-event-title {
+  font-size: 10px;
+  color: var(--t1);
+  font-weight: 500;
+  line-height: 1.3;
+  word-break: break-all;
+  white-space: normal;
+}
+
 .cal-dot {
   display: inline-block;
   width: 10px;
@@ -573,35 +627,20 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   /* 헤더 요일 */
   .cal-wrap :deep(.fc-col-header-cell) { font-size: 10px; padding: 4px 0; }
 
-  /* 이벤트 블록: 더 촘촘하게 */
+  /* 이벤트 블록: 커스텀 렌더러 기반 */
   .cal-wrap :deep(.fc-event) {
-    font-size: 10px !important;
-    padding: 0 2px !important;
-    margin-bottom: 1px !important;
-    border-radius: 3px !important;
-    min-height: 14px;
-  }
-  .cal-wrap :deep(.fc-event-title) {
-    font-size: 10px !important;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .cal-wrap :deep(.fc-event-time) { display: none !important; }
-
-  /* dot 형태 이벤트 */
-  .cal-wrap :deep(.fc-daygrid-event-dot) {
-    width: 6px;
-    height: 6px;
-    margin: 0 2px;
-    flex-shrink: 0;
+    background: transparent !important;
+    padding: 0 !important;
+    margin-bottom: 2px !important;
+    border-radius: 0 !important;
+    min-height: 0;
+    overflow: visible;
   }
   /* +N more 링크 */
   .cal-wrap :deep(.fc-more-link) { font-size: 9px !important; }
 
-  /* 셀 최소 높이: 이벤트 2개 + 날짜 표시 */
-  .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 60px; }
+  /* 셀 높이: 자동으로 늘어남 */
+  .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 50px; }
   .cal-wrap :deep(.fc-daygrid-day-events) { margin-top: 0; }
 }
 </style>
