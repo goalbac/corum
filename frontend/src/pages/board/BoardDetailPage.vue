@@ -504,8 +504,9 @@ onMounted(async () => {
 
 .post-header-top {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 4px;
   margin-bottom: 14px;
 }
 
