@@ -15,8 +15,10 @@
       <!-- ===== 게시글 헤더 ===== -->
       <div class="post-header">
         <div class="post-header-top">
-          <span v-if="post.isNotice" class="notice-tag">공지</span>
-          <span v-if="post.categoryName" class="category-tag">{{ post.categoryName }}</span>
+          <div v-if="post.categoryName || post.isNotice" class="post-kicker">
+            <span v-if="post.categoryName" class="category-tag">{{ post.categoryName }}</span>
+            <span v-if="post.isNotice" class="notice-tag">공지</span>
+          </div>
           <h1 class="post-title">{{ post.title }}</h1>
         </div>
 
@@ -520,18 +522,18 @@ onMounted(async () => {
   margin-top: 4px;
   flex-shrink: 0;
 }
-.category-tag {
-  display: inline-flex;
+.post-kicker {
+  display: flex;
   align-items: center;
-  padding: 3px 9px;
-  border-radius: 4px;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.category-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t3);
   white-space: nowrap;
-  margin-top: 4px;
-  flex-shrink: 0;
 }
 
 .post-title {
