@@ -135,11 +135,31 @@
           </div>
         </template>
 
-        <div class="dlg-row">
-          <div class="dlg-field"><label>링크 URL</label><el-input v-model="popupForm.linkUrl" /></div>
-          <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
-            <label class="chk-item"><el-checkbox v-model="popupForm.linkNewWindow" />새 창</label>
+        <div class="dlg-field">
+          <label>링크 URL</label>
+          <el-input v-model="popupForm.linkUrl" placeholder="예) /menu/46/posts/92 또는 https://example.com" />
+          <div class="field-hint">
+            <i class="ti ti-info-circle"></i>
+            내부 페이지는 <code>/</code>로 시작하는 경로만 입력하세요 (예: <code>/menu/46/posts/92</code>).
+            외부 사이트는 <code>https://</code>를 포함한 전체 주소를 입력해야 합니다.
           </div>
+        </div>
+        <div class="dlg-checks">
+          <el-tooltip placement="top">
+            <template #content>
+              <div style="max-width:240px;line-height:1.6">
+                <div v-if="popupForm.linkUrl">
+                  입력한 URL을 새 탭에서 엽니다:<br />
+                  <code style="word-break:break-all">{{ popupForm.linkUrl }}</code>
+                </div>
+                <div v-else>링크 URL을 새 탭에서 엽니다.</div>
+                <div style="margin-top:6px;color:#ffd666">
+                  <i class="ti ti-bulb"></i> 외부 주소 링크는 새 창을 권장합니다.
+                </div>
+              </div>
+            </template>
+            <label class="chk-item"><el-checkbox v-model="popupForm.linkNewWindow" />새 창</label>
+          </el-tooltip>
         </div>
         <div class="dlg-row">
           <div class="dlg-field"><label>시작일</label><el-date-picker v-model="popupForm.startAt" type="datetime" style="width:100%" /></div>
