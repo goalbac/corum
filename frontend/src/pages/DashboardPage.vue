@@ -947,7 +947,7 @@ onMounted(async () => {
 }
 .cal-ev-time {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--t3);
   letter-spacing: -0.2px;
@@ -955,7 +955,7 @@ onMounted(async () => {
 }
 .cal-ev-title {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--t1);
   overflow: hidden;
@@ -1294,8 +1294,9 @@ onMounted(async () => {
   .cal-day-head { padding: 4px 0 4px; }
   .cal-dow { font-size: 9px; }
   .cal-dnum { font-size: 13px; }
-  .cal-ev-title { font-size: 10px; }
-  .cal-ev-cal { display: none; }
+  .cal-ev-time { font-size: 10px; }
+  .cal-ev-title { font-size: 11px; }
+  .cal-ev-cal { font-size: 9px; }
 
   .link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .link-chip { padding: 10px 12px; font-size: 13px; border-radius: 12px; }

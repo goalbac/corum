@@ -6,6 +6,7 @@ import com.corum.backend.domain.board.BoardRepository;
 import com.corum.backend.domain.calendar.CalendarEntity;
 import com.corum.backend.domain.calendar.CalendarEventRepository;
 import com.corum.backend.domain.calendar.CalendarRepository;
+import com.corum.backend.service.calendar.CalendarService;
 import com.corum.backend.domain.dashboard.DashboardWidget;
 import com.corum.backend.domain.dashboard.DashboardWidgetRepository;
 import com.corum.backend.domain.dashboard.VisitStats;
@@ -55,22 +56,23 @@ public class DashboardWidgetService {
     private final CalendarEventRepository calendarEventRepository;
     private final UploadFileRepository uploadFileRepository;
     private final MenuRepository menuRepository;
+    private final CalendarService calendarService;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<DashboardWidgetResponse> getAdminWidgets(Long menuId) {
         return widgetRepository.findByMenuId(menuId).stream()
-                .map(this::toResponse)
+                .map(w -> toResponse(w, null))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<DashboardWidgetResponse> getActiveWidgets(Long menuId) {
+    public List<DashboardWidgetResponse> getActiveWidgets(Long menuId, Long memberId) {
         List<DashboardWidget> widgets = widgetRepository.findActiveByMenuId(menuId);
         if (widgets.isEmpty()) {
             return menuId == null ? getDefaultWidgets() : List.of();
         }
-        return widgets.stream().map(this::toResponse).toList();
+        return widgets.stream().map(w -> toResponse(w, memberId)).toList();
     }
 
     /** 데이터 없이 위젯 메타데이터만 반환 (빠른 레이아웃 로드용) */
@@ -140,28 +142,28 @@ public class DashboardWidgetService {
 
     /** 단일 위젯의 실제 데이터 로드 */
     @Transactional(readOnly = true)
-    public DashboardWidgetResponse getWidgetData(Long id, int weekOffset) {
+    public DashboardWidgetResponse getWidgetData(Long id, int weekOffset, Long memberId) {
         if (id < 0) {
             return widgetRepository.findById(-id)
-                    .map(w -> toResponseWithOffset(w, weekOffset))
+                    .map(w -> toResponseWithOffset(w, weekOffset, memberId))
                     .orElseThrow(() -> BusinessException.notFound("위젯을 찾을 수 없습니다."));
         }
         DashboardWidget widget = widgetRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("위젯을 찾을 수 없습니다."));
-        return toResponseWithOffset(widget, weekOffset);
+        return toResponseWithOffset(widget, weekOffset, memberId);
     }
 
-    private DashboardWidgetResponse toResponseWithOffset(DashboardWidget widget, int weekOffset) {
-        if (weekOffset == 0) return toResponse(widget);
+    private DashboardWidgetResponse toResponseWithOffset(DashboardWidget widget, int weekOffset, Long memberId) {
+        if (weekOffset == 0) return toResponse(widget, memberId);
         // weekOffset != 0 이면 캘린더만 특별 처리, 나머지는 기존과 동일
         if ("CALENDAR_WEEKLY".equals(widget.getWidgetType())) {
             String boardName = widget.getTargetBoardId() != null
                     ? boardRepository.findById(widget.getTargetBoardId()).map(b -> b.getName()).orElse(null)
                     : null;
-            List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget, weekOffset);
+            List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget, weekOffset, memberId);
             return new DashboardWidgetResponse(widget, boardName, List.of(), null, events);
         }
-        return toResponse(widget);
+        return toResponse(widget, memberId);
     }
 
     @Transactional
@@ -179,7 +181,7 @@ public class DashboardWidgetService {
                 .extraConfig(request.getExtraConfig())
                 .updatedBy(memberId)
                 .build());
-        return toResponse(widget);
+        return toResponse(widget, null);
     }
 
     @Transactional
@@ -197,7 +199,7 @@ public class DashboardWidgetService {
                 request.getExtraConfig(),
                 memberId
         );
-        return toResponse(widget);
+        return toResponse(widget, null);
     }
 
     @Transactional
@@ -236,7 +238,7 @@ public class DashboardWidgetService {
         return new DashboardWidgetResponse(widget, boardName, List.of(), null, List.of());
     }
 
-    private DashboardWidgetResponse toResponse(DashboardWidget widget) {
+    private DashboardWidgetResponse toResponse(DashboardWidget widget, Long memberId) {
         String boardName = null;
         if (widget.getTargetBoardId() != null) {
             boardName = boardRepository.findById(widget.getTargetBoardId())
@@ -260,7 +262,7 @@ public class DashboardWidgetService {
 
         // 캘린더 위클리
         if ("CALENDAR_WEEKLY".equals(type)) {
-            List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget);
+            List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget, 0, memberId);
             return new DashboardWidgetResponse(widget, boardName, List.of(), null, events);
         }
 
@@ -337,22 +339,27 @@ public class DashboardWidgetService {
                 : "/api/files/" + f.getId() + "/view";
     }
 
-    private List<DashboardCalendarEventResponse> buildCalendarEvents(DashboardWidget widget) {
-        return buildCalendarEvents(widget, 0);
-    }
-
-    private List<DashboardCalendarEventResponse> buildCalendarEvents(DashboardWidget widget, int weekOffset) {
+    private List<DashboardCalendarEventResponse> buildCalendarEvents(DashboardWidget widget, int weekOffset, Long memberId) {
         Long calendarId = parseCalendarId(widget.getExtraConfig());
 
         LocalDateTime weekStart = LocalDate.now().with(DayOfWeek.MONDAY).plusWeeks(weekOffset).atStartOfDay();
         LocalDateTime weekEnd   = weekStart.plusDays(7).minusNanos(1);
 
+        // 열람 권한이 있는 캘린더 ID 목록
+        List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
+        if (readableIds.isEmpty()) return List.of();
+
         List<CalendarEntity> calendarList;
         if (calendarId != null) {
+            // 위젯에 특정 캘린더가 지정된 경우: 열람 권한이 있을 때만 표시
+            if (!readableIds.contains(calendarId)) return List.of();
             calendarList = calendarRepository.findById(calendarId)
                     .map(List::of).orElse(List.of());
         } else {
-            calendarList = calendarRepository.findByIsActiveTrueOrderByIdAsc();
+            // 전체 캘린더: 읽기 권한 있는 것만
+            calendarList = calendarRepository.findByIsActiveTrueOrderByIdAsc().stream()
+                    .filter(c -> readableIds.contains(c.getId()))
+                    .collect(Collectors.toList());
         }
         if (calendarList.isEmpty()) return List.of();
 
@@ -404,7 +411,7 @@ public class DashboardWidgetService {
                         .sortOrder(board.getId().intValue())
                         .isActive(true)
                         .build())
-                .map(this::toResponse)
+                .map(w -> toResponse(w, null))
                 .toList();
         if (!widgets.isEmpty()) return widgets;
 
