@@ -4,6 +4,7 @@ import com.corum.backend.common.ApiResponse;
 import com.corum.backend.common.FlexibleLocalDateTimeDeserializer;
 import com.corum.backend.domain.calendar.CalendarEvent;
 import com.corum.backend.dto.calendar.CalendarCreateRequest;
+import com.corum.backend.dto.calendar.CalendarEventDto;
 import com.corum.backend.dto.calendar.CalendarEventRequest;
 import com.corum.backend.dto.calendar.CalendarResponse;
 import com.corum.backend.security.CustomUserDetails;
@@ -57,9 +58,9 @@ public class CalendarController {
         return ApiResponse.ok("캘린더가 삭제되었습니다.");
     }
 
-    // ===== 기간별 일정 조회 (권한 필터) =====
+    // ===== 기간별 일정 조회 (권한 필터 + 반복 확장) =====
     @GetMapping("/events")
-    public ApiResponse<List<CalendarEvent>> getEvents(
+    public ApiResponse<List<CalendarEventDto>> getEvents(
             @RequestParam String start,
             @RequestParam String end,
             @RequestParam(required = false) List<Long> calendarIds,

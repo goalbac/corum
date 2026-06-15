@@ -339,7 +339,7 @@ async function handleLogout() {
   align-items: center;
   height: 100%;
   padding: 0 20px;
-  max-width: 1440px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 

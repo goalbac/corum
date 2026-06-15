@@ -5,15 +5,20 @@ import com.corum.backend.domain.calendar.*;
 import com.corum.backend.domain.group.MemberGroup;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.dto.calendar.CalendarCreateRequest;
+import com.corum.backend.dto.calendar.CalendarEventDto;
 import com.corum.backend.dto.calendar.CalendarEventRequest;
 import com.corum.backend.dto.calendar.CalendarResponse;
 import com.corum.backend.service.notification.NotificationService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -88,17 +93,92 @@ public class CalendarService {
         return memberId != null && memberGroupRepository.existsSuperAdminGroupByMemberId(memberId);
     }
 
-    // ===== 기간별 일정 조회 (권한 필터) =====
+    // ===== 기간별 일정 조회 (권한 필터 + 반복 일정 확장) =====
     @Transactional(readOnly = true)
-    public List<CalendarEvent> getEvents(LocalDateTime start, LocalDateTime end, Long memberId, List<Long> requestedIds) {
+    public List<CalendarEventDto> getEvents(LocalDateTime start, LocalDateTime end, Long memberId, List<Long> requestedIds) {
         List<Long> readable = getReadableCalendarIds(memberId);
         if (readable.isEmpty()) return List.of();
-        // 요청된 캘린더 ID가 있으면 readable과 교집합, 없으면 readable 전체
         List<Long> calendarIds = (requestedIds == null || requestedIds.isEmpty())
                 ? readable
                 : readable.stream().filter(requestedIds::contains).collect(Collectors.toList());
         if (calendarIds.isEmpty()) return List.of();
-        return calendarEventRepository.findByPeriod(calendarIds, start, end);
+
+        // 기간 내 일반 이벤트 (반복 포함)
+        List<CalendarEvent> inPeriod = calendarEventRepository.findByPeriod(calendarIds, start, end);
+
+        // 기간보다 앞서 시작된 반복 이벤트 (기간 내 occurrence가 있을 수 있음)
+        List<CalendarEvent> earlyRecurring = calendarEventRepository.findRecurringBeforeEnd(calendarIds, end)
+                .stream()
+                .filter(e -> e.getStartAt().isBefore(start)) // 이미 inPeriod에 포함된 것 제외
+                .collect(Collectors.toList());
+
+        List<CalendarEventDto> result = new ArrayList<>();
+
+        // inPeriod 이벤트 처리
+        Set<String> addedKeys = new HashSet<>();
+        for (CalendarEvent ev : inPeriod) {
+            CalendarEventDto dto = CalendarEventDto.from(ev);
+            if ("NONE".equals(ev.getRecurrenceType())) {
+                result.add(dto);
+            } else {
+                // 반복 이벤트는 기간 내 모든 occurrence 확장
+                expandAndAdd(dto, start, end, result, addedKeys);
+            }
+        }
+
+        // 기간 앞서 시작한 반복 이벤트 확장
+        for (CalendarEvent ev : earlyRecurring) {
+            CalendarEventDto dto = CalendarEventDto.from(ev);
+            expandAndAdd(dto, start, end, result, addedKeys);
+        }
+
+        result.sort(Comparator.comparing(CalendarEventDto::getStartAt));
+        return result;
+    }
+
+    private void expandAndAdd(CalendarEventDto dto, LocalDateTime windowStart, LocalDateTime windowEnd,
+                               List<CalendarEventDto> result, Set<String> addedKeys) {
+        LocalDateTime until = parseUntil(dto.getRecurrenceRule(), windowEnd);
+        Duration duration = dto.getEndAt() != null
+                ? Duration.between(dto.getStartAt(), dto.getEndAt()) : null;
+
+        LocalDateTime occStart = dto.getStartAt();
+        int safety = 0;
+        while (!occStart.isAfter(windowEnd) && !occStart.isAfter(until) && safety++ < 3000) {
+            LocalDateTime occEnd = duration != null ? occStart.plus(duration) : null;
+            // 이 occurrence가 window와 겹치는지 확인
+            boolean overlaps = !occStart.isAfter(windowEnd)
+                    && (occEnd == null || !occEnd.isBefore(windowStart))
+                    && !occStart.isBefore(windowStart.minusDays(1)); // 최소 window 하루 전부터
+            if (overlaps || !occStart.isBefore(windowStart)) {
+                String key = dto.getId() + "_" + occStart;
+                if (addedKeys.add(key)) {
+                    result.add(dto.withTimes(occStart, occEnd));
+                }
+            }
+            occStart = advance(occStart, dto.getRecurrenceType());
+        }
+    }
+
+    private LocalDateTime advance(LocalDateTime dt, String type) {
+        return switch (type) {
+            case "DAILY"   -> dt.plusDays(1);
+            case "WEEKLY"  -> dt.plusWeeks(1);
+            case "MONTHLY" -> dt.plusMonths(1);
+            default        -> dt.plusYears(1000); // 종료
+        };
+    }
+
+    private LocalDateTime parseUntil(String recurrenceRule, LocalDateTime fallback) {
+        if (recurrenceRule == null || recurrenceRule.isBlank()) return fallback;
+        try {
+            JsonNode node = new ObjectMapper().readTree(recurrenceRule);
+            JsonNode until = node.get("until");
+            if (until != null && !until.isNull()) {
+                return LocalDate.parse(until.asText()).atTime(23, 59, 59);
+            }
+        } catch (Exception ignored) {}
+        return fallback;
     }
 
     // ===== 일정 단건 조회 =====
