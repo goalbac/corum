@@ -253,11 +253,14 @@
         <div v-else-if="widget.widgetType === 'CUSTOM'"
              :class="parseConfig(widget).size === 'half' ? 'widget-half' : 'widget-full'">
           <div class="wcard">
-            <div v-if="widget.title" class="wcard-head">
-              <span class="wcard-title">{{ widget.title }}</span>
+            <div class="wcard-head">
+              <span class="wcard-title">{{ widget.title || '' }}</span>
+              <a v-if="parseConfig(widget).moreUrl" :href="parseConfig(widget).moreUrl" class="wcard-more">
+                더보기 <i class="ti ti-arrow-right"></i>
+              </a>
             </div>
             <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div class="custom-body ql-editor" v-html="parseConfig(widget).content || ''" />
+            <div class="custom-body ql-editor" v-html="toCustomHtml(parseConfig(widget).content || '')" />
           </div>
         </div>
 
@@ -496,6 +499,12 @@ function postPath(widget, post) {
 function parseConfig(widget) {
   try { return widget.extraConfig ? JSON.parse(widget.extraConfig) : {} }
   catch { return {} }
+}
+
+/** 커스텀 위젯 HTML: img src를 썸네일로 교체 */
+function toCustomHtml(html) {
+  if (!html) return html
+  return html.replace(/(<img[^>]+src=["'])\/api\/files\/inline\//g, '$1/api/files/inline-thumb/')
 }
 
 /** 인라인 이미지 URL → 대시보드용 소형 썸네일 URL */
@@ -1125,6 +1134,7 @@ onMounted(async () => {
 .custom-body :deep(code) { background: var(--surface2); border-radius: 3px; padding: 1px 5px; font-size: 13px; }
 .custom-body :deep(strong) { font-weight: 700; }
 .custom-body :deep(em) { font-style: italic; }
+.custom-body :deep(img) { max-width: 100%; height: auto; display: block; border-radius: 4px; }
 
 /* ===== 회원 현황 ===== */
 .mstats-grid {

@@ -413,6 +413,10 @@
         <template v-if="form.widgetType === 'CUSTOM'">
           <hr class="dlg-divider"/>
           <div class="dlg-field">
+            <label>더보기 URL <span style="font-weight:400;color:var(--adm-muted);font-size:11px">입력 시 위젯 우상단에 더보기 링크 표시</span></label>
+            <el-input v-model="config.moreUrl" placeholder="예) /menu/12 또는 https://example.com" clearable />
+          </div>
+          <div class="dlg-field">
             <label>본문 내용</label>
             <RichEditor v-model="config.content" placeholder="위젯에 표시될 내용을 입력하세요." />
           </div>
@@ -596,7 +600,7 @@ async function saveSortOrder() {
 
 function onTypeChange() {
   config.value = {
-    slides: [], links: [], images: [], content: '',
+    slides: [], links: [], images: [], content: '', moreUrl: '',
     size: config.value.size || 'half', calendarId: null
   }
   form.value.targetBoardId = null
@@ -606,7 +610,7 @@ function onTypeChange() {
 function openCreate() {
   editing.value = null
   form.value = { ...defaultForm(), menuId: selectedMenuId.value, description: '' }
-  config.value = { slides: [], links: [], images: [], content: '', size: 'half', calendarId: null }
+  config.value = { slides: [], links: [], images: [], content: '', moreUrl: '', size: 'half', calendarId: null }
   showForm.value = true
 }
 
@@ -618,6 +622,7 @@ function openEdit(w) {
     links:      ec.links      || [],
     images:     ec.images     || [],
     content:    ec.content    || '',
+    moreUrl:    ec.moreUrl    || '',
     size:       ec.size       || 'half',
     calendarId: ec.calendarId || null,
   }
