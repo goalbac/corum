@@ -75,11 +75,12 @@ public class SecurityConfig {
                                 "/api/site/public",
                                 "/api/files/profile/**",
                                 "/api/files/inline/**",
+                                "/api/files/inline-thumb/**",
                                 "/api/files/site/**",
+                                "/api/files/popup/**",
                                 "/api/files/*/view",
                                 "/api/files/*/thumbnail",
-                                "/api/files/*/small-thumb",
-                                "/api/files/inline-thumb/**"
+                                "/api/files/*/small-thumb"
                         ).permitAll()
                         // 나머지 인증 필요
                         .anyRequest().authenticated()
