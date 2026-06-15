@@ -168,7 +168,7 @@ public class MenuService {
 
         menu.update(
                 request.getName(), request.getDescription(), menu.getMenuType(),
-                menu.getPageType(), menu.getTargetId(), request.getUrl(),
+                menu.getPageType(), request.getTargetId(), request.getUrl(),
                 request.getUrlAuto(), request.getNewWindow(), request.getSortOrder(),
                 request.getIsHidden(), request.getHideIfNoPermission(),
                 request.getAccessType(), request.getIsActive()

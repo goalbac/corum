@@ -12,6 +12,7 @@
             <img :src="popup.imageUrl" :alt="popup.title" class="popup-img" />
           </a>
           <img v-else :src="popup.imageUrl" :alt="popup.title" class="popup-img" />
+          <div v-if="popup.content" class="popup-body">{{ popup.content }}</div>
         </template>
 
         <!-- HTML 타입 -->
@@ -117,6 +118,15 @@ watch(() => route.path, fetchPopups)
   width: 100%;
   max-height: 400px;
   object-fit: cover;
+}
+
+.popup-body {
+  padding: 14px 18px;
+  font-size: 14px;
+  color: var(--t1);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .popup-html {
