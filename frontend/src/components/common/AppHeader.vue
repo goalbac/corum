@@ -25,26 +25,6 @@
       </nav>
 
       <div class="header-right">
-        <div class="theme-pill">
-          <button
-            class="tp-btn"
-            :class="{ active: !themeStore.isDark }"
-            @click="themeStore.isDark && themeStore.toggle()"
-            aria-label="라이트 모드"
-          >
-            <i class="ti ti-sun"></i>
-            <span class="tp-label">라이트</span>
-          </button>
-          <button
-            class="tp-btn"
-            :class="{ active: themeStore.isDark }"
-            @click="!themeStore.isDark && themeStore.toggle()"
-            aria-label="다크 모드"
-          >
-            <i class="ti ti-moon"></i>
-            <span class="tp-label">다크</span>
-          </button>
-        </div>
 
         <template v-if="authStore.isLoggedIn">
           <!-- 알림 드롭다운 -->
@@ -137,25 +117,65 @@
                     <span>{{ authStore.member?.email || authStore.member?.username }}</span>
                   </div>
                 </div>
-                <el-dropdown-item @click="$router.push('/mypage')">마이페이지</el-dropdown-item>
+                <!-- 라이트/다크 토글 -->
+                <div class="user-menu-theme">
+                  <button
+                    class="utm-btn"
+                    :class="{ active: !themeStore.isDark }"
+                    @click.stop="themeStore.isDark && themeStore.toggle()"
+                  >
+                    <i class="ti ti-sun"></i> 라이트
+                  </button>
+                  <button
+                    class="utm-btn"
+                    :class="{ active: themeStore.isDark }"
+                    @click.stop="!themeStore.isDark && themeStore.toggle()"
+                  >
+                    <i class="ti ti-moon"></i> 다크
+                  </button>
+                </div>
+                <el-dropdown-item @click="$router.push('/mypage')">
+                  <i class="ti ti-user menu-item-icon"></i>마이페이지
+                </el-dropdown-item>
                 <el-dropdown-item @click="$router.push('/messages')">
-                  쪽지함
+                  <i class="ti ti-mail menu-item-icon"></i>쪽지함
                   <span v-if="unreadMsgCount > 0" class="msg-badge">{{ unreadMsgCount }}</span>
                 </el-dropdown-item>
                 <el-dropdown-item
                   v-if="authStore.member?.isAdmin || authStore.member?.admin"
                   @click="$router.push('/admin')"
                 >
-                  <span class="admin-link">
-                    <i class="ti ti-settings"></i> 관리자
-                  </span>
+                  <i class="ti ti-settings menu-item-icon"></i>관리자
                 </el-dropdown-item>
-                <el-dropdown-item divided @click="handleLogout">로그아웃</el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">
+                  <i class="ti ti-logout menu-item-icon"></i>로그아웃
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </template>
         <template v-else>
+          <!-- 비로그인: 테마 토글 + 로그인 버튼 -->
+          <div class="theme-pill">
+            <button
+              class="tp-btn"
+              :class="{ active: !themeStore.isDark }"
+              @click="themeStore.isDark && themeStore.toggle()"
+              aria-label="라이트 모드"
+            >
+              <i class="ti ti-sun"></i>
+              <span class="tp-label">라이트</span>
+            </button>
+            <button
+              class="tp-btn"
+              :class="{ active: themeStore.isDark }"
+              @click="!themeStore.isDark && themeStore.toggle()"
+              aria-label="다크 모드"
+            >
+              <i class="ti ti-moon"></i>
+              <span class="tp-label">다크</span>
+            </button>
+          </div>
           <button class="login-btn" @click="$router.push('/login')">로그인</button>
         </template>
       </div>
@@ -767,6 +787,12 @@ async function handleLogout() {
   color: var(--new);
 }
 
+:global(.user-menu-popper .el-dropdown-menu__item) {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
 .user-menu-profile {
   display: flex;
   align-items: center;
@@ -823,6 +849,50 @@ async function handleLogout() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 드롭다운 내 테마 토글 */
+.user-menu-theme {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px 10px;
+  border-bottom: 0.5px solid var(--border2);
+  margin-bottom: 4px;
+}
+
+.utm-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 0;
+  border: 0.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--t3);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.utm-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.utm-btn:not(.active):hover {
+  background: var(--border2);
+  color: var(--t1);
+}
+
+/* 드롭다운 메뉴 아이콘 */
+.menu-item-icon {
+  font-size: 15px;
+  width: 18px;
+  flex-shrink: 0;
 }
 
 .login-btn {
