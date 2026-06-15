@@ -91,4 +91,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         ORDER BY p.createdAt DESC
         """)
     List<Post> findLatestByBoardIds(List<Long> boardIds, Pageable pageable);
+
+    // 관리자: 전체 게시물 (게시판 필터 선택)
+    @Query("SELECT p FROM Post p WHERE (:boardId IS NULL OR p.boardId = :boardId) ORDER BY p.createdAt DESC")
+    Page<Post> findAdminPosts(@Param("boardId") Long boardId, Pageable pageable);
+
+    // 관리자: created_at 단독 수정
+    @Modifying
+    @Query(value = "UPDATE posts SET created_at = :createdAt WHERE id = :id", nativeQuery = true)
+    void updateCreatedAtById(@Param("id") Long id, @Param("createdAt") LocalDateTime createdAt);
+
+    // 관리자: 다른 게시판으로 이동 (배치)
+    @Modifying
+    @Query("UPDATE Post p SET p.boardId = :boardId WHERE p.id IN :ids")
+    void moveToBoardBatch(@Param("boardId") Long boardId, @Param("ids") List<Long> ids);
 }
