@@ -165,17 +165,37 @@
       <div class="dlg-form">
         <div class="dlg-field"><label>제목</label><el-input v-model="bannerForm.title" /></div>
         <div class="dlg-field"><label>내용</label><el-input v-model="bannerForm.content" type="textarea" :rows="3" resize="none" /></div>
-        <div class="dlg-row">
-          <div class="dlg-field"><label>링크 URL</label><el-input v-model="bannerForm.linkUrl" /></div>
-          <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
-            <label class="chk-item"><el-checkbox v-model="bannerForm.linkNewWindow" />새 창</label>
+        <div class="dlg-field">
+          <label>링크 URL</label>
+          <el-input v-model="bannerForm.linkUrl" placeholder="예) /menu/46/posts/92 또는 https://example.com" />
+          <div class="field-hint">
+            <i class="ti ti-info-circle"></i>
+            내부 페이지는 <code>/</code>로 시작하는 경로만 입력하세요 (예: <code>/menu/46/posts/92</code>).
+            외부 사이트는 <code>https://</code>를 포함한 전체 주소를 입력해야 합니다.
           </div>
+        </div>
+        <div class="dlg-checks">
+          <el-tooltip placement="top">
+            <template #content>
+              <div style="max-width:240px;line-height:1.6">
+                <div v-if="bannerForm.linkUrl">
+                  입력한 URL을 새 탭에서 엽니다:<br />
+                  <code style="word-break:break-all">{{ bannerForm.linkUrl }}</code>
+                </div>
+                <div v-else>링크 URL을 새 탭에서 엽니다.</div>
+                <div style="margin-top:6px;color:#ffd666">
+                  <i class="ti ti-bulb"></i> 외부 주소 링크는 새 창을 권장합니다.
+                </div>
+              </div>
+            </template>
+            <label class="chk-item"><el-checkbox v-model="bannerForm.linkNewWindow" />새 창</label>
+          </el-tooltip>
+          <label class="chk-item" style="margin-left:16px"><el-checkbox v-model="bannerForm.isActive" />활성화</label>
         </div>
         <div class="dlg-row">
           <div class="dlg-field"><label>시작일</label><el-date-picker v-model="bannerForm.startAt" type="datetime" style="width:100%" /></div>
           <div class="dlg-field"><label>종료일</label><el-date-picker v-model="bannerForm.endAt" type="datetime" style="width:100%" /></div>
         </div>
-        <div class="dlg-checks"><label class="chk-item"><el-checkbox v-model="bannerForm.isActive" />활성화</label></div>
       </div>
       <template #footer>
         <button class="adm-btn ghost" @click="showBannerForm = false">취소</button>
@@ -333,5 +353,19 @@ onMounted(() => { fetchPopups(); fetchBanners() })
   font-size: 13px;
   max-height: 200px;
   overflow: auto;
+}
+
+.field-hint {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--adm-muted);
+  line-height: 1.6;
+}
+.field-hint code {
+  background: var(--adm-bg-subtle, rgba(0,0,0,0.06));
+  border-radius: 3px;
+  padding: 0 3px;
+  font-family: monospace;
+  font-size: 11px;
 }
 </style>
