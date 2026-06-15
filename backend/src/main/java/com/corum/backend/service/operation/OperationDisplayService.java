@@ -1,6 +1,7 @@
 package com.corum.backend.service.operation;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.operation.Banner;
 import com.corum.backend.domain.operation.BannerRepository;
 import com.corum.backend.domain.operation.Popup;
@@ -17,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class OperationDisplayService {
     private final PopupRepository popupRepository;
     private final PopupTargetPageRepository popupTargetPageRepository;
     private final BannerRepository bannerRepository;
+    private final MemberRepository memberRepository;
 
     // ===== 공개 API — 현재 활성 팝업 (기간 유효 + isActive) =====
     @Transactional(readOnly = true)
@@ -41,7 +46,7 @@ public class OperationDisplayService {
                     if (menuId == null) return false;
                     return targets.stream().anyMatch(t -> menuId.equals(t.getTargetMenuId()));
                 })
-                .map(p -> new PopupResponse(p, popupTargetPageRepository.findByPopupId(p.getId())))
+                .map(p -> new PopupResponse(p, popupTargetPageRepository.findByPopupId(p.getId()), null))
                 .toList();
     }
 
@@ -53,14 +58,18 @@ public class OperationDisplayService {
                 .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
                 .filter(b -> b.getStartAt() == null || !b.getStartAt().isAfter(now))
                 .filter(b -> b.getEndAt() == null || !b.getEndAt().isBefore(now))
-                .map(BannerResponse::new)
+                .map(b -> new BannerResponse(b, null))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<PopupResponse> getPopups() {
-        return popupRepository.findAllByOrderByPriorityAscCreatedAtDesc().stream()
-                .map(popup -> new PopupResponse(popup, popupTargetPageRepository.findByPopupId(popup.getId())))
+        List<Popup> popups = popupRepository.findAllByOrderByCreatedAtDesc();
+        Map<Long, String> nameMap = resolveMemberNames(
+                popups.stream().map(Popup::getCreatedBy).collect(Collectors.toSet()));
+        return popups.stream()
+                .map(p -> new PopupResponse(p, popupTargetPageRepository.findByPopupId(p.getId()),
+                        nameMap.get(p.getCreatedBy())))
                 .toList();
     }
 
@@ -81,7 +90,9 @@ public class OperationDisplayService {
                 .createdBy(createdBy)
                 .build());
         savePopupTargets(popup.getId(), request);
-        return new PopupResponse(popup, popupTargetPageRepository.findByPopupId(popup.getId()));
+        String name = popup.getCreatedBy() != null
+                ? memberRepository.findById(popup.getCreatedBy()).map(m -> m.getName()).orElse(null) : null;
+        return new PopupResponse(popup, popupTargetPageRepository.findByPopupId(popup.getId()), name);
     }
 
     @Transactional
@@ -95,7 +106,9 @@ public class OperationDisplayService {
         );
         popupTargetPageRepository.deleteByPopupId(id);
         savePopupTargets(id, request);
-        return new PopupResponse(popup, popupTargetPageRepository.findByPopupId(id));
+        String name = popup.getCreatedBy() != null
+                ? memberRepository.findById(popup.getCreatedBy()).map(m -> m.getName()).orElse(null) : null;
+        return new PopupResponse(popup, popupTargetPageRepository.findByPopupId(id), name);
     }
 
     @Transactional
@@ -108,8 +121,11 @@ public class OperationDisplayService {
 
     @Transactional(readOnly = true)
     public List<BannerResponse> getBanners() {
-        return bannerRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(BannerResponse::new)
+        List<Banner> banners = bannerRepository.findAllByOrderByCreatedAtDesc();
+        Map<Long, String> nameMap = resolveMemberNames(
+                banners.stream().map(Banner::getCreatedBy).collect(Collectors.toSet()));
+        return banners.stream()
+                .map(b -> new BannerResponse(b, nameMap.get(b.getCreatedBy())))
                 .toList();
     }
 
@@ -125,7 +141,9 @@ public class OperationDisplayService {
                 .isActive(request.getIsActive())
                 .createdBy(createdBy)
                 .build());
-        return new BannerResponse(banner);
+        String name = createdBy != null
+                ? memberRepository.findById(createdBy).map(m -> m.getName()).orElse(null) : null;
+        return new BannerResponse(banner, name);
     }
 
     @Transactional
@@ -136,7 +154,9 @@ public class OperationDisplayService {
                 request.getTitle(), request.getContent(), request.getLinkUrl(), request.getLinkNewWindow(),
                 request.getStartAt(), request.getEndAt(), request.getIsActive()
         );
-        return new BannerResponse(banner);
+        String name = banner.getCreatedBy() != null
+                ? memberRepository.findById(banner.getCreatedBy()).map(m -> m.getName()).orElse(null) : null;
+        return new BannerResponse(banner, name);
     }
 
     @Transactional
@@ -144,6 +164,16 @@ public class OperationDisplayService {
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("배너를 찾을 수 없습니다."));
         bannerRepository.delete(banner);
+    }
+
+    private Map<Long, String> resolveMemberNames(Set<Long> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) return Map.of();
+        return memberIds.stream()
+                .filter(id -> id != null)
+                .collect(Collectors.toMap(
+                        id -> id,
+                        id -> memberRepository.findById(id).map(m -> m.getName()).orElse("알 수 없음")
+                ));
     }
 
     private void savePopupTargets(Long popupId, PopupRequest request) {

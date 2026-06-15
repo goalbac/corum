@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface PopupRepository extends JpaRepository<Popup, Long> {
     List<Popup> findAllByOrderByPriorityAscCreatedAtDesc();
+    List<Popup> findAllByOrderByCreatedAtDesc();
 }

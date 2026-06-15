@@ -15,21 +15,25 @@
       <template v-if="tab === 'popups'">
         <div class="at-wrap" v-loading="loading">
           <div class="at-head">
-            <div class="at-col" style="width:100px">유형</div>
+            <div class="at-col" style="width:80px">유형</div>
             <div class="at-col" style="flex:1">제목</div>
-            <div class="at-col" style="width:100px">위치</div>
-            <div class="at-col" style="width:160px">노출 기간</div>
-            <div class="at-col" style="width:70px;text-align:center">상태</div>
+            <div class="at-col" style="width:80px">위치</div>
+            <div class="at-col" style="width:150px">노출 기간</div>
+            <div class="at-col" style="width:70px">등록자</div>
+            <div class="at-col" style="width:90px">등록일</div>
+            <div class="at-col" style="width:60px;text-align:center">상태</div>
             <div class="at-col" style="width:90px;text-align:center">관리</div>
           </div>
           <div v-for="row in popups" :key="row.id" class="at-row">
-            <div class="at-col" style="width:100px">
+            <div class="at-col" style="width:80px">
               <span :class="['adm-badge', row.contentType === 'IMAGE' ? 'badge-primary' : 'badge-purple']">{{ row.contentType === 'IMAGE' ? '이미지' : 'HTML' }}</span>
             </div>
             <div class="at-col bold" style="flex:1">{{ row.title }}</div>
-            <div class="at-col muted" style="width:100px">{{ posLabel(row.position) }}</div>
-            <div class="at-col muted" style="width:160px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
-            <div class="at-col" style="width:70px;text-align:center">
+            <div class="at-col muted" style="width:80px">{{ posLabel(row.position) }}</div>
+            <div class="at-col muted" style="width:150px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
+            <div class="at-col muted" style="width:70px;font-size:12px">{{ row.createdByName || '-' }}</div>
+            <div class="at-col muted" style="width:90px;font-size:12px">{{ fmtDateShort(row.createdAt) }}</div>
+            <div class="at-col" style="width:60px;text-align:center">
               <span :class="['adm-badge', statusBadge(row)]">{{ statusText(row) }}</span>
             </div>
             <div class="at-col at-actions" style="width:90px">
@@ -46,14 +50,18 @@
         <div class="at-wrap" v-loading="loadingBanner">
           <div class="at-head">
             <div class="at-col" style="flex:1">제목</div>
-            <div class="at-col" style="width:160px">노출 기간</div>
-            <div class="at-col" style="width:70px;text-align:center">상태</div>
+            <div class="at-col" style="width:150px">노출 기간</div>
+            <div class="at-col" style="width:70px">등록자</div>
+            <div class="at-col" style="width:90px">등록일</div>
+            <div class="at-col" style="width:60px;text-align:center">상태</div>
             <div class="at-col" style="width:90px;text-align:center">관리</div>
           </div>
           <div v-for="row in banners" :key="row.id" class="at-row">
             <div class="at-col bold" style="flex:1">{{ row.title }}</div>
-            <div class="at-col muted" style="width:160px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
-            <div class="at-col" style="width:70px;text-align:center">
+            <div class="at-col muted" style="width:150px;font-size:12px">{{ fmtDate(row.startAt) }} ~ {{ fmtDate(row.endAt) }}</div>
+            <div class="at-col muted" style="width:70px;font-size:12px">{{ row.createdByName || '-' }}</div>
+            <div class="at-col muted" style="width:90px;font-size:12px">{{ fmtDateShort(row.createdAt) }}</div>
+            <div class="at-col" style="width:60px;text-align:center">
               <span :class="['adm-badge', statusBadge(row)]">{{ statusText(row) }}</span>
             </div>
             <div class="at-col at-actions" style="width:90px">
@@ -305,6 +313,7 @@ function statusBadge(row) {
 }
 function posLabel(p) { return { CENTER: '중앙', LEFT: '왼쪽', RIGHT: '오른쪽' }[p] || p }
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) }
+function fmtDateShort(d) { if (!d) return '-'; const dt = new Date(d); return `${dt.getFullYear().toString().slice(2)}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}` }
 
 watch(tab, (v) => { if (v === 'banners' && !banners.value.length) fetchBanners() })
 onMounted(() => { fetchPopups(); fetchBanners() })

@@ -22,12 +22,13 @@ public class PopupResponse {
     private final LocalDateTime endAt;
     private final Boolean isActive;
     private final Long createdBy;
+    private final String createdByName;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
     private final String targetType;
     private final List<Long> targetMenuIds;
 
-    public PopupResponse(Popup popup, List<PopupTargetPage> targets) {
+    public PopupResponse(Popup popup, List<PopupTargetPage> targets, String createdByName) {
         this.id = popup.getId();
         this.title = popup.getTitle();
         this.contentType = popup.getContentType();
@@ -41,6 +42,7 @@ public class PopupResponse {
         this.endAt = popup.getEndAt();
         this.isActive = popup.getIsActive();
         this.createdBy = popup.getCreatedBy();
+        this.createdByName = createdByName;
         this.createdAt = popup.getCreatedAt();
         this.updatedAt = popup.getUpdatedAt();
         this.targetType = targets.stream().findFirst().map(PopupTargetPage::getTargetType).orElse("ALL");

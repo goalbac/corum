@@ -16,10 +16,11 @@ public class BannerResponse {
     private final LocalDateTime endAt;
     private final Boolean isActive;
     private final Long createdBy;
+    private final String createdByName;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    public BannerResponse(Banner banner) {
+    public BannerResponse(Banner banner, String createdByName) {
         this.id = banner.getId();
         this.title = banner.getTitle();
         this.content = banner.getContent();
@@ -29,6 +30,7 @@ public class BannerResponse {
         this.endAt = banner.getEndAt();
         this.isActive = banner.getIsActive();
         this.createdBy = banner.getCreatedBy();
+        this.createdByName = createdByName;
         this.createdAt = banner.getCreatedAt();
         this.updatedAt = banner.getUpdatedAt();
     }
