@@ -10,6 +10,8 @@ import com.corum.backend.domain.calendar.CalendarRepository;
 import com.corum.backend.domain.content.ContentPage;
 import com.corum.backend.domain.content.ContentPageRepository;
 import com.corum.backend.domain.menu.Menu;
+import com.corum.backend.domain.menu.MenuCalendarTarget;
+import com.corum.backend.domain.menu.MenuCalendarTargetRepository;
 import com.corum.backend.domain.menu.MenuGroupPermission;
 import com.corum.backend.domain.menu.MenuGroupPermissionRepository;
 import com.corum.backend.domain.menu.MenuRepository;
@@ -31,6 +33,7 @@ public class MenuService {
 
     private final MenuRepository menuRepository;
     private final MenuGroupPermissionRepository menuGroupPermissionRepository;
+    private final MenuCalendarTargetRepository menuCalendarTargetRepository;
     private final BoardRepository boardRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final ContentPageRepository contentPageRepository;
@@ -65,7 +68,8 @@ public class MenuService {
         Menu menu = menuRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("메뉴를 찾을 수 없습니다."));
         List<Long> groupIds = getMenuGroupIds(id);
-        return new MenuResponse(menu, groupIds);
+        List<Long> calIds = menuCalendarTargetRepository.findCalendarIdsByMenuId(id);
+        return new MenuResponse(menu, groupIds, calIds);
     }
 
     // ===== 메뉴 생성 =====
@@ -97,16 +101,21 @@ public class MenuService {
         if ("PAGE".equals(request.getMenuType())) {
             if ("BOARD".equals(request.getPageType()) && request.getTargetId() == null) {
                 autoCreateBoard(saved, request.getAllowedGroupIds());
-            } else if ("CALENDAR".equals(request.getPageType()) && request.getTargetId() == null) {
+            } else if ("CALENDAR".equals(request.getPageType()) && request.getTargetId() == null
+                    && (request.getTargetCalendarIds() == null || request.getTargetCalendarIds().isEmpty())) {
                 autoCreateCalendar(saved);
             } else if ("CONTENT".equals(request.getPageType())) {
                 autoCreateContentPage(saved);
             }
         }
 
+        // 다중 캘린더 연결 저장
+        saveCalendarTargets(saved.getId(), request.getTargetCalendarIds());
+
         List<Long> groupIds = request.getAllowedGroupIds() != null
                 ? request.getAllowedGroupIds() : List.of();
-        return new MenuResponse(saved, groupIds);
+        List<Long> calIds = menuCalendarTargetRepository.findCalendarIdsByMenuId(saved.getId());
+        return new MenuResponse(saved, groupIds, calIds);
     }
 
     private void autoCreateBoard(Menu menu, List<Long> allowedGroupIds) {
@@ -178,9 +187,14 @@ public class MenuService {
         menuGroupPermissionRepository.deleteByMenuId(id);
         saveGroupPermissions(id, request.getAllowedGroupIds());
 
+        // 다중 캘린더 연결 재설정
+        menuCalendarTargetRepository.deleteByMenuId(id);
+        saveCalendarTargets(id, request.getTargetCalendarIds());
+
         List<Long> groupIds = request.getAllowedGroupIds() != null
                 ? request.getAllowedGroupIds() : List.of();
-        return new MenuResponse(menu, groupIds);
+        List<Long> calIds = menuCalendarTargetRepository.findCalendarIdsByMenuId(id);
+        return new MenuResponse(menu, groupIds, calIds);
     }
 
     // ===== 메뉴 삭제 =====
@@ -197,6 +211,7 @@ public class MenuService {
         }
 
         menuGroupPermissionRepository.deleteByMenuId(id);
+        menuCalendarTargetRepository.deleteByMenuId(id);
         menuRepository.delete(menu);
     }
 
@@ -232,12 +247,17 @@ public class MenuService {
         // 메뉴별 그룹 권한 일괄 조회
         List<Long> menuIds = menus.stream().map(Menu::getId).collect(Collectors.toList());
         Map<Long, List<Long>> groupPermMap = new HashMap<>();
+        Map<Long, List<Long>> calTargetMap = new HashMap<>();
 
         if (!menuIds.isEmpty()) {
             menuGroupPermissionRepository.findByMenuIdIn(menuIds)
                     .forEach(p -> groupPermMap
                             .computeIfAbsent(p.getMenuId(), k -> new ArrayList<>())
                             .add(p.getGroupId()));
+            menuCalendarTargetRepository.findByMenuIdIn(menuIds)
+                    .forEach(t -> calTargetMap
+                            .computeIfAbsent(t.getMenuId(), k -> new ArrayList<>())
+                            .add(t.getCalendarId()));
         }
 
         Map<Long, Boolean> newPostMap = getNewPostMap(menus);
@@ -248,6 +268,7 @@ public class MenuService {
                         m -> new MenuResponse(
                                 m,
                                 groupPermMap.getOrDefault(m.getId(), List.of()),
+                                calTargetMap.getOrDefault(m.getId(), List.of()),
                                 newPostMap.getOrDefault(m.getId(), false)
                         )
                 ));
@@ -282,6 +303,17 @@ public class MenuService {
 
     private boolean isBoardPage(Menu menu) {
         return "PAGE".equals(menu.getMenuType()) && "BOARD".equals(menu.getPageType());
+    }
+
+    private void saveCalendarTargets(Long menuId, List<Long> calendarIds) {
+        if (calendarIds == null || calendarIds.isEmpty()) return;
+        List<MenuCalendarTarget> targets = calendarIds.stream()
+                .map(calId -> MenuCalendarTarget.builder()
+                        .menuId(menuId)
+                        .calendarId(calId)
+                        .build())
+                .collect(Collectors.toList());
+        menuCalendarTargetRepository.saveAll(targets);
     }
 
     private void saveGroupPermissions(Long menuId, List<Long> groupIds) {

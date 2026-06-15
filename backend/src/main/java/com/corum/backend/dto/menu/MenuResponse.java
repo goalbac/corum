@@ -16,7 +16,8 @@ public class MenuResponse {
     private final String menuType;
     private final String pageType;
     private final Long targetId;
-    private final String url;          // 실제 접근 URL (resolveUrl 결과)
+    private final List<Long> targetCalendarIds;
+    private final String url;
     private final Boolean newWindow;
     private final Integer sortOrder;
     private final Boolean isHidden;
@@ -25,13 +26,17 @@ public class MenuResponse {
     private final Boolean isActive;
     private final List<Long> allowedGroupIds;
     private final List<MenuResponse> children;
-    private final boolean hasNew;      // NEW 뱃지 여부 (추후 구현)
+    private final boolean hasNew;
 
     public MenuResponse(Menu menu, List<Long> allowedGroupIds) {
-        this(menu, allowedGroupIds, false);
+        this(menu, allowedGroupIds, List.of(), false);
     }
 
-    public MenuResponse(Menu menu, List<Long> allowedGroupIds, boolean hasNew) {
+    public MenuResponse(Menu menu, List<Long> allowedGroupIds, List<Long> targetCalendarIds) {
+        this(menu, allowedGroupIds, targetCalendarIds, false);
+    }
+
+    public MenuResponse(Menu menu, List<Long> allowedGroupIds, List<Long> targetCalendarIds, boolean hasNew) {
         this.id = menu.getId();
         this.parentId = menu.getParentId();
         this.name = menu.getName();
@@ -39,6 +44,7 @@ public class MenuResponse {
         this.menuType = menu.getMenuType();
         this.pageType = menu.getPageType();
         this.targetId = menu.getTargetId();
+        this.targetCalendarIds = targetCalendarIds != null ? targetCalendarIds : List.of();
         this.url = menu.resolveUrl();
         this.newWindow = menu.getNewWindow();
         this.sortOrder = menu.getSortOrder();

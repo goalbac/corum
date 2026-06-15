@@ -24,6 +24,9 @@ public class MenuCreateRequest {
 
     private Long targetId;
 
+    // CALENDAR 타입: 다중 캘린더 연결
+    private List<Long> targetCalendarIds;
+
     private String url;
 
     private Boolean urlAuto = true;

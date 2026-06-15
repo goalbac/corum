@@ -158,11 +158,12 @@
         </div>
 
 
-        <!-- 캘린더 선택 -->
+        <!-- 캘린더 선택 (다중) -->
         <el-form-item v-if="parentId && form.menuType === 'PAGE' && form.pageType === 'CALENDAR'" label="연결할 캘린더 (선택)">
-          <el-select v-model="form.targetId" style="width:100%" placeholder="미선택 시 전체 캘린더 표시" clearable>
+          <el-select v-model="form.targetCalendarIds" multiple style="width:100%" placeholder="미선택 시 전체 캘린더 표시" clearable>
             <el-option v-for="c in calendars" :key="c.id" :value="c.id" :label="c.name" />
           </el-select>
+          <div class="field-hint" style="margin-top:4px"><i class="ti ti-info-circle"></i> 선택하지 않으면 열람 권한이 있는 모든 캘린더를 표시합니다.</div>
         </el-form-item>
 
         <!-- 5. URL 설정: 추가 시 자동/직접, 수정 시 현재 URL 표시 -->
@@ -425,6 +426,7 @@ const sortableInstances = []
 
 const defaultForm = () => ({
   name: '', menuType: 'PAGE', pageType: 'BOARD', url: '', targetId: null,
+  targetCalendarIds: [],
   urlAuto: true, newWindow: false, description: '',
   accessType: 'ALL', sortOrder: 0,
   isHidden: false, hideIfNoPermission: true, isActive: true,
@@ -722,7 +724,11 @@ function openCreate(parent) {
 function openEdit(menu) {
   editing.value  = menu
   parentId.value = menu.parentId
-  form.value     = { ...defaultForm(), ...menu, allowedGroupIds: menu.allowedGroupIds || [] }
+  form.value     = {
+    ...defaultForm(), ...menu,
+    allowedGroupIds: menu.allowedGroupIds || [],
+    targetCalendarIds: menu.targetCalendarIds || [],
+  }
   showForm.value = true
 }
 
