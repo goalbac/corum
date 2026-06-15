@@ -1,6 +1,7 @@
 package com.corum.backend.domain.calendar;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -12,6 +13,8 @@ public interface CalendarGroupPermissionRepository extends JpaRepository<Calenda
 
     Optional<CalendarGroupPermission> findByCalendarIdAndGroupId(Long calendarId, Long groupId);
 
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM CalendarGroupPermission p WHERE p.calendarId = :calendarId")
     void deleteByCalendarId(Long calendarId);
 
     // 회원의 그룹 목록으로 특정 캘린더 읽기 가능 여부

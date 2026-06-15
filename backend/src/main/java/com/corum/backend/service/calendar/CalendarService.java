@@ -308,11 +308,14 @@ public class CalendarService {
 
     private void savePermissions(Long calendarId, List<CalendarCreateRequest.PermissionDto> perms) {
         if (perms == null || perms.isEmpty()) return;
-        perms.stream().filter(p -> p.getGroupId() != null).forEach(p -> permissionRepository.save(CalendarGroupPermission.builder()
-                .calendarId(calendarId)
-                .groupId(p.getGroupId())
-                .canRead(p.getCanRead() != null ? p.getCanRead() : true)
-                .canWrite(p.getCanWrite() != null ? p.getCanWrite() : false)
-                .build()));
+        Set<Long> seen = new HashSet<>();
+        perms.stream()
+                .filter(p -> p.getGroupId() != null && seen.add(p.getGroupId()))
+                .forEach(p -> permissionRepository.save(CalendarGroupPermission.builder()
+                        .calendarId(calendarId)
+                        .groupId(p.getGroupId())
+                        .canRead(p.getCanRead() != null ? p.getCanRead() : true)
+                        .canWrite(p.getCanWrite() != null ? p.getCanWrite() : false)
+                        .build()));
     }
 }
