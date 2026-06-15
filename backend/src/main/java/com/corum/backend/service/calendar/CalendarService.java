@@ -2,6 +2,8 @@ package com.corum.backend.service.calendar;
 
 import com.corum.backend.common.BusinessException;
 import com.corum.backend.domain.calendar.*;
+import com.corum.backend.domain.group.Group;
+import com.corum.backend.domain.group.GroupRepository;
 import com.corum.backend.domain.group.MemberGroup;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.dto.calendar.CalendarCreateRequest;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class CalendarService {
     private final CalendarEventRepository calendarEventRepository;
     private final CalendarGroupPermissionRepository permissionRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final GroupRepository groupRepository;
     private final NotificationService notificationService;
 
     // ===== 캘린더 목록 (활성) =====
@@ -42,8 +46,10 @@ public class CalendarService {
     // ===== 관리자용 전체 캘린더 =====
     @Transactional(readOnly = true)
     public List<CalendarResponse> getAllCalendars() {
+        Map<Long, String> groupNames = groupRepository.findAll().stream()
+                .collect(Collectors.toMap(Group::getId, Group::getName));
         return calendarRepository.findAll().stream()
-                .map(c -> new CalendarResponse(c, permissionRepository.findByCalendarId(c.getId())))
+                .map(c -> new CalendarResponse(c, permissionRepository.findByCalendarId(c.getId()), groupNames))
                 .collect(Collectors.toList());
     }
 

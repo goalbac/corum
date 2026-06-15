@@ -53,13 +53,27 @@ public class IcsImportService {
         String icsText = unfold(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)));
         List<Map<String, String>> events = parseVEvents(icsText);
 
+        // 기존 이벤트 키(제목|날짜)로 중복 방지
+        Set<String> seen = new HashSet<>();
+        calendarEventRepository.findByCalendarIdOrderByStartAtAsc(calendarId).forEach(e ->
+                seen.add(e.getTitle() + "|" + e.getStartAt().toLocalDate()));
+
         int imported = 0, skipped = 0;
+        List<CalendarEvent> toSave = new ArrayList<>();
         for (Map<String, String> ev : events) {
             List<CalendarEvent> built = buildEvents(calendarId, ev, yearFrom, yearTo, memberId);
             if (built.isEmpty()) { skipped++; continue; }
-            calendarEventRepository.saveAll(built);
-            imported += built.size();
+            for (CalendarEvent e : built) {
+                String key = e.getTitle() + "|" + e.getStartAt().toLocalDate();
+                if (seen.add(key)) {
+                    toSave.add(e);
+                } else {
+                    skipped++;
+                }
+            }
         }
+        calendarEventRepository.saveAll(toSave);
+        imported = toSave.size();
         return Map.of("imported", imported, "skipped", skipped);
     }
 

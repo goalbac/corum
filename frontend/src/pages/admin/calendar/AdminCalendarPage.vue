@@ -30,7 +30,6 @@
             <span :class="['adm-badge', row.isActive ? 'badge-success' : 'badge-muted']">{{ row.isActive ? '활성' : '비활성' }}</span>
           </div>
           <div class="at-col at-actions" style="width:120px">
-            <button class="act-btn" title="ICS 가져오기" @click="openIcsImport(row)"><i class="ti ti-calendar-import"></i></button>
             <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
             <button class="act-btn danger" @click="deleteCalendar(row.id)"><i class="ti ti-trash"></i></button>
           </div>
@@ -66,7 +65,7 @@
         <div class="dlg-section-title">그룹 권한</div>
         <div v-for="(p, i) in form.permissions" :key="i" class="perm-row">
           <el-select v-model="p.groupId" placeholder="그룹 선택" style="flex:1">
-            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.name" />
+            <el-option v-for="g in flatGroups" :key="g.id" :value="g.id" :label="g.displayName" />
           </el-select>
           <label class="chk-item"><el-checkbox v-model="p.canRead" />읽기</label>
           <label class="chk-item"><el-checkbox v-model="p.canWrite" />쓰기</label>
@@ -219,8 +218,14 @@ const canImport = computed(() => {
 
 const flatGroups = computed(() => {
   const result = []
-  const walk = (nodes) => nodes.forEach(n => { result.push(n); if (n.children?.length) walk(n.children) })
-  walk(groups.value)
+  const walk = (nodes, parentLabel) => nodes.forEach(n => {
+    const label = parentLabel ? `${parentLabel} - ${n.name}` : null
+    if (label) result.push({ ...n, displayName: label })
+    if (n.children?.length) walk(n.children, parentLabel ? label : n.name)
+  })
+  groups.value.forEach(root => {
+    if (root.children?.length) walk(root.children, root.name)
+  })
   return result
 })
 
