@@ -76,7 +76,7 @@ function closeSession(id) {
 .banner-inner {
   display: flex;
   align-items: center;
-  max-width: 1440px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 10px 20px;
   gap: 12px;
