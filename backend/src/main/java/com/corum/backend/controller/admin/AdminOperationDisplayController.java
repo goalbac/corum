@@ -6,6 +6,7 @@ import com.corum.backend.dto.operation.BannerResponse;
 import com.corum.backend.dto.operation.PopupRequest;
 import com.corum.backend.dto.operation.PopupResponse;
 import com.corum.backend.security.CustomUserDetails;
+import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.operation.OperationDisplayService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +19,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,6 +33,14 @@ import java.util.List;
 public class AdminOperationDisplayController {
 
     private final OperationDisplayService operationDisplayService;
+    private final FileStorageService fileStorageService;
+
+    @PostMapping("/popups/image")
+    public ApiResponse<Map<String, String>> uploadPopupImage(
+            @RequestParam("file") MultipartFile file) {
+        String url = fileStorageService.uploadPopupImage(file);
+        return ApiResponse.ok(Map.of("url", url));
+    }
 
     @GetMapping("/popups")
     public ApiResponse<List<PopupResponse>> getPopups() {

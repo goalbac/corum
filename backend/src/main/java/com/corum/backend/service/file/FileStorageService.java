@@ -359,6 +359,38 @@ public class FileStorageService {
         }
     }
 
+    // ===== 팝업 이미지 업로드 (S3 직접 저장, DB 미기록) =====
+    public String uploadPopupImage(MultipartFile file) {
+        String ext = getExtension(file.getOriginalFilename());
+        String storedName = "popup_" + UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
+        String storagePath = "popup/" + storedName;
+        try {
+            s3Client.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .contentType(file.getContentType())
+                    .contentLength(file.getSize())
+                    .build(),
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (IOException e) {
+            throw new BusinessException("팝업 이미지 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return "/api/files/popup/" + storedName;
+    }
+
+    public byte[] downloadPopupImage(String storedName) {
+        String storagePath = "popup/" + storedName;
+        try {
+            return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder().bucket(bucket).key(storagePath).build()
+            ).asByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("팝업 이미지를 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
+        }
+    }
+
     // ===== 프로필 이미지 업로드 (S3 직접 저장, DB 미기록) =====
     public String uploadProfileImage(Long memberId, MultipartFile file) {
         String ext = getExtension(file.getOriginalFilename());

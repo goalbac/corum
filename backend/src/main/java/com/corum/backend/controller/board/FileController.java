@@ -159,6 +159,23 @@ public class FileController {
                 .body(data);
     }
 
+    @GetMapping("/api/files/popup/{storedName}")
+    public ResponseEntity<byte[]> popupImage(@PathVariable String storedName) {
+        byte[] data = fileStorageService.downloadPopupImage(storedName);
+        String ext = storedName.contains(".") ? storedName.substring(storedName.lastIndexOf('.') + 1).toLowerCase() : "jpeg";
+        MediaType mediaType = switch (ext) {
+            case "png" -> MediaType.IMAGE_PNG;
+            case "gif" -> MediaType.IMAGE_GIF;
+            case "webp" -> MediaType.valueOf("image/webp");
+            default -> MediaType.IMAGE_JPEG;
+        };
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS))
+                .contentLength(data.length)
+                .body(data);
+    }
+
     @GetMapping("/api/files/site/{storedName}")
     public ResponseEntity<byte[]> siteAsset(@PathVariable String storedName) {
         byte[] data = fileStorageService.downloadSiteAsset(storedName);

@@ -67,7 +67,7 @@
     </div>
 
     <!-- 팝업 다이얼로그 -->
-    <el-dialog v-model="showPopupForm" :title="editingPopup ? '팝업 수정' : '팝업 추가'" width="520px" destroy-on-close>
+    <el-dialog v-model="showPopupForm" :title="editingPopup ? '팝업 수정' : '팝업 추가'" width="640px" destroy-on-close>
       <div class="dlg-form">
         <div class="dlg-field"><label>제목</label><el-input v-model="popupForm.title" /></div>
         <div class="dlg-row">
@@ -84,8 +84,57 @@
             </el-select>
           </div>
         </div>
-        <div class="dlg-field" v-if="popupForm.contentType === 'IMAGE'"><label>이미지 URL</label><el-input v-model="popupForm.imageUrl" /></div>
-        <div class="dlg-field" v-else><label>HTML 내용</label><el-input v-model="popupForm.content" type="textarea" :rows="4" resize="none" /></div>
+
+        <!-- 이미지 유형 -->
+        <template v-if="popupForm.contentType === 'IMAGE'">
+          <div class="dlg-field">
+            <label>이미지</label>
+            <div class="img-upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="onImageDrop">
+              <template v-if="popupForm.imageUrl">
+                <img :src="popupForm.imageUrl" class="img-preview" />
+                <div class="img-overlay">
+                  <span><i class="ti ti-refresh"></i> 변경</span>
+                </div>
+              </template>
+              <template v-else>
+                <i class="ti ti-photo-up" style="font-size:32px;color:var(--adm-muted)"></i>
+                <span style="margin-top:8px;color:var(--adm-muted);font-size:13px">클릭하거나 이미지를 드래그하세요</span>
+                <span style="font-size:11px;color:var(--adm-muted);margin-top:4px">JPG, PNG, GIF, WEBP 지원</span>
+              </template>
+              <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onImageSelect" />
+            </div>
+            <div v-if="uploading" style="margin-top:6px;font-size:12px;color:var(--adm-muted)"><i class="ti ti-loader-2 spinning"></i> 업로드 중...</div>
+          </div>
+          <!-- 미리보기 패널 -->
+          <div v-if="popupForm.imageUrl" class="popup-preview-wrap">
+            <div class="popup-preview-label">미리보기</div>
+            <div class="popup-preview-box">
+              <div class="popup-preview-popup">
+                <div class="popup-preview-header">팝업</div>
+                <img :src="popupForm.imageUrl" style="max-width:100%;display:block" />
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- HTML 유형 -->
+        <template v-else>
+          <div class="dlg-field">
+            <label>HTML 내용</label>
+            <el-input v-model="popupForm.content" type="textarea" :rows="5" resize="none" placeholder="<div>팝업 HTML 내용</div>" />
+          </div>
+          <!-- HTML 미리보기 -->
+          <div v-if="popupForm.content" class="popup-preview-wrap">
+            <div class="popup-preview-label">미리보기</div>
+            <div class="popup-preview-box">
+              <div class="popup-preview-popup">
+                <div class="popup-preview-header">팝업</div>
+                <div class="popup-preview-html" v-html="popupForm.content"></div>
+              </div>
+            </div>
+          </div>
+        </template>
+
         <div class="dlg-row">
           <div class="dlg-field"><label>링크 URL</label><el-input v-model="popupForm.linkUrl" /></div>
           <div class="dlg-field" style="flex-direction:row;align-items:flex-end;padding-bottom:4px">
@@ -105,7 +154,7 @@
       </div>
       <template #footer>
         <button class="adm-btn ghost" @click="showPopupForm = false">취소</button>
-        <button class="adm-btn primary" :disabled="saving" @click="savePopup">
+        <button class="adm-btn primary" :disabled="saving || uploading" @click="savePopup">
           <i v-if="saving" class="ti ti-loader-2 spinning"></i>{{ saving ? '저장 중...' : '저장' }}
         </button>
       </template>
@@ -147,12 +196,36 @@ import api from '@/api/axios'
 const tab = ref('popups')
 const popups = ref([]); const banners = ref([])
 const loading = ref(false); const loadingBanner = ref(false); const saving = ref(false)
+const uploading = ref(false)
 const showPopupForm = ref(false); const showBannerForm = ref(false)
 const editingPopup = ref(null); const editingBanner = ref(null)
+const fileInputRef = ref(null)
 
-const defaultPopup = () => ({ title: '', contentType: 'IMAGE', imageUrl: '', content: '', linkUrl: '', linkNewWindow: false, position: 'CENTER', priority: 0, startAt: null, endAt: null, isActive: true })
+const defaultPopup = () => ({ title: '', contentType: 'IMAGE', imageUrl: '', content: '', linkUrl: '', linkNewWindow: false, position: 'CENTER', priority: 0, startAt: null, endAt: null, isActive: true, targetType: 'ALL', targetMenuIds: [] })
 const defaultBanner = () => ({ title: '', content: '', linkUrl: '', linkNewWindow: false, startAt: null, endAt: null, isActive: true })
 const popupForm = ref(defaultPopup()); const bannerForm = ref(defaultBanner())
+
+function triggerFileInput() { fileInputRef.value?.click() }
+
+async function uploadImageFile(file) {
+  if (!file) return
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+  if (!allowed.includes(file.type)) { ElMessage.error('이미지 파일만 업로드할 수 있습니다.'); return }
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const r = await api.post('/admin/display/popups/image', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    popupForm.value.imageUrl = r.data.data.url
+  } catch {
+    ElMessage.error('이미지 업로드에 실패했습니다.')
+  } finally {
+    uploading.value = false
+  }
+}
+
+function onImageSelect(e) { uploadImageFile(e.target.files[0]); e.target.value = '' }
+function onImageDrop(e) { uploadImageFile(e.dataTransfer.files[0]) }
 
 async function fetchPopups() { loading.value = true; try { const r = await api.get('/admin/display/popups'); popups.value = r.data.data || [] } finally { loading.value = false } }
 async function fetchBanners() { loadingBanner.value = true; try { const r = await api.get('/admin/display/banners'); banners.value = r.data.data || [] } finally { loadingBanner.value = false } }
@@ -199,4 +272,66 @@ onMounted(() => { fetchPopups(); fetchBanners() })
 
 <style scoped>
 @import '@/assets/admin-table.css';
+
+.img-upload-area {
+  position: relative;
+  border: 2px dashed var(--adm-border);
+  border-radius: 8px;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.img-upload-area:hover { border-color: var(--adm-primary); }
+.img-preview { width: 100%; max-height: 240px; object-fit: contain; display: block; }
+.img-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: #fff;
+  font-size: 14px;
+  gap: 6px;
+}
+.img-upload-area:hover .img-overlay { opacity: 1; }
+
+.popup-preview-wrap { margin-top: 12px; }
+.popup-preview-label { font-size: 12px; color: var(--adm-muted); margin-bottom: 6px; }
+.popup-preview-box {
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+.popup-preview-popup {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  overflow: hidden;
+  max-width: 320px;
+  width: 100%;
+}
+.popup-preview-header {
+  background: var(--adm-primary, #409eff);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.popup-preview-html {
+  padding: 10px;
+  font-size: 13px;
+  max-height: 200px;
+  overflow: auto;
+}
 </style>
