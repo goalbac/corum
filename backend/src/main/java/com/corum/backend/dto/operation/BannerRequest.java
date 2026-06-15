@@ -20,4 +20,5 @@ public class BannerRequest {
     private LocalDateTime endAt;
     @NotNull(message = "활성 여부를 선택해주세요.")
     private Boolean isActive = true;
+    private String bgColor;
 }

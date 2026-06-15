@@ -139,6 +139,7 @@ public class OperationDisplayService {
                 .startAt(request.getStartAt())
                 .endAt(request.getEndAt())
                 .isActive(request.getIsActive())
+                .bgColor(request.getBgColor())
                 .createdBy(createdBy)
                 .build());
         String name = createdBy != null
@@ -152,7 +153,7 @@ public class OperationDisplayService {
                 .orElseThrow(() -> BusinessException.notFound("배너를 찾을 수 없습니다."));
         banner.update(
                 request.getTitle(), request.getContent(), request.getLinkUrl(), request.getLinkNewWindow(),
-                request.getStartAt(), request.getEndAt(), request.getIsActive()
+                request.getStartAt(), request.getEndAt(), request.getIsActive(), request.getBgColor()
         );
         String name = banner.getCreatedBy() != null
                 ? memberRepository.findById(banner.getCreatedBy()).map(m -> m.getName()).orElse(null) : null;

@@ -16,7 +16,7 @@
         <div class="at-wrap" v-loading="loading">
           <div class="at-head">
             <div class="at-col" style="width:80px">유형</div>
-            <div class="at-col" style="flex:1">제목</div>
+            <div class="at-col" style="flex:1">이름</div>
             <div class="at-col" style="width:80px">위치</div>
             <div class="at-col" style="width:150px">노출 기간</div>
             <div class="at-col" style="width:70px">등록자</div>
@@ -49,7 +49,7 @@
       <template v-if="tab === 'banners'">
         <div class="at-wrap" v-loading="loadingBanner">
           <div class="at-head">
-            <div class="at-col" style="flex:1">제목</div>
+            <div class="at-col" style="flex:1">이름</div>
             <div class="at-col" style="width:150px">노출 기간</div>
             <div class="at-col" style="width:70px">등록자</div>
             <div class="at-col" style="width:90px">등록일</div>
@@ -77,7 +77,11 @@
     <!-- 팝업 다이얼로그 -->
     <el-dialog v-model="showPopupForm" :title="editingPopup ? '팝업 수정' : '팝업 추가'" width="640px" destroy-on-close>
       <div class="dlg-form">
-        <div class="dlg-field"><label>제목</label><el-input v-model="popupForm.title" /></div>
+        <div class="dlg-field">
+          <label>팝업 이름</label>
+          <el-input v-model="popupForm.title" />
+          <div class="field-hint"><i class="ti ti-eye-off"></i> 팝업에는 표시되지 않는 관리용 이름입니다.</div>
+        </div>
         <div class="dlg-row">
           <div class="dlg-field">
             <label>콘텐츠 유형</label>
@@ -113,13 +117,18 @@
             </div>
             <div v-if="uploading" style="margin-top:6px;font-size:12px;color:var(--adm-muted)"><i class="ti ti-loader-2 spinning"></i> 업로드 중...</div>
           </div>
+          <div class="dlg-field">
+            <label>본문 <span class="optional-label">(선택)</span></label>
+            <el-input v-model="popupForm.content" type="textarea" :rows="3" resize="none" placeholder="이미지 아래에 표시할 텍스트 (입력하지 않으면 이미지만 표시됩니다)" />
+          </div>
           <!-- 미리보기 패널 -->
-          <div v-if="popupForm.imageUrl" class="popup-preview-wrap">
+          <div v-if="popupForm.imageUrl || popupForm.content" class="popup-preview-wrap">
             <div class="popup-preview-label">미리보기</div>
             <div class="popup-preview-box">
               <div class="popup-preview-popup">
                 <div class="popup-preview-header">팝업</div>
-                <img :src="popupForm.imageUrl" style="max-width:100%;display:block" />
+                <img v-if="popupForm.imageUrl" :src="popupForm.imageUrl" style="max-width:100%;display:block" />
+                <div v-if="popupForm.content" class="popup-preview-body">{{ popupForm.content }}</div>
               </div>
             </div>
           </div>
@@ -189,10 +198,38 @@
     </el-dialog>
 
     <!-- 배너 다이얼로그 -->
-    <el-dialog v-model="showBannerForm" :title="editingBanner ? '배너 수정' : '배너 추가'" width="480px" destroy-on-close>
+    <el-dialog v-model="showBannerForm" :title="editingBanner ? '배너 수정' : '배너 추가'" width="540px" destroy-on-close>
       <div class="dlg-form">
-        <div class="dlg-field"><label>제목</label><el-input v-model="bannerForm.title" /></div>
+        <div class="dlg-field">
+          <label>배너 이름</label>
+          <el-input v-model="bannerForm.title" />
+          <div class="field-hint"><i class="ti ti-eye-off"></i> 배너에는 표시되지 않는 관리용 이름입니다.</div>
+        </div>
         <div class="dlg-field"><label>내용</label><el-input v-model="bannerForm.content" type="textarea" :rows="3" resize="none" /></div>
+        <div class="dlg-field">
+          <label>배경 색상</label>
+          <div class="color-picker-row">
+            <el-color-picker v-model="bannerForm.bgColor" show-alpha :predefine="bgPresets" />
+            <span class="color-value">{{ bannerForm.bgColor || '기본값' }}</span>
+            <button v-if="bannerForm.bgColor" class="color-clear-btn" @click="bannerForm.bgColor = null">
+              <i class="ti ti-x"></i> 초기화
+            </button>
+          </div>
+        </div>
+        <!-- 배너 미리보기 -->
+        <div class="banner-preview-wrap">
+          <div class="popup-preview-label">미리보기</div>
+          <div
+            class="banner-preview"
+            :style="{ background: bannerForm.bgColor || 'var(--accent)', color: '#fff' }"
+          >
+            <span v-if="bannerForm.content">{{ bannerForm.content }}</span>
+            <span v-else class="banner-preview-placeholder">배너 내용이 여기에 표시됩니다</span>
+            <span v-if="bannerForm.linkUrl" class="banner-preview-link">
+              <i class="ti ti-external-link"></i>
+            </span>
+          </div>
+        </div>
         <div class="dlg-field">
           <label>링크 URL</label>
           <el-input v-model="bannerForm.linkUrl" placeholder="예) /menu/46/posts/92 또는 https://example.com" />
@@ -249,8 +286,10 @@ const showPopupForm = ref(false); const showBannerForm = ref(false)
 const editingPopup = ref(null); const editingBanner = ref(null)
 const fileInputRef = ref(null)
 
+const bgPresets = ['#1e40af', '#0f766e', '#7c3aed', '#b91c1c', '#b45309', '#374151', '#111827']
+
 const defaultPopup = () => ({ title: '', contentType: 'IMAGE', imageUrl: '', content: '', linkUrl: '', linkNewWindow: false, position: 'CENTER', priority: 0, startAt: null, endAt: null, isActive: true, targetType: 'ALL', targetMenuIds: [] })
-const defaultBanner = () => ({ title: '', content: '', linkUrl: '', linkNewWindow: false, startAt: null, endAt: null, isActive: true })
+const defaultBanner = () => ({ title: '', content: '', linkUrl: '', linkNewWindow: false, startAt: null, endAt: null, isActive: true, bgColor: null })
 const popupForm = ref(defaultPopup()); const bannerForm = ref(defaultBanner())
 
 function triggerFileInput() { fileInputRef.value?.click() }
@@ -352,6 +391,13 @@ onMounted(() => { fetchPopups(); fetchBanners() })
 }
 .img-upload-area:hover .img-overlay { opacity: 1; }
 
+.optional-label {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--adm-muted);
+  margin-left: 4px;
+}
+
 .popup-preview-wrap { margin-top: 12px; }
 .popup-preview-label { font-size: 12px; color: var(--adm-muted); margin-bottom: 6px; }
 .popup-preview-box {
@@ -383,6 +429,58 @@ onMounted(() => { fetchPopups(); fetchBanners() })
   max-height: 200px;
   overflow: auto;
 }
+.popup-preview-body {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 배너 미리보기 */
+.banner-preview-wrap { margin-bottom: 12px; }
+.banner-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 40px;
+  text-align: center;
+  transition: background 0.2s;
+}
+.banner-preview-placeholder { opacity: 0.55; font-weight: 400; font-style: italic; }
+.banner-preview-link { font-size: 14px; opacity: 0.8; }
+
+/* 색상 선택 */
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.color-value {
+  font-size: 12px;
+  color: var(--adm-muted);
+  font-family: monospace;
+}
+.color-clear-btn {
+  font-size: 12px;
+  color: var(--adm-muted);
+  background: none;
+  border: 1px solid var(--adm-border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.color-clear-btn:hover { color: var(--adm-danger, #ef4444); border-color: var(--adm-danger, #ef4444); }
 
 .field-hint {
   margin-top: 5px;

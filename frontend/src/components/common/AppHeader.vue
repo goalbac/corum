@@ -920,6 +920,7 @@ async function handleLogout() {
   .top-nav { display: none; }
   .tp-btn { padding: 6px 8px; }
   .user-name { display: none; }
+  .user-arrow { display: none; }
   .logo { margin-right: auto; }
   .header-right { gap: 6px; }
 }
