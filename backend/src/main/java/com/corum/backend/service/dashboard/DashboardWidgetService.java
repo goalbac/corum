@@ -367,9 +367,9 @@ public class DashboardWidgetService {
                 .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
         List<Long> calIds = calendarList.stream().map(CalendarEntity::getId).toList();
 
-        return calendarEventRepository.findByPeriod(calIds, weekStart, weekEnd)
+        return calendarService.getEvents(weekStart, weekEnd, memberId, calIds)
                 .stream()
-                .map(e -> new DashboardCalendarEventResponse(e, calMap.get(e.getCalendarId())))
+                .map(dto -> new DashboardCalendarEventResponse(dto, calMap.get(dto.getCalendarId())))
                 .toList();
     }
 

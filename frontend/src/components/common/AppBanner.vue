@@ -1,9 +1,10 @@
 <template>
   <div v-if="visibleBanners.length" class="app-banners">
     <transition-group name="banner-slide" tag="div">
-      <div v-for="banner in visibleBanners" :key="banner.id" class="app-banner">
+      <div v-for="banner in visibleBanners" :key="banner.id" class="app-banner"
+        :style="banner.bgColor ? { background: banner.bgColor } : {}">
         <div class="banner-inner">
-          <div class="banner-content">
+          <div class="banner-content" :style="{ textAlign: banner.textAlign || 'left' }">
             <a
               v-if="banner.linkUrl"
               :href="banner.linkUrl"

@@ -2,6 +2,7 @@ package com.corum.backend.dto.dashboard;
 
 import com.corum.backend.domain.calendar.CalendarEntity;
 import com.corum.backend.domain.calendar.CalendarEvent;
+import com.corum.backend.dto.calendar.CalendarEventDto;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,18 @@ public class DashboardCalendarEventResponse {
         this.endAt         = event.getEndAt();
         this.isAllDay      = event.getIsAllDay();
         this.calendarId    = event.getCalendarId();
+        this.calendarName  = calendar != null ? calendar.getName()  : null;
+        this.calendarColor = calendar != null ? calendar.getColor() : null;
+    }
+
+    public DashboardCalendarEventResponse(CalendarEventDto dto, CalendarEntity calendar) {
+        this.id            = dto.getId();
+        this.title         = dto.getTitle();
+        this.location      = dto.getLocation();
+        this.startAt       = dto.getStartAt();
+        this.endAt         = dto.getEndAt();
+        this.isAllDay      = dto.getIsAllDay();
+        this.calendarId    = dto.getCalendarId();
         this.calendarName  = calendar != null ? calendar.getName()  : null;
         this.calendarColor = calendar != null ? calendar.getColor() : null;
     }

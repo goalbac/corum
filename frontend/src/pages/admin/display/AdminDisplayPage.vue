@@ -216,12 +216,20 @@
             </button>
           </div>
         </div>
+        <div class="dlg-field">
+          <label>텍스트 정렬</label>
+          <el-radio-group v-model="bannerForm.textAlign">
+            <el-radio-button value="left"><i class="ti ti-align-left"></i></el-radio-button>
+            <el-radio-button value="center"><i class="ti ti-align-center"></i></el-radio-button>
+            <el-radio-button value="right"><i class="ti ti-align-right"></i></el-radio-button>
+          </el-radio-group>
+        </div>
         <!-- 배너 미리보기 -->
         <div class="banner-preview-wrap">
           <div class="popup-preview-label">미리보기</div>
           <div
             class="banner-preview"
-            :style="{ background: bannerForm.bgColor || 'var(--accent)', color: '#fff' }"
+            :style="{ background: bannerForm.bgColor || 'var(--accent)', color: '#fff', textAlign: bannerForm.textAlign || 'left' }"
           >
             <span v-if="bannerForm.content">{{ bannerForm.content }}</span>
             <span v-else class="banner-preview-placeholder">배너 내용이 여기에 표시됩니다</span>
@@ -289,7 +297,7 @@ const fileInputRef = ref(null)
 const bgPresets = ['#1e40af', '#0f766e', '#7c3aed', '#b91c1c', '#b45309', '#374151', '#111827']
 
 const defaultPopup = () => ({ title: '', contentType: 'IMAGE', imageUrl: '', content: '', linkUrl: '', linkNewWindow: false, position: 'CENTER', priority: 0, startAt: null, endAt: null, isActive: true, targetType: 'ALL', targetMenuIds: [] })
-const defaultBanner = () => ({ title: '', content: '', linkUrl: '', linkNewWindow: false, startAt: null, endAt: null, isActive: true, bgColor: null })
+const defaultBanner = () => ({ title: '', content: '', linkUrl: '', linkNewWindow: false, startAt: null, endAt: null, isActive: true, bgColor: null, textAlign: 'left' })
 const popupForm = ref(defaultPopup()); const bannerForm = ref(defaultBanner())
 
 function triggerFileInput() { fileInputRef.value?.click() }
@@ -441,16 +449,13 @@ onMounted(() => { fetchPopups(); fetchBanners() })
 /* 배너 미리보기 */
 .banner-preview-wrap { margin-bottom: 12px; }
 .banner-preview {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: block;
   padding: 10px 20px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
   min-height: 40px;
-  text-align: center;
+  line-height: 2;
   transition: background 0.2s;
 }
 .banner-preview-placeholder { opacity: 0.55; font-weight: 400; font-style: italic; }

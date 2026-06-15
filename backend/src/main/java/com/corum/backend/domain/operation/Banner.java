@@ -51,11 +51,14 @@ public class Banner extends BaseEntity {
     @Column(name = "bg_color", length = 30)
     private String bgColor;
 
+    @Column(name = "text_align", length = 10)
+    private String textAlign;
+
     @Column(name = "created_by")
     private Long createdBy;
 
     public void update(String title, String content, String linkUrl, Boolean linkNewWindow,
-                       LocalDateTime startAt, LocalDateTime endAt, Boolean isActive, String bgColor) {
+                       LocalDateTime startAt, LocalDateTime endAt, Boolean isActive, String bgColor, String textAlign) {
         this.title = title;
         this.content = content;
         this.linkUrl = linkUrl;
@@ -64,5 +67,6 @@ public class Banner extends BaseEntity {
         this.endAt = endAt;
         this.isActive = isActive;
         this.bgColor = bgColor;
+        this.textAlign = textAlign;
     }
 }

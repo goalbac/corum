@@ -16,6 +16,7 @@ public class BannerResponse {
     private final LocalDateTime endAt;
     private final Boolean isActive;
     private final String bgColor;
+    private final String textAlign;
     private final Long createdBy;
     private final String createdByName;
     private final LocalDateTime createdAt;
@@ -31,6 +32,7 @@ public class BannerResponse {
         this.endAt = banner.getEndAt();
         this.isActive = banner.getIsActive();
         this.bgColor = banner.getBgColor();
+        this.textAlign = banner.getTextAlign();
         this.createdBy = banner.getCreatedBy();
         this.createdByName = createdByName;
         this.createdAt = banner.getCreatedAt();
