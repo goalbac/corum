@@ -108,13 +108,15 @@ function handleClick() {
 .new-badge {
   flex-shrink: 0;
   font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: #fff;
-  background: var(--color-danger);
-  border-radius: 4px;
-  padding: 1px 4px;
-  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: 3px;
+  padding: 0px 4px;
+  line-height: 1.5;
+  opacity: 0.85;
 }
 
 .expand-icon {

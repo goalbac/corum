@@ -612,12 +612,14 @@ onMounted(async () => {
 /* ===== 공통 배지 ===== */
 .new-badge {
   font-size: 10px;
-  background: var(--new);
-  color: #fff;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
   border-radius: 3px;
-  padding: 1px 4px;
+  padding: 0px 4px;
   font-weight: 700;
   flex-shrink: 0;
+  opacity: 0.85;
 }
 
 /* ===== 테이블 뷰 ===== */
@@ -1108,7 +1110,7 @@ onMounted(async () => {
 }
 
 .lv-tag-notice { background: var(--accent); color: #fff; }
-.lv-tag-new    { background: var(--new); color: #fff; }
+.lv-tag-new    { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent); opacity: 0.85; }
 
 .lv-title {
   margin: 0;
