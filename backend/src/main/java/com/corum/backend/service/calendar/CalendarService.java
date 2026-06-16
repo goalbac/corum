@@ -66,7 +66,7 @@ public class CalendarService {
 
     // ===== 읽기 가능한 캘린더 ID 목록 =====
     public List<Long> getReadableCalendarIds(Long memberId) {
-        List<Long> allActive = calendarRepository.findByIsActiveTrueOrderByIdAsc()
+        List<Long> allActive = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc()
                 .stream().map(CalendarEntity::getId).collect(Collectors.toList());
 
         if (memberId == null) {

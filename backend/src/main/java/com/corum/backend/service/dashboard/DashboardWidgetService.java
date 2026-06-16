@@ -357,7 +357,7 @@ public class DashboardWidgetService {
                     .map(List::of).orElse(List.of());
         } else {
             // 전체 캘린더: 읽기 권한 있는 것만
-            calendarList = calendarRepository.findByIsActiveTrueOrderByIdAsc().stream()
+            calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
                     .filter(c -> readableIds.contains(c.getId()))
                     .collect(Collectors.toList());
         }
