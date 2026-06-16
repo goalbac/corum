@@ -12,6 +12,12 @@
           <span class="cal-title">{{ currentTitle }}</span>
         </div>
         <div class="cal-right">
+          <!-- 대한민국의 휴일 표시 토글 (항상 표시) -->
+          <label v-if="hasHolidayCalendar" class="cal-hol-toggle">
+            <input type="checkbox" v-model="showHolidayCalendar" @change="calApi?.refetchEvents()" />
+            <span class="cal-dot" :style="{ background: holidayCalendarColor }"></span>
+            <span>공휴일</span>
+          </label>
           <!-- 캘린더 선택 드롭다운 (단일 캘린더 메뉴에서는 숨김) -->
           <div v-if="!isSingleCalendar" class="cal-filter-wrap" ref="filterWrap">
             <button class="cal-btn" @click="showFilter = !showFilter">
@@ -26,12 +32,6 @@
                 <input type="checkbox" :checked="visibleCalendars.has(cal.id)" @change="toggleCalendar(cal.id)" />
                 <span class="cal-dot" :style="{ background: cal.color || '#2563EB' }"></span>
                 <span class="cal-check-name">{{ cal.name }}</span>
-              </label>
-              <div class="filter-divider"></div>
-              <label class="cal-check-item">
-                <input type="checkbox" v-model="showHolidayCalendar" @change="calApi?.refetchEvents()" />
-                <span class="cal-dot" :style="{ background: holidayCalendarColor }"></span>
-                <span class="cal-check-name">대한민국의 휴일</span>
               </label>
               <div class="filter-actions">
                 <button class="filter-link" @click="selectAll">전체 선택</button>
@@ -221,6 +221,7 @@ const selectedEventCalName = computed(() => {
 const normalCalendars = computed(() => calendars.value.filter(c => c.calendarType !== 'HOLIDAY'))
 // HOLIDAY 캘린더 색상
 const holidayCalendarColor = computed(() => calendars.value.find(c => c.calendarType === 'HOLIDAY')?.color || '#dc2626')
+const hasHolidayCalendar = computed(() => calendars.value.some(c => c.calendarType === 'HOLIDAY'))
 
 // 메뉴에 캘린더가 고정된 경우 (필터 UI 숨김)
 const isSingleCalendar = computed(() => {
@@ -309,7 +310,7 @@ const calOptions = computed(() => {
       // 공휴일명 왼쪽
       if (holiday?.name) {
         const hol = document.createElement('span')
-        hol.className = 'fc-day-hol' + (holiday.isHoliday ? ' red' : '')
+        hol.className = 'fc-day-hol' + (isSat ? ' sat' : isRed ? ' red' : '')
         hol.textContent = holiday.name
         wrap.appendChild(hol)
       }
@@ -655,6 +656,23 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .cal-btn.primary:hover { opacity: 0.88; }
 
+.cal-hol-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 0.5px solid var(--border);
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  color: var(--t2);
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+.cal-hol-toggle:hover { color: var(--t1); background: var(--surface); }
+.cal-hol-toggle input { accent-color: var(--accent); cursor: pointer; }
+
 .cal-title { font-size: 15px; font-weight: 700; color: var(--t1); margin-left: 4px; }
 .view-btns { display: flex; gap: 2px; }
 
@@ -707,11 +725,11 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   flex-shrink: 0;
   margin-left: auto;
 }
-.cal-wrap :deep(.fc-day-num.sat) { color: #4a7ecb; }
-.cal-wrap :deep(.fc-day-num.red) { color: #c44040; }
+.cal-wrap :deep(.fc-day-num.sat) { color: #2563eb; }
+.cal-wrap :deep(.fc-day-num.red) { color: #dc2626; }
 .cal-wrap :deep(.fc-day-hol) {
   font-size: 11px;
-  color: #9a8080;
+  color: rgba(100, 100, 100, 0.63);
   font-weight: 500;
   letter-spacing: -0.4px;
   white-space: nowrap;
@@ -720,11 +738,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   flex: 1;
   text-align: left;
 }
-.cal-wrap :deep(.fc-day-hol.red) {
-  color: #ac5050;
-  font-weight: 600;
-  letter-spacing: -0.4px;
-}
+.cal-wrap :deep(.fc-day-hol.sat) { color: rgba(37, 99, 235, 0.63); }
+.cal-wrap :deep(.fc-day-hol.red) { color: rgba(220, 38, 38, 0.63); font-weight: 600; }
 .cal-wrap :deep(.fc-daygrid-day-number:hover) { color: var(--accent); }
 .cal-wrap :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
 .cal-wrap :deep(.fc-toolbar) { display: none; }
