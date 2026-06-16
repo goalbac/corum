@@ -678,28 +678,40 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-day-sat.fc-col-header-cell a) { color: #2563eb !important; }
 .cal-wrap :deep(.fc-day-sun.fc-col-header-cell a) { color: #dc2626 !important; }
 
-/* 커스텀 날짜 셀 */
+/* FullCalendar 날짜 셀 헤더: float 제거 후 flex로 전체 너비 활용 */
+.cal-wrap :deep(.fc-daygrid-day-top) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+.cal-wrap :deep(.fc-daygrid-day-number) {
+  float: none !important;
+  display: flex !important;
+  flex: 1 !important;
+  width: 100% !important;
+  padding: 2px 4px !important;
+  box-sizing: border-box !important;
+}
+
+/* 커스텀 날짜 셀 내부 */
 .cal-wrap :deep(.fc-day-custom) {
   display: flex;
   align-items: center;
-  direction: ltr;
   width: 100%;
-  padding: 2px 4px;
-  min-height: 22px;
-  box-sizing: border-box;
 }
 .cal-wrap :deep(.fc-day-num) {
   font-size: 13px;
   color: var(--t2);
   line-height: 1.4;
   flex-shrink: 0;
-  margin-left: auto;  /* 항상 오른쪽 끝으로 */
+  margin-left: auto;
 }
 .cal-wrap :deep(.fc-day-num.sat) { color: #4a7ecb; }
 .cal-wrap :deep(.fc-day-num.red) { color: #c44040; }
 .cal-wrap :deep(.fc-day-hol) {
   font-size: 11px;
-  color: #9a8080;         /* 채도 낮은 중립 톤 */
+  color: #9a8080;
   font-weight: 500;
   letter-spacing: -0.4px;
   white-space: nowrap;
@@ -709,7 +721,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   text-align: left;
 }
 .cal-wrap :deep(.fc-day-hol.red) {
-  color: #ac5050;         /* 채도 낮은 빨강 — 날짜 숫자보다 흐리게 */
+  color: #ac5050;
   font-weight: 600;
   letter-spacing: -0.4px;
 }
