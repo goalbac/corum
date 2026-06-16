@@ -740,6 +740,8 @@ async function saveMenu() {
       ...form.value,
       parentId: parentId.value,
       allowedGroupIds: form.value.accessType === 'GROUP' ? form.value.allowedGroupIds : [],
+      // CALENDAR 페이지는 targetCalendarIds를 사용하므로 targetId를 명시적으로 null 처리
+      targetId: form.value.pageType === 'CALENDAR' ? null : form.value.targetId,
     }
     if (editing.value) {
       await api.put(`/menus/${editing.value.id}`, payload)
