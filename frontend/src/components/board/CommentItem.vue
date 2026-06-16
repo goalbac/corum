@@ -348,7 +348,7 @@ function formatDate(dateStr) {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--t1);
   resize: none;
