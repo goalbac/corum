@@ -393,7 +393,12 @@ async function fetchEvents(info, successCallback, failureCallback) {
         id: String(e.id),
         title: e.title,
         start: e.startAt,
-        end: e.endAt,
+        // FullCalendar은 all-day end를 exclusive로 처리하므로 하루 추가
+        end: e.isAllDay && e.endAt ? (() => {
+          const d = new Date(e.endAt)
+          d.setDate(d.getDate() + 1)
+          return d.toISOString().slice(0, 10)
+        })() : e.endAt,
         allDay: e.isAllDay,
         backgroundColor: cal?.color || '#2563EB',
         borderColor: cal?.color || '#2563EB',
