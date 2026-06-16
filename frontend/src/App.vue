@@ -7,7 +7,7 @@
       :until="maintenance.until"
     />
     <template v-else>
-      <AppPopup />
+      <AppPopup v-if="!route.path.startsWith('/login') && !route.path.startsWith('/register')" />
       <router-view />
     </template>
   </div>
