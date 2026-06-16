@@ -77,4 +77,12 @@ public class MenuController {
         menuService.updateSortOrder(menuIds);
         return ApiResponse.ok("순서가 변경되었습니다.");
     }
+
+    // 메뉴 트리 재정렬 (부모 변경 포함)
+    @PutMapping("/reorder")
+    public ApiResponse<Void> reorder(
+            @RequestBody List<com.corum.backend.dto.menu.MenuReorderItem> items) {
+        menuService.reorder(items);
+        return ApiResponse.ok("순서가 변경되었습니다.");
+    }
 }

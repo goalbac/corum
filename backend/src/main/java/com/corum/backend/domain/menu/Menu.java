@@ -104,6 +104,11 @@ public class Menu extends BaseEntity {
         return url;
     }
 
+    public void move(Long newParentId, int newSortOrder) {
+        this.parentId = newParentId;
+        this.sortOrder = newSortOrder;
+    }
+
     public boolean isGroupType() { return "GROUP".equals(menuType); }
     public boolean isLinkType()  { return "LINK".equals(menuType); }
     public boolean isPageType()  { return "PAGE".equals(menuType); }

@@ -230,6 +230,16 @@ public class MenuService {
         }
     }
 
+    // ===== 메뉴 트리 재정렬 (부모 변경 포함) =====
+    @Transactional
+    public void reorder(List<com.corum.backend.dto.menu.MenuReorderItem> items) {
+        for (com.corum.backend.dto.menu.MenuReorderItem item : items) {
+            Menu menu = menuRepository.findById(item.getId())
+                    .orElseThrow(() -> BusinessException.notFound("메뉴를 찾을 수 없습니다."));
+            menu.move(item.getParentId(), item.getSortOrder());
+        }
+    }
+
     // ===== 접근 권한 체크 =====
     public boolean canAccess(Menu menu, List<Long> memberGroupIds, boolean isLoggedIn) {
         if (menu.isPublic()) return true;

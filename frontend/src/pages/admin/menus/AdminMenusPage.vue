@@ -504,14 +504,15 @@ function setChildRef(el, id) {
 
 // Sortable 초기화
 function initSortable() {
-  // 기존 인스턴스 정리
   sortableInstances.forEach(s => s.destroy())
   sortableInstances.length = 0
 
   if (!rootSortable.value) return
 
-  // 최상위 레벨 sortable
+  const group = { name: 'menu-tree', pull: true, put: true }
+
   const rootInstance = Sortable.create(rootSortable.value, {
+    group,
     animation: 150,
     handle: '.drag-handle',
     ghostClass: 'sortable-ghost',
@@ -520,10 +521,10 @@ function initSortable() {
   })
   sortableInstances.push(rootInstance)
 
-  // 하위 레벨 sortable
   Object.values(childRefs.value).forEach(el => {
     if (!el) return
     const inst = Sortable.create(el, {
+      group,
       animation: 150,
       handle: '.drag-handle',
       ghostClass: 'sortable-ghost',
@@ -534,31 +535,33 @@ function initSortable() {
   })
 }
 
+// DOM을 순회하여 현재 트리 구조를 [{id, parentId, sortOrder}] 형태로 반환
+function buildReorderPayload() {
+  const result = []
+  function traverse(containerEl, parentId) {
+    let order = 0
+    for (const nodeEl of containerEl.children) {
+      const id = parseInt(nodeEl.dataset.id)
+      if (!id) continue
+      result.push({ id, parentId, sortOrder: order++ })
+      const childContainer = nodeEl.querySelector(':scope > .child-sortable')
+      if (childContainer) traverse(childContainer, id)
+    }
+  }
+  if (rootSortable.value) traverse(rootSortable.value, null)
+  return result
+}
+
 // 순서 저장
 async function saveSortOrder() {
   sortSaving.value = true
   try {
-    // 최상위 순서
-    const rootIds = Array.from(rootSortable.value.children)
-      .map(el => parseInt(el.dataset.id))
-      .filter(Boolean)
-    await api.put('/menus/sort', rootIds)
-
-    // 하위 순서
-    for (const [parentMenuId, el] of Object.entries(childRefs.value)) {
-      if (!el) continue
-      const childIds = Array.from(el.children)
-        .map(c => parseInt(c.dataset.id))
-        .filter(Boolean)
-      if (childIds.length) {
-        await api.put('/menus/sort', childIds)
-      }
-    }
-
+    const payload = buildReorderPayload()
+    await api.put('/menus/reorder', payload)
     ElMessage.success('순서가 저장되었습니다.')
     sortChanged.value = false
     await fetchMenus()
-    menuStore.fetchMenus(true) // 네비게이션 메뉴 캐시 갱신
+    menuStore.fetchMenus(true)
   } catch(e) {
     ElMessage.error('순서 저장에 실패했습니다.')
   } finally { sortSaving.value = false }
