@@ -794,14 +794,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   cursor: pointer;
 }
 .cal-wrap :deep(.fc-ev-time) {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--ev-color, var(--accent));
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
 .cal-wrap :deep(.fc-ev-title) {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--t1);
   font-weight: 500;
   line-height: 1.35;
