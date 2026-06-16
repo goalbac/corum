@@ -394,10 +394,11 @@ async function fetchEvents(info, successCallback, failureCallback) {
         title: e.title,
         start: e.startAt,
         // FullCalendar은 all-day end를 exclusive로 처리하므로 하루 추가
+        // toISOString()은 UTC 변환으로 KST 자정이 전날이 되므로 로컬 날짜 사용
         end: e.isAllDay && e.endAt ? (() => {
           const d = new Date(e.endAt)
           d.setDate(d.getDate() + 1)
-          return d.toISOString().slice(0, 10)
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
         })() : e.endAt,
         allDay: e.isAllDay,
         backgroundColor: cal?.color || '#2563EB',
