@@ -682,24 +682,37 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-day-custom) {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  direction: ltr;
+  width: 100%;
   padding: 2px 4px;
   min-height: 22px;
-  gap: 4px;
+  box-sizing: border-box;
 }
-.cal-wrap :deep(.fc-day-num) { font-size: 13px; color: var(--t2); line-height: 1.4; }
-.cal-wrap :deep(.fc-day-num.sat) { color: #2563eb; }
-.cal-wrap :deep(.fc-day-num.red) { color: #dc2626; }
+.cal-wrap :deep(.fc-day-num) {
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.4;
+  flex-shrink: 0;
+  margin-left: auto;  /* 항상 오른쪽 끝으로 */
+}
+.cal-wrap :deep(.fc-day-num.sat) { color: #4a7ecb; }
+.cal-wrap :deep(.fc-day-num.red) { color: #c44040; }
 .cal-wrap :deep(.fc-day-hol) {
   font-size: 11px;
-  color: var(--t3);
+  color: #9a8080;         /* 채도 낮은 중립 톤 */
   font-weight: 500;
+  letter-spacing: -0.4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80px;
+  flex: 1;
+  text-align: left;
 }
-.cal-wrap :deep(.fc-day-hol.red) { color: #dc2626; font-weight: 600; }
+.cal-wrap :deep(.fc-day-hol.red) {
+  color: #ac5050;         /* 채도 낮은 빨강 — 날짜 숫자보다 흐리게 */
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
 .cal-wrap :deep(.fc-daygrid-day-number:hover) { color: var(--accent); }
 .cal-wrap :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
 .cal-wrap :deep(.fc-toolbar) { display: none; }
