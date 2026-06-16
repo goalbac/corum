@@ -12,8 +12,8 @@
           <span class="cal-title">{{ currentTitle }}</span>
         </div>
         <div class="cal-right">
-          <!-- 대한민국의 휴일 표시 토글 (항상 표시) -->
-          <label v-if="hasHolidayCalendar" class="cal-hol-toggle">
+          <!-- 대한민국의 휴일 표시 토글 (단일 캘린더 메뉴에서만 표시) -->
+          <label v-if="hasHolidayCalendar && isSingleCalendar" class="cal-hol-toggle">
             <input type="checkbox" v-model="showHolidayCalendar" @change="calApi?.refetchEvents()" />
             <span class="cal-dot" :style="{ background: holidayCalendarColor }"></span>
             <span>공휴일</span>
@@ -23,7 +23,7 @@
             <button class="cal-btn" @click="showFilter = !showFilter">
               <i class="ti ti-filter"></i>
               캘린더
-              <span v-if="visibleCalendars.size < normalCalendars.length" class="filter-badge">{{ visibleCalendars.size }}</span>
+              <span v-if="visibleCalendars.size + (showHolidayCalendar && holidayCalendars.length ? 1 : 0) < normalCalendars.length + holidayCalendars.length" class="filter-badge">{{ visibleCalendars.size + (showHolidayCalendar && holidayCalendars.length ? 1 : 0) }}</span>
               <i class="ti ti-chevron-down" style="font-size:11px"></i>
             </button>
             <div v-if="showFilter" class="cal-filter-panel">
@@ -33,6 +33,15 @@
                 <span class="cal-dot" :style="{ background: cal.color || '#2563EB' }"></span>
                 <span class="cal-check-name">{{ cal.name }}</span>
               </label>
+              <!-- 공휴일 캘린더 (구분선 후 표시) -->
+              <template v-if="holidayCalendars.length">
+                <div class="filter-divider"></div>
+                <label v-for="cal in holidayCalendars" :key="cal.id" class="cal-check-item">
+                  <input type="checkbox" v-model="showHolidayCalendar" @change="calApi?.refetchEvents()" />
+                  <span class="cal-dot" :style="{ background: cal.color || '#dc2626' }"></span>
+                  <span class="cal-check-name">{{ cal.name }}</span>
+                </label>
+              </template>
               <div class="filter-actions">
                 <button class="filter-link" @click="selectAll">전체 선택</button>
                 <button class="filter-link" @click="deselectAll">전체 해제</button>
@@ -217,11 +226,22 @@ const selectedEventCalName = computed(() => {
   return calendars.value.find(c => c.id === calId)?.name || ''
 })
 
-// 일반 캘린더 (HOLIDAY 제외)
-const normalCalendars = computed(() => calendars.value.filter(c => c.calendarType !== 'HOLIDAY'))
+// 현재 사용자가 읽을 수 있는 캘린더만 필터
+const readableCalendars = computed(() => {
+  return calendars.value.filter(c => {
+    if (authStore.member?.isAdmin) return true
+    if (!c.permissions || c.permissions.length === 0) return true
+    const myGroupIds = authStore.member?.groupIds || []
+    return c.permissions.some(p => p.canRead && myGroupIds.includes(p.groupId))
+  })
+})
+// 일반 캘린더 (HOLIDAY 제외, 권한 있는 것만)
+const normalCalendars = computed(() => readableCalendars.value.filter(c => c.calendarType !== 'HOLIDAY'))
+// HOLIDAY 캘린더 (권한 있는 것만)
+const holidayCalendars = computed(() => readableCalendars.value.filter(c => c.calendarType === 'HOLIDAY'))
 // HOLIDAY 캘린더 색상
-const holidayCalendarColor = computed(() => calendars.value.find(c => c.calendarType === 'HOLIDAY')?.color || '#dc2626')
-const hasHolidayCalendar = computed(() => calendars.value.some(c => c.calendarType === 'HOLIDAY'))
+const holidayCalendarColor = computed(() => holidayCalendars.value[0]?.color || '#dc2626')
+const hasHolidayCalendar = computed(() => holidayCalendars.value.length > 0)
 
 // 메뉴에 캘린더가 고정된 경우 (필터 UI 숨김)
 const isSingleCalendar = computed(() => {
