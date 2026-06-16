@@ -16,6 +16,7 @@
           <div class="at-col" style="width:70px;text-align:center">상태</div>
           <div class="at-col" style="width:120px;text-align:center">관리</div>
         </div>
+        <div ref="sortableRef">
         <div v-for="row in calendars" :key="row.id" class="at-row cal-sortable-row">
           <div class="at-col drag-handle" style="width:36px">
             <i class="ti ti-grip-vertical"></i>
@@ -37,6 +38,7 @@
             <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
             <button class="act-btn danger" @click="deleteCalendar(row.id)"><i class="ti ti-trash"></i></button>
           </div>
+        </div>
         </div>
         <div v-if="!calendars.length && !loading" class="at-empty"><i class="ti ti-calendar"></i><span>등록된 캘린더가 없습니다.</span></div>
       </div>
@@ -191,6 +193,7 @@ const HOLIDAY_URL = 'https://calendar.google.com/calendar/ical/ko.south_korea%23
 
 const calendars = ref([])
 const groups = ref([])
+const sortableRef = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const showForm = ref(false)
@@ -237,10 +240,9 @@ const flatGroups = computed(() => {
 let sortableInstance = null
 
 function initSortable() {
-  const el = document.querySelector('.cal-sortable-row')?.parentElement
-  if (!el) return
+  if (!sortableRef.value) return
   sortableInstance?.destroy()
-  sortableInstance = Sortable.create(el, {
+  sortableInstance = Sortable.create(sortableRef.value, {
     handle: '.drag-handle',
     animation: 150,
     ghostClass: 'sortable-ghost',
@@ -251,6 +253,7 @@ function initSortable() {
       calendars.value = arr
       try {
         await api.put('/calendars/reorder', arr.map(c => c.id))
+        ElMessage.success('순서가 저장되었습니다.')
       } catch {
         ElMessage.error('순서 저장에 실패했습니다.')
         fetchCalendars()
