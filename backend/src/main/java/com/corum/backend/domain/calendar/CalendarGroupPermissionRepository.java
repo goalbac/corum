@@ -13,7 +13,7 @@ public interface CalendarGroupPermissionRepository extends JpaRepository<Calenda
 
     Optional<CalendarGroupPermission> findByCalendarIdAndGroupId(Long calendarId, Long groupId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM CalendarGroupPermission p WHERE p.calendarId = :calendarId")
     void deleteByCalendarId(Long calendarId);
 

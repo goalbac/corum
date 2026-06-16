@@ -284,7 +284,9 @@ async function saveCalendar() {
     editing.value ? await api.put(`/calendars/${editing.value.id}`, form.value) : await api.post('/calendars', form.value)
     ElMessage.success('저장되었습니다.')
     showForm.value = false
-    fetchCalendars()
+    await fetchCalendars()
+  } catch (e) {
+    ElMessage.error('저장에 실패했습니다.')
   } finally { saving.value = false }
 }
 

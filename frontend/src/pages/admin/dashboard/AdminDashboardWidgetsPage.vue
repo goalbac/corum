@@ -295,15 +295,38 @@
           <hr class="dlg-divider"/>
           <div class="dlg-section-title">슬라이드</div>
           <div v-for="(s, i) in config.slides" :key="i" class="sub-item">
-            <div class="dlg-row">
-              <div class="dlg-field"><label>제목</label><el-input v-model="s.title" /></div>
-              <div class="dlg-field"><label>이미지 URL</label><el-input v-model="s.imageUrl" /></div>
-            </div>
-            <div class="dlg-row">
-              <div class="dlg-field"><label>링크 URL</label><el-input v-model="s.url" /></div>
-              <div class="dlg-field" style="flex-direction:row;align-items:flex-end;gap:10px;justify-content:space-between;padding-bottom:2px">
-                <label class="chk-item"><el-checkbox v-model="s.newWindow" />새 창</label>
-                <button class="act-btn danger" @click="config.slides.splice(i,1)"><i class="ti ti-trash"></i></button>
+            <div class="img-upload-row">
+              <div
+                class="img-upload-preview"
+                :style="s.imageUrl ? `background-image:url(${s.imageUrl})` : ''"
+                @click="triggerSliderUpload(i)"
+                :title="s.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
+              >
+                <template v-if="sliderUploading[i]">
+                  <i class="ti ti-loader-2 spinning" style="font-size:22px;color:#fff"></i>
+                </template>
+                <template v-else-if="!s.imageUrl">
+                  <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--t4)"></i>
+                  <span style="font-size:12px;color:var(--t4);margin-top:4px">클릭해서 업로드</span>
+                </template>
+                <div v-if="s.imageUrl && !sliderUploading[i]" class="img-upload-change-overlay">
+                  <i class="ti ti-refresh"></i> 변경
+                </div>
+              </div>
+              <input
+                :ref="el => sliderInputRefs[i] = el"
+                type="file"
+                accept="image/*"
+                style="display:none"
+                @change="e => uploadSliderImage(e, i)"
+              />
+              <div class="img-upload-fields">
+                <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="s.title" /></div>
+                <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="s.url" placeholder="https:// 또는 /path" /></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+                  <label class="chk-item"><el-checkbox v-model="s.newWindow" />새 창</label>
+                  <button class="act-btn danger" @click="config.slides.splice(i,1)"><i class="ti ti-trash"></i></button>
+                </div>
               </div>
             </div>
           </div>
@@ -451,8 +474,10 @@ const boards      = ref([])
 const calendars   = ref([])
 const loading     = ref(false)
 const saving      = ref(false)
-const imgInputRefs  = ref([])
-const imgUploading  = ref({})  // index -> boolean
+const imgInputRefs    = ref([])
+const imgUploading    = ref({})
+const sliderInputRefs = ref([])
+const sliderUploading = ref({})
 const sortSaving  = ref(false)
 const sortChanged = ref(false)
 const showForm    = ref(false)
@@ -554,6 +579,25 @@ function boardLabel(b) {
 
 function triggerImgUpload(idx) {
   imgInputRefs.value[idx]?.click()
+}
+function triggerSliderUpload(idx) {
+  sliderInputRefs.value[idx]?.click()
+}
+async function uploadSliderImage(e, idx) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  sliderUploading.value = { ...sliderUploading.value, [idx]: true }
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await api.post('/files/inline-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    config.value.slides[idx].imageUrl = res.data.data?.url || ''
+  } catch {
+    ElMessage.error('이미지 업로드에 실패했습니다.')
+  } finally {
+    sliderUploading.value = { ...sliderUploading.value, [idx]: false }
+    e.target.value = ''
+  }
 }
 async function uploadGridImage(e, idx) {
   const file = e.target.files?.[0]
