@@ -601,7 +601,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   overflow: visible;
 }
 
-.fc-ev-custom {
+.cal-wrap :deep(.fc-ev-custom) {
   display: flex;
   flex-direction: column;
   border-left: 3px solid var(--ev-color, var(--accent));
@@ -613,14 +613,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   gap: 1px;
   cursor: pointer;
 }
-.fc-ev-time {
+.cal-wrap :deep(.fc-ev-time) {
   font-size: 10px;
   color: var(--ev-color, var(--accent));
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
-.fc-ev-title {
+.cal-wrap :deep(.fc-ev-title) {
   font-size: 11px;
   color: var(--t1);
   font-weight: 500;
@@ -678,7 +678,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .cal-wrap :deep(.fc-daygrid-day-events) { margin-top: 0; }
 
   /* 모바일 이벤트 카드 폰트 축소 */
-  .fc-ev-time { font-size: 9px; }
-  .fc-ev-title { font-size: 10px; }
+  .cal-wrap :deep(.fc-ev-time) { font-size: 9px; }
+  .cal-wrap :deep(.fc-ev-title) { font-size: 10px; }
 }
 </style>
