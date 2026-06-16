@@ -425,10 +425,28 @@ function handleEventClick(info) {
   showDetail.value = true
 }
 
-// 현재 시각 기준 다음 정시부터 1시간 기본값 (예: 4:44 → 5:00~6:00)
+// FullCalendar startStr/endStr 의 타임존 suffix 제거 → YYYY-MM-DDTHH:mm:ss
+function stripTz(str) {
+  return str ? str.slice(0, 19) : ''
+}
+
+// KST(Asia/Seoul) 기준 현재 시각 → YYYY-MM-DDTHH:mm:ss
+function nowKst() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+}
+
+// 현재 KST 시각 기준 다음 정시 ~ +1시간 기본값
 function defaultEventTimes(baseDate) {
-  const now = baseDate ? new Date(baseDate) : new Date()
-  const start = new Date(now)
+  let base
+  if (baseDate) {
+    const clicked = new Date(baseDate)
+    const kst = nowKst()
+    clicked.setHours(kst.getHours(), kst.getMinutes(), 0, 0)
+    base = clicked
+  } else {
+    base = nowKst()
+  }
+  const start = new Date(base)
   start.setMinutes(0, 0, 0)
   start.setHours(start.getHours() + 1)
   const end = new Date(start)
@@ -479,8 +497,8 @@ function editEvent() {
     title: e.title,
     location: e.extendedProps.location || '',
     description: e.extendedProps.description || '',
-    startAt: e.startStr,
-    endAt: e.endStr || '',
+    startAt: stripTz(e.startStr),
+    endAt: stripTz(e.endStr),
     isAllDay: e.allDay,
     recurrenceType: e.extendedProps.recurrenceType || 'NONE',
   }
@@ -528,6 +546,20 @@ function formatEventDate(event) {
 
 watch(showHolidayCalendar, val => {
   localStorage.setItem('cal_show_holiday', String(val))
+})
+
+// 시작시간 변경 시 종료시간이 시작시간보다 같거나 이르면 종료시간 = 시작시간 + 1시간
+watch(() => eventForm.value.startAt, (newStart) => {
+  if (!newStart || eventForm.value.isAllDay) return
+  const start = new Date(newStart)
+  const end = eventForm.value.endAt ? new Date(eventForm.value.endAt) : null
+  if (!end || end <= start) {
+    const newEnd = new Date(start)
+    newEnd.setHours(newEnd.getHours() + 1)
+    const fmt = d =>
+      `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:00`
+    eventForm.value.endAt = fmt(newEnd)
+  }
 })
 
 function onClickOutside(e) {
