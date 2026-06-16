@@ -708,7 +708,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   display: flex !important;
   flex: 1 !important;
   width: 100% !important;
-  padding: 2px 4px !important;
+  padding: 4px 4px !important;
   box-sizing: border-box !important;
 }
 
@@ -728,10 +728,10 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-day-num.sat) { color: #2563eb; }
 .cal-wrap :deep(.fc-day-num.red) { color: #dc2626; }
 .cal-wrap :deep(.fc-day-hol) {
-  font-size: 11px;
+  font-size: 12px;
   color: rgba(100, 100, 100, 0.63);
   font-weight: 500;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
