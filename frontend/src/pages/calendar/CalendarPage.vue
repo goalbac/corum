@@ -175,6 +175,8 @@ const selectedEvent = ref(null)
 const recurrenceEndDate = ref(null)
 const showFilter = ref(false)
 const filterWrap = ref(null)
+// 날짜별 공휴일 정보 (isAllDay 이벤트에서 추출)
+const holidayMap = ref({}) // { "YYYY-MM-DD": { name, isHoliday } }
 
 const views = [
   { key: 'dayGridMonth', label: '월' },
@@ -261,19 +263,47 @@ function eventContent(arg) {
   return { domNodes: [el] }
 }
 
-const calOptions = computed(() => ({
-  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-  initialView: 'dayGridMonth',
-  locale: koLocale,
-  headerToolbar: false,
-  height: 'auto',
-  dayMaxEvents: 5,
-  eventContent,
-  events: fetchEvents,
-  eventClick: handleEventClick,
-  dateClick: handleDateClick,
-  datesSet: () => { currentTitle.value = calApi.value?.view.title || '' },
-}))
+const calOptions = computed(() => {
+  const hMap = holidayMap.value // 공휴일 맵이 바뀌면 dayCellContent 재생성
+  return {
+    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+    initialView: 'dayGridMonth',
+    locale: koLocale,
+    headerToolbar: false,
+    height: 'auto',
+    dayMaxEvents: 5,
+    dayCellContent: (arg) => {
+      const d = arg.date
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      const dow = d.getDay()
+      const holiday = hMap[dateStr]
+      const isSat = dow === 6
+      const isRed = dow === 0 || !!holiday?.isHoliday
+
+      const wrap = document.createElement('div')
+      wrap.className = 'fc-day-custom'
+
+      const num = document.createElement('span')
+      num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
+      num.textContent = arg.dayNumberText
+      wrap.appendChild(num)
+
+      if (holiday?.name) {
+        const hol = document.createElement('span')
+        hol.className = 'fc-day-hol' + (holiday.isHoliday ? ' red' : '')
+        hol.textContent = holiday.name
+        wrap.appendChild(hol)
+      }
+
+      return { domNodes: [wrap] }
+    },
+    eventContent,
+    events: fetchEvents,
+    eventClick: handleEventClick,
+    dateClick: handleDateClick,
+    datesSet: () => { currentTitle.value = calApi.value?.view.title || '' },
+  }
+})
 
 async function fetchEvents(info, successCallback, failureCallback) {
   try {
@@ -288,7 +318,22 @@ async function fetchEvents(info, successCallback, failureCallback) {
     ids.forEach(id => qs.append('calendarIds', String(id)))
 
     const res = await api.get(`/calendars/events?${qs.toString()}`)
-    const events = (res.data.data || []).map(e => {
+    const allData = res.data.data || []
+
+    // isAllDay 이벤트에서 공휴일 맵 구성 (description==="공휴일" → 빨간날)
+    const newHolidayMap = {}
+    allData.forEach(e => {
+      if (e.isAllDay) {
+        const dateStr = e.startAt.slice(0, 10)
+        const isPublicHoliday = e.description === '공휴일'
+        if (!newHolidayMap[dateStr] || isPublicHoliday) {
+          newHolidayMap[dateStr] = { name: e.title, isHoliday: isPublicHoliday }
+        }
+      }
+    })
+    holidayMap.value = newHolidayMap
+
+    const events = allData.map(e => {
       const cal = calendars.value.find(c => c.id === e.calendarId)
       return {
         id: String(e.id),
@@ -585,7 +630,32 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   font-size: 13px; font-weight: 500; color: var(--t2); padding: 8px 0;
 }
 .cal-wrap :deep(.fc-col-header-cell a) { color: var(--t2) !important; }
-.cal-wrap :deep(.fc-daygrid-day-number) { font-size: 13px; color: var(--t2); }
+/* 토/일 컬럼 헤더 색상 (주/일 뷰) */
+.cal-wrap :deep(.fc-day-sat.fc-col-header-cell a) { color: #2563eb !important; }
+.cal-wrap :deep(.fc-day-sun.fc-col-header-cell a) { color: #dc2626 !important; }
+
+/* 커스텀 날짜 셀 */
+.cal-wrap :deep(.fc-day-custom) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  justify-content: flex-end;
+  min-height: 22px;
+}
+.cal-wrap :deep(.fc-day-num) { font-size: 13px; color: var(--t2); line-height: 1.4; }
+.cal-wrap :deep(.fc-day-num.sat) { color: #2563eb; }
+.cal-wrap :deep(.fc-day-num.red) { color: #dc2626; }
+.cal-wrap :deep(.fc-day-hol) {
+  font-size: 11px;
+  color: var(--t3);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+.cal-wrap :deep(.fc-day-hol.red) { color: #dc2626; font-weight: 600; }
 .cal-wrap :deep(.fc-daygrid-day-number:hover) { color: var(--accent); }
 .cal-wrap :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
 .cal-wrap :deep(.fc-toolbar) { display: none; }
@@ -662,11 +732,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   :deep(.el-dialog__body) { max-height: calc(80dvh - 120px); overflow-y: auto; }
 
   /* 모바일 캘린더: 날짜 숫자 */
-  .cal-wrap :deep(.fc-daygrid-day-number) {
-    font-size: 11px;
-    padding: 2px 3px;
-    line-height: 1.4;
-  }
+  .cal-wrap :deep(.fc-day-num) { font-size: 11px; }
+  .cal-wrap :deep(.fc-day-hol) { font-size: 10px; max-width: 50px; }
   /* 헤더 요일 */
   .cal-wrap :deep(.fc-col-header-cell) { font-size: 10px; padding: 4px 0; }
 
