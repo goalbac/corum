@@ -6,5 +6,7 @@ import java.util.List;
 
 public interface CalendarRepository extends JpaRepository<CalendarEntity, Long> {
 
-    List<CalendarEntity> findByIsActiveTrueOrderByIdAsc();
+    List<CalendarEntity> findByIsActiveTrueOrderBySortOrderAscIdAsc();
+
+    List<CalendarEntity> findAllByOrderBySortOrderAscIdAsc();
 }

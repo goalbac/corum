@@ -58,6 +58,13 @@ public class CalendarController {
         return ApiResponse.ok("캘린더가 삭제되었습니다.");
     }
 
+    // ===== 캘린더 순서 변경 (관리자) =====
+    @PutMapping("/reorder")
+    public ApiResponse<Void> reorder(@RequestBody List<Long> orderedIds) {
+        calendarService.reorder(orderedIds);
+        return ApiResponse.ok(null);
+    }
+
     // ===== 기간별 일정 조회 (권한 필터 + 반복 확장) =====
     @GetMapping("/events")
     public ApiResponse<List<CalendarEventDto>> getEvents(

@@ -9,13 +9,17 @@
       <div class="at-wrap">
         <div class="at-head">
           <div class="at-col" style="width:36px"></div>
+          <div class="at-col" style="width:36px"></div>
           <div class="at-col" style="width:160px">캘린더명</div>
           <div class="at-col" style="flex:1">설명</div>
           <div class="at-col" style="width:220px">권한 그룹</div>
           <div class="at-col" style="width:70px;text-align:center">상태</div>
           <div class="at-col" style="width:120px;text-align:center">관리</div>
         </div>
-        <div v-for="row in calendars" :key="row.id" class="at-row">
+        <div v-for="row in calendars" :key="row.id" class="at-row cal-sortable-row">
+          <div class="at-col drag-handle" style="width:36px">
+            <i class="ti ti-grip-vertical"></i>
+          </div>
           <div class="at-col" style="width:36px">
             <span class="color-dot" :style="{ background: row.color || '#4f6ef7' }"></span>
           </div>
@@ -177,10 +181,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
+import Sortable from 'sortablejs'
 
 const HOLIDAY_URL = 'https://calendar.google.com/calendar/ical/ko.south_korea%23holiday%40group.v.calendar.google.com/public/basic.ics'
 
@@ -229,10 +234,39 @@ const flatGroups = computed(() => {
   return result
 })
 
+let sortableInstance = null
+
+function initSortable() {
+  const el = document.querySelector('.cal-sortable-row')?.parentElement
+  if (!el) return
+  sortableInstance?.destroy()
+  sortableInstance = Sortable.create(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd: async ({ oldIndex, newIndex }) => {
+      if (oldIndex === newIndex) return
+      const arr = [...calendars.value]
+      arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
+      calendars.value = arr
+      try {
+        await api.put('/calendars/reorder', arr.map(c => c.id))
+      } catch {
+        ElMessage.error('순서 저장에 실패했습니다.')
+        fetchCalendars()
+      }
+    },
+  })
+}
+
 async function fetchCalendars() {
   loading.value = true
-  try { const r = await api.get('/calendars/admin'); calendars.value = r.data.data || [] }
-  finally { loading.value = false }
+  try {
+    const r = await api.get('/calendars/admin')
+    calendars.value = r.data.data || []
+    await nextTick()
+    initSortable()
+  } finally { loading.value = false }
 }
 async function fetchGroups() { const r = await api.get('/groups'); groups.value = r.data.data || [] }
 
@@ -311,10 +345,21 @@ async function runImport() {
 }
 
 onMounted(() => { fetchCalendars(); fetchGroups() })
+onBeforeUnmount(() => { sortableInstance?.destroy() })
 </script>
 
 <style scoped>
 @import '@/assets/admin-table.css';
+.drag-handle {
+  cursor: grab;
+  color: var(--adm-muted);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drag-handle:active { cursor: grabbing; }
+:global(.sortable-ghost) { opacity: 0.4; background: var(--adm-bg-subtle, #f0f4ff) !important; }
 .color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
 .muted-text { font-size: 12px; color: var(--adm-muted); }
 .perm-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }

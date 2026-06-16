@@ -30,6 +30,10 @@ public class CalendarEntity {
     @Builder.Default
     private String calendarType = "GENERAL";
 
+    @Column(name = "sort_order", nullable = false)
+    @Builder.Default
+    private Integer sortOrder = 0;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
@@ -47,5 +51,9 @@ public class CalendarEntity {
 
     public void updateActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public void updateSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }

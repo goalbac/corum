@@ -38,7 +38,7 @@ public class CalendarService {
     // ===== 캘린더 목록 (활성) =====
     @Transactional(readOnly = true)
     public List<CalendarResponse> getCalendars() {
-        return calendarRepository.findByIsActiveTrueOrderByIdAsc().stream()
+        return calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
                 .map(c -> new CalendarResponse(c, permissionRepository.findByCalendarId(c.getId())))
                 .collect(Collectors.toList());
     }
@@ -48,9 +48,20 @@ public class CalendarService {
     public List<CalendarResponse> getAllCalendars() {
         Map<Long, String> groupNames = groupRepository.findAll().stream()
                 .collect(Collectors.toMap(Group::getId, Group::getName));
-        return calendarRepository.findAll().stream()
+        return calendarRepository.findAllByOrderBySortOrderAscIdAsc().stream()
                 .map(c -> new CalendarResponse(c, permissionRepository.findByCalendarId(c.getId()), groupNames))
                 .collect(Collectors.toList());
+    }
+
+    // ===== 캘린더 순서 변경 =====
+    @Transactional
+    public void reorder(List<Long> orderedIds) {
+        Map<Long, CalendarEntity> map = calendarRepository.findAllByOrderBySortOrderAscIdAsc().stream()
+                .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
+        for (int i = 0; i < orderedIds.size(); i++) {
+            CalendarEntity c = map.get(orderedIds.get(i));
+            if (c != null) c.updateSortOrder(i);
+        }
     }
 
     // ===== 읽기 가능한 캘린더 ID 목록 =====
