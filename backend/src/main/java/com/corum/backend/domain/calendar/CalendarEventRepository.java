@@ -1,6 +1,7 @@
 package com.corum.backend.domain.calendar;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
@@ -30,4 +31,13 @@ public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Lo
     List<CalendarEvent> findByCalendarIdOrderByStartAtAsc(Long calendarId);
 
     void deleteByCalendarId(Long calendarId);
+
+    // ICS 재가져오기: 연도 범위의 기존 이벤트 삭제
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        DELETE FROM CalendarEvent e
+        WHERE e.calendarId = :calendarId
+        AND e.startAt >= :start AND e.startAt < :end
+        """)
+    void deleteByCalendarIdAndStartAtBetween(Long calendarId, LocalDateTime start, LocalDateTime end);
 }

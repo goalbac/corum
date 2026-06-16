@@ -15,6 +15,7 @@ public class CalendarResponse {
     private final String name;
     private final String color;
     private final String description;
+    private final String calendarType;
     private final Boolean isActive;
     private final List<PermissionDto> permissions;
 
@@ -23,11 +24,12 @@ public class CalendarResponse {
     }
 
     public CalendarResponse(CalendarEntity calendar, List<CalendarGroupPermission> perms, Map<Long, String> groupNames) {
-        this.id          = calendar.getId();
-        this.name        = calendar.getName();
-        this.color       = calendar.getColor();
-        this.description = calendar.getDescription();
-        this.isActive    = calendar.getIsActive();
+        this.id           = calendar.getId();
+        this.name         = calendar.getName();
+        this.color        = calendar.getColor();
+        this.description  = calendar.getDescription();
+        this.calendarType = calendar.getCalendarType();
+        this.isActive     = calendar.getIsActive();
         this.permissions = perms.stream()
                 .map(p -> new PermissionDto(p.getGroupId(), groupNames.getOrDefault(p.getGroupId(), ""),
                         p.getCanRead(), p.getCanWrite()))

@@ -398,12 +398,13 @@ CREATE TABLE inquiry_memos (
 CREATE INDEX idx_inquiry_memos_inquiry_id ON inquiry_memos(inquiry_id);
 
 CREATE TABLE calendars (
-    id          BIGSERIAL PRIMARY KEY,
-    name        VARCHAR(100) NOT NULL,
-    color       VARCHAR(20),
-    description VARCHAR(500),
-    is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+    id            BIGSERIAL PRIMARY KEY,
+    name          VARCHAR(100) NOT NULL,
+    color         VARCHAR(20),
+    description   VARCHAR(500),
+    calendar_type VARCHAR(20)  NOT NULL DEFAULT 'GENERAL',
+    is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE calendar_events (
@@ -632,3 +633,10 @@ INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALU
 ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS menu_id BIGINT;
 ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS description VARCHAR(500);
 CREATE INDEX IF NOT EXISTS idx_dashboard_widgets_menu_id ON dashboard_widgets(menu_id);
+
+-- ===== 기본 캘린더 (calendars calendar_type 컬럼 추가 포함) =====
+ALTER TABLE calendars ADD COLUMN IF NOT EXISTS calendar_type VARCHAR(20) NOT NULL DEFAULT 'GENERAL';
+INSERT INTO calendars (name, color, description, calendar_type, is_active) VALUES
+    ('주요 일정',        '#4f6ef7', '단체 주요 일정', 'GENERAL', TRUE),
+    ('대한민국의 휴일',  '#dc2626', '대한민국 공휴일 및 기념일', 'HOLIDAY', TRUE)
+ON CONFLICT DO NOTHING;

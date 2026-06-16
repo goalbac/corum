@@ -26,6 +26,10 @@ public class CalendarEntity {
     @Column(name = "description", length = 500)
     private String description;
 
+    @Column(name = "calendar_type", nullable = false, length = 20)
+    @Builder.Default
+    private String calendarType = "GENERAL";
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
@@ -34,10 +38,11 @@ public class CalendarEntity {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    public void update(String name, String color, String description) {
+    public void update(String name, String color, String description, String calendarType) {
         this.name = name;
         this.color = color;
         this.description = description;
+        if (calendarType != null) this.calendarType = calendarType;
     }
 
     public void updateActive(Boolean isActive) {

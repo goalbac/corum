@@ -17,15 +17,21 @@
             <button class="cal-btn" @click="showFilter = !showFilter">
               <i class="ti ti-filter"></i>
               캘린더
-              <span v-if="visibleCalendars.size < calendars.length" class="filter-badge">{{ visibleCalendars.size }}</span>
+              <span v-if="visibleCalendars.size < normalCalendars.length" class="filter-badge">{{ visibleCalendars.size }}</span>
               <i class="ti ti-chevron-down" style="font-size:11px"></i>
             </button>
             <div v-if="showFilter" class="cal-filter-panel">
               <div class="filter-title">표시할 캘린더</div>
-              <label v-for="cal in calendars" :key="cal.id" class="cal-check-item">
+              <label v-for="cal in normalCalendars" :key="cal.id" class="cal-check-item">
                 <input type="checkbox" :checked="visibleCalendars.has(cal.id)" @change="toggleCalendar(cal.id)" />
                 <span class="cal-dot" :style="{ background: cal.color || '#2563EB' }"></span>
                 <span class="cal-check-name">{{ cal.name }}</span>
+              </label>
+              <div class="filter-divider"></div>
+              <label class="cal-check-item">
+                <input type="checkbox" v-model="showHolidayCalendar" @change="calApi?.refetchEvents()" />
+                <span class="cal-dot" :style="{ background: holidayCalendarColor }"></span>
+                <span class="cal-check-name">대한민국의 휴일</span>
               </label>
               <div class="filter-actions">
                 <button class="filter-link" @click="selectAll">전체 선택</button>
@@ -140,7 +146,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -175,8 +181,10 @@ const selectedEvent = ref(null)
 const recurrenceEndDate = ref(null)
 const showFilter = ref(false)
 const filterWrap = ref(null)
-// 날짜별 공휴일 정보 (isAllDay 이벤트에서 추출)
+// 날짜별 공휴일 정보 (HOLIDAY 캘린더 이벤트에서 추출)
 const holidayMap = ref({}) // { "YYYY-MM-DD": { name, isHoliday } }
+// 대한민국의 휴일 캘린더 표시 여부 (localStorage 유지)
+const showHolidayCalendar = ref(localStorage.getItem('cal_show_holiday') !== 'false')
 
 const views = [
   { key: 'dayGridMonth', label: '월' },
@@ -209,6 +217,11 @@ const selectedEventCalName = computed(() => {
   return calendars.value.find(c => c.id === calId)?.name || ''
 })
 
+// 일반 캘린더 (HOLIDAY 제외)
+const normalCalendars = computed(() => calendars.value.filter(c => c.calendarType !== 'HOLIDAY'))
+// HOLIDAY 캘린더 색상
+const holidayCalendarColor = computed(() => calendars.value.find(c => c.calendarType === 'HOLIDAY')?.color || '#dc2626')
+
 // 메뉴에 캘린더가 고정된 경우 (필터 UI 숨김)
 const isSingleCalendar = computed(() => {
   const activeMenu = menuStore.findMenuById(route.params?.menuId)
@@ -228,8 +241,18 @@ function recurrenceLabel(type) {
   return { DAILY: '매일 반복', WEEKLY: '매주 반복', MONTHLY: '매월 반복' }[type] || ''
 }
 
-function selectAll() { visibleCalendars.value = new Set(calendars.value.map(c => c.id)); calApi.value?.refetchEvents() }
-function deselectAll() { visibleCalendars.value = new Set(); calApi.value?.refetchEvents() }
+function selectAll() {
+  visibleCalendars.value = new Set(normalCalendars.value.map(c => c.id))
+  showHolidayCalendar.value = true
+  localStorage.setItem('cal_show_holiday', 'true')
+  calApi.value?.refetchEvents()
+}
+function deselectAll() {
+  visibleCalendars.value = new Set()
+  showHolidayCalendar.value = false
+  localStorage.setItem('cal_show_holiday', 'false')
+  calApi.value?.refetchEvents()
+}
 
 function toggleCalendar(id) {
   const s = new Set(visibleCalendars.value)
@@ -283,17 +306,19 @@ const calOptions = computed(() => {
       const wrap = document.createElement('div')
       wrap.className = 'fc-day-custom'
 
-      const num = document.createElement('span')
-      num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
-      num.textContent = arg.dayNumberText
-      wrap.appendChild(num)
-
+      // 공휴일명 왼쪽
       if (holiday?.name) {
         const hol = document.createElement('span')
         hol.className = 'fc-day-hol' + (holiday.isHoliday ? ' red' : '')
         hol.textContent = holiday.name
         wrap.appendChild(hol)
       }
+
+      // 날짜 오른쪽
+      const num = document.createElement('span')
+      num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
+      num.textContent = arg.dayNumberText
+      wrap.appendChild(num)
 
       return { domNodes: [wrap] }
     },
@@ -308,22 +333,29 @@ const calOptions = computed(() => {
 async function fetchEvents(info, successCallback, failureCallback) {
   try {
     await calendarsReady
-    const ids = [...visibleCalendars.value]
-    if (ids.length === 0) { successCallback([]); return }
 
-    // Axios v1.x paramsSerializer 호환 문제 회피: URLSearchParams로 직접 빌드
+    // 일반 캘린더 IDs
+    const ids = [...visibleCalendars.value]
+    // HOLIDAY 캘린더 IDs (항상 별도로 fetch)
+    const holidayIds = showHolidayCalendar.value
+      ? calendars.value.filter(c => c.calendarType === 'HOLIDAY').map(c => c.id)
+      : []
+    const allIds = [...new Set([...ids, ...holidayIds])]
+    if (allIds.length === 0) { holidayMap.value = {}; successCallback([]); return }
+
     const qs = new URLSearchParams()
     qs.append('start', info.startStr)
     qs.append('end', info.endStr)
-    ids.forEach(id => qs.append('calendarIds', String(id)))
+    allIds.forEach(id => qs.append('calendarIds', String(id)))
 
     const res = await api.get(`/calendars/events?${qs.toString()}`)
     const allData = res.data.data || []
 
-    // isAllDay 이벤트에서 공휴일 맵 구성 (description==="공휴일" → 빨간날)
+    // HOLIDAY 캘린더 이벤트 → holidayMap (날짜 셀에 표시)
+    const holidayCalIds = new Set(holidayIds)
     const newHolidayMap = {}
     allData.forEach(e => {
-      if (e.isAllDay) {
+      if (holidayCalIds.has(e.calendarId) && e.isAllDay) {
         const dateStr = e.startAt.slice(0, 10)
         const isPublicHoliday = e.description === '공휴일'
         if (!newHolidayMap[dateStr] || isPublicHoliday) {
@@ -333,7 +365,8 @@ async function fetchEvents(info, successCallback, failureCallback) {
     })
     holidayMap.value = newHolidayMap
 
-    const events = allData.map(e => {
+    // HOLIDAY 캘린더 이벤트는 블록으로 표시하지 않음
+    const events = allData.filter(e => !holidayCalIds.has(e.calendarId)).map(e => {
       const cal = calendars.value.find(c => c.id === e.calendarId)
       return {
         id: String(e.id),
@@ -466,6 +499,10 @@ function formatEventDate(event) {
   return e ? `${timeFmt(s)} ~ ${timeFmt(e)}` : timeFmt(s)
 }
 
+watch(showHolidayCalendar, val => {
+  localStorage.setItem('cal_show_holiday', String(val))
+})
+
 function onClickOutside(e) {
   if (filterWrap.value && !filterWrap.value.contains(e.target)) showFilter.value = false
 }
@@ -482,7 +519,8 @@ onMounted(async () => {
       ? activeMenu.targetCalendarIds.map(Number)
       : (activeMenu?.targetId ? [Number(activeMenu.targetId)] : [])
     calendars.value = linkedIds.length ? all.filter(c => linkedIds.includes(c.id)) : all
-    visibleCalendars.value = new Set(calendars.value.map(c => c.id))
+    // HOLIDAY 캘린더는 visibleCalendars에서 제외 (별도 처리)
+    visibleCalendars.value = new Set(calendars.value.filter(c => c.calendarType !== 'HOLIDAY').map(c => c.id))
   } catch {}
   finally {
     // 목록 로드 완료(또는 실패) 후 게이트 해제 → fetchEvents 진행
@@ -533,6 +571,12 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   padding-bottom: 6px;
   border-bottom: 0.5px solid var(--border2);
   margin-bottom: 4px;
+}
+
+.filter-divider {
+  height: 0.5px;
+  background: var(--border2);
+  margin: 4px 0;
 }
 
 .filter-actions {
@@ -638,10 +682,10 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-day-custom) {
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: space-between;
   padding: 2px 4px;
-  justify-content: flex-end;
   min-height: 22px;
+  gap: 4px;
 }
 .cal-wrap :deep(.fc-day-num) { font-size: 13px; color: var(--t2); line-height: 1.4; }
 .cal-wrap :deep(.fc-day-num.sat) { color: #2563eb; }

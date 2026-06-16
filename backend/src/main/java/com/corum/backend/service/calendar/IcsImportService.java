@@ -17,6 +17,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -53,11 +54,13 @@ public class IcsImportService {
         String icsText = unfold(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)));
         List<Map<String, String>> events = parseVEvents(icsText);
 
-        // 기존 이벤트 키(제목|날짜)로 중복 방지
-        Set<String> seen = new HashSet<>();
-        calendarEventRepository.findByCalendarIdOrderByStartAtAsc(calendarId).forEach(e ->
-                seen.add(e.getTitle() + "|" + e.getStartAt().toLocalDate()));
+        // 해당 연도 범위의 기존 이벤트 먼저 삭제 (재가져오기 지원)
+        LocalDateTime rangeStart = LocalDateTime.of(yearFrom, 1, 1, 0, 0, 0);
+        LocalDateTime rangeEnd   = LocalDateTime.of(yearTo + 1, 1, 1, 0, 0, 0);
+        calendarEventRepository.deleteByCalendarIdAndStartAtBetween(calendarId, rangeStart, rangeEnd);
 
+        // ICS 내 중복 제거 (같은 제목+날짜가 RRULE 확장 + 단일 VEVENT 양쪽에 있는 경우)
+        Set<String> seen = new HashSet<>();
         int imported = 0, skipped = 0;
         List<CalendarEvent> toSave = new ArrayList<>();
         for (Map<String, String> ev : events) {

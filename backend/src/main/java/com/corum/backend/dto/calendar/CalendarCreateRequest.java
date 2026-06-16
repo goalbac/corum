@@ -10,6 +10,7 @@ public class CalendarCreateRequest {
     private String name;
     private String color;
     private String description;
+    private String calendarType = "GENERAL";
     private Boolean isActive = true;
     private List<PermissionDto> permissions;
 

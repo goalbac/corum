@@ -275,6 +275,7 @@ public class CalendarService {
                 .name(request.getName())
                 .color(request.getColor() != null ? request.getColor() : "#2563EB")
                 .description(request.getDescription())
+                .calendarType(request.getCalendarType() != null ? request.getCalendarType() : "GENERAL")
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build());
         savePermissions(calendar.getId(), request.getPermissions());
@@ -286,7 +287,7 @@ public class CalendarService {
     public CalendarResponse updateCalendar(Long id, CalendarCreateRequest request) {
         CalendarEntity calendar = calendarRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("캘린더를 찾을 수 없습니다."));
-        calendar.update(request.getName(), request.getColor(), request.getDescription());
+        calendar.update(request.getName(), request.getColor(), request.getDescription(), request.getCalendarType());
         if (request.getIsActive() != null) {
             calendar.updateActive(request.getIsActive());
         }
