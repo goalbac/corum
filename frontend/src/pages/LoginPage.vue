@@ -97,7 +97,9 @@ async function handleLogin() {
         router.push('/terms-agreement')
         return
       }
-      router.push(route.query.redirect || '/')
+      const redirect = route.query.redirect
+      const dest = redirect && !redirect.startsWith('/login') ? redirect : '/'
+      router.push(dest)
     } catch(e) {
       ElMessage.error(e.response?.data?.message || '로그인에 실패했습니다.')
     } finally {

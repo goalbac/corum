@@ -14,6 +14,7 @@ let redirectingToLogin = false
 
 function redirectToLogin() {
   if (redirectingToLogin) return
+  if (window.location.pathname === '/login') return
   redirectingToLogin = true
   localStorage.removeItem('accessToken')
   const redirect = encodeURIComponent(window.location.pathname + window.location.search)
