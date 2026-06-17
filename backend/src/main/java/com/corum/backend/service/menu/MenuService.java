@@ -143,7 +143,7 @@ public class MenuService {
         menu.update(menu.getName(), menu.getDescription(), menu.getMenuType(),
                 menu.getPageType(), board.getId(), menu.getUrl(), menu.getUrlAuto(),
                 menu.getNewWindow(), menu.getSortOrder(), menu.getIsHidden(),
-                menu.getHideIfNoPermission(), menu.getAccessType(), menu.getIsActive());
+                menu.getHideIfNoPermission(), menu.getAccessType(), menu.getIsActive(), menu.getShowHoliday());
     }
 
     private void autoCreateContentPage(Menu menu) {
@@ -166,7 +166,7 @@ public class MenuService {
         menu.update(menu.getName(), menu.getDescription(), menu.getMenuType(),
                 menu.getPageType(), calendar.getId(), menu.getUrl(), menu.getUrlAuto(),
                 menu.getNewWindow(), menu.getSortOrder(), menu.getIsHidden(),
-                menu.getHideIfNoPermission(), menu.getAccessType(), menu.getIsActive());
+                menu.getHideIfNoPermission(), menu.getAccessType(), menu.getIsActive(), menu.getShowHoliday());
     }
 
     // ===== 메뉴 수정 =====
@@ -180,7 +180,7 @@ public class MenuService {
                 menu.getPageType(), request.getTargetId(), request.getUrl(),
                 request.getUrlAuto(), request.getNewWindow(), request.getSortOrder(),
                 request.getIsHidden(), request.getHideIfNoPermission(),
-                request.getAccessType(), request.getIsActive()
+                request.getAccessType(), request.getIsActive(), request.getShowHoliday()
         );
 
         // 그룹 권한 재설정
@@ -226,7 +226,7 @@ public class MenuService {
                     menu.getPageType(), menu.getTargetId(), menu.getUrl(),
                     menu.getUrlAuto(), menu.getNewWindow(), i,
                     menu.getIsHidden(), menu.getHideIfNoPermission(),
-                    menu.getAccessType(), menu.getIsActive());
+                    menu.getAccessType(), menu.getIsActive(), menu.getShowHoliday());
         }
     }
 

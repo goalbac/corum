@@ -159,12 +159,17 @@
 
 
         <!-- 캘린더 선택 (다중) -->
-        <el-form-item v-if="parentId && form.menuType === 'PAGE' && form.pageType === 'CALENDAR'" label="연결할 캘린더 (선택)">
-          <el-select v-model="form.targetCalendarIds" multiple style="width:100%" placeholder="미선택 시 전체 캘린더 표시" clearable>
-            <el-option v-for="c in calendars" :key="c.id" :value="c.id" :label="c.name" />
-          </el-select>
-          <div class="field-hint" style="margin-top:4px"><i class="ti ti-info-circle"></i> 선택하지 않으면 열람 권한이 있는 모든 캘린더를 표시합니다.</div>
-        </el-form-item>
+        <template v-if="parentId && form.menuType === 'PAGE' && form.pageType === 'CALENDAR'">
+          <el-form-item label="연결할 캘린더 (선택)">
+            <el-select v-model="form.targetCalendarIds" multiple style="width:100%" placeholder="미선택 시 전체 캘린더 표시" clearable>
+              <el-option v-for="c in normalCalendarsOnly" :key="c.id" :value="c.id" :label="c.name" />
+            </el-select>
+            <div class="field-hint" style="margin-top:4px"><i class="ti ti-info-circle"></i> 선택하지 않으면 열람 권한이 있는 모든 캘린더를 표시합니다.</div>
+          </el-form-item>
+          <el-form-item label="대한민국의 휴일 표시">
+            <el-checkbox v-model="form.showHoliday">대한민국의 휴일 캘린더를 자동으로 표시합니다</el-checkbox>
+          </el-form-item>
+        </template>
 
         <!-- 5. URL 설정: 추가 시 자동/직접, 수정 시 현재 URL 표시 -->
         <template v-if="form.menuType !== 'GROUP'">
@@ -403,6 +408,8 @@ const menus       = ref([])
 const boards      = ref([])
 const calendars   = ref([])
 const groups      = ref([])
+// HOLIDAY 캘린더 제외한 목록 (메뉴 캘린더 선택 드롭다운용)
+const normalCalendarsOnly = computed(() => calendars.value.filter(c => c.calendarType !== 'HOLIDAY'))
 const loading     = ref(false)
 const saving      = ref(false)
 const sortSaving  = ref(false)
@@ -426,7 +433,7 @@ const sortableInstances = []
 
 const defaultForm = () => ({
   name: '', menuType: 'PAGE', pageType: 'BOARD', url: '', targetId: null,
-  targetCalendarIds: [],
+  targetCalendarIds: [], showHoliday: true,
   urlAuto: true, newWindow: false, description: '',
   accessType: 'ALL', sortOrder: 0,
   isHidden: false, hideIfNoPermission: true, isActive: true,
@@ -731,6 +738,7 @@ function openEdit(menu) {
     ...defaultForm(), ...menu,
     allowedGroupIds: menu.allowedGroupIds || [],
     targetCalendarIds: menu.targetCalendarIds || [],
+    showHoliday: menu.showHoliday !== false,
   }
   showForm.value = true
 }

@@ -44,6 +44,9 @@ public class MenuCreateRequest {
 
     private Boolean isActive = true;
 
+    // 캘린더 메뉴: 대한민국의 휴일 표시 여부
+    private Boolean showHoliday = true;
+
     // accessType=GROUP 일 때 접근 허용 그룹 ID 목록
     private List<Long> allowedGroupIds;
 }

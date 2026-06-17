@@ -38,5 +38,7 @@ public class MenuUpdateRequest {
 
     private Boolean isActive = true;
 
+    private Boolean showHoliday = true;
+
     private List<Long> allowedGroupIds;
 }

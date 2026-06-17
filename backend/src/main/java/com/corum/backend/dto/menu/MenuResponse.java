@@ -24,6 +24,7 @@ public class MenuResponse {
     private final Boolean hideIfNoPermission;
     private final String accessType;
     private final Boolean isActive;
+    private final Boolean showHoliday;
     private final List<Long> allowedGroupIds;
     private final List<MenuResponse> children;
     private final boolean hasNew;
@@ -52,6 +53,7 @@ public class MenuResponse {
         this.hideIfNoPermission = menu.getHideIfNoPermission();
         this.accessType = menu.getAccessType();
         this.isActive = menu.getIsActive();
+        this.showHoliday = menu.getShowHoliday();
         this.allowedGroupIds = allowedGroupIds;
         this.children = new ArrayList<>();
         this.hasNew = hasNew;

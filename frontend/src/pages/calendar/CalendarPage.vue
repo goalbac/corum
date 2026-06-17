@@ -12,12 +12,6 @@
           <span class="cal-title">{{ currentTitle }}</span>
         </div>
         <div class="cal-right">
-          <!-- 대한민국의 휴일 표시 토글 (단일 캘린더 메뉴에서만 표시) -->
-          <label v-if="hasHolidayCalendar && isSingleCalendar" class="cal-hol-toggle">
-            <input type="checkbox" v-model="showHolidayCalendar" @change="calApi?.refetchEvents()" />
-            <span class="cal-dot" :style="{ background: holidayCalendarColor }"></span>
-            <span>공휴일</span>
-          </label>
           <!-- 캘린더 선택 드롭다운 (단일 캘린더 메뉴에서는 숨김) -->
           <div v-if="!isSingleCalendar" class="cal-filter-wrap" ref="filterWrap">
             <button class="cal-btn" @click="showFilter = !showFilter">
@@ -192,8 +186,8 @@ const showFilter = ref(false)
 const filterWrap = ref(null)
 // 날짜별 공휴일 정보 (HOLIDAY 캘린더 이벤트에서 추출)
 const holidayMap = ref({}) // { "YYYY-MM-DD": { name, isHoliday } }
-// 대한민국의 휴일 캘린더 표시 여부 (localStorage 유지)
-const showHolidayCalendar = ref(localStorage.getItem('cal_show_holiday') !== 'false')
+// 대한민국의 휴일 캘린더 표시 여부 (메뉴 설정 또는 localStorage)
+const showHolidayCalendar = ref(true)
 
 const views = [
   { key: 'dayGridMonth', label: '월' },
@@ -618,6 +612,12 @@ onMounted(async () => {
       ? activeMenu.targetCalendarIds.map(Number)
       : (activeMenu?.targetId ? [Number(activeMenu.targetId)] : [])
     calendars.value = linkedIds.length ? all.filter(c => linkedIds.includes(c.id)) : all
+    // 메뉴 설정이 있으면 그 값을 사용, 없으면 localStorage 유지
+    if (activeMenu && activeMenu.showHoliday !== undefined) {
+      showHolidayCalendar.value = activeMenu.showHoliday !== false
+    } else {
+      showHolidayCalendar.value = localStorage.getItem('cal_show_holiday') !== 'false'
+    }
     // HOLIDAY 캘린더는 visibleCalendars에서 제외 (별도 처리)
     visibleCalendars.value = new Set(calendars.value.filter(c => c.calendarType !== 'HOLIDAY').map(c => c.id))
   } catch {}

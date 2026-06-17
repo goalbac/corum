@@ -75,12 +75,18 @@ public class Menu extends BaseEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    // 캘린더 메뉴: 대한민국의 휴일 표시 여부
+    @Column(name = "show_holiday", nullable = false)
+    @Builder.Default
+    private Boolean showHoliday = true;
+
     // ===== 비즈니스 메서드 =====
 
     public void update(String name, String description, String menuType,
                        String pageType, Long targetId, String url, Boolean urlAuto,
                        Boolean newWindow, Integer sortOrder, Boolean isHidden,
-                       Boolean hideIfNoPermission, String accessType, Boolean isActive) {
+                       Boolean hideIfNoPermission, String accessType, Boolean isActive,
+                       Boolean showHoliday) {
         this.name = name;
         this.description = description;
         this.menuType = menuType;
@@ -94,6 +100,7 @@ public class Menu extends BaseEntity {
         this.hideIfNoPermission = hideIfNoPermission;
         this.accessType = accessType;
         this.isActive = isActive;
+        this.showHoliday = showHoliday != null ? showHoliday : true;
     }
 
     // 실제 접근 URL 반환

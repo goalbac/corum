@@ -128,6 +128,7 @@ CREATE TABLE menus (
     hide_if_no_permission  BOOLEAN      NOT NULL DEFAULT FALSE,
     access_type            VARCHAR(20)  NOT NULL DEFAULT 'ALL',
     is_active              BOOLEAN      NOT NULL DEFAULT TRUE,
+    show_holiday           BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at             TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at             TIMESTAMP    NOT NULL DEFAULT NOW()
 );
