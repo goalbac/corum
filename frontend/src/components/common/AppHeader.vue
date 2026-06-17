@@ -574,7 +574,7 @@ async function handleLogout() {
 :global(.notif-popper .el-popper__arrow) { display: none !important; }
 
 .notif-dropdown {
-  width: 320px;
+  width: 380px;
   background: var(--surface);
   border-radius: 14px;
   overflow: hidden;
@@ -584,12 +584,12 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 10px;
+  padding: 16px 18px 12px;
   border-bottom: 0.5px solid var(--border2);
 }
 
 .notif-title {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--t1);
 }
@@ -601,7 +601,7 @@ async function handleLogout() {
 }
 
 .notif-action-btn {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--accent);
   background: none;
@@ -615,23 +615,23 @@ async function handleLogout() {
 .notif-action-btn.delete:hover { color: #ef4444; opacity: 1; }
 
 .notif-list {
-  max-height: 360px;
+  max-height: 440px;
   overflow-y: auto;
 }
 
 .notif-empty {
-  padding: 28px 16px;
+  padding: 36px 18px;
   text-align: center;
   color: var(--t3);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .notif-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 13px 18px;
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
@@ -642,13 +642,13 @@ async function handleLogout() {
 .notif-item.unread:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
 .notif-icon {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 18px;
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -661,19 +661,9 @@ async function handleLogout() {
 .notif-body { flex: 1; min-width: 0; }
 
 .notif-item-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--t1);
-  line-height: 1.4;
-  margin: 0 0 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.notif-item-content {
-  font-size: 12px;
-  color: var(--t3);
   line-height: 1.4;
   margin: 0 0 3px;
   overflow: hidden;
@@ -681,8 +671,18 @@ async function handleLogout() {
   white-space: nowrap;
 }
 
+.notif-item-content {
+  font-size: 13px;
+  color: var(--t3);
+  line-height: 1.4;
+  margin: 0 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .notif-item-time {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--t3);
   margin: 0;
   font-weight: 500;
