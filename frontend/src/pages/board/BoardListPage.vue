@@ -62,10 +62,13 @@
           </div>
           <div class="gallery-info">
             <div class="gallery-title-row">
-              <span class="gallery-title">{{ post.title }}</span>
-              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled gallery-new-dot"></i>
+              <span class="gallery-title">{{ post.title }}</span><i v-if="isNew(post.createdAt)" class="ti ti-point-filled gallery-new-dot"></i>
             </div>
             <div class="gallery-meta-row">
+              <span class="gallery-avatar">
+                <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="gallery-avatar-img" />
+                <span v-else class="gallery-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
+              </span>
               <span class="gallery-writer">{{ post.writerName }}</span>
               <span class="gallery-dot">·</span>
               <span class="gallery-date">{{ formatDate(post.createdAt) }}</span>
@@ -152,7 +155,13 @@
             </div>
             <p v-if="post.excerpt" class="webzine-excerpt">{{ post.excerpt }}</p>
             <div class="webzine-meta">
-              <span class="webzine-meta-chip"><i class="ti ti-user"></i>{{ post.writerName }}</span>
+              <span class="webzine-meta-chip webzine-writer-chip">
+                <span class="webzine-avatar">
+                  <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="webzine-avatar-img" />
+                  <span v-else class="webzine-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
+                </span>
+                {{ post.writerName }}
+              </span>
               <span v-if="showViewCount" class="webzine-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
               <span v-if="showLikeCount && board?.useLike" class="webzine-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
               <span class="webzine-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
@@ -903,38 +912,61 @@ onMounted(async () => {
 .gallery-info { padding: 10px 12px 12px; }
 
 .gallery-title-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 4px;
-  min-width: 0;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
 }
 
 .gallery-title {
-  font-size: 13px;
+  display: inline;
+  font-size: 14px;
   font-weight: 600;
   color: var(--t1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
   transition: color 0.12s;
 }
 
 .gallery-new-dot {
+  display: inline;
   font-size: 12px;
   color: var(--accent);
-  flex-shrink: 0;
+  vertical-align: middle;
+  margin-left: 2px;
 }
 
 .gallery-meta-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 12px;
   color: var(--t3);
-  margin-bottom: 6px;
+  margin-bottom: 7px;
+}
+
+.gallery-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.gallery-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-avatar-txt {
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
 }
 
 .gallery-dot { color: var(--t4); }
@@ -950,12 +982,12 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--t3);
   font-weight: 500;
 }
 
-.stat-chip i { font-size: 11px; }
+.stat-chip i { font-size: 12px; }
 
 .gallery-empty {
   grid-column: 1 / -1;
@@ -1072,6 +1104,31 @@ onMounted(async () => {
 .webzine-meta-chip i {
   font-size: 13px;
   color: var(--t3);
+}
+
+.webzine-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.webzine-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.webzine-avatar-txt {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
 }
 
 .webzine-empty {
