@@ -575,9 +575,9 @@ onMounted(async () => {
 .cat-chip {
   display: inline-flex;
   align-items: center;
-  padding: 8px 18px;
+  padding: 10px 14px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   border: none;
   background: var(--border2);
@@ -631,14 +631,14 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   padding: 0 20px;
-  height: 40px;
+  height: 44px;
   background: var(--surface2);
   border-bottom: 1px solid var(--border2);
   border-top: 1px solid var(--border2);
 }
 
 .pt-col {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--t3);
   text-transform: uppercase;
@@ -648,16 +648,16 @@ onMounted(async () => {
 
 .pt-col.num   { width: 64px; flex-shrink: 0; text-align: center; }
 .pt-col.title { flex: 1; min-width: 0; }
-.pt-col.writer{ width: 100px; flex-shrink: 0; text-align: center; }
-.pt-col.date  { width: 96px; flex-shrink: 0; text-align: center; }
-.pt-col.count { width: 60px; flex-shrink: 0; text-align: center; }
+.pt-col.writer{ width: 110px; flex-shrink: 0; text-align: center; }
+.pt-col.date  { width: 106px; flex-shrink: 0; text-align: center; }
+.pt-col.count { width: 66px; flex-shrink: 0; text-align: center; }
 
 /* 행 */
 .pt-row {
   display: flex;
   align-items: center;
   padding: 0 20px;
-  min-height: 48px;
+  min-height: 56px;
   border-bottom: 0.5px solid var(--border2);
   cursor: pointer;
   transition: background 0.12s;
@@ -667,7 +667,7 @@ onMounted(async () => {
 .pt-row:hover .pt-title { color: var(--accent-t); }
 
 .pt-row .pt-col {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   color: var(--t2);
   letter-spacing: 0;
@@ -683,7 +683,7 @@ onMounted(async () => {
 
 .pt-title {
   color: var(--t1);
-  font-size: 14px;
+  font-size: 15px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -705,21 +705,21 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.row-num { font-size: 13px; color: var(--t4); }
+.row-num { font-size: 14px; color: var(--t4); }
 
 .comment-chip {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--t3);
   flex-shrink: 0;
 }
 
-.comment-chip i { font-size: 12px; }
+.comment-chip i { font-size: 13px; }
 
 .file-chip {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t3);
   flex-shrink: 0;
 }
