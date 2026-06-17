@@ -154,7 +154,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
 // ===== 차트 상수 =====
-const CW = 560, CH = 200, CPX = 38, CPY = 16, CPB = 32
+const CW = 560, CH = 280, CPX = 38, CPY = 16, CPB = 32
 
 // ===== 데이터 =====
 const stats = ref([
@@ -287,13 +287,10 @@ onMounted(() => { fetchSummaryStats(); fetchDailyStats() })
 .stat-label { font-size: 13px; color: var(--t3); margin-top: 2px; }
 
 /* 2컬럼 레이아웃 */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 
 /* 섹션 카드 */
-.section-card { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
-.chart-card { min-height: 0; }
-.visitor-chart { flex: 1; min-height: 0; }
-.chart-loading { flex: 1; }
+.section-card { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 20px; box-shadow: var(--shadow); }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
 .section-title { font-size: 15px; font-weight: 800; color: var(--t1); }
 
@@ -303,7 +300,7 @@ onMounted(() => { fetchSummaryStats(); fetchDailyStats() })
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .legend-dot.pageview { background: #93C5FD; }
 .legend-dot.visitor { background: #2563EB; }
-.visitor-chart { width: 100%; height: 100%; display: block; color: var(--t1); }
+.visitor-chart { width: 100%; height: auto; display: block; color: var(--t1); }
 
 /* 기간 탭 */
 .period-tabs { display: flex; gap: 4px; }
