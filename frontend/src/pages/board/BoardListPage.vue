@@ -209,7 +209,10 @@
                 <span class="lv-tag lv-tag-notice">공지</span>
                 <span v-if="post.categoryName && selectedCategoryId === null" class="lv-category">{{ post.categoryName }}</span>
               </div>
-              <h3 class="lv-title">{{ post.title }}</h3>
+              <div class="lv-title-row">
+                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
+                <h3 class="lv-title">{{ post.title }}</h3>
+              </div>
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
             <div class="lv-meta">
@@ -222,11 +225,10 @@
               </span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
               <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
-              <span class="lv-meta-right">
-                <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
-                <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
-                <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
-              </span>
+              <span class="lv-meta-dot">·</span>
+              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
+              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
+              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
             </div>
           </div>
           <div v-if="post.thumbnailUrl" class="lv-thumb">
@@ -248,7 +250,10 @@
               <div v-if="post.categoryName && selectedCategoryId === null" class="lv-kicker">
                 <span class="lv-category">{{ post.categoryName }}</span>
               </div>
-              <h3 class="lv-title">{{ post.title }}</h3>
+              <div class="lv-title-row">
+                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
+                <h3 class="lv-title">{{ post.title }}</h3>
+              </div>
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
             <div class="lv-meta">
@@ -261,11 +266,10 @@
               </span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
               <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
-              <span class="lv-meta-right">
-                <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
-                <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
-                <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
-              </span>
+              <span class="lv-meta-dot">·</span>
+              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
+              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
+              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
             </div>
           </div>
           <div v-if="post.thumbnailUrl" class="lv-thumb">
@@ -1168,11 +1172,10 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.lv-meta-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
+.lv-meta-dot {
+  color: var(--t4);
+  font-size: 16px;
+  line-height: 1;
   flex-shrink: 0;
 }
 
@@ -1216,6 +1219,21 @@ onMounted(async () => {
   line-height: 1;
 }
 .lv-sep    { color: var(--border); }
+
+.lv-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+
+.lv-new-dot {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+  flex-shrink: 0;
+}
 
 .lv-stats {
   display: flex;
