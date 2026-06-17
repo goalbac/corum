@@ -655,3 +655,46 @@ ON CONFLICT DO NOTHING;
 INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active)
 SELECT 5, '시스템 도구', '/admin/tools', 'ti ti-tool', 3, TRUE
 WHERE NOT EXISTS (SELECT 1 FROM admin_menus WHERE url = '/admin/tools');
+
+-- ===== banners: bg_color, text_align 컬럼 추가 =====
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS bg_color  VARCHAR(30);
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS text_align VARCHAR(10);
+
+-- ===== notifications 테이블 =====
+CREATE TABLE IF NOT EXISTS notifications (
+    id          BIGSERIAL PRIMARY KEY,
+    member_id   BIGINT       NOT NULL,
+    type        VARCHAR(50)  NOT NULL,
+    title       VARCHAR(500),
+    content     TEXT,
+    link_url    VARCHAR(500),
+    is_read     BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_member_id ON notifications(member_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read   ON notifications(member_id, is_read);
+
+-- ===== notification_defaults 테이블 =====
+CREATE TABLE IF NOT EXISTS notification_defaults (
+    notif_type      VARCHAR(60)  PRIMARY KEY,
+    system_enabled  BOOLEAN      NOT NULL DEFAULT TRUE,
+    email_enabled   BOOLEAN      NOT NULL DEFAULT FALSE,
+    label           VARCHAR(100) NOT NULL
+);
+INSERT INTO notification_defaults (notif_type, system_enabled, email_enabled, label) VALUES
+    ('NEW_MESSAGE',   TRUE, FALSE, '새 쪽지'),
+    ('NEW_COMMENT',   TRUE, FALSE, '내 글에 댓글'),
+    ('NEW_REPLY',     TRUE, FALSE, '댓글에 답글'),
+    ('SYSTEM_NOTICE', TRUE, FALSE, '시스템 공지')
+ON CONFLICT (notif_type) DO NOTHING;
+
+-- ===== member_notification_prefs 테이블 =====
+CREATE TABLE IF NOT EXISTS member_notification_prefs (
+    id              BIGSERIAL PRIMARY KEY,
+    member_id       BIGINT      NOT NULL,
+    notif_type      VARCHAR(60) NOT NULL,
+    system_enabled  BOOLEAN     NOT NULL DEFAULT TRUE,
+    email_enabled   BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMP   NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mnp_unique ON member_notification_prefs(member_id, notif_type);
