@@ -67,21 +67,74 @@
 
 ---
 
-## 로컬 실행
+## 로컬 개발 실행
 
 ```bash
-# 1. Docker 컨테이너 시작
+# 1. Docker 컨테이너 시작 (PostgreSQL :5432 / pgAdmin :5050 / MinIO :9000 API, :9001 Console)
 cd ~/corum && docker compose up -d
-# PostgreSQL :5432 / pgAdmin :5050 / MinIO :9000(API) :9001(Console)
 
 # 2. Spring Boot 실행
 # IntelliJ에서 CorumApplication.java 실행
 # 확인: http://localhost:8080/api/health
 
-# 3. Vue 실행
+# 3. Vue 개발 서버 실행
 cd ~/corum/frontend && npm run dev
 # 확인: http://localhost:5173
 ```
+
+**로컬 Docker 종료:**
+```bash
+cd ~/corum && docker compose down
+# 볼륨까지 삭제(DB 초기화): docker compose down -v
+```
+
+---
+
+## 운영 서버
+
+- **Docker Compose 파일:** `docker-compose.prod.yml`
+- **프로젝트명:** `corum-prod` (`-p corum-prod` 옵션 필수)
+- **환경변수 파일:** `.env.prod` (gitignore 처리, 서버에만 존재)
+- **컨테이너 구성:** postgres / minio / backend / frontend(nginx)
+- **포트:** 80 (nginx → frontend + `/api` proxy → backend:8080)
+
+**운영 서버 시작:**
+```bash
+cd ~/corum
+docker compose -p corum-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+**운영 서버 종료:**
+```bash
+cd ~/corum
+docker compose -p corum-prod -f docker-compose.prod.yml down
+```
+
+**운영 서버 재시작 (코드 배포 포함):**
+```bash
+cd ~/corum
+git pull
+docker compose -p corum-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+**컨테이너 상태 확인:**
+```bash
+docker compose -p corum-prod -f docker-compose.prod.yml ps
+```
+
+**로그 확인:**
+```bash
+# 전체 로그
+docker compose -p corum-prod -f docker-compose.prod.yml logs -f
+
+# 서비스별 로그
+docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
+docker compose -p corum-prod -f docker-compose.prod.yml logs -f frontend
+```
+
+> **주의:** `--env-file .env.prod` 없이 실행하면 `JWT_SECRET`이 비어 `WeakKeyException`으로 backend가 시작되지 않음.
+
+> **배포 규칙:** 운영 서버 배포는 사용자가 명시적으로 요청한 경우에만 실행한다.
 
 ---
 
