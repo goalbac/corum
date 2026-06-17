@@ -1044,36 +1044,24 @@ onMounted(async () => {
 .lv-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 20px;
+  border-top: 1px solid var(--border2);
 }
 
 .lv-item {
   display: flex;
   align-items: stretch;
   gap: 14px;
-  padding: 18px 20px 16px 22px;
-  border-radius: 12px;
-  background: var(--surface);
-  border: 0.5px solid var(--border2);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  border-left: 3px solid transparent;
+  padding: 16px 28px;
+  border-bottom: 0.5px solid var(--border2);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  transition: background 0.12s;
 }
 
-.lv-item:hover {
-  border-left-color: var(--accent);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-  transform: translateY(-1px);
-}
+.lv-item:hover { background: var(--surface2); }
 .lv-item:hover .lv-title { color: var(--accent-t); }
 
-.lv-notice {
-  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
-  border-left-color: var(--accent);
-}
-.lv-notice:hover { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.lv-notice { background: var(--accent-bg); }
+.lv-notice:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
 .lv-main {
   flex: 1;
@@ -1142,7 +1130,7 @@ onMounted(async () => {
 .lv-excerpt {
   margin: 0;
   font-size: 14px;
-  color: var(--t2);
+  color: var(--t3);
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1341,8 +1329,7 @@ onMounted(async () => {
 
 @media (max-width: 600px) {
   /* ===== 리스트형 ===== */
-  .lv-list { padding: 10px 14px; gap: 6px; }
-  .lv-item { padding: 14px 16px 12px 16px; gap: 12px; border-left-width: 3px; }
+  .lv-item { padding: 14px 16px; gap: 12px; }
   .lv-thumb { width: 90px; min-height: 72px; max-height: 120px; }
   .lv-title { font-size: 15px; }
   .lv-excerpt { font-size: 13px; }
