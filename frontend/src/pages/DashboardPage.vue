@@ -710,7 +710,7 @@ onMounted(async () => {
 .wcard-desc {
   font-size: 14px;
   color: var(--t3);
-  margin: -8px 0 10px;
+  margin: -8px 0 15px;
   line-height: 1.5;
 }
 .wcard-desc-inline {
