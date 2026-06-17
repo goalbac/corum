@@ -221,10 +221,12 @@
                 {{ post.writerName }}
               </span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
-              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
-              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
-              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
               <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
+              <span class="lv-meta-right">
+                <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
+                <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
+                <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
+              </span>
             </div>
           </div>
           <div v-if="post.thumbnailUrl" class="lv-thumb">
@@ -258,10 +260,12 @@
                 {{ post.writerName }}
               </span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
-              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
-              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
-              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
               <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
+              <span class="lv-meta-right">
+                <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
+                <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
+                <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
+              </span>
             </div>
           </div>
           <div v-if="post.thumbnailUrl" class="lv-thumb">
@@ -1063,7 +1067,7 @@ onMounted(async () => {
   display: flex;
   align-items: stretch;
   gap: 14px;
-  padding: 16px 28px;
+  padding: 20px 28px;
   border-bottom: 0.5px solid var(--border2);
   cursor: pointer;
   transition: background 0.12s;
@@ -1156,23 +1160,32 @@ onMounted(async () => {
 .lv-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   font-size: 14px;
   color: var(--t3);
-  flex-wrap: wrap;
-  margin-top: 8px;
+  flex-wrap: nowrap;
+  margin-top: 10px;
+  flex-shrink: 0;
+}
+
+.lv-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
   flex-shrink: 0;
 }
 
 .lv-meta-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   min-height: 20px;
+  white-space: nowrap;
 }
 
 .lv-meta-chip i {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t3);
 }
 
