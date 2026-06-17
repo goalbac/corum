@@ -283,27 +283,67 @@ function toggleCalendar(id) {
   calApi.value?.refetchEvents()
 }
 
-// null 반환 시 FullCalendar Vue3가 이벤트 DOM을 빈 노드로 처리 → 화면에 안 보임
-// 데스크탑/모바일 모두 동일 렌더러 사용: 시간 위·제목 아래, 컬러 좌측 보더
+function fmtKorTime(date) {
+  if (!date) return ''
+  const h = date.getHours(), m = date.getMinutes()
+  const ap = h < 12 ? '오전' : '오후'
+  const hr = h % 12 || 12
+  return m === 0 ? `${ap} ${hr}시` : `${ap} ${hr}:${String(m).padStart(2,'0')}`
+}
+
 function eventContent(arg) {
-  const { event } = arg
-  const timeText = arg.timeText
+  const { event, view } = arg
   const color    = event.backgroundColor || '#2563EB'
+  const viewType = view.type
+  const isMobileView = window.innerWidth <= 768
 
   const el = document.createElement('div')
-  el.className = 'fc-ev-custom'
   el.style.setProperty('--ev-color', color)
 
-  if (timeText && !event.allDay) {
-    const t = document.createElement('div')
-    t.className = 'fc-ev-time'
-    t.textContent = timeText
-    el.appendChild(t)
+  if (viewType === 'dayGridMonth') {
+    if (event.allDay) {
+      // 종일: 기존 pill 스타일
+      el.className = 'fc-ev-custom'
+      const n = document.createElement('div')
+      n.className = 'fc-ev-title'
+      n.textContent = event.title
+      el.appendChild(n)
+    } else if (isMobileView) {
+      // 모바일: 기존 스타일
+      el.className = 'fc-ev-custom'
+      const t = document.createElement('div')
+      t.className = 'fc-ev-time'
+      t.textContent = arg.timeText || ''
+      el.appendChild(t)
+      const n = document.createElement('div')
+      n.className = 'fc-ev-title'
+      n.textContent = event.title
+      el.appendChild(n)
+    } else {
+      // 데스크탑: 구글 캘린더 스타일 (● 오전 8시 제목)
+      el.className = 'fc-ev-goog'
+      const dot = document.createElement('span')
+      dot.className = 'fc-ev-goog-dot'
+      el.appendChild(dot)
+      const label = document.createElement('span')
+      label.className = 'fc-ev-goog-label'
+      label.textContent = `${fmtKorTime(event.start)} ${event.title}`
+      el.appendChild(label)
+    }
+  } else {
+    // 주/일 뷰: 타임그리드 블록
+    el.className = 'fc-ev-block'
+    const title = document.createElement('div')
+    title.className = 'fc-ev-block-title'
+    title.textContent = event.title
+    el.appendChild(title)
+    if (event.extendedProps?.location) {
+      const loc = document.createElement('div')
+      loc.className = 'fc-ev-block-loc'
+      loc.textContent = event.extendedProps.location
+      el.appendChild(loc)
+    }
   }
-  const n = document.createElement('div')
-  n.className = 'fc-ev-title'
-  n.textContent = event.title
-  el.appendChild(n)
   return { domNodes: [el] }
 }
 
@@ -803,7 +843,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-toolbar) { display: none; }
 .cal-wrap :deep(.fc-more-link) { color: var(--accent-t) !important; }
 
-/* ===== 커스텀 이벤트 카드 (데스크탑 + 모바일 공통) ===== */
+/* ===== 커스텀 이벤트 카드 ===== */
 .cal-wrap :deep(.fc-event) {
   background: transparent !important;
   border: none !important;
@@ -813,6 +853,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   overflow: visible;
 }
 
+/* 종일 / 모바일 폴백 스타일 */
 .cal-wrap :deep(.fc-ev-custom) {
   display: flex;
   flex-direction: column;
@@ -837,8 +878,75 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   color: var(--t1);
   font-weight: 500;
   line-height: 1.35;
-  white-space: normal;
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 데스크탑 월뷰 구글 캘린더 스타일 */
+.cal-wrap :deep(.fc-ev-goog) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  min-width: 0;
+}
+.cal-wrap :deep(.fc-ev-goog:hover) {
+  background: color-mix(in srgb, var(--ev-color, var(--accent)) 10%, var(--surface));
+}
+.cal-wrap :deep(.fc-ev-goog-dot) {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ev-color, var(--accent));
+  flex-shrink: 0;
+}
+.cal-wrap :deep(.fc-ev-goog-label) {
+  font-size: 13px;
+  color: var(--t1);
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.6;
+}
+
+/* 주/일 뷰 블록 스타일 */
+.cal-wrap :deep(.fc-ev-block) {
+  padding: 3px 6px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.cal-wrap :deep(.fc-ev-block-title) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-wrap :deep(.fc-ev-block-loc) {
+  font-size: 11px;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 주/일뷰 이벤트는 backgroundColor가 적용되므로 배경 제거 불필요 */
+.cal-wrap :deep(.fc-timegrid-event) {
+  border-radius: 4px !important;
+  border-left: 3px solid rgba(255,255,255,0.4) !important;
 }
 
 .cal-dot {
