@@ -347,13 +347,28 @@
               <span class="notice-tag">공지</span>
             </div>
             <div class="pt-col title">
-              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-              <span class="pt-title notice-title">{{ post.title }}</span>
-              <span v-if="post.commentCount > 0" class="comment-chip">
-                <i class="ti ti-message-2"></i>{{ post.commentCount }}
-              </span>
-              <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
-              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
+              <div class="pt-title-line">
+                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+                <span class="pt-title notice-title">{{ post.title }}</span>
+                <span v-if="post.commentCount > 0" class="comment-chip">
+                  <i class="ti ti-message-2"></i>{{ post.commentCount }}
+                </span>
+                <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
+                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
+              </div>
+              <div class="pt-meta-mobile">
+                <span>{{ post.writerName }}</span>
+                <span class="pt-meta-sep">·</span>
+                <span>{{ formatDate(post.createdAt) }}</span>
+                <template v-if="showViewCount">
+                  <span class="pt-meta-sep">·</span>
+                  <span><i class="ti ti-eye"></i> {{ post.viewCount }}</span>
+                </template>
+                <template v-if="showLikeCount && board?.useLike">
+                  <span class="pt-meta-sep">·</span>
+                  <span><i class="ti ti-heart"></i> {{ post.likeCount }}</span>
+                </template>
+              </div>
             </div>
             <div class="pt-col writer">{{ post.writerName }}</div>
             <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
@@ -372,13 +387,28 @@
               <span class="row-num">{{ post.rowNum }}</span>
             </div>
             <div class="pt-col title">
-              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-              <span class="pt-title">{{ post.title }}</span>
-              <span v-if="post.commentCount > 0" class="comment-chip">
-                <i class="ti ti-message-2"></i>{{ post.commentCount }}
-              </span>
-              <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
-              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
+              <div class="pt-title-line">
+                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+                <span class="pt-title">{{ post.title }}</span>
+                <span v-if="post.commentCount > 0" class="comment-chip">
+                  <i class="ti ti-message-2"></i>{{ post.commentCount }}
+                </span>
+                <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
+                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
+              </div>
+              <div class="pt-meta-mobile">
+                <span>{{ post.writerName }}</span>
+                <span class="pt-meta-sep">·</span>
+                <span>{{ formatDate(post.createdAt) }}</span>
+                <template v-if="showViewCount">
+                  <span class="pt-meta-sep">·</span>
+                  <span><i class="ti ti-eye"></i> {{ post.viewCount }}</span>
+                </template>
+                <template v-if="showLikeCount && board?.useLike">
+                  <span class="pt-meta-sep">·</span>
+                  <span><i class="ti ti-heart"></i> {{ post.likeCount }}</span>
+                </template>
+              </div>
             </div>
             <div class="pt-col writer">{{ post.writerName }}</div>
             <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
@@ -703,10 +733,21 @@ onMounted(async () => {
 
 .pt-row .pt-col.title {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pt-title-line {
+  display: flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
 }
+
+/* 모바일 메타 (기본 숨김) */
+.pt-meta-mobile { display: none; }
 
 .pt-title {
   color: var(--t1);
@@ -749,6 +790,33 @@ onMounted(async () => {
   font-size: 14px;
   color: var(--t3);
   flex-shrink: 0;
+}
+
+/* ===== 테이블 모바일 ===== */
+@media (max-width: 640px) {
+  .pt-head .pt-col.num,
+  .pt-head .pt-col.writer,
+  .pt-head .pt-col.date,
+  .pt-head .pt-col.count { display: none; }
+
+  .pt-row .pt-col.num { display: none; }
+  .pt-row .pt-col.writer,
+  .pt-row .pt-col.date,
+  .pt-row .pt-col.count { display: none; }
+
+  .pt-meta-mobile {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--t3);
+  }
+  .pt-meta-mobile i { font-size: 12px; vertical-align: middle; }
+  .pt-meta-sep { color: var(--border); }
+
+  .pt-row { min-height: 62px; padding: 10px 16px; }
+  .pt-head { padding: 0 16px; }
 }
 
 .notice-divider {
