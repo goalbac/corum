@@ -1330,6 +1330,13 @@ onMounted(async () => {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
     padding: 16px;
   }
+  .wcard.wcard-flush {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+  }
 
   /* 메뉴 대시보드 모바일 */
   .dashboard-menu .widget-area {
