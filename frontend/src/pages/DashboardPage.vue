@@ -8,12 +8,16 @@
         <!-- 위젯 콘텐츠 로딩 중이면 스켈레톤 카드 -->
         <template v-if="widgetLoading[layout.id]">
           <div :class="parseConfig(layout).size === 'full' || isFullWidget(layout.widgetType) ? 'widget-full' : 'widget-half'">
-            <div class="wcard wcard-loading">
-              <div class="wcard-head">
-                <span class="wcard-title skeleton-text">{{ layout.title || layout.targetBoardName || widgetTypeLabel(layout.widgetType) }}</span>
+            <div class="wsec">
+              <div class="wsec-header">
+                <div class="wsec-title-area">
+                  <div class="wsec-title skeleton-text">{{ layout.title || layout.targetBoardName || widgetTypeLabel(layout.widgetType) }}</div>
+                </div>
               </div>
-              <div class="wcard-skeleton-body">
-                <i class="ti ti-loader-2 spinning" style="font-size:22px;color:var(--t4)"></i>
+              <div class="wcard wcard-loading">
+                <div class="wcard-skeleton-body">
+                  <i class="ti ti-loader-2 spinning" style="font-size:22px;color:var(--t4)"></i>
+                </div>
               </div>
             </div>
           </div>
@@ -59,78 +63,86 @@
         <!-- 최신 글 (텍스트 목록) -->
         <div v-else-if="widget.widgetType === 'RECENT_POSTS'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
-          <div class="wcard">
-            <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || widget.targetBoardName || '최신글' }}</span>
-              <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="wcard-more">
+          <div class="wsec">
+            <div class="wsec-header">
+              <div class="wsec-title-area">
+                <div class="wsec-title">{{ widget.title || widget.targetBoardName || '최신글' }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
+              <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="wsec-more">
                 더보기 <i class="ti ti-arrow-right"></i>
               </router-link>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div v-if="widget.posts?.length" class="post-list">
-              <router-link
-                v-for="post in widget.posts"
-                :key="post.id"
-                :to="postPath(widget, post)"
-                class="post-row"
-              >
-                <span class="post-title-wrap">
-                  <span v-if="post.boardName" class="post-board-tag">{{ post.boardName }}</span>
-                  <span class="post-title-txt">{{ post.title }}</span>
-                </span>
-                <span class="post-date-txt">{{ formatDate(post.createdAt) }}</span>
-              </router-link>
+            <div class="wcard">
+              <div v-if="widget.posts?.length" class="post-list">
+                <router-link
+                  v-for="post in widget.posts"
+                  :key="post.id"
+                  :to="postPath(widget, post)"
+                  class="post-row"
+                >
+                  <span class="post-title-wrap">
+                    <span v-if="post.boardName" class="post-board-tag">{{ post.boardName }}</span>
+                    <span class="post-title-txt">{{ post.title }}</span>
+                  </span>
+                  <span class="post-date-txt">{{ formatDate(post.createdAt) }}</span>
+                </router-link>
+              </div>
+              <div v-else class="wcard-empty">등록된 글이 없습니다.</div>
             </div>
-            <div v-else class="wcard-empty">등록된 글이 없습니다.</div>
           </div>
         </div>
 
         <!-- 갤러리 최신 글 (썸네일 그리드) -->
         <div v-else-if="widget.widgetType === 'RECENT_GALLERY'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
-          <div class="wcard">
-            <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || widget.targetBoardName || '갤러리' }}</span>
-              <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="wcard-more">
+          <div class="wsec">
+            <div class="wsec-header">
+              <div class="wsec-title-area">
+                <div class="wsec-title">{{ widget.title || widget.targetBoardName || '갤러리' }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
+              <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="wsec-more">
                 더보기 <i class="ti ti-arrow-right"></i>
               </router-link>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div v-if="widget.posts?.length" class="gallery-grid">
-              <router-link
-                v-for="post in widget.posts"
-                :key="post.id"
-                :to="postPath(widget, post)"
-                class="gallery-item"
-              >
-                <div class="gallery-thumb">
-                  <template v-if="post.thumbnailUrl">
-                    <div class="gw-spinner"><div class="gw-ring"></div></div>
-                    <img
-                      :src="post.thumbnailUrl"
-                      :alt="post.title"
-                      class="gw-img"
-                      @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
-                      @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }"
-                    />
-                  </template>
-                  <div v-else class="gallery-no-img"><i class="ti ti-photo"></i></div>
-                </div>
-                <span class="gallery-title">{{ post.title }}</span>
-              </router-link>
+            <div class="wcard">
+              <div v-if="widget.posts?.length" class="gallery-grid">
+                <router-link
+                  v-for="post in widget.posts"
+                  :key="post.id"
+                  :to="postPath(widget, post)"
+                  class="gallery-item"
+                >
+                  <div class="gallery-thumb">
+                    <template v-if="post.thumbnailUrl">
+                      <div class="gw-spinner"><div class="gw-ring"></div></div>
+                      <img
+                        :src="post.thumbnailUrl"
+                        :alt="post.title"
+                        class="gw-img"
+                        @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
+                        @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }"
+                      />
+                    </template>
+                    <div v-else class="gallery-no-img"><i class="ti ti-photo"></i></div>
+                  </div>
+                  <span class="gallery-title">{{ post.title }}</span>
+                </router-link>
+              </div>
+              <div v-else class="wcard-empty">등록된 글이 없습니다.</div>
             </div>
-            <div v-else class="wcard-empty">등록된 글이 없습니다.</div>
           </div>
         </div>
 
         <!-- 캘린더 위클리 -->
         <div v-else-if="widget.widgetType === 'CALENDAR_WEEKLY'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
-          <div class="wcard">
-            <div class="wcard-head">
-              <div class="wcard-head-left">
-                <span class="wcard-title">{{ widget.title || '이번 주 일정' }}</span>
-                <span v-if="widget.description" class="wcard-desc-inline">{{ widget.description }}</span>
+          <div class="wsec">
+            <div class="wsec-header">
+              <div class="wsec-title-area">
+                <div class="wsec-title">{{ widget.title || '이번 주 일정' }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
               </div>
               <div class="cal-week-nav">
                 <button class="cal-nav-btn" @click.stop="navigateWeek(widget, -1)" :disabled="calWeekLoading[widget.id]">
@@ -142,31 +154,33 @@
                 </button>
               </div>
             </div>
-            <!-- 주 이동 로딩 오버레이 -->
-            <div v-if="calWeekLoading[widget.id]" class="cal-loading">
-              <i class="ti ti-loader-2 spinning"></i>
-            </div>
-            <div v-else class="cal-week">
-              <div v-for="day in getWeekDays(widget.id)" :key="day.date" class="cal-day-col">
-                <div :class="['cal-day-head', day.isToday ? 'today' : '', day.isSunday ? 'sunday' : '', day.isSaturday ? 'saturday' : '']">
-                  <span class="cal-dow">{{ day.dow }}</span>
-                  <span class="cal-dnum">{{ day.dnum }}</span>
-                </div>
-                <div class="cal-events">
-                  <template v-if="getEventsForDay(widget, day.date).length">
-                    <div
-                      v-for="ev in getEventsForDay(widget, day.date)"
-                      :key="ev.id"
-                      class="cal-event-chip"
-                      :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
-                      :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
-                    >
-                      <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
-                      <span class="cal-ev-title">{{ ev.title }}</span>
-                      <span v-if="ev.calendarName && !parseCalendarId(widget)" class="cal-ev-cal">{{ ev.calendarName }}</span>
-                    </div>
-                  </template>
-                  <div v-else class="cal-no-event"></div>
+            <div class="wcard">
+              <!-- 주 이동 로딩 오버레이 -->
+              <div v-if="calWeekLoading[widget.id]" class="cal-loading">
+                <i class="ti ti-loader-2 spinning"></i>
+              </div>
+              <div v-else class="cal-week">
+                <div v-for="day in getWeekDays(widget.id)" :key="day.date" class="cal-day-col">
+                  <div :class="['cal-day-head', day.isToday ? 'today' : '', day.isSunday ? 'sunday' : '', day.isSaturday ? 'saturday' : '']">
+                    <span class="cal-dow">{{ day.dow }}</span>
+                    <span class="cal-dnum">{{ day.dnum }}</span>
+                  </div>
+                  <div class="cal-events">
+                    <template v-if="getEventsForDay(widget, day.date).length">
+                      <div
+                        v-for="ev in getEventsForDay(widget, day.date)"
+                        :key="ev.id"
+                        class="cal-event-chip"
+                        :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
+                        :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
+                      >
+                        <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
+                        <span class="cal-ev-title">{{ ev.title }}</span>
+                        <span v-if="ev.calendarName && !parseCalendarId(widget)" class="cal-ev-cal">{{ ev.calendarName }}</span>
+                      </div>
+                    </template>
+                    <div v-else class="cal-no-event"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -176,122 +190,142 @@
         <!-- 링크 모음 -->
         <div v-else-if="widget.widgetType === 'LINK_LIST'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
-          <div class="wcard">
-            <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '링크 모음' }}</span>
+          <div class="wsec">
+            <div class="wsec-header">
+              <div class="wsec-title-area">
+                <div class="wsec-title">{{ widget.title || '링크 모음' }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div v-if="parseConfig(widget).links?.length" class="link-grid">
-              <a
-                v-for="(link, i) in parseConfig(widget).links"
-                :key="i"
-                :href="link.url"
-                :target="link.newWindow ? '_blank' : undefined"
-                class="link-chip"
-              >
-                <span>{{ link.label }}</span>
-                <i class="ti ti-arrow-up-right link-arrow"></i>
-              </a>
+            <div class="wcard">
+              <div v-if="parseConfig(widget).links?.length" class="link-grid">
+                <a
+                  v-for="(link, i) in parseConfig(widget).links"
+                  :key="i"
+                  :href="link.url"
+                  :target="link.newWindow ? '_blank' : undefined"
+                  class="link-chip"
+                >
+                  <span>{{ link.label }}</span>
+                  <i class="ti ti-arrow-up-right link-arrow"></i>
+                </a>
+              </div>
+              <div v-else class="wcard-empty">링크가 없습니다.</div>
             </div>
-            <div v-else class="wcard-empty">링크가 없습니다.</div>
           </div>
         </div>
 
         <!-- 바로가기 -->
         <div v-else-if="widget.widgetType === 'QUICK_LINKS'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
-          <div class="wcard">
-            <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '바로가기' }}</span>
+          <div class="wsec">
+            <div class="wsec-header">
+              <div class="wsec-title-area">
+                <div class="wsec-title">{{ widget.title || '바로가기' }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div v-if="parseConfig(widget).links?.length" class="quick-links-grid">
-              <component
-                :is="link.newWindow ? 'a' : 'router-link'"
-                v-for="(link, i) in parseConfig(widget).links"
-                :key="i"
-                v-bind="link.newWindow ? { href: link.url, target: '_blank' } : { to: link.url }"
-                class="quick-link-item"
-              >
-                <div class="ql-icon-wrap">
-                  <i :class="'ti ' + (link.icon || 'ti-link')"></i>
-                </div>
-                <span class="ql-label">{{ link.label }}</span>
-              </component>
+            <div class="wcard">
+              <div v-if="parseConfig(widget).links?.length" class="quick-links-grid">
+                <component
+                  :is="link.newWindow ? 'a' : 'router-link'"
+                  v-for="(link, i) in parseConfig(widget).links"
+                  :key="i"
+                  v-bind="link.newWindow ? { href: link.url, target: '_blank' } : { to: link.url }"
+                  class="quick-link-item"
+                >
+                  <div class="ql-icon-wrap">
+                    <i :class="'ti ' + (link.icon || 'ti-link')"></i>
+                  </div>
+                  <span class="ql-label">{{ link.label }}</span>
+                </component>
+              </div>
+              <div v-else class="wcard-empty">바로가기가 없습니다.</div>
             </div>
-            <div v-else class="wcard-empty">바로가기가 없습니다.</div>
           </div>
         </div>
 
         <!-- 이미지 그리드 -->
         <div v-else-if="widget.widgetType === 'IMAGE_GRID'" class="widget-full">
-          <div class="wcard">
-            <div v-if="widget.title || widget.description" class="wcard-head">
-              <span class="wcard-title">{{ widget.title }}</span>
+          <div class="wsec">
+            <div v-if="widget.title || widget.description" class="wsec-header">
+              <div class="wsec-title-area">
+                <div v-if="widget.title" class="wsec-title">{{ widget.title }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div v-if="parseConfig(widget).images?.length" class="img-grid">
-              <component
-                :is="img.linkUrl ? 'a' : 'div'"
-                v-for="(img, i) in parseConfig(widget).images.slice(0,4)"
-                :key="i"
-                v-bind="img.linkUrl ? { href: img.linkUrl, target: img.newWindow ? '_blank' : undefined } : {}"
-                class="img-grid-item"
-              >
-                <img v-if="img.imageUrl" :src="toSmallThumb(img.imageUrl)" :alt="img.title || ''" loading="lazy" class="img-grid-photo" />
-                <div v-else class="img-grid-placeholder"><i class="ti ti-photo"></i></div>
-                <div v-if="img.title || img.desc" class="img-grid-overlay">
-                  <span v-if="img.title" class="img-grid-title">{{ img.title }}</span>
-                  <span v-if="img.desc" class="img-grid-desc">{{ img.desc }}</span>
-                </div>
-              </component>
+            <div class="wcard wcard-flush">
+              <div v-if="parseConfig(widget).images?.length" class="img-grid">
+                <component
+                  :is="img.linkUrl ? 'a' : 'div'"
+                  v-for="(img, i) in parseConfig(widget).images.slice(0,4)"
+                  :key="i"
+                  v-bind="img.linkUrl ? { href: img.linkUrl, target: img.newWindow ? '_blank' : undefined } : {}"
+                  class="img-grid-item"
+                >
+                  <img v-if="img.imageUrl" :src="toSmallThumb(img.imageUrl)" :alt="img.title || ''" loading="lazy" class="img-grid-photo" />
+                  <div v-else class="img-grid-placeholder"><i class="ti ti-photo"></i></div>
+                  <div v-if="img.title || img.desc" class="img-grid-overlay">
+                    <span v-if="img.title" class="img-grid-title">{{ img.title }}</span>
+                    <span v-if="img.desc" class="img-grid-desc">{{ img.desc }}</span>
+                  </div>
+                </component>
+              </div>
+              <div v-else class="wcard-empty">이미지가 없습니다.</div>
             </div>
-            <div v-else class="wcard-empty">이미지가 없습니다.</div>
           </div>
         </div>
 
         <!-- 커스텀 -->
         <div v-else-if="widget.widgetType === 'CUSTOM'"
              :class="parseConfig(widget).size === 'half' ? 'widget-half' : 'widget-full'">
-          <div class="wcard">
-            <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '' }}</span>
-              <a v-if="parseConfig(widget).moreUrl" :href="parseConfig(widget).moreUrl" class="wcard-more">
+          <div class="wsec">
+            <div v-if="widget.title || widget.description" class="wsec-header">
+              <div class="wsec-title-area">
+                <div v-if="widget.title" class="wsec-title">{{ widget.title }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
+              <a v-if="parseConfig(widget).moreUrl" :href="parseConfig(widget).moreUrl" class="wsec-more">
                 더보기 <i class="ti ti-arrow-right"></i>
               </a>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div class="custom-body ql-editor" v-html="toCustomHtml(parseConfig(widget).content || '')" />
+            <div class="wcard">
+              <div class="custom-body ql-editor" v-html="toCustomHtml(parseConfig(widget).content || '')" />
+            </div>
           </div>
         </div>
 
         <!-- 회원 현황 -->
         <div v-else-if="widget.widgetType === 'MEMBER_STATS'" class="widget-half">
-          <div class="wcard member-stats-card">
-            <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '회원 현황' }}</span>
+          <div class="wsec">
+            <div class="wsec-header">
+              <div class="wsec-title-area">
+                <div class="wsec-title">{{ widget.title || '회원 현황' }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div class="mstats-grid">
-              <div class="mstat-item">
-                <div class="mstat-icon" style="background:#EFF6FF;color:#2563EB"><i class="ti ti-users"></i></div>
-                <div class="mstat-info">
-                  <div class="mstat-num">{{ widget.stats?.memberCount ?? 0 }}</div>
-                  <div class="mstat-lbl">전체 회원</div>
+            <div class="wcard member-stats-card">
+              <div class="mstats-grid">
+                <div class="mstat-item">
+                  <div class="mstat-icon" style="background:#EFF6FF;color:#2563EB"><i class="ti ti-users"></i></div>
+                  <div class="mstat-info">
+                    <div class="mstat-num">{{ widget.stats?.memberCount ?? 0 }}</div>
+                    <div class="mstat-lbl">전체 회원</div>
+                  </div>
                 </div>
-              </div>
-              <div class="mstat-item">
-                <div class="mstat-icon" style="background:#ECFDF5;color:#10B981"><i class="ti ti-layout-list"></i></div>
-                <div class="mstat-info">
-                  <div class="mstat-num">{{ widget.stats?.boardCount ?? 0 }}</div>
-                  <div class="mstat-lbl">게시판</div>
+                <div class="mstat-item">
+                  <div class="mstat-icon" style="background:#ECFDF5;color:#10B981"><i class="ti ti-layout-list"></i></div>
+                  <div class="mstat-info">
+                    <div class="mstat-num">{{ widget.stats?.boardCount ?? 0 }}</div>
+                    <div class="mstat-lbl">게시판</div>
+                  </div>
                 </div>
-              </div>
-              <div class="mstat-item">
-                <div class="mstat-icon" style="background:#FEF2F2;color:#EF4444"><i class="ti ti-mail-question"></i></div>
-                <div class="mstat-info">
-                  <div class="mstat-num accent-red">{{ widget.stats?.pendingInquiryCount ?? 0 }}</div>
-                  <div class="mstat-lbl">미처리 문의</div>
+                <div class="mstat-item">
+                  <div class="mstat-icon" style="background:#FEF2F2;color:#EF4444"><i class="ti ti-mail-question"></i></div>
+                  <div class="mstat-info">
+                    <div class="mstat-num accent-red">{{ widget.stats?.pendingInquiryCount ?? 0 }}</div>
+                    <div class="mstat-lbl">미처리 문의</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -300,26 +334,30 @@
 
         <!-- 접속 통계 -->
         <div v-else-if="widget.widgetType === 'VISIT_STATS'" class="widget-half">
-          <div class="wcard visit-stats-card">
-            <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '오늘의 접속' }}</span>
-              <span class="wcard-sub-date">{{ todayDateShort }}</span>
+          <div class="wsec">
+            <div class="wsec-header">
+              <div class="wsec-title-area">
+                <div class="wsec-title">{{ widget.title || '오늘의 접속' }}</div>
+                <p v-if="widget.description" class="wsec-desc">{{ widget.description }}</p>
+              </div>
+              <span class="wsec-sub-date">{{ todayDateShort }}</span>
             </div>
-            <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div class="vstats-row">
-              <div class="vstat-item">
-                <div class="vstat-num">{{ widget.stats?.todayVisits ?? 0 }}</div>
-                <div class="vstat-lbl"><i class="ti ti-eye"></i> 전체 방문</div>
-              </div>
-              <div class="vstat-divider"></div>
-              <div class="vstat-item">
-                <div class="vstat-num">{{ widget.stats?.uniqueVisits ?? 0 }}</div>
-                <div class="vstat-lbl"><i class="ti ti-user-check"></i> 순 방문자</div>
-              </div>
-              <div class="vstat-divider"></div>
-              <div class="vstat-item">
-                <div class="vstat-num accent-blue">{{ widget.stats?.loginVisits ?? 0 }}</div>
-                <div class="vstat-lbl"><i class="ti ti-login"></i> 로그인</div>
+            <div class="wcard visit-stats-card">
+              <div class="vstats-row">
+                <div class="vstat-item">
+                  <div class="vstat-num">{{ widget.stats?.todayVisits ?? 0 }}</div>
+                  <div class="vstat-lbl"><i class="ti ti-eye"></i> 전체 방문</div>
+                </div>
+                <div class="vstat-divider"></div>
+                <div class="vstat-item">
+                  <div class="vstat-num">{{ widget.stats?.uniqueVisits ?? 0 }}</div>
+                  <div class="vstat-lbl"><i class="ti ti-user-check"></i> 순 방문자</div>
+                </div>
+                <div class="vstat-divider"></div>
+                <div class="vstat-item">
+                  <div class="vstat-num accent-blue">{{ widget.stats?.loginVisits ?? 0 }}</div>
+                  <div class="vstat-lbl"><i class="ti ti-login"></i> 로그인</div>
+                </div>
               </div>
             </div>
           </div>
@@ -657,6 +695,59 @@ onMounted(async () => {
   line-height: 1.2;
 }
 
+/* ===== 섹션 헤더 (위젯 타이틀 / 설명) ===== */
+.wsec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+.wsec-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.wsec-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wsec-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--t1);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+.wsec-desc {
+  font-size: 13px;
+  color: var(--t3);
+  line-height: 1.5;
+  margin: 0;
+}
+.wsec-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t3);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 6px;
+  transition: color 0.15s;
+}
+.wsec-more:hover { color: var(--accent-t); }
+.wsec-sub-date {
+  font-size: 12px;
+  color: var(--t4);
+  font-weight: 500;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
 /* ===== 위젯 그리드 ===== */
 .widget-area {
   display: grid;
@@ -672,51 +763,14 @@ onMounted(async () => {
   border-radius: var(--radius-sm);
   border: 0.5px solid var(--border2);
   box-shadow: var(--shadow);
-  padding: 20px 22px;
-  height: 100%;
+  padding: 18px 20px;
   box-sizing: border-box;
-  will-change: transform;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
-.wcard:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-  border-color: var(--border);
-}
-.wcard-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.wcard-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--t1);
-  letter-spacing: -0.2px;
-}
-.wcard-more {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-t);
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-.wcard-more:hover { opacity: 0.75; }
-.wcard-head-left { display: flex; flex-direction: column; gap: 1px; }
-.wcard-desc {
-  font-size: 12.5px;
-  color: var(--t4);
-  margin: -8px 0 10px;
-  line-height: 1.5;
-}
-.wcard-desc-inline {
-  font-size: 12px;
-  color: var(--t4);
-  font-weight: 400;
+.wcard-flush {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 .widget-divider {
   display: flex;
@@ -1270,9 +1324,8 @@ onMounted(async () => {
     border-radius: 16px;
     border: none;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
-    padding: 18px 18px 16px;
+    padding: 16px;
   }
-  .wcard:hover { transform: none; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
 
   /* 메뉴 대시보드 모바일 */
   .dashboard-menu .widget-area {
@@ -1285,15 +1338,11 @@ onMounted(async () => {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     border: 0.5px solid var(--border2);
   }
-  .dashboard-menu .wcard:hover {
-    transform: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    border: 0.5px solid var(--border2);
-  }
 
-  .wcard-head { margin-bottom: 12px; }
-  .wcard-title { font-size: 14px; color: var(--t2); font-weight: 700; }
-  .wcard-more { font-size: 12px; }
+  .wsec { gap: 8px; }
+  .wsec-title { font-size: 18px; }
+  .wsec-desc { font-size: 12px; }
+  .wsec-more { font-size: 12px; margin-top: 4px; }
 
   .post-row { padding: 10px 0; gap: 10px; }
   .post-title-txt { font-size: 14px; }
