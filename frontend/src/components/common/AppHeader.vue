@@ -146,8 +146,8 @@
           </Teleport>
 
           <!-- 사용자 드롭다운 -->
-          <el-dropdown trigger="click" popper-class="user-menu-popper">
-            <button type="button" class="user-btn">
+          <div class="user-wrapper">
+            <button type="button" class="user-btn" @click.stop="userMenuOpen = !userMenuOpen">
               <div class="avatar-wrap">
                 <div class="avatar">
                   <img
@@ -164,58 +164,64 @@
               <span class="user-name">{{ authStore.member?.name }}</span>
               <i class="ti ti-chevron-down user-arrow"></i>
             </button>
-            <template #dropdown>
-              <el-dropdown-menu class="user-dropdown-menu">
-                <div class="user-menu-profile">
-                  <div class="menu-avatar">
-                    <img
-                      v-if="authStore.member?.profileImageUrl && !headerAvatarError"
-                      :src="authStore.member.profileImageUrl"
-                      alt=""
-                    />
-                    <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
+            <Teleport to="body">
+              <div v-if="userMenuOpen" class="notif-overlay" @click="userMenuOpen = false" />
+              <Transition name="notif-drop">
+                <div v-if="userMenuOpen" class="user-dropdown" @click.stop>
+                  <div class="user-menu-profile">
+                    <div class="menu-avatar">
+                      <img
+                        v-if="authStore.member?.profileImageUrl && !headerAvatarError"
+                        :src="authStore.member.profileImageUrl"
+                        alt=""
+                      />
+                      <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
+                    </div>
+                    <div class="menu-profile-text">
+                      <strong>{{ authStore.member?.name || authStore.member?.username || 'User' }}</strong>
+                      <span>{{ authStore.member?.email || authStore.member?.username }}</span>
+                    </div>
                   </div>
-                  <div class="menu-profile-text">
-                    <strong>{{ authStore.member?.name || authStore.member?.username || 'User' }}</strong>
-                    <span>{{ authStore.member?.email || authStore.member?.username }}</span>
+                  <!-- 라이트/다크 토글 -->
+                  <div class="user-menu-theme">
+                    <button
+                      class="utm-btn"
+                      :class="{ active: !themeStore.isDark }"
+                      @click.stop="themeStore.isDark && themeStore.toggle()"
+                    >
+                      <i class="ti ti-sun"></i> 라이트
+                    </button>
+                    <button
+                      class="utm-btn"
+                      :class="{ active: themeStore.isDark }"
+                      @click.stop="!themeStore.isDark && themeStore.toggle()"
+                    >
+                      <i class="ti ti-moon"></i> 다크
+                    </button>
+                  </div>
+                  <div class="user-menu-items">
+                    <button class="user-menu-item" @click="$router.push('/mypage'); userMenuOpen = false">
+                      <i class="ti ti-user menu-item-icon"></i>마이페이지
+                    </button>
+                    <button class="user-menu-item" @click="$router.push('/messages'); userMenuOpen = false">
+                      <i class="ti ti-mail menu-item-icon"></i>쪽지함
+                      <span v-if="unreadMsgCount > 0" class="msg-badge">{{ unreadMsgCount }}</span>
+                    </button>
+                    <button
+                      v-if="authStore.member?.isAdmin || authStore.member?.admin"
+                      class="user-menu-item"
+                      @click="$router.push('/admin'); userMenuOpen = false"
+                    >
+                      <i class="ti ti-settings menu-item-icon"></i>관리자
+                    </button>
+                    <button class="user-menu-item user-menu-item--danger" @click="handleLogout; userMenuOpen = false">
+                      <i class="ti ti-logout menu-item-icon"></i>로그아웃
+                    </button>
                   </div>
                 </div>
-                <!-- 라이트/다크 토글 -->
-                <div class="user-menu-theme">
-                  <button
-                    class="utm-btn"
-                    :class="{ active: !themeStore.isDark }"
-                    @click.stop="themeStore.isDark && themeStore.toggle()"
-                  >
-                    <i class="ti ti-sun"></i> 라이트
-                  </button>
-                  <button
-                    class="utm-btn"
-                    :class="{ active: themeStore.isDark }"
-                    @click.stop="!themeStore.isDark && themeStore.toggle()"
-                  >
-                    <i class="ti ti-moon"></i> 다크
-                  </button>
-                </div>
-                <el-dropdown-item @click="$router.push('/mypage')">
-                  <i class="ti ti-user menu-item-icon"></i>마이페이지
-                </el-dropdown-item>
-                <el-dropdown-item @click="$router.push('/messages')">
-                  <i class="ti ti-mail menu-item-icon"></i>쪽지함
-                  <span v-if="unreadMsgCount > 0" class="msg-badge">{{ unreadMsgCount }}</span>
-                </el-dropdown-item>
-                <el-dropdown-item
-                  v-if="authStore.member?.isAdmin || authStore.member?.admin"
-                  @click="$router.push('/admin')"
-                >
-                  <i class="ti ti-settings menu-item-icon"></i>관리자
-                </el-dropdown-item>
-                <el-dropdown-item divided @click="handleLogout">
-                  <i class="ti ti-logout menu-item-icon"></i>로그아웃
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+              </Transition>
+            </Teleport>
+          </div>
         </template>
         <template v-else>
           <!-- 비로그인: 테마 토글 + 로그인 버튼 -->
@@ -296,6 +302,7 @@ const unreadMsgCount = computed(() => notifStore.unreadMsgCount)
 const isMobile = ref(false)
 const mobileNotifOpen = ref(false)
 const notifDesktopOpen = ref(false)
+const userMenuOpen = ref(false)
 
 function updateIsMobile() {
   isMobile.value = window.innerWidth <= 768
@@ -838,57 +845,54 @@ async function handleLogout() {
   font-weight: 700;
 }
 
-:global(.user-menu-popper.el-popper) {
-  border: 0;
+/* 사용자 드롭다운 래퍼 */
+.user-wrapper { position: relative; }
+
+/* 사용자 드롭다운 패널 */
+.user-dropdown {
+  position: fixed;
+  top: var(--header-height, 56px);
+  right: max(20px, calc((100vw - 1280px) / 2 + 20px));
+  z-index: 9000;
+  width: 248px;
+  background: var(--surface);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 12px 36px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.06);
-}
-
-:global(.user-menu-popper .el-popper__arrow) { display: none; }
-
-:global(.user-menu-popper .el-dropdown-menu) {
-  width: 248px;
-  padding: 8px;
   border: 0.5px solid var(--border2);
-  border-radius: 14px;
-  background: var(--surface);
+  padding: 8px;
 }
 
-:global(.user-menu-popper .el-dropdown-menu__item) {
-  min-height: 42px;
-  border-radius: 8px;
-  padding: 0 12px;
-  color: var(--t1);
-  font-size: 14px !important;
-  font-weight: 700;
-  line-height: 1;
-}
-
-:global(.user-menu-popper .el-dropdown-menu__item:hover),
-:global(.user-menu-popper .el-dropdown-menu__item:focus) {
-  background: var(--surface2);
-  color: var(--t1);
-}
-
-:global(.user-menu-popper .el-dropdown-menu__item--divided) {
-  margin-top: 8px;
+/* 사용자 메뉴 항목 */
+.user-menu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding-top: 6px;
   border-top: 0.5px solid var(--border2);
 }
 
-:global(.user-menu-popper .el-dropdown-menu__item--divided::before) {
-  display: none;
-}
-
-:global(.user-menu-popper .el-dropdown-menu__item:last-child) {
-  color: var(--new);
-}
-
-:global(.user-menu-popper .el-dropdown-menu__item) {
-  display: flex !important;
+.user-menu-item {
+  display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--t1);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.14s;
 }
+
+.user-menu-item:hover { background: var(--surface2); }
+.user-menu-item--danger { color: #ef4444; margin-top: 4px; border-top: 0.5px solid var(--border2); border-radius: 0 0 8px 8px; }
 
 .user-menu-profile {
   display: flex;
