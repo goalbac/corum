@@ -213,7 +213,13 @@
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
             <div class="lv-meta">
-              <span class="lv-meta-chip lv-writer"><i class="ti ti-user"></i>{{ post.writerName }}</span>
+              <span class="lv-meta-chip lv-writer">
+                <span class="lv-avatar">
+                  <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="lv-avatar-img" />
+                  <span v-else class="lv-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
+                </span>
+                {{ post.writerName }}
+              </span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
               <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
               <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
@@ -244,7 +250,13 @@
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
             <div class="lv-meta">
-              <span class="lv-meta-chip lv-writer"><i class="ti ti-user"></i>{{ post.writerName }}</span>
+              <span class="lv-meta-chip lv-writer">
+                <span class="lv-avatar">
+                  <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="lv-avatar-img" />
+                  <span v-else class="lv-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
+                </span>
+                {{ post.writerName }}
+              </span>
               <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
               <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
               <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
@@ -1113,7 +1125,9 @@ onMounted(async () => {
 .lv-tag-new    { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent); opacity: 0.85; }
 
 .lv-title {
-  margin: 0;
+  margin: 0 0 0 -1px;
+  position: relative;
+  top: -1px;
   font-size: 17px;
   font-weight: 700;
   color: var(--t1);
@@ -1143,7 +1157,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--t3);
   flex-wrap: wrap;
   margin-top: 8px;
@@ -1163,6 +1177,31 @@ onMounted(async () => {
 }
 
 .lv-writer { font-weight: 600; color: var(--t2); }
+
+.lv-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.lv-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lv-avatar-txt {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
 .lv-sep    { color: var(--border); }
 
 .lv-stats {

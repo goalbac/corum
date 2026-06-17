@@ -25,26 +25,33 @@ public class PostSummaryResponse {
     private final Long rowNum;
     private final Long categoryId;
     private final String categoryName;
+    private final String writerProfileImageUrl;
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile) {
-        this(post, commentCount, hasFile, null, List.of(), null, null);
+        this(post, commentCount, hasFile, null, List.of(), null, null, null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl) {
-        this(post, commentCount, hasFile, thumbnailUrl, List.of(), null, null);
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), null, null, null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl, Long rowNum) {
-        this(post, commentCount, hasFile, thumbnailUrl, List.of(), rowNum, null);
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), rowNum, null, null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
                                String thumbnailUrl, List<String> imageUrls, Long rowNum) {
-        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, null);
+        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, null, null);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
                                String thumbnailUrl, List<String> imageUrls, Long rowNum, String categoryName) {
+        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, categoryName, null);
+    }
+
+    public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
+                               String thumbnailUrl, List<String> imageUrls, Long rowNum,
+                               String categoryName, String writerProfileImageUrl) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.title = post.getTitle();
@@ -61,6 +68,7 @@ public class PostSummaryResponse {
         this.rowNum = rowNum;
         this.categoryId = post.getCategoryId();
         this.categoryName = categoryName;
+        this.writerProfileImageUrl = writerProfileImageUrl;
     }
 
     private static String createExcerpt(String content) {

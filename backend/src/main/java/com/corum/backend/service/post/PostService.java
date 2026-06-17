@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +45,23 @@ public class PostService {
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final BoardCategoryRepository boardCategoryRepository;
     private final NotificationService notificationService;
+
+    // 24시간 내 동일 게시글 중복 조회 방지 (key: "postId:u{memberId}" or "postId:i{ip}")
+    private static final long VIEW_THROTTLE_MS = 24 * 60 * 60 * 1000L;
+    private final ConcurrentHashMap<String, Long> viewedCache = new ConcurrentHashMap<>();
+
+    private boolean shouldIncrementView(Long postId, Long memberId, String ip) {
+        String key = postId + ":" + (memberId != null ? "u" + memberId : "i" + ip);
+        long now = System.currentTimeMillis();
+        Long last = viewedCache.get(key);
+        if (last != null && (now - last) < VIEW_THROTTLE_MS) return false;
+        viewedCache.put(key, now);
+        // 캐시가 너무 커지지 않도록 50만 건 초과 시 오래된 항목 정리
+        if (viewedCache.size() > 500_000) {
+            viewedCache.entrySet().removeIf(e -> (now - e.getValue()) >= VIEW_THROTTLE_MS);
+        }
+        return true;
+    }
 
     // ===== 게시글 목록 =====
     @Transactional(readOnly = true)
@@ -69,6 +87,15 @@ public class PostService {
         long total = posts.getTotalElements();
         int offset = pageable.getPageNumber() * pageable.getPageSize();
         List<Post> postList = posts.getContent();
+
+        // 작성자 프로필 이미지 일괄 조회
+        java.util.Set<Long> memberIds = postList.stream()
+                .map(Post::getMemberId).filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Map<Long, String> profileImageMap = memberRepository.findAllById(memberIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        com.corum.backend.domain.member.Member::getId,
+                        m -> m.getProfileImageUrl() != null ? m.getProfileImageUrl() : ""));
 
         List<PostSummaryResponse> content = new java.util.ArrayList<>();
         for (int i = 0; i < postList.size(); i++) {
@@ -98,7 +125,8 @@ public class PostService {
             long rowNum = total - offset - i;
             int commentCount = commentRepository.countByPostIdAndIsDeletedFalse(p.getId());
             String catName = p.getCategoryId() != null ? categoryNameMap.get(p.getCategoryId()) : null;
-            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, imageUrls, rowNum, catName));
+            String profileImageUrl = p.getMemberId() != null ? profileImageMap.getOrDefault(p.getMemberId(), "") : "";
+            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, imageUrls, rowNum, catName, profileImageUrl));
         }
 
         return new PageImpl<>(content, pageable, posts.getTotalElements());
@@ -106,11 +134,13 @@ public class PostService {
 
     // ===== 게시글 상세 =====
     @Transactional
-    public PostResponse getPost(Long postId, Long memberId) {
+    public PostResponse getPost(Long postId, Long memberId, String clientIp) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
 
-        post.increaseViewCount();
+        if (shouldIncrementView(postId, memberId, clientIp)) {
+            post.increaseViewCount();
+        }
 
         List<FileResponse> files = fileStorageService.getFiles("POST", postId);
         boolean liked = memberId != null && postLikeRepository
