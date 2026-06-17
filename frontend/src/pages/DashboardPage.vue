@@ -701,7 +701,7 @@ onMounted(async () => {
   flex-direction: column;
   gap: 5px;
   height: 100%;
-  padding: 30px 0;
+  padding: 15px 0;
 }
 .wsec-header {
   display: flex;
