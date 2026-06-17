@@ -49,7 +49,7 @@
             </div>
           </div>
           <button v-if="writableCalendars.length" class="cal-btn primary" @click="openCreate">
-            <i class="ti ti-plus"></i> 일정 추가
+            <i class="ti ti-plus"></i><span class="btn-text"> 일정 추가</span>
           </button>
           <div class="view-btns">
             <button v-for="v in views" :key="v.key" class="cal-btn"
@@ -969,9 +969,58 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 
 @media (max-width: 768px) {
   .cal-layout { padding: 12px 12px 20px; }
-  .cal-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .cal-right { flex-wrap: wrap; gap: 4px; }
   .form-row { grid-template-columns: 1fr; }
+
+  /* 툴바: 2줄 구조 */
+  .cal-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  /* 1줄: 이전/다음 + 제목 + 오늘 */
+  .cal-left {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+  }
+  .cal-left .cal-btn:first-child,
+  .cal-left .cal-btn:last-of-type {
+    padding: 6px 10px;
+  }
+  .cal-title {
+    flex: 1;
+    text-align: center;
+    font-size: 16px !important;
+    font-weight: 700;
+  }
+
+  /* 2줄: 뷰탭 왼쪽 + 필터/추가 오른쪽 */
+  .cal-right {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 6px;
+  }
+  .view-btns {
+    flex: 1;
+    display: flex;
+    gap: 0;
+    order: -1;
+  }
+  .view-btns .cal-btn {
+    flex: 1;
+    justify-content: center;
+    border-radius: 0;
+  }
+  .view-btns .cal-btn:first-child { border-radius: var(--radius-xs) 0 0 var(--radius-xs); }
+  .view-btns .cal-btn:last-child  { border-radius: 0 var(--radius-xs) var(--radius-xs) 0; }
+  .view-btns .cal-btn + .cal-btn  { border-left: none; }
+
+  /* + 일정 추가: 아이콘+텍스트 유지하되 글자 숨김 */
+  .cal-btn.primary span.btn-text { display: none; }
 
   /* 모바일 입력 폼 줌 방지 */
   :deep(.el-input__inner),
