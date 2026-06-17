@@ -26,4 +26,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Modifying
     @Query(value = "UPDATE comments SET created_at = :createdAt WHERE id = :id", nativeQuery = true)
     void updateCreatedAtById(@Param("id") Long id, @Param("createdAt") LocalDateTime createdAt);
+
+    long countByCreatedAtBetweenAndIsDeletedFalse(LocalDateTime from, LocalDateTime to);
 }

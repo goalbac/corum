@@ -105,4 +105,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Modifying
     @Query("UPDATE Post p SET p.boardId = :boardId WHERE p.id IN :ids")
     void moveToBoardBatch(@Param("boardId") Long boardId, @Param("ids") List<Long> ids);
+
+    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 }
