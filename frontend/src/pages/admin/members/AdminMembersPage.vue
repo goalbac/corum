@@ -208,11 +208,15 @@ async function createMember() {
   }
   creating.value = true
   try {
+    const username = createForm.value.username.trim()
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(username + createForm.value.password))
+    const hashedPassword = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
     const payload = {
       ...createForm.value,
-      username: createForm.value.username.trim(),
+      username,
       email: createForm.value.email.trim(),
       name: createForm.value.name.trim(),
+      password: hashedPassword,
       birthDate: createForm.value.birthDate || null
     }
     await api.post('/admin/members', payload)

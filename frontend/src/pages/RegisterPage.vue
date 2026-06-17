@@ -150,7 +150,11 @@ async function handleRegister() {
     if (!valid) return
     loading.value = true
     try {
-      const { passwordConfirm, ...payload } = form.value
+      const { passwordConfirm, ...rest } = form.value
+      const msgBuffer = new TextEncoder().encode(rest.username + rest.password)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+      const hashedPassword = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+      const payload = { ...rest, password: hashedPassword }
       await api.post('/auth/register', payload)
       ElMessage.success('가입이 완료되었습니다. 관리자 승인 후 이용 가능합니다.')
       router.push('/login')

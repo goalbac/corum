@@ -592,9 +592,9 @@ VALUES
     (2, '정회원', '정식 가입 회원', 'NORMAL', 1, FALSE),
     (2, '일반회원', '가입 기본값', 'NORMAL', 2, FALSE);
 
--- 기본 관리자 계정 (password: password)
+-- 기본 관리자 계정 (password: password123 / 클라이언트 해시: SHA-256("admin"+"password123") → BCrypt)
 INSERT INTO members (username, email, password_hash, name, is_active, is_locked, login_fail_count, joined_at)
-VALUES ('admin', 'admin@corum.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '관리자', TRUE, FALSE, 0, NOW());
+VALUES ('admin', 'admin@corum.com', '$2a$10$DrgltpyzAAwMqBoUdpZfpOj1wP8LmjdfMd5geKFL3oXRB9vkAdiRi', '관리자', TRUE, FALSE, 0, NOW());
 
 INSERT INTO member_groups (member_id, group_id, assigned_at)
 SELECT m.id, g.id, NOW()

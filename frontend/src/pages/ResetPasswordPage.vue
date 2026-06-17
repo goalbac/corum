@@ -25,6 +25,15 @@ const router = useRouter()
 const newPassword = ref('')
 const loading = ref(false)
 
+function getUsernameFromToken(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.sub || payload.username || ''
+  } catch {
+    return ''
+  }
+}
+
 async function submit() {
   if (newPassword.value.length < 8) {
     ElMessage.warning('비밀번호는 8자 이상이어야 합니다.')
@@ -32,9 +41,13 @@ async function submit() {
   }
   loading.value = true
   try {
+    const token = route.query.token
+    const username = getUsernameFromToken(token)
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(username + newPassword.value))
+    const hashedPassword = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
     await api.post('/auth/reset-password', {
-      token: route.query.token,
-      newPassword: newPassword.value
+      token,
+      newPassword: hashedPassword
     })
     ElMessage.success('비밀번호가 재설정되었습니다.')
     router.push('/login')

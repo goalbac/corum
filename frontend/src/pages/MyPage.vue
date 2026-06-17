@@ -316,9 +316,14 @@ async function handleUpdatePassword() {
     if (!valid) return
     pwSaving.value = true
     try {
+      const username = member.value?.username || authStore.member?.username || ''
+      const hashPw = async (pw) => {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(username + pw))
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+      }
       await api.put('/auth/me/password', {
-        currentPassword: pwForm.value.currentPassword,
-        newPassword: pwForm.value.newPassword,
+        currentPassword: await hashPw(pwForm.value.currentPassword),
+        newPassword: await hashPw(pwForm.value.newPassword),
       })
       ElMessage.success('비밀번호가 변경되었습니다.')
       pwForm.value = { currentPassword: '', newPassword: '', newPasswordConfirm: '' }
@@ -341,7 +346,10 @@ async function handleWithdraw() {
     { type: 'error', confirmButtonText: '탈퇴', cancelButtonText: '취소' }
   )
   try {
-    await api.delete('/auth/me', { data: { password: withdrawPassword.value } })
+    const username = member.value?.username || authStore.member?.username || ''
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(username + withdrawPassword.value))
+    const hashedPw = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+    await api.delete('/auth/me', { data: { password: hashedPw } })
     ElMessage.success('탈퇴 처리되었습니다.')
     authStore.clearToken()
     router.push('/login')

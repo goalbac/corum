@@ -28,8 +28,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function hashPassword(username, password) {
+    const msgBuffer = new TextEncoder().encode(username + password)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+
   async function login(username, password) {
-    const res = await api.post('/auth/login', { username, password })
+    const hashedPassword = await hashPassword(username, password)
+    const res = await api.post('/auth/login', { username, password: hashedPassword })
     setToken(res.data.data.accessToken)
     member.value = res.data.data.member
     await fetchMe()
