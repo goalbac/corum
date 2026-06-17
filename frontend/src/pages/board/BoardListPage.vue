@@ -1164,7 +1164,7 @@ onMounted(async () => {
 .lv-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 7px;
   font-size: 14px;
   color: var(--t3);
   flex-wrap: nowrap;
@@ -1228,10 +1228,10 @@ onMounted(async () => {
 }
 
 .lv-new-dot {
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 900;
   color: var(--accent);
-  line-height: 1;
+  line-height: 0.6;
   flex-shrink: 0;
 }
 
