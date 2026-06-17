@@ -1231,6 +1231,7 @@ onMounted(async () => {
   font-size: 14px;
   color: var(--accent);
   flex-shrink: 0;
+  margin-top: -3px;
 }
 
 .lv-stats {
