@@ -29,7 +29,40 @@
         <div v-if="statsLoading" class="stats-loading">
           <i class="ti ti-loader-2 spinning"></i>
         </div>
-        <VisitorChart v-else :rows="chartRows" />
+        <template v-else>
+          <svg :viewBox="`0 0 ${CW} ${CH}`" class="visitor-chart" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.03"/>
+              </linearGradient>
+              <linearGradient id="vGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2563EB" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#2563EB" stop-opacity="0.02"/>
+              </linearGradient>
+            </defs>
+            <!-- Y 격자선 -->
+            <g v-for="t in chartYTicks" :key="t">
+              <line :x1="CPX" :y1="chartYPos(t)" :x2="CW - CPX" :y2="chartYPos(t)"
+                stroke="currentColor" stroke-opacity="0.08" stroke-width="1"/>
+              <text :x="CPX - 6" :y="chartYPos(t) + 4" text-anchor="end" font-size="10" fill="currentColor" opacity="0.4">{{ t }}</text>
+            </g>
+            <!-- 페이지뷰 영역 -->
+            <path :d="pvAreaPath" fill="url(#pvGrad)"/>
+            <path :d="pvLinePath" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linejoin="round"/>
+            <!-- 방문자 영역 -->
+            <path :d="vAreaPath" fill="url(#vGrad)"/>
+            <path :d="vLinePath" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round"/>
+            <!-- 방문자 점 -->
+            <circle v-for="(r, i) in chartRows" :key="i"
+              :cx="chartXPos(i)" :cy="chartYPos(r.visitors)" r="3.5"
+              fill="#2563EB" stroke="#fff" stroke-width="1.5"/>
+            <!-- X축 레이블 -->
+            <text v-for="l in chartXLabels" :key="l.label"
+              :x="l.x" :y="CH - 8"
+              text-anchor="middle" font-size="10" fill="currentColor" opacity="0.4">{{ l.label }}</text>
+          </svg>
+        </template>
       </div>
 
       <!-- 기간별 분석 -->
@@ -122,102 +155,8 @@ import { computed, onMounted, ref } from 'vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
-// ===== 방문자 차트 컴포넌트 (인라인) =====
-const VisitorChart = {
-  props: { rows: Array },
-  setup(props) {
-    const W = 560, H = 200, PX = 40, PY = 20, PB = 36
-
-    const maxPV = computed(() => Math.max(...props.rows.map(r => r.pageViews), 1))
-    const maxV  = computed(() => Math.max(...props.rows.map(r => r.visitors), 1))
-    const maxY  = computed(() => Math.max(maxPV.value, maxV.value, 10))
-
-    function xPos(i) {
-      const n = props.rows.length
-      return PX + (i / Math.max(n - 1, 1)) * (W - PX * 2)
-    }
-    function yPos(val) {
-      return PY + (1 - val / maxY.value) * (H - PY - PB)
-    }
-
-    const pvPath = computed(() => {
-      if (!props.rows.length) return ''
-      const pts = props.rows.map((r, i) => `${xPos(i)},${yPos(r.pageViews)}`).join(' L ')
-      const first = `${xPos(0)},${yPos(props.rows[0].pageViews)}`
-      const last  = `${xPos(props.rows.length - 1)},${yPos(props.rows[props.rows.length - 1].pageViews)}`
-      const bottom = H - PB
-      return `M ${pts.replaceAll(',', ',')} Z`
-        .replace('Z', `L ${last.split(',')[0]},${bottom} L ${first.split(',')[0]},${bottom} Z`)
-        .replace('M ', 'M ')
-    })
-    const pvLine = computed(() => {
-      if (!props.rows.length) return ''
-      return 'M ' + props.rows.map((r, i) => `${xPos(i)},${yPos(r.pageViews)}`).join(' L ')
-    })
-    const vLine = computed(() => {
-      if (!props.rows.length) return ''
-      return 'M ' + props.rows.map((r, i) => `${xPos(i)},${yPos(r.visitors)}`).join(' L ')
-    })
-    const vAreaPath = computed(() => {
-      if (!props.rows.length) return ''
-      const line = props.rows.map((r, i) => `${xPos(i)},${yPos(r.visitors)}`).join(' L ')
-      const bottom = H - PB
-      const fx = xPos(0), lx = xPos(props.rows.length - 1)
-      return `M ${line} L ${lx},${bottom} L ${fx},${bottom} Z`
-    })
-
-    const yTicks = computed(() => {
-      const max = maxY.value
-      const step = Math.ceil(max / 4 / 25) * 25 || 1
-      return [0, 1, 2, 3, 4].map(i => i * step).filter(v => v <= max * 1.1)
-    })
-    const xLabels = computed(() => {
-      const n = props.rows.length
-      if (n === 0) return []
-      const step = Math.max(1, Math.floor(n / 7))
-      return props.rows.filter((_, i) => i % step === 0 || i === n - 1)
-        .map((r, _, arr) => {
-          const idx = props.rows.indexOf(r)
-          const d = new Date(r.date)
-          return { x: xPos(idx), label: `${d.getMonth()+1}-${String(d.getDate()).padStart(2,'0')}` }
-        })
-    })
-
-    return { W, H, PX, PY, PB, pvPath, pvLine, vLine, vAreaPath, yTicks, xLabels, xPos, yPos }
-  },
-  template: `
-    <svg :viewBox="\`0 0 \${W} \${H}\`" class="visitor-chart" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.5"/>
-          <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.03"/>
-        </linearGradient>
-        <linearGradient id="vGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#2563EB" stop-opacity="0.35"/>
-          <stop offset="100%" stop-color="#2563EB" stop-opacity="0.02"/>
-        </linearGradient>
-      </defs>
-      <!-- Y 격자선 -->
-      <g v-for="t in yTicks" :key="t">
-        <line :x1="PX" :y1="yPos(t)" :x2="W - PX" :y2="yPos(t)"
-          stroke="currentColor" stroke-opacity="0.07" stroke-width="1"/>
-        <text :x="PX - 6" :y="yPos(t) + 4" text-anchor="end" font-size="10" fill="currentColor" opacity="0.45">{{ t }}</text>
-      </g>
-      <!-- 페이지뷰 영역 -->
-      <path :d="pvPath" fill="url(#pvGrad)"/>
-      <path :d="pvLine" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linejoin="round"/>
-      <!-- 방문자 영역 -->
-      <path :d="vAreaPath" fill="url(#vGrad)"/>
-      <path :d="vLine" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round"/>
-      <!-- 방문자 점 -->
-      <circle v-for="(r, i) in rows" :key="i" :cx="xPos(i)" :cy="yPos(r.visitors)" r="3.5"
-        fill="#2563EB" stroke="#fff" stroke-width="1.5"/>
-      <!-- X축 레이블 -->
-      <text v-for="l in xLabels" :key="l.label" :x="l.x" :y="H - 8"
-        text-anchor="middle" font-size="10" fill="currentColor" opacity="0.45">{{ l.label }}</text>
-    </svg>
-  `
-}
+// ===== 차트 상수 =====
+const CW = 560, CH = 200, CPX = 38, CPY = 16, CPB = 32
 
 // ===== 데이터 =====
 const stats = ref([
@@ -233,16 +172,72 @@ const statsLoading = ref(false)
 const dailyRows = ref([])
 const weekRow = ref(null)
 const monthRow = ref(null)
-const chartRows = computed(() => [...dailyRows.value].reverse().slice(-14))
 
+// 차트용: 최신순으로 들어온 rows를 날짜 오름차순으로
+const chartRows = computed(() => [...dailyRows.value].reverse())
+
+// ===== 차트 계산 =====
+const chartMaxY = computed(() => {
+  const vals = chartRows.value.flatMap(r => [r.visitors, r.pageViews])
+  return Math.max(...vals, 10)
+})
+
+function chartXPos(i) {
+  const n = chartRows.value.length
+  return CPX + (i / Math.max(n - 1, 1)) * (CW - CPX * 2)
+}
+function chartYPos(val) {
+  return CPY + (1 - val / chartMaxY.value) * (CH - CPY - CPB)
+}
+
+const pvLinePath = computed(() => {
+  if (!chartRows.value.length) return ''
+  return 'M ' + chartRows.value.map((r, i) => `${chartXPos(i)},${chartYPos(r.pageViews)}`).join(' L ')
+})
+const pvAreaPath = computed(() => {
+  if (!chartRows.value.length) return ''
+  const n = chartRows.value.length
+  const bottom = CH - CPB
+  return pvLinePath.value + ` L ${chartXPos(n - 1)},${bottom} L ${chartXPos(0)},${bottom} Z`
+})
+const vLinePath = computed(() => {
+  if (!chartRows.value.length) return ''
+  return 'M ' + chartRows.value.map((r, i) => `${chartXPos(i)},${chartYPos(r.visitors)}`).join(' L ')
+})
+const vAreaPath = computed(() => {
+  if (!chartRows.value.length) return ''
+  const n = chartRows.value.length
+  const bottom = CH - CPB
+  return vLinePath.value + ` L ${chartXPos(n - 1)},${bottom} L ${chartXPos(0)},${bottom} Z`
+})
+const chartYTicks = computed(() => {
+  const max = chartMaxY.value
+  const step = Math.ceil(max / 4 / 5) * 5 || 1
+  return [0, 1, 2, 3, 4].map(i => i * step).filter(v => v <= max * 1.05)
+})
+const chartXLabels = computed(() => {
+  const rows = chartRows.value
+  if (!rows.length) return []
+  const step = Math.max(1, Math.floor(rows.length / 6))
+  return rows
+    .filter((_, i) => i % step === 0 || i === rows.length - 1)
+    .map((r, _, arr) => {
+      const idx = rows.indexOf(r)
+      const d = new Date(r.date)
+      return { x: chartXPos(idx), label: `${d.getMonth() + 1}/${String(d.getDate()).padStart(2, '0')}` }
+    })
+})
+
+// ===== 유틸 =====
 const todayStr = new Date().toISOString().slice(0, 10)
 function isToday(date) { return date === todayStr }
 function formatDate(date) {
   if (!date) return ''
   const d = new Date(date)
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// ===== API =====
 async function fetchSummaryStats() {
   try {
     const res = await api.get('/dashboard/stats')
@@ -262,7 +257,6 @@ async function fetchDailyStats() {
     dailyRows.value = rows
     weekRow.value = data.week || null
     monthRow.value = data.month || null
-    // 오늘 신규 게시글
     const todayRow = rows.find(r => r.date === todayStr)
     stats.value[3].value = todayRow?.newPosts ?? 0
   } catch {
