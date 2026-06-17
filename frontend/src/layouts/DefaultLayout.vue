@@ -519,7 +519,7 @@ onMounted(async () => {
 }
 
 .bc-item {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--t3);
   font-weight: 500;
 }
@@ -530,12 +530,12 @@ onMounted(async () => {
 }
 
 .bc-sep {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--t4);
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--t1);
   line-height: 1.3;
@@ -543,7 +543,7 @@ onMounted(async () => {
 }
 
 .page-desc {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--t3);
   line-height: 1.6;
   margin: 0;
