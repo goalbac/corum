@@ -61,7 +61,10 @@
             <div v-if="post.isNotice" class="gallery-notice-badge">공지</div>
           </div>
           <div class="gallery-info">
-            <div class="gallery-title">{{ post.title }}</div>
+            <div class="gallery-title-row">
+              <span class="gallery-title">{{ post.title }}</span>
+              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled gallery-new-dot"></i>
+            </div>
             <div class="gallery-meta-row">
               <span class="gallery-writer">{{ post.writerName }}</span>
               <span class="gallery-dot">·</span>
@@ -898,6 +901,14 @@ onMounted(async () => {
 
 .gallery-info { padding: 10px 12px 12px; }
 
+.gallery-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
 .gallery-title {
   font-size: 13px;
   font-weight: 600;
@@ -905,8 +916,15 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 4px;
+  flex: 1;
+  min-width: 0;
   transition: color 0.12s;
+}
+
+.gallery-new-dot {
+  font-size: 12px;
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .gallery-meta-row {

@@ -64,7 +64,7 @@
                         @click="handleDrawerNav(child)"
                       >
                         {{ child.name }}
-                        <span v-if="hasNewBoardPost(child)" class="new-badge">N</span>
+                        <i v-if="hasNewBoardPost(child)" class="ti ti-point-filled lnb-new-dot"></i>
                       </button>
                     </div>
                   </template>
@@ -77,7 +77,7 @@
                       @click="handleDrawerNav(group)"
                     >
                       <span>{{ group.name }}</span>
-                      <span v-if="hasNewBoardPost(group)" class="new-badge">N</span>
+                      <i v-if="hasNewBoardPost(group)" class="ti ti-point-filled lnb-new-dot"></i>
                     </button>
                   </template>
                 </template>
@@ -119,7 +119,7 @@
                   >
                     <span>{{ menu.name }}</span>
                     <i v-if="menu.menuType === 'LINK'" class="ti ti-external-link lnb-link-icon"></i>
-                    <span v-if="hasNewBoardPost(menu)" class="new-badge new-post-badge">새 글</span>
+                    <i v-if="hasNewBoardPost(menu)" class="ti ti-point-filled lnb-new-dot"></i>
                     <i
                       v-if="menu.children?.length"
                       class="ti ti-chevron-right lnb-arrow"
@@ -138,7 +138,7 @@
                     >
                       <span>{{ child.name }}</span>
                       <i v-if="child.menuType === 'LINK'" class="ti ti-external-link lnb-link-icon"></i>
-                      <span v-if="hasNewBoardPost(child)" class="new-badge new-post-badge">새 글</span>
+                      <i v-if="hasNewBoardPost(child)" class="ti ti-point-filled lnb-new-dot"></i>
                     </button>
                   </div>
                 </template>
@@ -464,25 +464,11 @@ onMounted(async () => {
   color: var(--t4);
 }
 
-/* new 배지 */
-.new-badge {
-  font-size: 10px;
-  background: var(--new);
-  color: #fff;
-  border-radius: 3px;
-  padding: 1px 4px;
-  font-weight: 700;
+/* new dot */
+.lnb-new-dot {
+  font-size: 12px;
+  color: var(--accent);
   flex-shrink: 0;
-}
-
-.new-post-badge {
-  min-width: 0;
-  padding: 1px 5px;
-  border-radius: 6px;
-  font-size: 10px;
-  line-height: 1.5;
-  letter-spacing: 0;
-  white-space: nowrap;
 }
 
 /* ===== 오른쪽 콘텐츠 ===== */
@@ -752,13 +738,9 @@ onMounted(async () => {
 .drawer-leaf-item:hover { background: var(--surface2); color: var(--accent-t); }
 .drawer-leaf-item.active { color: var(--accent-t); font-weight: 700; }
 
-.new-badge {
-  font-size: 9px;
-  font-weight: 800;
-  background: var(--new);
-  color: #fff;
-  border-radius: 3px;
-  padding: 1px 3px;
+.lnb-new-dot {
+  font-size: 12px;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
