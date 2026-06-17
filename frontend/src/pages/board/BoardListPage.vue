@@ -83,7 +83,6 @@
               <span v-if="post.hasFile" class="stat-chip">
                 <i class="ti ti-paperclip"></i>
               </span>
-              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
             </div>
           </div>
         </div>
@@ -146,9 +145,11 @@
             <div class="webzine-kicker">
               <span v-if="post.isNotice" class="notice-tag">Notice</span>
               <span>{{ formatDate(post.createdAt) }}</span>
-              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
             </div>
-            <h3 class="webzine-title">{{ post.title }}</h3>
+            <div class="webzine-title-row">
+              <h3 class="webzine-title">{{ post.title }}</h3>
+              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled webzine-new-dot"></i>
+            </div>
             <p v-if="post.excerpt" class="webzine-excerpt">{{ post.excerpt }}</p>
             <div class="webzine-meta">
               <span class="webzine-meta-chip"><i class="ti ti-user"></i>{{ post.writerName }}</span>
@@ -1019,6 +1020,19 @@ onMounted(async () => {
   flex-wrap: wrap;
   font-size: 12px;
   color: var(--t3);
+}
+
+.webzine-title-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.webzine-new-dot {
+  font-size: 14px;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: -2px;
 }
 
 .webzine-title {

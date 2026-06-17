@@ -466,7 +466,7 @@ onMounted(async () => {
 
 /* new dot */
 .lnb-new-dot {
-  font-size: 12px;
+  font-size: 18px;
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -739,7 +739,7 @@ onMounted(async () => {
 .drawer-leaf-item.active { color: var(--accent-t); font-weight: 700; }
 
 .lnb-new-dot {
-  font-size: 12px;
+  font-size: 18px;
   color: var(--accent);
   flex-shrink: 0;
 }
