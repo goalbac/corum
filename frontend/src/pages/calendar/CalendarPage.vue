@@ -1025,6 +1025,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .view-btns .cal-btn:first-child { border-radius: var(--radius-xs) 0 0 var(--radius-xs); }
   .view-btns .cal-btn:last-child  { border-radius: 0 var(--radius-xs) var(--radius-xs) 0; }
   .view-btns .cal-btn + .cal-btn  { border-left: none; }
+  .view-btns .cal-btn.active { border-left: 1px solid var(--accent) !important; }
 
   /* + 일정 추가: 아이콘+텍스트 유지하되 글자 숨김 */
   .cal-btn.primary span.btn-text { display: none; }
