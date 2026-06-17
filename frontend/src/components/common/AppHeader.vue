@@ -27,8 +27,8 @@
       <div class="header-right">
 
         <template v-if="authStore.isLoggedIn">
-          <!-- 알림 드롭다운 -->
-          <el-dropdown trigger="click" popper-class="notif-popper" @visible-change="onNotifDropdown">
+          <!-- 알림: 데스크톱 드롭다운 / 모바일 전체화면 -->
+          <el-dropdown v-if="!isMobile" trigger="click" popper-class="notif-popper" @visible-change="onNotifDropdown">
             <button type="button" class="notif-btn" aria-label="알림">
               <i class="ti ti-bell"></i>
               <span v-if="notifStore.unreadCount > 0" class="notif-badge">
@@ -81,6 +81,66 @@
               </div>
             </template>
           </el-dropdown>
+
+          <!-- 모바일 알림 버튼 -->
+          <button v-else type="button" class="notif-btn" aria-label="알림" @click="openMobileNotif">
+            <i class="ti ti-bell"></i>
+            <span v-if="notifStore.unreadCount > 0" class="notif-badge">
+              {{ notifStore.unreadCount > 99 ? '99+' : notifStore.unreadCount }}
+            </span>
+          </button>
+
+          <!-- 모바일 전체화면 알림 패널 -->
+          <Teleport to="body">
+            <Transition name="notif-panel">
+              <div v-if="mobileNotifOpen" class="mobile-notif-panel">
+                <div class="mobile-notif-header">
+                  <span class="mobile-notif-title">알림</span>
+                  <div class="mobile-notif-actions">
+                    <button
+                      v-if="notifStore.unreadCount > 0"
+                      class="notif-action-btn"
+                      @click="notifStore.markAllAsRead()"
+                    >모두 읽음</button>
+                    <button
+                      v-if="notifStore.notifications.length > 0"
+                      class="notif-action-btn delete"
+                      @click="notifStore.removeAll()"
+                    >모두 삭제</button>
+                  </div>
+                  <button class="mobile-notif-close" @click="mobileNotifOpen = false" aria-label="닫기">
+                    <i class="ti ti-x"></i>
+                  </button>
+                </div>
+                <div class="mobile-notif-list">
+                  <div v-if="notifStore.notifications.length === 0" class="notif-empty">
+                    새 알림이 없습니다
+                  </div>
+                  <div
+                    v-for="n in notifStore.notifications.slice(0, 50)"
+                    :key="n.id"
+                    class="notif-item"
+                    :class="{ unread: !n.isRead }"
+                    @click="handleNotifClick(n); mobileNotifOpen = false"
+                  >
+                    <div class="notif-icon" :class="n.type.toLowerCase()">
+                      <i :class="notifIcon(n.type)"></i>
+                    </div>
+                    <div class="notif-body">
+                      <p class="notif-item-title">{{ n.title }}</p>
+                      <p v-if="n.content" class="notif-item-content">{{ n.content }}</p>
+                      <p class="notif-item-time">{{ formatTime(n.createdAt) }}</p>
+                    </div>
+                    <button
+                      class="notif-del-btn"
+                      title="삭제"
+                      @click.stop="notifStore.remove(n.id)"
+                    ><i class="ti ti-x"></i></button>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </Teleport>
 
           <!-- 사용자 드롭다운 -->
           <el-dropdown trigger="click" popper-class="user-menu-popper">
@@ -229,7 +289,22 @@ const siteName = ref('')
 const logoUrl  = ref('')
 const unreadMsgCount = computed(() => notifStore.unreadMsgCount)
 
+// 모바일 여부 (768px 기준)
+const isMobile = ref(false)
+const mobileNotifOpen = ref(false)
+
+function updateIsMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
+async function openMobileNotif() {
+  await notifStore.fetchNotifications()
+  mobileNotifOpen.value = true
+}
+
 onMounted(async () => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
   try {
     const res = await api.get('/site/public')
     const d = res.data.data
@@ -240,6 +315,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   notifStore.disconnect()
+  window.removeEventListener('resize', updateIsMobile)
 })
 
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
@@ -923,7 +999,72 @@ async function handleLogout() {
   .user-arrow { display: none; }
   .logo { margin-right: auto; }
   .header-right { gap: 6px; }
+  .header-inner { padding: 0 10px; }
 }
+
+/* ===== 모바일 전체화면 알림 패널 ===== */
+.mobile-notif-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--surface);
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-notif-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 54px;
+  flex-shrink: 0;
+  border-bottom: 0.5px solid var(--border2);
+  background: var(--surface);
+}
+
+.mobile-notif-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--t1);
+  flex: 1;
+}
+
+.mobile-notif-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-notif-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--surface2);
+  color: var(--t2);
+  border-radius: 50%;
+  font-size: 17px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.mobile-notif-close:hover { background: var(--border2); color: var(--t1); }
+
+.mobile-notif-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 트랜지션 */
+.notif-panel-enter-active,
+.notif-panel-leave-active { transition: opacity 0.22s, transform 0.22s cubic-bezier(.4,0,.2,1); }
+.notif-panel-enter-from,
+.notif-panel-leave-to { opacity: 0; transform: translateY(16px); }
 
 /* 알림 토스트 */
 :global(.toast-container) {
