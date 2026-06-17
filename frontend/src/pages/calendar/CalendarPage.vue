@@ -848,7 +848,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-wrap :deep(.fc-more-link) { color: var(--accent-t) !important; }
 
 /* ===== 커스텀 이벤트 카드 ===== */
-.cal-wrap :deep(.fc-event) {
+/* 월 뷰(daygrid)만 투명 배경 처리 */
+.cal-wrap :deep(.fc-daygrid-event) {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
