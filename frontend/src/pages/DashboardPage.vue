@@ -699,14 +699,17 @@ onMounted(async () => {
 .wsec {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
   height: 100%;
+  padding: 30px 0;
 }
 .wsec-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding-left: 5px;
+  margin-bottom: 5px;
 }
 .wsec-title-area {
   display: flex;
