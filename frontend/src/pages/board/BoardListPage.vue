@@ -210,8 +210,8 @@
                 <span v-if="post.categoryName && selectedCategoryId === null" class="lv-category">{{ post.categoryName }}</span>
               </div>
               <div class="lv-title-row">
-                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
                 <h3 class="lv-title">{{ post.title }}</h3>
+                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
               </div>
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
@@ -251,8 +251,8 @@
                 <span class="lv-category">{{ post.categoryName }}</span>
               </div>
               <div class="lv-title-row">
-                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
                 <h3 class="lv-title">{{ post.title }}</h3>
+                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
               </div>
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
@@ -1222,8 +1222,8 @@ onMounted(async () => {
 
 .lv-title-row {
   display: flex;
-  align-items: baseline;
-  gap: 5px;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -1231,8 +1231,9 @@ onMounted(async () => {
   font-size: 32px;
   font-weight: 900;
   color: var(--accent);
-  line-height: 0.6;
+  line-height: 1;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .lv-stats {
