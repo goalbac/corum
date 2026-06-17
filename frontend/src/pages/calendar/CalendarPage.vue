@@ -789,6 +789,10 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   background: var(--surface2) !important;
   font-size: 13px; font-weight: 500; color: var(--t2); padding: 8px 0;
 }
+.cal-wrap :deep(.fc-timegrid-slot-label-cushion) {
+  font-size: 13px;
+  color: var(--t3);
+}
 .cal-wrap :deep(.fc-col-header-cell a) { color: var(--t2) !important; }
 /* 토/일 컬럼 헤더 색상 (주/일 뷰) */
 .cal-wrap :deep(.fc-day-sat.fc-col-header-cell a) { color: #2563eb !important; }
