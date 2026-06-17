@@ -13,7 +13,7 @@
                 <span class="wcard-title skeleton-text">{{ layout.title || layout.targetBoardName || widgetTypeLabel(layout.widgetType) }}</span>
               </div>
               <div class="wcard-skeleton-body">
-                <i class="ti ti-loader-2 spinning" style="font-size:22px;color:var(--t4)"></i>
+                <i class="ti ti-loader-2 spinning" style="font-size:22px;color:var(--t3)"></i>
               </div>
             </div>
           </div>
@@ -690,7 +690,7 @@ onMounted(async () => {
   margin-bottom: 14px;
 }
 .wcard-title {
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--t1);
   letter-spacing: -0.2px;
@@ -708,14 +708,14 @@ onMounted(async () => {
 .wcard-more:hover { opacity: 0.75; }
 .wcard-head-left { display: flex; flex-direction: column; gap: 1px; }
 .wcard-desc {
-  font-size: 12.5px;
-  color: var(--t4);
+  font-size: 14px;
+  color: var(--t3);
   margin: -8px 0 10px;
   line-height: 1.5;
 }
 .wcard-desc-inline {
-  font-size: 12px;
-  color: var(--t4);
+  font-size: 13px;
+  color: var(--t3);
   font-weight: 400;
 }
 .widget-divider {
