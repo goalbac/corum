@@ -709,6 +709,7 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 12px;
   padding-left: 5px;
+  padding-right: 5px;
   margin-bottom: 5px;
 }
 .wsec-title-area {
