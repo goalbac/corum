@@ -69,9 +69,6 @@ public class DashboardWidgetService {
     @Transactional(readOnly = true)
     public List<DashboardWidgetResponse> getActiveWidgets(Long menuId, Long memberId) {
         List<DashboardWidget> widgets = widgetRepository.findActiveByMenuId(menuId);
-        if (widgets.isEmpty()) {
-            return menuId == null ? getDefaultWidgets() : List.of();
-        }
         return widgets.stream().map(w -> toResponse(w, memberId)).toList();
     }
 
@@ -80,23 +77,7 @@ public class DashboardWidgetService {
     public List<DashboardWidgetResponse> getActiveWidgetLayouts(Long menuId) {
         List<DashboardWidget> widgets = widgetRepository.findActiveByMenuId(menuId);
         if (widgets.isEmpty()) {
-            if (menuId != null) return List.of();
-            // 홈 대시보드 기본 위젯도 레이아웃만
-            return boardRepository.findByIsActiveTrueOrderByIdAsc().stream()
-                    .limit(4)
-                    .map(board -> DashboardWidget.builder()
-                            .id(-board.getId())
-                            .widgetType("RECENT_POSTS")
-                            .title(board.getName())
-                            .targetBoardId(board.getId())
-                            .postCount(5)
-                            .sortOrder(board.getId().intValue())
-                            .isActive(true)
-                            .build())
-                    .map(w -> toLayoutResponse(w, w.getTargetBoardId() != null
-                            ? boardRepository.findById(w.getTargetBoardId()).map(b -> b.getName()).orElse(null)
-                            : null))
-                    .toList();
+            return List.of();
         }
         // boardId → name 일괄 조회 (N+1 방지)
         Map<Long, String> boardNameMap = boardRepository.findByIsActiveTrueOrderByIdAsc().stream()
@@ -395,35 +376,6 @@ public class DashboardWidgetService {
                 .toList();
         if (boardIds.isEmpty()) return List.of();
         return postRepository.findLatestByBoardIds(boardIds, PageRequest.of(0, count));
-    }
-
-    private List<DashboardWidgetResponse> getDefaultWidgets() {
-        DashboardStatsResponse stats = getStats();
-        List<Board> boards = boardRepository.findByIsActiveTrueOrderByIdAsc();
-        List<DashboardWidgetResponse> widgets = boards.stream()
-                .limit(4)
-                .map(board -> DashboardWidget.builder()
-                        .id(-board.getId())
-                        .widgetType("RECENT_POSTS")
-                        .title(board.getName())
-                        .targetBoardId(board.getId())
-                        .postCount(5)
-                        .sortOrder(board.getId().intValue())
-                        .isActive(true)
-                        .build())
-                .map(w -> toResponse(w, null))
-                .toList();
-        if (!widgets.isEmpty()) return widgets;
-
-        DashboardWidget statsWidget = DashboardWidget.builder()
-                .id(-1L)
-                .widgetType("MEMBER_STATS")
-                .title("사이트 현황")
-                .postCount(5)
-                .sortOrder(0)
-                .isActive(true)
-                .build();
-        return List.of(new DashboardWidgetResponse(statsWidget, null, List.of(), stats));
     }
 
     private int normalizePostCount(Integer postCount) {
