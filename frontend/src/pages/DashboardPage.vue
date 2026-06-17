@@ -1,27 +1,6 @@
 <template>
   <div :class="['dashboard', { 'dashboard-menu': dashboardMenuId }]">
 
-    <!-- 웰컴 카드 (홈 대시보드만) -->
-    <div
-      v-if="!dashboardMenuId"
-      class="welcome-card"
-      ref="welcomeRef"
-      @mousemove="handleMouseMove"
-      @mouseleave="handleMouseLeave"
-    >
-      <div class="welcome-glow" :style="glowStyle" />
-      <div class="welcome-content">
-        <div class="welcome-left">
-          <div class="welcome-name">안녕하세요, <span class="welcome-highlight">{{ authStore.member?.name || '방문자' }}</span>님</div>
-          <div class="welcome-sub">오늘도 좋은 하루 보내세요 ☀️</div>
-        </div>
-        <div class="welcome-right">
-          <div class="welcome-date-line">{{ todayDate }}</div>
-          <div class="welcome-time-line">{{ todayTime }}</div>
-        </div>
-      </div>
-    </div>
-
     <!-- 위젯 영역 -->
     <div v-if="!layoutLoading && layouts.length" class="widget-area">
       <template v-for="layout in layouts" :key="layout.id">
@@ -45,6 +24,28 @@
         <!-- 이미지 슬라이더 -->
         <div v-if="widget.widgetType === 'IMAGE_SLIDER'" class="widget-full">
           <ImageSlider :slides="parseConfig(widget).slides || []" :title="widget.title" />
+        </div>
+
+        <!-- 웰컴 카드 -->
+        <div v-else-if="widget.widgetType === 'WELCOME'" class="widget-full">
+          <div
+            class="welcome-card"
+            ref="welcomeRef"
+            @mousemove="handleMouseMove"
+            @mouseleave="handleMouseLeave"
+          >
+            <div class="welcome-glow" :style="glowStyle" />
+            <div class="welcome-content">
+              <div class="welcome-left">
+                <div class="welcome-name">안녕하세요, <span class="welcome-highlight">{{ authStore.member?.name || '방문자' }}</span>님</div>
+                <div class="welcome-sub">{{ parseConfig(widget).subText ?? '오늘도 좋은 하루 보내세요 ☀️' }}</div>
+              </div>
+              <div v-if="parseConfig(widget).showClock !== false" class="welcome-right">
+                <div class="welcome-date-line">{{ todayDate }}</div>
+                <div class="welcome-time-line">{{ todayTime }}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 구분선 -->
@@ -467,6 +468,7 @@ function getEventsForDay(widget, dateStr) {
 }
 
 const WIDGET_LABELS = {
+  WELCOME: '웰컴 카드',
   RECENT_POSTS: '최신 글', RECENT_GALLERY: '갤러리 최신글',
   CALENDAR_WEEKLY: '캘린더', IMAGE_SLIDER: '슬라이더',
   IMAGE_GRID: '이미지', LINK_LIST: '링크', QUICK_LINKS: '바로가기',
@@ -475,7 +477,7 @@ const WIDGET_LABELS = {
 function widgetTypeLabel(t) { return WIDGET_LABELS[t] || t }
 
 function isFullWidget(t) {
-  return ['IMAGE_SLIDER', 'IMAGE_GRID'].includes(t)
+  return ['IMAGE_SLIDER', 'IMAGE_GRID', 'WELCOME'].includes(t)
 }
 
 function parseCalendarId(widget) {
@@ -526,8 +528,8 @@ function formatDate(d) {
 }
 
 async function loadWidgetData(layout) {
-  // DIVIDER는 추가 데이터 불필요
-  if (layout.widgetType === 'DIVIDER') return
+  // DIVIDER, WELCOME은 추가 데이터 불필요
+  if (layout.widgetType === 'DIVIDER' || layout.widgetType === 'WELCOME') return
   widgetLoading.value[layout.id] = true
   try {
     const res = await api.get(`/dashboard/widgets/${layout.id}`)

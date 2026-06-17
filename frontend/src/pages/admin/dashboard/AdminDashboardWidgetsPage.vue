@@ -156,6 +156,15 @@
             </div>
           </template>
 
+          <!-- WELCOME -->
+          <template v-else-if="w.widgetType === 'WELCOME'">
+            <div class="wp-welcome">
+              <div class="wp-welcome-name">안녕하세요, <span class="wp-welcome-hl">{{ '홍길동' }}</span>님</div>
+              <div class="wp-welcome-sub">{{ parseConfig(w).subText || '오늘도 좋은 하루 보내세요 ☀️' }}</div>
+              <div v-if="parseConfig(w).showClock !== false" class="wp-welcome-time">00:00</div>
+            </div>
+          </template>
+
           <!-- DIVIDER -->
           <template v-else-if="w.widgetType === 'DIVIDER'">
             <div class="wp-divider">
@@ -193,6 +202,9 @@
           <div class="dlg-field">
             <label>위젯 유형</label>
             <el-select v-model="form.widgetType" style="width:100%" @change="onTypeChange">
+              <el-option-group label="기본">
+                <el-option value="WELCOME"         label="웰컴 카드 (안녕하세요, {이름}님)" />
+              </el-option-group>
               <el-option-group label="게시판">
                 <el-option value="RECENT_POSTS"    label="최신 글 (텍스트 목록)" />
                 <el-option value="RECENT_GALLERY"  label="최신 글 (갤러리/웹진)" />
@@ -432,6 +444,20 @@
           </button>
         </template>
 
+        <!-- WELCOME -->
+        <template v-if="form.widgetType === 'WELCOME'">
+          <hr class="dlg-divider"/>
+          <div class="dlg-row">
+            <div class="dlg-field" style="flex:1">
+              <label>부제목 <span style="color:var(--t4);font-weight:400">(이름 아래에 표시)</span></label>
+              <el-input v-model="config.subText" placeholder="오늘도 좋은 하루 보내세요 ☀️" />
+            </div>
+            <div class="dlg-field" style="flex:0 0 auto;justify-content:flex-end;padding-top:22px">
+              <label class="chk-item"><el-checkbox v-model="config.showClock" />날짜/시각 표시</label>
+            </div>
+          </div>
+        </template>
+
         <!-- CUSTOM -->
         <template v-if="form.widgetType === 'CUSTOM'">
           <hr class="dlg-divider"/>
@@ -495,7 +521,7 @@ const defaultForm = () => ({
   menuId: selectedMenuId.value
 })
 const form   = ref(defaultForm())
-const config = ref({ slides: [], links: [], images: [], content: '', size: 'half', calendarId: null })
+const config = ref({ slides: [], links: [], images: [], content: '', size: 'half', calendarId: null, subText: '오늘도 좋은 하루 보내세요 ☀️', showClock: true })
 
 function parseConfig(w) {
   try { return w.extraConfig ? (typeof w.extraConfig === 'string' ? JSON.parse(w.extraConfig) : w.extraConfig) : {} }
@@ -504,6 +530,7 @@ function parseConfig(w) {
 function getSize(w) { return parseConfig(w).size || 'half' }
 function typeLabel(t) {
   const MAP = {
+    WELCOME:         '웰컴 카드',
     RECENT_POSTS:    '최신 글',
     RECENT_GALLERY:  '갤러리 최신글',
     CALENDAR_WEEKLY: '캘린더 주간',
@@ -645,7 +672,8 @@ async function saveSortOrder() {
 function onTypeChange() {
   config.value = {
     slides: [], links: [], images: [], content: '', moreUrl: '',
-    size: config.value.size || 'half', calendarId: null
+    size: config.value.size || 'half', calendarId: null,
+    subText: '오늘도 좋은 하루 보내세요 ☀️', showClock: true,
   }
   form.value.targetBoardId = null
   form.value.postCount = 5
@@ -654,7 +682,7 @@ function onTypeChange() {
 function openCreate() {
   editing.value = null
   form.value = { ...defaultForm(), menuId: selectedMenuId.value, description: '' }
-  config.value = { slides: [], links: [], images: [], content: '', moreUrl: '', size: 'half', calendarId: null }
+  config.value = { slides: [], links: [], images: [], content: '', moreUrl: '', size: 'half', calendarId: null, subText: '오늘도 좋은 하루 보내세요 ☀️', showClock: true }
   showForm.value = true
 }
 
@@ -669,6 +697,8 @@ function openEdit(w) {
     moreUrl:    ec.moreUrl    || '',
     size:       ec.size       || 'half',
     calendarId: ec.calendarId || null,
+    subText:    ec.subText    ?? '오늘도 좋은 하루 보내세요 ☀️',
+    showClock:  ec.showClock  !== false,
   }
   showForm.value = true
 }
@@ -683,6 +713,10 @@ async function saveWidget() {
     if (['LINK_LIST','QUICK_LINKS'].includes(form.value.widgetType)) extra.links = config.value.links
     if (form.value.widgetType === 'CUSTOM')             extra.content    = config.value.content
     if (form.value.widgetType === 'CALENDAR_WEEKLY')    extra.calendarId = config.value.calendarId
+    if (form.value.widgetType === 'WELCOME') {
+      extra.subText   = config.value.subText
+      extra.showClock = config.value.showClock
+    }
 
     const payload = { ...form.value, extraConfig: JSON.stringify(extra), menuId: selectedMenuId.value }
     editing.value
@@ -824,6 +858,19 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
 }
 .wp-custom :deep(p) { margin: 0 0 4px; }
+
+.wp-welcome {
+  background: linear-gradient(135deg, #4f6ef7 0%, #7c4ff7 45%, #e05fc4 80%, #f97040 100%);
+  border-radius: 8px; padding: 14px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.wp-welcome-name { font-size: 14px; font-weight: 800; color: #fff; }
+.wp-welcome-hl {
+  display: inline-block; background: rgba(255,255,255,0.22);
+  border-radius: 5px; padding: 1px 7px;
+}
+.wp-welcome-sub { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+.wp-welcome-time { font-size: 18px; font-weight: 800; color: #fff; flex-shrink: 0; }
 
 .wp-empty { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--t4); padding: 6px 0; }
 .wp-divider { padding: 6px 0; }
