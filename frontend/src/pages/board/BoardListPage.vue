@@ -211,7 +211,7 @@
               </div>
               <div class="lv-title-row">
                 <h3 class="lv-title">{{ post.title }}</h3>
-                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
+                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled lv-new-dot"></i>
               </div>
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
@@ -252,7 +252,7 @@
               </div>
               <div class="lv-title-row">
                 <h3 class="lv-title">{{ post.title }}</h3>
-                <span v-if="isNew(post.createdAt)" class="lv-new-dot">·</span>
+                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled lv-new-dot"></i>
               </div>
               <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             </div>
@@ -1222,18 +1222,15 @@ onMounted(async () => {
 
 .lv-title-row {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
 }
 
 .lv-new-dot {
-  font-size: 32px;
-  font-weight: 900;
+  font-size: 14px;
   color: var(--accent);
-  line-height: 1;
   flex-shrink: 0;
-  margin-top: 6px;
 }
 
 .lv-stats {
