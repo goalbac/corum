@@ -639,6 +639,9 @@ INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALU
     (5, '사이트 설정',      '/admin/settings',           'ti ti-settings',         1, TRUE),
     (5, '관리자 메뉴 권한', '/admin/admin-permissions',  'ti ti-lock',             2, TRUE),
     (5, '시스템 도구',      '/admin/tools',              'ti ti-tool',             3, TRUE);
+-- ===== boards: use_all_category 컬럼 추가 =====
+ALTER TABLE boards ADD COLUMN IF NOT EXISTS use_all_category BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- ===== dashboard_widgets 컬럼 추가 (다중 대시보드 + 위젯 설명) =====
 ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS menu_id BIGINT;
 ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS description VARCHAR(500);
