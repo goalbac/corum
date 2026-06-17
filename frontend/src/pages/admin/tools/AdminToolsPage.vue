@@ -36,19 +36,36 @@
         </button>
       </div>
 
-      <!-- 추후 도구 슬롯 (예시) -->
-      <div class="tool-card placeholder">
+      <!-- 썸네일 전체 재생성 -->
+      <div class="tool-card">
         <div class="tool-head">
-          <div class="tool-icon" style="background:#F0FDF4; color:#16A34A">
-            <i class="ti ti-database"></i>
+          <div class="tool-icon" style="background:#FEF9C3; color:#D97706">
+            <i class="ti ti-refresh"></i>
           </div>
           <div>
-            <div class="tool-title">추후 추가 예정</div>
-            <div class="tool-desc">관리자 유지보수 도구를 이곳에 추가할 수 있습니다.</div>
+            <div class="tool-title">썸네일 전체 재생성</div>
+            <div class="tool-desc">기존 썸네일 포함 모든 이미지 파일의 썸네일을 새 품질 설정으로 다시 만듭니다.</div>
           </div>
         </div>
-        <button class="run-btn" disabled>
-          <i class="ti ti-player-play"></i> 실행
+        <div v-if="thumbAll.result" class="tool-result" :class="thumbAll.result.fail > 0 ? 'warn' : 'ok'">
+          <div class="result-row">
+            <span class="result-label">대상</span><span class="result-val">{{ thumbAll.result.total }}개</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">성공</span><span class="result-val success">{{ thumbAll.result.success }}개</span>
+          </div>
+          <div class="result-row" v-if="thumbAll.result.fail > 0">
+            <span class="result-label">실패</span><span class="result-val error">{{ thumbAll.result.fail }}개</span>
+          </div>
+          <template v-if="thumbAll.result.failedPaths?.length">
+            <div class="result-paths-label">실패 파일</div>
+            <div v-for="p in thumbAll.result.failedPaths" :key="p" class="result-path">{{ p }}</div>
+          </template>
+        </div>
+        <button class="run-btn" :disabled="thumbAll.loading" @click="runThumbAll">
+          <i v-if="thumbAll.loading" class="ti ti-loader-2 spinning"></i>
+          <i v-else class="ti ti-player-play"></i>
+          {{ thumbAll.loading ? '실행 중...' : '실행' }}
         </button>
       </div>
     </div>
@@ -62,6 +79,31 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
 const thumb = reactive({ loading: false, result: null })
+const thumbAll = reactive({ loading: false, result: null })
+
+async function runThumbAll() {
+  await ElMessageBox.confirm(
+    '기존 썸네일을 포함한 모든 이미지 파일의 썸네일을 새 품질(600px/65%, 300px/50%)로 다시 생성합니다.\n파일 수가 많을 경우 시간이 걸릴 수 있습니다. 계속하시겠습니까?',
+    '썸네일 전체 재생성',
+    { confirmButtonText: '실행', cancelButtonText: '취소', type: 'warning' }
+  )
+  thumbAll.loading = true
+  thumbAll.result = null
+  try {
+    const res = await api.post('/admin/files/regenerate-thumbnails-all')
+    thumbAll.result = res.data.data
+    const { total, success, fail } = thumbAll.result
+    if (fail === 0) {
+      ElMessage.success(`완료: ${total}개 중 ${success}개 성공`)
+    } else {
+      ElMessage.warning(`완료: ${success}개 성공, ${fail}개 실패`)
+    }
+  } catch {
+    ElMessage.error('실행 중 오류가 발생했습니다.')
+  } finally {
+    thumbAll.loading = false
+  }
+}
 
 async function runThumb() {
   await ElMessageBox.confirm(

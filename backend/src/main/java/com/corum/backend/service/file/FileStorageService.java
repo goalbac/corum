@@ -44,7 +44,7 @@ public class FileStorageService {
 
     private static final int THUMB_WIDTH = 600;
     private static final int SMALL_THUMB_WIDTH = 300;
-    private static final double SMALL_THUMB_QUALITY = 0.72;
+    private static final double SMALL_THUMB_QUALITY = 0.50;
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
     );
@@ -104,7 +104,7 @@ public class FileStorageService {
     }
 
     private String generateAndUploadThumbnail(byte[] imageBytes, String originalPath, String mimeType) {
-        return generateAndUploadToPath(imageBytes, "thumb/" + originalPath, mimeType, THUMB_WIDTH, 0.82);
+        return generateAndUploadToPath(imageBytes, "thumb/" + originalPath, mimeType, THUMB_WIDTH, 0.65);
     }
 
     private String generateAndUploadToPath(byte[] imageBytes, String thumbPath, String mimeType, int width, double quality) {
@@ -419,7 +419,18 @@ public class FileStorageService {
         List<UploadFile> targets = uploadFileRepository.findImageFilesWithoutThumbnail(
                 List.of("image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp")
         );
+        return doRegenerate(targets);
+    }
 
+    @Transactional
+    public ThumbnailRegenerateResult regenerateAllThumbnails() {
+        List<UploadFile> targets = uploadFileRepository.findAll().stream()
+                .filter(f -> f.getMimeType() != null && IMAGE_MIME_TYPES.contains(f.getMimeType().toLowerCase()))
+                .collect(Collectors.toList());
+        return doRegenerate(targets);
+    }
+
+    private ThumbnailRegenerateResult doRegenerate(List<UploadFile> targets) {
         int success = 0, fail = 0;
         List<String> failedPaths = new ArrayList<>();
 

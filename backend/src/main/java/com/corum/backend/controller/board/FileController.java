@@ -203,4 +203,9 @@ public class FileController {
     public ApiResponse<FileStorageService.ThumbnailRegenerateResult> regenerateThumbnails() {
         return ApiResponse.ok(fileStorageService.regenerateMissingThumbnails());
     }
+
+    @PostMapping("/api/admin/files/regenerate-thumbnails-all")
+    public ApiResponse<FileStorageService.ThumbnailRegenerateResult> regenerateAllThumbnails() {
+        return ApiResponse.ok(fileStorageService.regenerateAllThumbnails());
+    }
 }
