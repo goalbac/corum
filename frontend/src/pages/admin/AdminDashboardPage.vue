@@ -26,11 +26,10 @@
             <span class="legend-item"><span class="legend-dot visitor"></span>방문자</span>
           </div>
         </div>
-        <div v-if="statsLoading" class="stats-loading">
+        <div v-if="statsLoading" class="stats-loading chart-loading">
           <i class="ti ti-loader-2 spinning"></i>
         </div>
-        <template v-else>
-          <svg :viewBox="`0 0 ${CW} ${CH}`" class="visitor-chart" preserveAspectRatio="xMidYMid meet">
+        <svg v-else :viewBox="`0 0 ${CW} ${CH}`" class="visitor-chart" preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.5"/>
@@ -62,7 +61,6 @@
               :x="l.x" :y="CH - 8"
               text-anchor="middle" font-size="10" fill="currentColor" opacity="0.4">{{ l.label }}</text>
           </svg>
-        </template>
       </div>
 
       <!-- 기간별 분석 -->
@@ -167,7 +165,7 @@ const stats = ref([
 ])
 
 const periodOpts = [{ label: '7일', days: 7 }, { label: '14일', days: 14 }, { label: '30일', days: 30 }]
-const selectedDays = ref(14)
+const selectedDays = ref(7)
 const statsLoading = ref(false)
 const dailyRows = ref([])
 const weekRow = ref(null)
@@ -289,10 +287,13 @@ onMounted(() => { fetchSummaryStats(); fetchDailyStats() })
 .stat-label { font-size: 13px; color: var(--t3); margin-top: 2px; }
 
 /* 2컬럼 레이아웃 */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
 
 /* 섹션 카드 */
-.section-card { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 20px; box-shadow: var(--shadow); }
+.section-card { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.chart-card { min-height: 0; }
+.visitor-chart { flex: 1; min-height: 0; }
+.chart-loading { flex: 1; }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
 .section-title { font-size: 15px; font-weight: 800; color: var(--t1); }
 
@@ -302,7 +303,7 @@ onMounted(() => { fetchSummaryStats(); fetchDailyStats() })
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .legend-dot.pageview { background: #93C5FD; }
 .legend-dot.visitor { background: #2563EB; }
-.visitor-chart { width: 100%; height: auto; display: block; color: var(--t1); }
+.visitor-chart { width: 100%; height: 100%; display: block; color: var(--t1); }
 
 /* 기간 탭 */
 .period-tabs { display: flex; gap: 4px; }
