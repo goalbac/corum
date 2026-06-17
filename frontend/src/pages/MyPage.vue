@@ -350,12 +350,49 @@ async function handleWithdraw() {
   }
 }
 
-function handleFileChange(e) {
+async function handleFileChange(e) {
   const file = e.target.files?.[0]
   if (!file) return
-  if (file.size > 5 * 1024 * 1024) { ElMessage.warning('파일 크기는 5MB 이하여야 합니다.'); return }
-  selectedFile.value = file
+  if (file.size > 20 * 1024 * 1024) { ElMessage.warning('파일 크기는 20MB 이하여야 합니다.'); return }
+  try {
+    selectedFile.value = await resizeProfileImage(file, 400, 200 * 1024)
+  } catch {
+    selectedFile.value = file
+  }
   myAvatarError.value = false
+}
+
+function resizeProfileImage(file, maxPx, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      // quality를 낮춰가며 maxBytes 이하가 될 때까지 시도
+      let quality = 0.92
+      const tryEncode = () => {
+        canvas.toBlob(blob => {
+          if (!blob) { reject(new Error('encode failed')); return }
+          if (blob.size <= maxBytes || quality <= 0.3) {
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+          } else {
+            quality -= 0.1
+            tryEncode()
+          }
+        }, 'image/jpeg', quality)
+      }
+      tryEncode()
+    }
+    img.onerror = reject
+    img.src = url
+  })
 }
 
 async function handleUploadPhoto() {
