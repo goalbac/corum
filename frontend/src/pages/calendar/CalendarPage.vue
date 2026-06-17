@@ -972,7 +972,9 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 @media (max-width: 768px) {
-  .cal-layout { padding: 12px 12px 20px; }
+  .cal-layout { padding: 12px 0 20px; }
+  .cal-main { gap: 8px; }
+  .cal-toolbar { padding: 0 12px; }
   .form-row { grid-template-columns: 1fr; }
 
   /* 툴바: 2줄 구조 */
@@ -1047,8 +1049,24 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 50px; }
   .cal-wrap :deep(.fc-daygrid-day-events) { margin-top: 0; }
 
-  /* 모바일 이벤트 카드 폰트 축소 */
-  .cal-wrap :deep(.fc-ev-time) { font-size: 9px; }
-  .cal-wrap :deep(.fc-ev-title) { font-size: 10px; }
+  /* 모바일 이벤트: 여백 최소화, border-left 제거, 클립 처리 */
+  .cal-wrap :deep(.fc-ev-custom) {
+    border-left: none !important;
+    padding: 1px 3px !important;
+    gap: 0 !important;
+    border-radius: 2px !important;
+  }
+  .cal-wrap :deep(.fc-ev-time) {
+    font-size: 9px;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+  .cal-wrap :deep(.fc-ev-title) {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+  }
 }
 </style>
