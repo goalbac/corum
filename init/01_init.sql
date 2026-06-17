@@ -404,6 +404,7 @@ CREATE TABLE calendars (
     description   VARCHAR(500),
     calendar_type VARCHAR(20)  NOT NULL DEFAULT 'GENERAL',
     is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    sort_order    INT          NOT NULL DEFAULT 0,
     created_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
