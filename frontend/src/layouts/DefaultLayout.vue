@@ -10,52 +10,84 @@
 
     <transition name="slide-left">
       <div v-if="mobileMenuOpen" class="mobile-drawer">
-        <div class="drawer-header">
-          <router-link to="/" class="drawer-logo" @click="mobileMenuOpen = false">Corum</router-link>
+        <!-- 상단 바: 로그인 정보 + 닫기 -->
+        <div class="drawer-topbar">
+          <button class="drawer-user-area" @click="handleDrawerUserClick">
+            <template v-if="authStore.isLoggedIn">
+              <div class="drawer-avatar">{{ authStore.member?.name?.charAt(0) || 'U' }}</div>
+              <span class="drawer-user-name">{{ authStore.member?.name }}님</span>
+            </template>
+            <template v-else>
+              <span class="drawer-login-hint">로그인해주세요</span>
+            </template>
+          </button>
           <button class="drawer-close" @click="mobileMenuOpen = false" aria-label="메뉴 닫기">
             <i class="ti ti-x"></i>
           </button>
         </div>
-        <div class="drawer-nav">
-          <div v-for="menu in menuStore.topMenus" :key="menu.id">
+
+        <!-- 두 패널 본문 -->
+        <div class="drawer-panels">
+          <!-- 왼쪽: 상위 메뉴 목록 -->
+          <nav class="drawer-left" aria-label="대메뉴">
             <button
+              v-for="menu in menuStore.topMenus"
+              :key="menu.id"
               type="button"
-              class="drawer-top-item"
-              :class="{ active: activeTopMenu?.id === menu.id }"
-              @click="handleMobileTopMenu(menu)"
+              class="drawer-left-item"
+              :class="{ active: mobileSelectedTop?.id === menu.id }"
+              @click="selectDrawerTop(menu)"
             >
-              <span>{{ menu.name }}</span>
-              <i v-if="menu.children?.length" class="ti ti-chevron-down" :class="{ rotated: mobileExpandedTopId === menu.id }"></i>
+              {{ menu.name }}
             </button>
-            <template v-if="mobileExpandedTopId === menu.id || (!menu.children?.length && activeTopMenu?.id === menu.id)">
-              <template v-for="sub in menu.children || []" :key="sub.id">
-                <button
-                  type="button"
-                  class="drawer-sub-item"
-                  :class="{ active: isActiveSideMenu(sub), 'has-children': sub.children?.length }"
-                  @click="handleMobileSubClick(sub)"
-                >
-                  <span>{{ sub.name }}</span>
-                  <span v-if="hasNewBoardPost(sub)" class="new-badge new-post-badge">새 글</span>
-                  <i
-                    v-if="sub.children?.length"
-                    class="ti ti-chevron-right drawer-sub-arrow"
-                    :class="{ rotated: mobileOpenIds.includes(Number(sub.id)) }"
-                  ></i>
-                </button>
-                <template v-if="sub.children?.length && mobileOpenIds.includes(Number(sub.id))">
-                  <button
-                    v-for="sub2 in sub.children"
-                    :key="sub2.id"
-                    type="button"
-                    class="drawer-sub-item depth-2"
-                    :class="{ active: isActiveSideMenu(sub2) }"
-                    @click="handleMobileMenu(sub2)"
-                  >
-                    <span>{{ sub2.name }}</span>
-                    <span v-if="hasNewBoardPost(sub2)" class="new-badge new-post-badge">새 글</span>
-                  </button>
+          </nav>
+
+          <!-- 오른쪽: 선택된 상위 메뉴의 하위 항목 -->
+          <div class="drawer-right" ref="drawerRightRef">
+            <template v-if="mobileSelectedTop">
+              <!-- 하위 메뉴가 있는 경우: 그룹 헤더 + 2열 그리드 -->
+              <template v-if="mobileSelectedTop.children?.length">
+                <template v-for="group in mobileSelectedTop.children" :key="group.id">
+                  <!-- 그룹 자체에 자식이 있으면 헤더 + 자식 그리드 -->
+                  <template v-if="group.children?.length">
+                    <button type="button" class="drawer-group-header" @click="handleDrawerNav(group)">
+                      <span>{{ group.name }}</span>
+                      <i class="ti ti-chevron-right"></i>
+                    </button>
+                    <div class="drawer-child-grid">
+                      <button
+                        v-for="child in group.children"
+                        :key="child.id"
+                        type="button"
+                        class="drawer-child-btn"
+                        :class="{ active: isActiveSideMenu(child) }"
+                        @click="handleDrawerNav(child)"
+                      >
+                        {{ child.name }}
+                        <span v-if="hasNewBoardPost(child)" class="new-badge">N</span>
+                      </button>
+                    </div>
+                  </template>
+                  <!-- 자식 없는 리프: 직접 이동 항목으로 표시 -->
+                  <template v-else>
+                    <button
+                      type="button"
+                      class="drawer-leaf-item"
+                      :class="{ active: isActiveSideMenu(group) }"
+                      @click="handleDrawerNav(group)"
+                    >
+                      <span>{{ group.name }}</span>
+                      <span v-if="hasNewBoardPost(group)" class="new-badge">N</span>
+                    </button>
+                  </template>
                 </template>
+              </template>
+              <!-- 하위 메뉴 없음: 선택된 항목 자체로 이동 -->
+              <template v-else>
+                <button type="button" class="drawer-group-header" @click="handleDrawerNav(mobileSelectedTop)">
+                  <span>{{ mobileSelectedTop.name }}</span>
+                  <i class="ti ti-chevron-right"></i>
+                </button>
               </template>
             </template>
           </div>
@@ -155,7 +187,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
 import AppBanner from '@/components/common/AppBanner.vue'
@@ -169,16 +201,11 @@ const authStore = useAuthStore()
 const menuStore = useMenuStore()
 const mobileMenuOpen = ref(false)
 const openMenuIds = ref([])
-const mobileOpenIds = ref([])
-const mobileExpandedTopId = ref(null)
+const mobileSelectedTop = ref(null)
+const drawerRightRef = ref(null)
 
 const routeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
-
-// 라우트 이동 시 해당 대메뉴 자동 펼침
-watch(activeTopMenu, (menu) => {
-  if (menu) mobileExpandedTopId.value = menu.id
-}, { immediate: true })
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 const showsMenuLayout = computed(() => !!activeTopMenu.value && sideMenus.value.length > 0)
 
@@ -238,31 +265,34 @@ function handleSideClick(menu) {
   navigateMenu(menu)
 }
 
-function handleMobileTopMenu(menu) {
-  mobileOpenIds.value = []
+// ===== 모바일 드로어 =====
+function selectDrawerTop(menu) {
   if (menu.children?.length) {
-    mobileExpandedTopId.value = mobileExpandedTopId.value === menu.id ? null : menu.id
-    return
+    mobileSelectedTop.value = menu
+    nextTick(() => { if (drawerRightRef.value) drawerRightRef.value.scrollTop = 0 })
+  } else {
+    handleDrawerNav(menu)
   }
-  mobileExpandedTopId.value = null
+}
+
+function handleDrawerNav(menu) {
+  mobileMenuOpen.value = false
   navigateMenu(menu)
 }
 
-function handleMobileSubClick(menu) {
-  if (menu.children?.length) {
-    const id = Number(menu.id)
-    const idx = mobileOpenIds.value.indexOf(id)
-    if (idx >= 0) mobileOpenIds.value.splice(idx, 1)
-    else mobileOpenIds.value.push(id)
-    return
-  }
-  handleMobileMenu(menu)
+function handleDrawerUserClick() {
+  mobileMenuOpen.value = false
+  if (authStore.isLoggedIn) router.push('/mypage')
+  else router.push('/login')
 }
 
-function handleMobileMenu(menu) {
-  mobileMenuOpen.value = false
-  handleSideClick(menu)
-}
+// 드로어 열릴 때 현재 활성 대메뉴 또는 첫 메뉴 자동 선택
+watch(mobileMenuOpen, (open) => {
+  if (open) {
+    const initial = activeTopMenu.value || menuStore.topMenus.find(m => m.children?.length) || menuStore.topMenus[0] || null
+    mobileSelectedTop.value = initial
+  }
+})
 
 watch(activeTopMenu, menu => {
   menuStore.setActiveTopMenu(menu?.id ?? null)
@@ -533,103 +563,209 @@ onMounted(async () => {
   top: 0;
   left: 0;
   bottom: 0;
-  width: min(320px, 86vw);
+  width: 100vw;
   background: var(--surface);
   z-index: 201;
-  box-shadow: 4px 0 24px rgba(0,0,0,0.18);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.drawer-header {
+/* 상단 바 */
+.drawer-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
-  height: var(--header-height);
-  border-bottom: 0.5px solid var(--border);
+  padding: 0 16px;
+  height: 52px;
+  flex-shrink: 0;
+  border-bottom: 0.5px solid var(--border2);
+  background: var(--surface);
 }
 
-.drawer-logo {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--accent);
+.drawer-user-area {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.drawer-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.drawer-user-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.drawer-login-hint {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--t2);
 }
 
 .drawer-close {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: none;
-  background: transparent;
-  font-size: 22px;
+  background: var(--surface2);
+  font-size: 18px;
   color: var(--t2);
-  border-radius: var(--radius-xs);
-}
-
-.drawer-close:hover { background: var(--surface2); color: var(--t1); }
-
-.drawer-nav { padding: 10px; }
-
-.drawer-top-item,
-.drawer-sub-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--t2);
-  text-align: left;
-  transition: var(--transition);
+  border-radius: 50%;
   cursor: pointer;
-}
-
-.drawer-top-item {
-  justify-content: space-between;
-  padding: 12px 12px;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.drawer-top-item i { font-size: 14px; transition: transform 0.2s; }
-.drawer-top-item i.rotated { transform: rotate(180deg); }
-
-.drawer-sub-item {
-  padding: 10px 12px 10px 26px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.drawer-sub-item.depth-2 {
-  padding-left: 40px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--t3);
-}
-
-.drawer-sub-arrow {
-  font-size: 13px;
-  margin-left: auto;
-  color: var(--t3);
-  transition: transform 0.2s;
   flex-shrink: 0;
 }
+.drawer-close:hover { background: var(--border2); color: var(--t1); }
 
-.drawer-sub-arrow.rotated { transform: rotate(90deg); }
+/* 두 패널 본문 */
+.drawer-panels {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 
-.drawer-top-item:hover,
-.drawer-sub-item:hover { background: var(--surface2); color: var(--t1); }
+/* 왼쪽 패널 */
+.drawer-left {
+  width: 120px;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border-right: 0.5px solid var(--border2);
+  overflow-y: auto;
+  padding: 8px 0;
+}
 
-.drawer-top-item.active,
-.drawer-sub-item.active { background: var(--accent-bg); color: var(--accent-t); }
+.drawer-left-item {
+  width: 100%;
+  padding: 13px 14px;
+  border: none;
+  background: transparent;
+  color: var(--t3);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  word-break: keep-all;
+}
+.drawer-left-item:hover { color: var(--t1); background: color-mix(in srgb, var(--border2) 50%, transparent); }
+.drawer-left-item.active {
+  color: var(--t1);
+  font-weight: 800;
+  background: var(--surface);
+  border-right: 2px solid var(--accent);
+}
+
+/* 오른쪽 패널 */
+.drawer-right {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 10px 0 24px;
+  background: var(--surface);
+}
+
+/* 그룹 헤더 (2nd level with children) */
+.drawer-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px 6px;
+  border: none;
+  background: transparent;
+  color: var(--t1);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.drawer-group-header:first-child { margin-top: 0; }
+.drawer-group-header i { font-size: 13px; color: var(--t3); flex-shrink: 0; }
+.drawer-group-header:hover { color: var(--accent-t); }
+.drawer-group-header:hover i { color: var(--accent-t); }
+
+/* 자식 2열 그리드 */
+.drawer-child-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px 10px 10px;
+  border-bottom: 0.5px solid var(--border2);
+}
+
+.drawer-child-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 6px;
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: color 0.15s, background 0.15s;
+  word-break: keep-all;
+}
+.drawer-child-btn:hover { color: var(--t1); background: var(--surface2); }
+.drawer-child-btn.active { color: var(--accent-t); font-weight: 700; }
+
+/* 리프 아이템 (자식 없는 2nd level) */
+.drawer-leaf-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 0.5px solid var(--border2);
+  background: transparent;
+  color: var(--t1);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.drawer-leaf-item:hover { background: var(--surface2); color: var(--accent-t); }
+.drawer-leaf-item.active { color: var(--accent-t); font-weight: 700; }
+
+.new-badge {
+  font-size: 9px;
+  font-weight: 800;
+  background: var(--new);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 3px;
+  flex-shrink: 0;
+}
 
 /* ===== 트랜지션 ===== */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-.slide-left-enter-active, .slide-left-leave-active { transition: transform 0.25s cubic-bezier(.4,0,.2,1); }
+.slide-left-enter-active, .slide-left-leave-active { transition: transform 0.28s cubic-bezier(.4,0,.2,1); }
 .slide-left-enter-from, .slide-left-leave-to { transform: translateX(-100%); }
 
 /* ===== 반응형 ===== */
