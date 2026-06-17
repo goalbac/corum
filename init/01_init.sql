@@ -637,7 +637,8 @@ INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALU
 -- 설정 하위
 INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
     (5, '사이트 설정',      '/admin/settings',           'ti ti-settings',         1, TRUE),
-    (5, '관리자 메뉴 권한', '/admin/admin-permissions',  'ti ti-lock',             2, TRUE);
+    (5, '관리자 메뉴 권한', '/admin/admin-permissions',  'ti ti-lock',             2, TRUE),
+    (5, '시스템 도구',      '/admin/tools',              'ti ti-tool',             3, TRUE);
 -- ===== dashboard_widgets 컬럼 추가 (다중 대시보드 + 위젯 설명) =====
 ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS menu_id BIGINT;
 ALTER TABLE dashboard_widgets ADD COLUMN IF NOT EXISTS description VARCHAR(500);
@@ -649,3 +650,8 @@ INSERT INTO calendars (name, color, description, calendar_type, is_active) VALUE
     ('주요 일정',        '#4f6ef7', '단체 주요 일정', 'GENERAL', TRUE),
     ('대한민국의 휴일',  '#dc2626', '대한민국 공휴일 및 기념일', 'HOLIDAY', TRUE)
 ON CONFLICT DO NOTHING;
+
+-- ===== 시스템 도구 관리자 메뉴 추가 =====
+INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active)
+SELECT 5, '시스템 도구', '/admin/tools', 'ti ti-tool', 3, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM admin_menus WHERE url = '/admin/tools');

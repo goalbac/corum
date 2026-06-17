@@ -139,7 +139,8 @@ const routes = [
       { path: 'admin-permissions', name: 'AdminMenuPermissions', component: () => import('@/pages/admin/settings/AdminMenuPermissionsPage.vue') },
       { path: 'calendars', name: 'AdminCalendars', component: () => import('@/pages/admin/calendar/AdminCalendarPage.vue') },
       { path: 'posts', name: 'AdminPosts', component: () => import('@/pages/admin/posts/AdminPostsPage.vue') },
-      { path: 'comments', name: 'AdminComments', component: () => import('@/pages/admin/comments/AdminCommentsPage.vue') }
+      { path: 'comments', name: 'AdminComments', component: () => import('@/pages/admin/comments/AdminCommentsPage.vue') },
+      { path: 'tools', name: 'AdminTools', component: () => import('@/pages/admin/tools/AdminToolsPage.vue') }
     ]
   },
   {
