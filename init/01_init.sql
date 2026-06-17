@@ -592,7 +592,7 @@ VALUES
     (2, '정회원', '정식 가입 회원', 'NORMAL', 1, FALSE),
     (2, '일반회원', '가입 기본값', 'NORMAL', 2, FALSE);
 
--- 기본 관리자 계정 (password: password123)
+-- 기본 관리자 계정 (password: password)
 INSERT INTO members (username, email, password_hash, name, is_active, is_locked, login_fail_count, joined_at)
 VALUES ('admin', 'admin@corum.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '관리자', TRUE, FALSE, 0, NOW());
 
