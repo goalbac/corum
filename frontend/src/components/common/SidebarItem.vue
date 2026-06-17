@@ -8,7 +8,7 @@
       @click="handleClick"
     >
       <span class="item-label">{{ menu.name }}</span>
-      <span v-if="menu.hasNew" class="new-badge">N</span>
+      <i v-if="menu.hasNew" class="ti ti-point-filled new-dot"></i>
       <el-icon v-if="hasChildren" class="expand-icon" :class="{ expanded: isOpen }">
         <ArrowRight />
       </el-icon>
@@ -105,18 +105,10 @@ function handleClick() {
   flex: 1;
 }
 
-.new-badge {
+.new-dot {
   flex-shrink: 0;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font-size: 12px;
   color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary);
-  border-radius: 3px;
-  padding: 0px 4px;
-  line-height: 1.5;
-  opacity: 0.85;
 }
 
 .expand-icon {

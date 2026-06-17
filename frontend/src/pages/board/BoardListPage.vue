@@ -80,7 +80,7 @@
               <span v-if="post.hasFile" class="stat-chip">
                 <i class="ti ti-paperclip"></i>
               </span>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
             </div>
           </div>
         </div>
@@ -143,7 +143,7 @@
             <div class="webzine-kicker">
               <span v-if="post.isNotice" class="notice-tag">Notice</span>
               <span>{{ formatDate(post.createdAt) }}</span>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
             </div>
             <h3 class="webzine-title">{{ post.title }}</h3>
             <p v-if="post.excerpt" class="webzine-excerpt">{{ post.excerpt }}</p>
@@ -340,7 +340,7 @@
                 <i class="ti ti-message-2"></i>{{ post.commentCount }}
               </span>
               <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
             </div>
             <div class="pt-col writer">{{ post.writerName }}</div>
             <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
@@ -365,7 +365,7 @@
                 <i class="ti ti-message-2"></i>{{ post.commentCount }}
               </span>
               <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
             </div>
             <div class="pt-col writer">{{ post.writerName }}</div>
             <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
@@ -630,16 +630,10 @@ onMounted(async () => {
 }
 
 /* ===== 공통 배지 ===== */
-.new-badge {
-  font-size: 10px;
-  background: var(--accent-bg);
+.pt-new-dot {
+  font-size: 14px;
   color: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 3px;
-  padding: 0px 4px;
-  font-weight: 700;
   flex-shrink: 0;
-  opacity: 0.85;
 }
 
 /* ===== 테이블 뷰 ===== */
