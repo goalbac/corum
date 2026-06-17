@@ -143,6 +143,13 @@ CREATE UNIQUE INDEX idx_mgp_unique    ON menu_group_permissions(menu_id, group_i
 CREATE INDEX idx_mgp_menu_id          ON menu_group_permissions(menu_id);
 CREATE INDEX idx_mgp_group_id         ON menu_group_permissions(group_id);
 
+CREATE TABLE menu_calendar_targets (
+    id          BIGSERIAL PRIMARY KEY,
+    menu_id     BIGINT NOT NULL,
+    calendar_id BIGINT NOT NULL
+);
+CREATE INDEX idx_menu_calendar_targets_menu_id ON menu_calendar_targets(menu_id);
+
 CREATE TABLE admin_menus (
     id          BIGSERIAL PRIMARY KEY,
     parent_id   BIGINT,
