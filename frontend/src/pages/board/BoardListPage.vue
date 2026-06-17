@@ -1222,7 +1222,7 @@ onMounted(async () => {
 
 .lv-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   min-width: 0;
 }
@@ -1233,7 +1233,7 @@ onMounted(async () => {
   color: var(--accent);
   line-height: 1;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 6px;
 }
 
 .lv-stats {
