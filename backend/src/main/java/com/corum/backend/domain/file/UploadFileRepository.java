@@ -16,4 +16,7 @@ public interface UploadFileRepository extends JpaRepository<UploadFile, Long> {
 
     @Query("SELECT f FROM UploadFile f WHERE f.targetType = 'POST' AND f.targetId IN :postIds AND f.mimeType LIKE 'image%' ORDER BY f.targetId ASC, f.id ASC")
     List<UploadFile> findImageFilesByPostIds(@Param("postIds") List<Long> postIds);
+
+    @Query("SELECT f FROM UploadFile f WHERE f.mimeType IN :mimeTypes AND f.thumbnailPath IS NULL")
+    List<UploadFile> findImageFilesWithoutThumbnail(@Param("mimeTypes") List<String> mimeTypes);
 }

@@ -24,6 +24,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -411,6 +412,41 @@ public class FileStorageService {
         }
         return "/api/files/profile/" + storedName;
     }
+
+    // ===== 썸네일 일괄 재생성 =====
+    @Transactional
+    public ThumbnailRegenerateResult regenerateMissingThumbnails() {
+        List<UploadFile> targets = uploadFileRepository.findImageFilesWithoutThumbnail(
+                List.of("image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp")
+        );
+
+        int success = 0, fail = 0;
+        List<String> failedPaths = new ArrayList<>();
+
+        for (UploadFile f : targets) {
+            try {
+                byte[] bytes = s3Client.getObjectAsBytes(
+                        GetObjectRequest.builder().bucket(bucket).key(f.getStoragePath()).build()
+                ).asByteArray();
+                String thumbPath = generateAndUploadThumbnail(bytes, f.getStoragePath(), f.getMimeType());
+                if (thumbPath != null) {
+                    f.updateThumbnailPath(thumbPath);
+                    success++;
+                } else {
+                    fail++;
+                    failedPaths.add(f.getStoragePath());
+                }
+            } catch (Exception e) {
+                log.warn("썸네일 재생성 실패 [{}]: {}", f.getStoragePath(), e.getMessage());
+                fail++;
+                failedPaths.add(f.getStoragePath());
+            }
+        }
+
+        return new ThumbnailRegenerateResult(targets.size(), success, fail, failedPaths);
+    }
+
+    public record ThumbnailRegenerateResult(int total, int success, int fail, List<String> failedPaths) {}
 
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
