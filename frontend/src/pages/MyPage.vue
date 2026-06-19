@@ -184,6 +184,17 @@
               <div class="mi-meta">
                 <span>{{ fmtDate(item.createdAt) }}</span>
               </div>
+              <div v-if="item.replyContent" class="mi-reply">
+                <div class="mi-reply-head">
+                  <i class="ti ti-message-reply"></i>
+                  <span class="mi-reply-who">{{ item.repliedByName || '담당자' }}</span>
+                  <span class="mi-reply-date">{{ fmtDate(item.repliedAt) }}</span>
+                </div>
+                <div class="mi-reply-content">{{ item.replyContent }}</div>
+              </div>
+              <div v-else class="mi-no-reply">
+                <i class="ti ti-clock-hour-3"></i> 아직 답변이 등록되지 않았습니다.
+              </div>
             </div>
           </div>
         </section>
@@ -210,6 +221,17 @@
               </div>
               <div class="mi-meta">
                 <span>{{ fmtDate(item.createdAt) }}</span>
+              </div>
+              <div v-if="item.replyContent" class="mi-reply">
+                <div class="mi-reply-head">
+                  <i class="ti ti-message-reply"></i>
+                  <span class="mi-reply-who">{{ item.repliedByName || '담당자' }}</span>
+                  <span class="mi-reply-date">{{ fmtDate(item.repliedAt) }}</span>
+                </div>
+                <div class="mi-reply-content">{{ item.replyContent }}</div>
+              </div>
+              <div v-else class="mi-no-reply">
+                <i class="ti ti-clock-hour-3"></i> 아직 답변이 등록되지 않았습니다.
               </div>
             </div>
           </div>
@@ -725,6 +747,33 @@ watch(activeTab, (tab) => {
 .badge-received { background: #FEF3C7; color: #92400E; }
 .badge-checking  { background: #DBEAFE; color: #1E40AF; }
 .badge-done      { background: #D1FAE5; color: #065F46; }
+/* 답변 표시 */
+.mi-reply {
+  margin-top: 8px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-left: 3px solid #3B82F6;
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+}
+.mi-reply-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: #1E40AF;
+  margin-bottom: 6px;
+}
+.mi-reply-head i { font-size: 13px; }
+.mi-reply-who { color: #1E40AF; }
+.mi-reply-date { font-weight: 400; color: #60A5FA; font-size: 11px; margin-left: 2px; }
+.mi-reply-content {
+  font-size: 13px; color: #1e3a5f; line-height: 1.6; white-space: pre-wrap;
+}
+.mi-no-reply {
+  margin-top: 6px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--t4);
+}
+.mi-no-reply i { font-size: 13px; }
+
 .mi-type-badge {
   display: inline-flex; align-items: center; gap: 4px;
   flex-shrink: 0; padding: 2px 8px; border-radius: 20px;

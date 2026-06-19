@@ -123,7 +123,7 @@ public class InquiryService {
         Inquiry inquiry = inquiryRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("문의를 찾을 수 없습니다."));
         List<InquiryMemo> memos = inquiryMemoRepository.findByInquiryIdOrderByCreatedAtAsc(id);
-        return new InquiryResponse(inquiry, toMemoResponses(memos));
+        return new InquiryResponse(inquiry, toMemoResponses(memos), resolveReplierName(inquiry));
     }
 
     // ===== 상태 변경 (관리자) =====
@@ -133,7 +133,31 @@ public class InquiryService {
                 .orElseThrow(() -> BusinessException.notFound("문의를 찾을 수 없습니다."));
         inquiry.updateStatus(status);
         List<InquiryMemo> memos = inquiryMemoRepository.findByInquiryIdOrderByCreatedAtAsc(id);
-        return new InquiryResponse(inquiry, toMemoResponses(memos));
+        return new InquiryResponse(inquiry, toMemoResponses(memos), resolveReplierName(inquiry));
+    }
+
+    // ===== 답변 등록/수정 (관리자) =====
+    @Transactional
+    public InquiryResponse reply(Long id, String content, Long adminId) {
+        Inquiry inquiry = inquiryRepository.findById(id)
+                .orElseThrow(() -> BusinessException.notFound("문의를 찾을 수 없습니다."));
+        inquiry.writeReply(content, adminId);
+        // 상태를 처리완료로 자동 전환
+        inquiry.updateStatus("DONE");
+        List<InquiryMemo> memos = inquiryMemoRepository.findByInquiryIdOrderByCreatedAtAsc(id);
+
+        // 접수자에게 알림 (로그인 사용자인 경우)
+        if (inquiry.getMemberId() != null) {
+            try {
+                notificationService.createForMembers(
+                        List.of(inquiry.getMemberId()), "INQUIRY_REPLY",
+                        "문의 답변: " + truncate(inquiry.getTitle(), 30),
+                        "접수하신 문의에 답변이 등록되었습니다.",
+                        "/mypage?tab=inquiries"
+                );
+            } catch (Exception ignored) { }
+        }
+        return new InquiryResponse(inquiry, toMemoResponses(memos), resolveReplierName(inquiry));
     }
 
     // ===== 메모 추가 (관리자) =====
@@ -153,6 +177,13 @@ public class InquiryService {
     @Transactional
     public void deleteMemo(Long memoId) {
         inquiryMemoRepository.deleteById(memoId);
+    }
+
+    private String resolveReplierName(Inquiry inquiry) {
+        if (inquiry.getRepliedBy() == null) return null;
+        return memberRepository.findById(inquiry.getRepliedBy())
+                .map(m -> m.getName() != null ? m.getName() : m.getUsername())
+                .orElse(null);
     }
 
     private List<InquiryMemoResponse> toMemoResponses(List<InquiryMemo> memos) {

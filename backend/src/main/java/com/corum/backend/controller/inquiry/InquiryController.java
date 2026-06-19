@@ -2,6 +2,7 @@ package com.corum.backend.controller.inquiry;
 
 import com.corum.backend.common.ApiResponse;
 import com.corum.backend.dto.inquiry.InquiryCreateRequest;
+import com.corum.backend.dto.inquiry.InquiryReplyRequest;
 import com.corum.backend.dto.inquiry.InquiryResponse;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.inquiry.InquiryService;
@@ -57,6 +58,15 @@ public class InquiryController {
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
         return ApiResponse.ok(inquiryService.updateStatus(id, body.get("status")));
+    }
+
+    // 답변 등록/수정 (관리자)
+    @PutMapping("/{id}/reply")
+    public ApiResponse<InquiryResponse> reply(
+            @PathVariable Long id,
+            @Valid @RequestBody InquiryReplyRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.ok(inquiryService.reply(id, request.getContent(), userDetails.getMemberId()));
     }
 
     // 메모 추가 (관리자)

@@ -119,9 +119,51 @@
           </button>
         </div>
 
-        <!-- 메모 -->
+        <!-- 답변 -->
+        <div class="reply-section">
+          <div class="reply-section-head">
+            <span class="section-label"><i class="ti ti-message-reply"></i> 답변</span>
+            <span v-if="detail.repliedAt" class="reply-meta">
+              {{ detail.repliedByName || '관리자' }} · {{ fmtDateTime(detail.repliedAt) }}
+              <span class="reply-edit-hint">수정 가능</span>
+            </span>
+          </div>
+
+          <!-- 기존 답변 표시 (수정 모드 아닐 때) -->
+          <div v-if="detail.replyContent && !replyEditMode" class="reply-box">
+            <div class="reply-content">{{ detail.replyContent }}</div>
+            <div class="reply-box-actions">
+              <button class="reply-edit-btn" @click="startEditReply">
+                <i class="ti ti-pencil"></i> 수정
+              </button>
+            </div>
+          </div>
+
+          <!-- 답변 입력/수정 폼 -->
+          <div v-else class="reply-form">
+            <el-input
+              v-model="replyContent"
+              type="textarea"
+              :rows="4"
+              :placeholder="detail.replyContent ? '답변을 수정하세요.' : '접수자에게 전달할 답변을 작성하세요.\n답변을 등록하면 처리 상태가 자동으로 처리완료로 변경됩니다.'"
+              resize="none"
+            />
+            <div class="reply-form-actions">
+              <button v-if="detail.replyContent" class="adm-btn ghost sm" @click="cancelEditReply">취소</button>
+              <button class="adm-btn primary sm" :disabled="!replyContent.trim()" :class="{ saving: replySaving }" @click="submitReply">
+                <i class="ti ti-send"></i>
+                {{ detail.replyContent ? '답변 수정' : '답변 등록' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 구분선 -->
+        <hr class="memo-divider" />
+
+        <!-- 내부 메모 -->
         <div class="memo-section">
-          <div class="section-label">내부 메모</div>
+          <div class="section-label">내부 메모 <span class="memo-hint">(접수자에게 보이지 않음)</span></div>
           <div v-if="!detail.memos?.length" class="memo-empty">작성된 메모가 없습니다.</div>
           <div v-for="m in detail.memos" :key="m.id" class="memo-bubble">
             <div class="memo-bubble-top">
@@ -133,7 +175,7 @@
           <div class="memo-input-row">
             <el-input
               v-model="newMemo"
-              placeholder="메모를 입력하세요 (Enter로 추가)"
+              placeholder="내부 메모를 입력하세요 (Enter로 추가)"
               @keyup.enter="addMemo"
             />
             <button class="adm-btn primary sm" @click="addMemo"><i class="ti ti-send"></i></button>
@@ -155,6 +197,7 @@ const keyword = ref(''); const statusFilter = ref(''); const typeFilter = ref(''
 const page = ref(1); const size = 15; const total = ref(0)
 const showDetail = ref(false); const detail = ref(null)
 const detailStatus = ref(''); const newMemo = ref('')
+const replyContent = ref(''); const replyEditMode = ref(false); const replySaving = ref(false)
 
 async function fetchInquiries(p = page.value) {
   page.value = p; loading.value = true
@@ -163,7 +206,29 @@ async function fetchInquiries(p = page.value) {
 }
 async function openDetail(row) {
   const r = await api.get(`/inquiries/${row.id}`)
-  detail.value = r.data.data; detailStatus.value = detail.value.status; showDetail.value = true
+  detail.value = r.data.data
+  detailStatus.value = detail.value.status
+  replyContent.value = detail.value.replyContent || ''
+  replyEditMode.value = !detail.value.replyContent
+  showDetail.value = true
+}
+
+function startEditReply() { replyContent.value = detail.value.replyContent; replyEditMode.value = true }
+function cancelEditReply() { replyContent.value = detail.value.replyContent; replyEditMode.value = false }
+
+async function submitReply() {
+  if (!replyContent.value.trim()) return
+  replySaving.value = true
+  try {
+    const r = await api.put(`/inquiries/${detail.value.id}/reply`, { content: replyContent.value })
+    detail.value = r.data.data
+    detailStatus.value = detail.value.status
+    replyEditMode.value = false
+    ElMessage.success('답변이 등록되었습니다.')
+    fetchInquiries()
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || '답변 등록에 실패했습니다.')
+  } finally { replySaving.value = false }
 }
 async function updateStatus() { await api.patch(`/inquiries/${detail.value.id}/status`, { status: detailStatus.value }); ElMessage.success('상태가 변경되었습니다.'); detail.value.status = detailStatus.value; fetchInquiries() }
 async function addMemo() { if (!newMemo.value.trim()) return; await api.post(`/inquiries/${detail.value.id}/memos`, { memo: newMemo.value }); newMemo.value = ''; const r = await api.get(`/inquiries/${detail.value.id}`); detail.value = r.data.data }
@@ -284,7 +349,50 @@ onMounted(() => fetchInquiries())
   border-color: var(--accent); background: var(--accent); color: #fff;
 }
 
+/* 답변 */
+.reply-section { display: flex; flex-direction: column; gap: 10px; }
+.reply-section-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.reply-section-head .section-label {
+  display: flex; align-items: center; gap: 5px;
+}
+.reply-meta { font-size: 11px; color: var(--t4); display: flex; align-items: center; gap: 6px; }
+.reply-edit-hint {
+  padding: 1px 6px; border-radius: 10px;
+  background: var(--surface2); color: var(--t4);
+  font-size: 10px; cursor: pointer;
+}
+
+.reply-box {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-left: 4px solid #3B82F6;
+  border-radius: var(--radius-xs);
+  padding: 12px 14px;
+}
+.reply-content {
+  font-size: 14px; color: #1e3a5f; line-height: 1.7; white-space: pre-wrap;
+}
+.reply-box-actions {
+  display: flex; justify-content: flex-end; margin-top: 8px; padding-top: 8px;
+  border-top: 0.5px solid #BFDBFE;
+}
+.reply-edit-btn {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; color: #3B82F6;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  padding: 2px 6px; border-radius: 4px;
+}
+.reply-edit-btn:hover { background: #DBEAFE; }
+
+.reply-form { display: flex; flex-direction: column; gap: 8px; }
+.reply-form-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
+.memo-divider { border: none; border-top: 0.5px solid var(--border); margin: 4px 0; }
+
 /* 메모 */
+.memo-hint { font-weight: 400; color: var(--t4); font-size: 11px; margin-left: 4px; }
 .memo-section { display: flex; flex-direction: column; gap: 8px; }
 .memo-empty { font-size: 13px; color: var(--t4); padding: 8px 0; }
 .memo-bubble {

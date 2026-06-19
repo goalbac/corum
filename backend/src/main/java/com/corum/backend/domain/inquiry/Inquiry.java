@@ -4,6 +4,8 @@ import com.corum.backend.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "inquiries")
 @Getter
@@ -48,7 +50,23 @@ public class Inquiry extends BaseEntity {
     @Builder.Default
     private String status = "RECEIVED";
 
+    @Column(name = "reply_content", columnDefinition = "TEXT")
+    private String replyContent;
+
+    @Column(name = "replied_at")
+    private LocalDateTime repliedAt;
+
+    @Column(name = "replied_by")
+    private Long repliedBy;
+
     public void updateStatus(String status) {
         this.status = status;
+    }
+
+    public void writeReply(String content, Long adminId) {
+        this.replyContent = content;
+        this.repliedAt    = LocalDateTime.now();
+        this.repliedBy    = adminId;
+        if ("RECEIVED".equals(this.status)) this.status = "CHECKING";
     }
 }

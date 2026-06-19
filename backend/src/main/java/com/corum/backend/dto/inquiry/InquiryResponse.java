@@ -22,18 +22,30 @@ public class InquiryResponse {
     private final LocalDateTime createdAt;
     private final List<InquiryMemoResponse> memos;
 
+    // 답변
+    private final String replyContent;
+    private final LocalDateTime repliedAt;
+    private final String repliedByName;
+
     public InquiryResponse(Inquiry inquiry, List<InquiryMemoResponse> memos) {
-        this.id           = inquiry.getId();
-        this.memberId     = inquiry.getMemberId();
-        this.writerName   = inquiry.getWriterName();
-        this.title        = inquiry.getTitle();
-        this.content      = inquiry.getContent();
-        this.contactPhone = inquiry.getContactPhone();
-        this.contactEmail = inquiry.getContactEmail();
-        this.clientIp     = inquiry.getClientIp();
-        this.inquiryType  = inquiry.getInquiryType();
-        this.status       = inquiry.getStatus();
-        this.createdAt    = inquiry.getCreatedAt();
-        this.memos        = memos;
+        this(inquiry, memos, null);
+    }
+
+    public InquiryResponse(Inquiry inquiry, List<InquiryMemoResponse> memos, String repliedByName) {
+        this.id             = inquiry.getId();
+        this.memberId       = inquiry.getMemberId();
+        this.writerName     = inquiry.getWriterName();
+        this.title          = inquiry.getTitle();
+        this.content        = inquiry.getContent();
+        this.contactPhone   = inquiry.getContactPhone();
+        this.contactEmail   = inquiry.getContactEmail();
+        this.clientIp       = inquiry.getClientIp();
+        this.inquiryType    = inquiry.getInquiryType();
+        this.status         = inquiry.getStatus();
+        this.createdAt      = inquiry.getCreatedAt();
+        this.memos          = memos;
+        this.replyContent   = inquiry.getReplyContent();
+        this.repliedAt      = inquiry.getRepliedAt();
+        this.repliedByName  = repliedByName;
     }
 }
