@@ -1,7 +1,6 @@
 package com.corum.backend.dto.inquiry;
 
 import com.corum.backend.domain.inquiry.Inquiry;
-import com.corum.backend.domain.inquiry.InquiryMemo;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -21,9 +20,9 @@ public class InquiryResponse {
     private final String inquiryType;
     private final String status;
     private final LocalDateTime createdAt;
-    private final List<InquiryMemo> memos;
+    private final List<InquiryMemoResponse> memos;
 
-    public InquiryResponse(Inquiry inquiry, List<InquiryMemo> memos) {
+    public InquiryResponse(Inquiry inquiry, List<InquiryMemoResponse> memos) {
         this.id           = inquiry.getId();
         this.memberId     = inquiry.getMemberId();
         this.writerName   = inquiry.getWriterName();

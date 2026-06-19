@@ -53,44 +53,93 @@
     </div>
 
     <!-- 상세 다이얼로그 -->
-    <el-dialog v-model="showDetail" title="문의 상세" width="580px" destroy-on-close>
-      <div v-if="detail" class="dlg-form">
-        <div class="detail-meta">
-          <span><b>제목</b> {{ detail.title }}</span>
-          <span><b>연락처</b> {{ detail.contactPhone || '-' }}</span>
-          <span><b>이메일</b> {{ detail.contactEmail || '-' }}</span>
-          <span><b>IP</b> {{ detail.clientIp || '-' }}</span>
-          <span><b>접수일</b> {{ fmtDate(detail.createdAt) }}</span>
-        </div>
-        <div class="detail-content">{{ detail.content }}</div>
-        <hr class="dlg-divider" />
-        <div class="dlg-row">
-          <div class="dlg-field">
-            <label>처리 상태</label>
-            <el-select v-model="detailStatus" style="width:100%">
-              <el-option value="RECEIVED" label="접수" />
-              <el-option value="CHECKING" label="확인중" />
-              <el-option value="DONE" label="처리완료" />
-            </el-select>
+    <el-dialog v-model="showDetail" width="620px" destroy-on-close :show-close="false" class="detail-dlg">
+      <template #header>
+        <div class="dlg-header">
+          <div class="dlg-header-left">
+            <span v-if="detail?.inquiryType && detail.inquiryType !== 'INQUIRY'"
+                  :class="['mi-type-badge', detail.inquiryType === 'BUG_REPORT' ? 'type-bug' : 'type-feature']">
+              <i :class="`ti ${detail.inquiryType === 'BUG_REPORT' ? 'ti-bug' : 'ti-sparkles'}`"></i>
+              {{ detail.inquiryType === 'BUG_REPORT' ? '오류 제보' : '기능 제안' }}
+            </span>
+            <span v-else class="mi-type-badge type-inquiry">
+              <i class="ti ti-mail"></i> 문의
+            </span>
+            <span :class="['status-dot', statusBadge(detail?.status)]">{{ statusLabel(detail?.status) }}</span>
           </div>
-          <div style="display:flex;align-items:flex-end">
-            <button class="adm-btn primary" @click="updateStatus">상태 저장</button>
+          <button class="dlg-close-btn" @click="showDetail = false"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="dlg-title-row">{{ detail?.title }}</div>
+      </template>
+
+      <div v-if="detail" class="detail-body">
+        <!-- 접수자 정보 -->
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label"><i class="ti ti-user"></i> 접수자</span>
+            <span class="info-value">{{ detail.writerName || '(미입력)' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label"><i class="ti ti-phone"></i> 연락처</span>
+            <span class="info-value">{{ detail.contactPhone || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label"><i class="ti ti-mail"></i> 이메일</span>
+            <span class="info-value">{{ detail.contactEmail || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label"><i class="ti ti-calendar"></i> 접수일</span>
+            <span class="info-value">{{ fmtDateTime(detail.createdAt) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label"><i class="ti ti-world"></i> IP</span>
+            <span class="info-value mono">{{ detail.clientIp || '-' }}</span>
           </div>
         </div>
-        <div class="dlg-section-title" style="margin-top:4px">메모</div>
-        <div v-for="m in detail.memos" :key="m.id" class="memo-item">
-          <span class="memo-author">{{ m.createdByName }}</span>
-          <span class="memo-date">{{ fmtDate(m.createdAt) }}</span>
-          <p>{{ m.memo }}</p>
+
+        <!-- 본문 -->
+        <div class="detail-content-box">{{ detail.content }}</div>
+
+        <!-- 처리 상태 -->
+        <div class="status-row">
+          <span class="section-label">처리 상태</span>
+          <div class="status-options">
+            <button
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              :class="['status-opt-btn', opt.cls, { active: detailStatus === opt.value }]"
+              @click="detailStatus = opt.value"
+            >
+              <i :class="`ti ${opt.icon}`"></i>
+              {{ opt.label }}
+            </button>
+          </div>
+          <button class="save-status-btn" :class="{ changed: detailStatus !== detail.status }" @click="updateStatus">
+            저장
+          </button>
         </div>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <el-input v-model="newMemo" placeholder="메모 입력" style="flex:1" @keyup.enter="addMemo" />
-          <button class="adm-btn primary" @click="addMemo">추가</button>
+
+        <!-- 메모 -->
+        <div class="memo-section">
+          <div class="section-label">내부 메모</div>
+          <div v-if="!detail.memos?.length" class="memo-empty">작성된 메모가 없습니다.</div>
+          <div v-for="m in detail.memos" :key="m.id" class="memo-bubble">
+            <div class="memo-bubble-top">
+              <span class="memo-author"><i class="ti ti-user-circle"></i> {{ m.createdByName || '관리자' }}</span>
+              <span class="memo-ts">{{ fmtDateTime(m.createdAt) }}</span>
+            </div>
+            <div class="memo-text">{{ m.memo }}</div>
+          </div>
+          <div class="memo-input-row">
+            <el-input
+              v-model="newMemo"
+              placeholder="메모를 입력하세요 (Enter로 추가)"
+              @keyup.enter="addMemo"
+            />
+            <button class="adm-btn primary sm" @click="addMemo"><i class="ti ti-send"></i></button>
+          </div>
         </div>
       </div>
-      <template #footer>
-        <button class="adm-btn ghost" @click="showDetail = false">닫기</button>
-      </template>
     </el-dialog>
   </div>
 </template>
@@ -120,23 +169,141 @@ async function updateStatus() { await api.patch(`/inquiries/${detail.value.id}/s
 async function addMemo() { if (!newMemo.value.trim()) return; await api.post(`/inquiries/${detail.value.id}/memos`, { memo: newMemo.value }); newMemo.value = ''; const r = await api.get(`/inquiries/${detail.value.id}`); detail.value = r.data.data }
 async function deleteInquiry(id) { await ElMessageBox.confirm('문의를 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/inquiries/${id}`); ElMessage.success('삭제되었습니다.'); fetchInquiries() }
 
+const statusOptions = [
+  { value: 'RECEIVED', label: '접수',    icon: 'ti-inbox',       cls: 'opt-received' },
+  { value: 'CHECKING', label: '확인중',  icon: 'ti-eye',         cls: 'opt-checking' },
+  { value: 'DONE',     label: '처리완료', icon: 'ti-circle-check', cls: 'opt-done' },
+]
+
 function statusLabel(s) { return { RECEIVED: '접수', CHECKING: '확인중', DONE: '처리완료' }[s] || s }
 function statusBadge(s) { return { RECEIVED: 'badge-warning', CHECKING: 'badge-info', DONE: 'badge-success' }[s] || 'badge-muted' }
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR') }
+function fmtDateTime(d) {
+  if (!d) return '-'
+  const dt = new Date(d)
+  return dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+}
 onMounted(() => fetchInquiries())
 </script>
 
 <style scoped>
 @import '@/assets/admin-table.css';
 .at-row.clickable { cursor: pointer; }
-.mi-type-badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-.type-bug { background: #FEE2E2; color: #991B1B; }
+
+/* 유형 뱃지 */
+.mi-type-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.mi-type-badge i { font-size: 11px; }
+.type-bug     { background: #FEE2E2; color: #991B1B; }
 .type-feature { background: #EDE9FE; color: #5B21B6; }
-.detail-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--t2); padding: 10px 12px; background: var(--surface2); border-radius: var(--radius-xs); }
-.detail-meta b { color: var(--t3); font-weight: 700; margin-right: 4px; }
-.detail-content { padding: 12px; border: 0.5px solid var(--border2); border-radius: var(--radius-xs); font-size: 14px; line-height: 1.6; white-space: pre-wrap; min-height: 80px; }
-.memo-item { padding: 8px 10px; background: var(--surface2); border-radius: var(--radius-xs); margin-bottom: 6px; font-size: 13px; }
-.memo-author { font-weight: 700; color: var(--t1); margin-right: 8px; }
-.memo-date { font-size: 11px; color: var(--t4); }
-.memo-item p { margin: 4px 0 0; color: var(--t2); }
+.type-inquiry { background: var(--surface2); color: var(--t3); }
+
+/* ===== 상세 다이얼로그 ===== */
+.dlg-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.dlg-header-left { display: flex; align-items: center; gap: 8px; }
+.status-dot {
+  display: inline-flex; align-items: center;
+  padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.badge-warning { background: #FEF3C7; color: #92400E; }
+.badge-info    { background: #DBEAFE; color: #1E40AF; }
+.badge-success { background: #D1FAE5; color: #065F46; }
+.badge-muted   { background: var(--surface2); color: var(--t4); }
+
+.dlg-close-btn {
+  background: none; border: none; color: var(--t4);
+  cursor: pointer; font-size: 16px; padding: 4px; line-height: 1;
+  border-radius: var(--radius-xs); transition: var(--transition);
+}
+.dlg-close-btn:hover { background: var(--surface2); color: var(--t1); }
+
+.dlg-title-row {
+  font-size: 16px; font-weight: 700; color: var(--t1); line-height: 1.4;
+}
+
+/* 상세 본문 */
+.detail-body { display: flex; flex-direction: column; gap: 16px; }
+
+/* 접수자 정보 그리드 */
+.info-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+  background: var(--surface2); border-radius: var(--radius-xs); padding: 12px 14px;
+}
+.info-item { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.info-label {
+  color: var(--t4); font-size: 12px; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px; min-width: 70px;
+}
+.info-label i { font-size: 12px; }
+.info-value { color: var(--t1); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info-value.mono { font-family: monospace; font-size: 12px; color: var(--t3); }
+
+/* 본문 */
+.detail-content-box {
+  padding: 12px 14px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-xs);
+  font-size: 14px; line-height: 1.7; white-space: pre-wrap;
+  color: var(--t1); min-height: 80px; max-height: 240px; overflow-y: auto;
+}
+
+/* 처리 상태 */
+.status-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.section-label {
+  font-size: 12px; font-weight: 700; color: var(--t4);
+  letter-spacing: 0.3px; white-space: nowrap;
+}
+.status-options { display: flex; gap: 4px; flex: 1; }
+.status-opt-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: var(--radius-xs);
+  border: 1.5px solid var(--border2); background: var(--surface);
+  font-size: 12px; font-weight: 600; color: var(--t3);
+  cursor: pointer; transition: var(--transition);
+}
+.status-opt-btn i { font-size: 13px; }
+.status-opt-btn:hover { border-color: var(--border); color: var(--t1); }
+.opt-received.active { border-color: #D97706; background: #FEF3C7; color: #92400E; }
+.opt-checking.active { border-color: #2563EB; background: #DBEAFE; color: #1E40AF; }
+.opt-done.active     { border-color: #059669; background: #D1FAE5; color: #065F46; }
+
+.save-status-btn {
+  padding: 5px 14px; border-radius: var(--radius-xs);
+  border: 1.5px solid var(--border2); background: var(--surface);
+  font-size: 12px; font-weight: 700; color: var(--t4);
+  cursor: pointer; transition: var(--transition); white-space: nowrap;
+}
+.save-status-btn.changed {
+  border-color: var(--accent); background: var(--accent); color: #fff;
+}
+
+/* 메모 */
+.memo-section { display: flex; flex-direction: column; gap: 8px; }
+.memo-empty { font-size: 13px; color: var(--t4); padding: 8px 0; }
+.memo-bubble {
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+}
+.memo-bubble-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.memo-author {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 700; color: var(--t1);
+}
+.memo-author i { font-size: 13px; color: var(--t4); }
+.memo-ts { font-size: 11px; color: var(--t4); }
+.memo-text { font-size: 13px; color: var(--t2); line-height: 1.5; white-space: pre-wrap; }
+
+.memo-input-row { display: flex; gap: 6px; align-items: center; }
+.adm-btn.sm { padding: 6px 12px; font-size: 13px; }
 </style>

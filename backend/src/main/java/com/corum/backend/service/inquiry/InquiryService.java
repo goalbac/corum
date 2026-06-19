@@ -6,7 +6,9 @@ import com.corum.backend.domain.inquiry.Inquiry;
 import com.corum.backend.domain.inquiry.InquiryMemo;
 import com.corum.backend.domain.inquiry.InquiryMemoRepository;
 import com.corum.backend.domain.inquiry.InquiryRepository;
+import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.dto.inquiry.InquiryCreateRequest;
+import com.corum.backend.dto.inquiry.InquiryMemoResponse;
 import com.corum.backend.dto.inquiry.InquiryResponse;
 import com.corum.backend.service.mail.MailService;
 import com.corum.backend.service.notification.NotificationService;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +30,7 @@ public class InquiryService {
 
     private final InquiryRepository inquiryRepository;
     private final InquiryMemoRepository inquiryMemoRepository;
+    private final MemberRepository memberRepository;
     private final MailService mailService;
     private final MemberGroupRepository memberGroupRepository;
     private final NotificationService notificationService;
@@ -107,8 +111,7 @@ public class InquiryService {
         }
 
         List<InquiryResponse> content = page.getContent().stream()
-                .map(i -> new InquiryResponse(i,
-                        inquiryMemoRepository.findByInquiryIdOrderByCreatedAtAsc(i.getId())))
+                .map(i -> new InquiryResponse(i, List.of()))
                 .collect(Collectors.toList());
 
         return new PageImpl<>(content, pageable, page.getTotalElements());
@@ -120,7 +123,7 @@ public class InquiryService {
         Inquiry inquiry = inquiryRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("문의를 찾을 수 없습니다."));
         List<InquiryMemo> memos = inquiryMemoRepository.findByInquiryIdOrderByCreatedAtAsc(id);
-        return new InquiryResponse(inquiry, memos);
+        return new InquiryResponse(inquiry, toMemoResponses(memos));
     }
 
     // ===== 상태 변경 (관리자) =====
@@ -130,7 +133,7 @@ public class InquiryService {
                 .orElseThrow(() -> BusinessException.notFound("문의를 찾을 수 없습니다."));
         inquiry.updateStatus(status);
         List<InquiryMemo> memos = inquiryMemoRepository.findByInquiryIdOrderByCreatedAtAsc(id);
-        return new InquiryResponse(inquiry, memos);
+        return new InquiryResponse(inquiry, toMemoResponses(memos));
     }
 
     // ===== 메모 추가 (관리자) =====
@@ -150,6 +153,25 @@ public class InquiryService {
     @Transactional
     public void deleteMemo(Long memoId) {
         inquiryMemoRepository.deleteById(memoId);
+    }
+
+    private List<InquiryMemoResponse> toMemoResponses(List<InquiryMemo> memos) {
+        if (memos.isEmpty()) return List.of();
+        // 작성자 ID 목록 수집 후 일괄 조회
+        List<Long> memberIds = memos.stream()
+                .filter(m -> m.getCreatedBy() != null)
+                .map(InquiryMemo::getCreatedBy)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, String> nameMap = memberRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(
+                        m -> m.getId(),
+                        m -> m.getName() != null ? m.getName() : m.getUsername()
+                ));
+        return memos.stream()
+                .map(m -> new InquiryMemoResponse(m,
+                        m.getCreatedBy() != null ? nameMap.getOrDefault(m.getCreatedBy(), "-") : "-"))
+                .collect(Collectors.toList());
     }
 
     private static String truncate(String s, int max) {
