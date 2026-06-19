@@ -7,4 +7,6 @@ import java.util.List;
 public interface InquiryMemoRepository extends JpaRepository<InquiryMemo, Long> {
 
     List<InquiryMemo> findByInquiryIdOrderByCreatedAtAsc(Long inquiryId);
+
+    void deleteByInquiryId(Long inquiryId);
 }

@@ -3,6 +3,12 @@
     <AdminPageHeader title="문의 관리" desc="접수된 문의 목록 및 처리 상태 관리">
       <div class="adm-search">
         <input v-model="keyword" class="adm-search-input" placeholder="제목/내용 검색" @keyup.enter="fetchInquiries(1)" />
+        <el-select v-model="typeFilter" style="width:120px" @change="fetchInquiries(1)">
+          <el-option value="" label="전체 유형" />
+          <el-option value="INQUIRY" label="문의" />
+          <el-option value="BUG_REPORT" label="오류 제보" />
+          <el-option value="FEATURE_REQUEST" label="기능 제안" />
+        </el-select>
         <el-select v-model="statusFilter" style="width:110px" @change="fetchInquiries(1)">
           <el-option value="" label="전체 상태" />
           <el-option value="RECEIVED" label="접수" />
@@ -23,7 +29,12 @@
           <div class="at-col" style="width:60px;text-align:center">관리</div>
         </div>
         <div v-for="row in list" :key="row.id" class="at-row clickable" @click="openDetail(row)">
-          <div class="at-col bold" style="flex:1">{{ row.title }}</div>
+          <div class="at-col bold" style="flex:1">
+            <span v-if="row.inquiryType && row.inquiryType !== 'INQUIRY'" :class="['mi-type-badge', row.inquiryType === 'BUG_REPORT' ? 'type-bug' : 'type-feature']" style="margin-right:6px">
+              {{ row.inquiryType === 'BUG_REPORT' ? '오류제보' : '기능제안' }}
+            </span>
+            {{ row.title }}
+          </div>
           <div class="at-col muted" style="width:120px">{{ row.contactPhone || '-' }}</div>
           <div class="at-col muted" style="width:120px">{{ row.contactEmail || '-' }}</div>
           <div class="at-col" style="width:80px;text-align:center">
@@ -91,14 +102,14 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 
 const list = ref([]); const loading = ref(false)
-const keyword = ref(''); const statusFilter = ref('')
+const keyword = ref(''); const statusFilter = ref(''); const typeFilter = ref('')
 const page = ref(1); const size = 15; const total = ref(0)
 const showDetail = ref(false); const detail = ref(null)
 const detailStatus = ref(''); const newMemo = ref('')
 
 async function fetchInquiries(p = page.value) {
   page.value = p; loading.value = true
-  try { const r = await api.get('/inquiries', { params: { keyword: keyword.value, status: statusFilter.value, page: p - 1, size } }); list.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
+  try { const r = await api.get('/inquiries', { params: { keyword: keyword.value, status: statusFilter.value, inquiryType: typeFilter.value, page: p - 1, size } }); list.value = r.data.data?.content || []; total.value = r.data.data?.totalElements || 0 }
   finally { loading.value = false }
 }
 async function openDetail(row) {
@@ -118,6 +129,9 @@ onMounted(() => fetchInquiries())
 <style scoped>
 @import '@/assets/admin-table.css';
 .at-row.clickable { cursor: pointer; }
+.mi-type-badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.type-bug { background: #FEE2E2; color: #991B1B; }
+.type-feature { background: #EDE9FE; color: #5B21B6; }
 .detail-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--t2); padding: 10px 12px; background: var(--surface2); border-radius: var(--radius-xs); }
 .detail-meta b { color: var(--t3); font-weight: 700; margin-right: 4px; }
 .detail-content { padding: 12px; border: 0.5px solid var(--border2); border-radius: var(--radius-xs); font-size: 14px; line-height: 1.6; white-space: pre-wrap; min-height: 80px; }

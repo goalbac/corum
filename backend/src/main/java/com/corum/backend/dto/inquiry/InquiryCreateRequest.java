@@ -16,4 +16,7 @@ public class InquiryCreateRequest {
     private String contactPhone;
 
     private String contactEmail;
+
+    // INQUIRY / BUG_REPORT / FEATURE_REQUEST
+    private String inquiryType = "INQUIRY";
 }

@@ -40,17 +40,23 @@
     <div v-if="submitted" class="success-state">
       <i class="ti ti-circle-check"></i>
       <h3>문의가 접수되었습니다.</h3>
-      <p>담당자 확인 후 이메일 또는 연락처로 답변드리겠습니다.</p>
-      <el-button @click="resetForm">새 문의 작성</el-button>
+      <p>마이페이지 → <strong>내 문의 내역</strong>에서 접수 내역과 처리 현황을 확인할 수 있습니다.</p>
+      <div class="success-actions">
+        <el-button @click="resetForm">새 문의 작성</el-button>
+        <el-button type="primary" @click="router.push('/mypage?tab=inquiries')">마이페이지에서 확인</el-button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
+
+const router = useRouter()
 
 const authStore = useAuthStore()
 const formRef   = ref()
@@ -128,7 +134,8 @@ function resetForm() {
 }
 .success-state i { font-size: 48px; color: var(--green); }
 .success-state h3 { font-size: 18px; font-weight: 700; color: var(--t1); }
-.success-state p { font-size: 14px; color: var(--t2); }
+.success-state p { font-size: 14px; color: var(--t2); line-height: 1.6; }
+.success-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
 @media (max-width: 600px) {
   .form-row { grid-template-columns: 1fr; }

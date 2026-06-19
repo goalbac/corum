@@ -165,6 +165,56 @@
           </div>
         </section>
 
+        <!-- 내 문의 내역 -->
+        <section v-else-if="activeTab === 'inquiries'">
+          <div class="section-head">
+            <h2>내 문의 내역</h2>
+            <p>내가 접수한 문의 목록입니다.</p>
+          </div>
+          <div v-if="myInquiries.length === 0 && !myInquiryLoading" class="my-empty">
+            <i class="ti ti-mail"></i>
+            <span>접수한 문의가 없습니다.</span>
+          </div>
+          <div v-else class="my-inquiry-list" v-loading="myInquiryLoading">
+            <div v-for="item in myInquiries" :key="item.id" class="my-inquiry-item">
+              <div class="mi-top">
+                <span class="mi-title">{{ item.title }}</span>
+                <span :class="['mi-badge', statusBadge(item.status)]">{{ statusLabel(item.status) }}</span>
+              </div>
+              <div class="mi-meta">
+                <span>{{ fmtDate(item.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 내 제보 내역 -->
+        <section v-else-if="activeTab === 'reports'">
+          <div class="section-head">
+            <h2>내 제보 내역</h2>
+            <p>내가 접수한 오류 제보 및 기능 제안 목록입니다.</p>
+          </div>
+          <div v-if="myReports.length === 0 && !myReportLoading" class="my-empty">
+            <i class="ti ti-bug"></i>
+            <span>접수한 제보가 없습니다.</span>
+          </div>
+          <div v-else class="my-inquiry-list" v-loading="myReportLoading">
+            <div v-for="item in myReports" :key="item.id" class="my-inquiry-item">
+              <div class="mi-top">
+                <span :class="['mi-type-badge', item.inquiryType === 'BUG_REPORT' ? 'type-bug' : 'type-feature']">
+                  <i :class="`ti ${item.inquiryType === 'BUG_REPORT' ? 'ti-bug' : 'ti-sparkles'}`"></i>
+                  {{ item.inquiryType === 'BUG_REPORT' ? '오류 제보' : '기능 제안' }}
+                </span>
+                <span class="mi-title">{{ item.title }}</span>
+                <span :class="['mi-badge', statusBadge(item.status)]">{{ statusLabel(item.status) }}</span>
+              </div>
+              <div class="mi-meta">
+                <span>{{ fmtDate(item.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- 회원 탈퇴 -->
         <section v-else-if="activeTab === 'withdraw'">
           <div class="section-head">
@@ -220,12 +270,40 @@ const photoSaving = ref(false)
 const myAvatarError = ref(false)
 
 const tabs = [
-  { name: 'info',     icon: 'ti-user',     label: '내 정보' },
-  { name: 'password', icon: 'ti-lock',     label: '비밀번호 변경' },
-  { name: 'notif',    icon: 'ti-bell',     label: '알림 설정' },
-  { name: 'messages', icon: 'ti-messages', label: '쪽지' },
-  { name: 'withdraw', icon: 'ti-door-exit', label: '회원 탈퇴' }
+  { name: 'info',      icon: 'ti-user',      label: '내 정보' },
+  { name: 'password',  icon: 'ti-lock',      label: '비밀번호 변경' },
+  { name: 'notif',     icon: 'ti-bell',      label: '알림 설정' },
+  { name: 'messages',  icon: 'ti-messages',  label: '쪽지' },
+  { name: 'inquiries', icon: 'ti-mail',      label: '내 문의 내역' },
+  { name: 'reports',   icon: 'ti-bug',       label: '내 제보 내역' },
+  { name: 'withdraw',  icon: 'ti-door-exit', label: '회원 탈퇴' }
 ]
+
+// ===== 내 문의 / 제보 =====
+const myInquiries = ref([])
+const myReports   = ref([])
+const myInquiryLoading = ref(false)
+const myReportLoading  = ref(false)
+
+async function fetchMyInquiries() {
+  myInquiryLoading.value = true
+  try {
+    const r = await api.get('/inquiries/my', { params: { inquiryType: 'INQUIRY' } })
+    myInquiries.value = r.data.data || []
+  } finally { myInquiryLoading.value = false }
+}
+
+async function fetchMyReports() {
+  myReportLoading.value = true
+  try {
+    const r = await api.get('/inquiries/my')
+    myReports.value = r.data.data || []
+  } finally { myReportLoading.value = false }
+}
+
+function statusLabel(s) { return { RECEIVED: '접수', CHECKING: '확인중', DONE: '처리완료' }[s] || s }
+function statusBadge(s) { return { RECEIVED: 'badge-received', CHECKING: 'badge-checking', DONE: 'badge-done' }[s] || '' }
+function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR') }
 
 // ===== 알림 설정 =====
 const notifPrefs = ref([])
@@ -425,10 +503,14 @@ async function handleUploadPhoto() {
 onMounted(() => {
   fetchMember()
   fetchNotifPrefs()
+  if (activeTab.value === 'inquiries') fetchMyInquiries()
+  if (activeTab.value === 'reports')   fetchMyReports()
 })
 
 watch(activeTab, (tab) => {
-  if (tab === 'notif') fetchNotifPrefs()
+  if (tab === 'notif')     fetchNotifPrefs()
+  if (tab === 'inquiries') fetchMyInquiries()
+  if (tab === 'reports')   fetchMyReports()
 })
 </script>
 
@@ -617,6 +699,39 @@ watch(activeTab, (tab) => {
   justify-content: flex-end;
   margin-top: 8px;
 }
+
+/* ===== 내 문의/제보 ===== */
+.my-empty {
+  display: flex; align-items: center; gap: 10px;
+  padding: 40px 0; color: var(--t4); font-size: 14px;
+  justify-content: center;
+}
+.my-empty i { font-size: 28px; }
+.my-inquiry-list { display: flex; flex-direction: column; gap: 8px; }
+.my-inquiry-item {
+  padding: 12px 16px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.mi-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mi-title { flex: 1; font-size: 14px; font-weight: 600; color: var(--t1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-meta { font-size: 12px; color: var(--t4); }
+.mi-badge {
+  flex-shrink: 0; padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+.badge-received { background: #FEF3C7; color: #92400E; }
+.badge-checking  { background: #DBEAFE; color: #1E40AF; }
+.badge-done      { background: #D1FAE5; color: #065F46; }
+.mi-type-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  flex-shrink: 0; padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+.type-bug     { background: #FEE2E2; color: #991B1B; }
+.type-feature { background: #EDE9FE; color: #5B21B6; }
 
 .withdraw-notice {
   margin-top: 4px;

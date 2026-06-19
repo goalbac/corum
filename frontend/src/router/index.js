@@ -68,6 +68,12 @@ const routes = [
         meta: { title: '문의하기' }
       },
       {
+        path: 'report',
+        name: 'SystemReport',
+        component: () => import('@/pages/inquiry/SystemReportPage.vue'),
+        meta: { title: '오류 제보 / 기능 제안', requiresAuth: true }
+      },
+      {
         path: 'calendar',
         name: 'Calendar',
         component: () => import('@/pages/calendar/CalendarPage.vue'),

@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -38,9 +39,10 @@ public class InquiryController {
     @GetMapping
     public ApiResponse<Page<InquiryResponse>> getList(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String inquiryType,
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(inquiryService.getList(status, PageRequest.of(page, size)));
+        return ApiResponse.ok(inquiryService.getList(status, inquiryType, PageRequest.of(page, size)));
     }
 
     // 문의 상세 (관리자)
@@ -72,5 +74,20 @@ public class InquiryController {
     public ApiResponse<Void> deleteMemo(@PathVariable Long memoId) {
         inquiryService.deleteMemo(memoId);
         return ApiResponse.ok("메모가 삭제되었습니다.");
+    }
+
+    // 문의/제보 삭제 (관리자)
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        inquiryService.delete(id);
+        return ApiResponse.ok("삭제되었습니다.");
+    }
+
+    // 내 제보/문의 목록 (로그인 사용자)
+    @GetMapping("/my")
+    public ApiResponse<List<InquiryResponse>> getMyList(
+            @RequestParam(required = false) String inquiryType,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.ok(inquiryService.getMyList(userDetails.getMemberId(), inquiryType));
     }
 }

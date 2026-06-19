@@ -38,6 +38,9 @@ public class InquiryService {
         String ip = httpRequest.getHeader("X-Forwarded-For");
         if (ip == null || ip.isBlank()) ip = httpRequest.getRemoteAddr();
 
+        String type = request.getInquiryType();
+        if (type == null || type.isBlank()) type = "INQUIRY";
+
         Inquiry inquiry = Inquiry.builder()
                 .memberId(memberId)
                 .writerName(request.getWriterName())
@@ -46,6 +49,7 @@ public class InquiryService {
                 .contactPhone(request.getContactPhone())
                 .contactEmail(request.getContactEmail())
                 .clientIp(ip)
+                .inquiryType(type)
                 .build();
 
         Inquiry saved = inquiryRepository.save(inquiry);
@@ -67,12 +71,40 @@ public class InquiryService {
         return new InquiryResponse(saved, List.of());
     }
 
+    // ===== 내 제보/문의 목록 (로그인 사용자) =====
+    @Transactional(readOnly = true)
+    public List<InquiryResponse> getMyList(Long memberId, String inquiryType) {
+        List<Inquiry> list;
+        if (inquiryType != null && !inquiryType.isBlank()) {
+            list = inquiryRepository.findByMemberIdAndInquiryTypeOrderByCreatedAtDesc(memberId, inquiryType);
+        } else {
+            list = inquiryRepository.findByMemberIdAndInquiryTypeInOrderByCreatedAtDesc(
+                    memberId, List.of("BUG_REPORT", "FEATURE_REQUEST"));
+        }
+        return list.stream().map(i -> new InquiryResponse(i, List.of())).collect(Collectors.toList());
+    }
+
+    // ===== 문의 삭제 (관리자) =====
+    @Transactional
+    public void delete(Long id) {
+        if (!inquiryRepository.existsById(id)) throw BusinessException.notFound("문의를 찾을 수 없습니다.");
+        inquiryMemoRepository.deleteByInquiryId(id);
+        inquiryRepository.deleteById(id);
+    }
+
     // ===== 문의 목록 (관리자) =====
     @Transactional(readOnly = true)
-    public Page<InquiryResponse> getList(String status, Pageable pageable) {
-        Page<Inquiry> page = status != null
-                ? inquiryRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
-                : inquiryRepository.findAllByOrderByCreatedAtDesc(pageable);
+    public Page<InquiryResponse> getList(String status, String inquiryType, Pageable pageable) {
+        Page<Inquiry> page;
+        if (inquiryType != null && !inquiryType.isBlank() && status != null && !status.isBlank()) {
+            page = inquiryRepository.findByStatusAndInquiryTypeOrderByCreatedAtDesc(status, inquiryType, pageable);
+        } else if (inquiryType != null && !inquiryType.isBlank()) {
+            page = inquiryRepository.findByInquiryTypeOrderByCreatedAtDesc(inquiryType, pageable);
+        } else if (status != null && !status.isBlank()) {
+            page = inquiryRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        } else {
+            page = inquiryRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
 
         List<InquiryResponse> content = page.getContent().stream()
                 .map(i -> new InquiryResponse(i,

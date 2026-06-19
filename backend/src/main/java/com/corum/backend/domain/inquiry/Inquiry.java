@@ -38,7 +38,12 @@ public class Inquiry extends BaseEntity {
     @Column(name = "client_ip", length = 50)
     private String clientIp;
 
-    // RECEIVED, IN_PROGRESS, COMPLETED
+    // INQUIRY / BUG_REPORT / FEATURE_REQUEST
+    @Column(name = "inquiry_type", nullable = false, length = 30)
+    @Builder.Default
+    private String inquiryType = "INQUIRY";
+
+    // RECEIVED, CHECKING, DONE
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private String status = "RECEIVED";

@@ -12,6 +12,14 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     Page<Inquiry> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
 
+    Page<Inquiry> findByInquiryTypeOrderByCreatedAtDesc(String inquiryType, Pageable pageable);
+
+    Page<Inquiry> findByStatusAndInquiryTypeOrderByCreatedAtDesc(String status, String inquiryType, Pageable pageable);
+
+    java.util.List<Inquiry> findByMemberIdAndInquiryTypeOrderByCreatedAtDesc(Long memberId, String inquiryType);
+
+    java.util.List<Inquiry> findByMemberIdAndInquiryTypeInOrderByCreatedAtDesc(Long memberId, java.util.List<String> types);
+
     long countByStatus(String status);
 
     long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);

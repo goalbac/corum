@@ -18,6 +18,7 @@ public class InquiryResponse {
     private final String contactPhone;
     private final String contactEmail;
     private final String clientIp;
+    private final String inquiryType;
     private final String status;
     private final LocalDateTime createdAt;
     private final List<InquiryMemo> memos;
@@ -31,6 +32,7 @@ public class InquiryResponse {
         this.contactPhone = inquiry.getContactPhone();
         this.contactEmail = inquiry.getContactEmail();
         this.clientIp     = inquiry.getClientIp();
+        this.inquiryType  = inquiry.getInquiryType();
         this.status       = inquiry.getStatus();
         this.createdAt    = inquiry.getCreatedAt();
         this.memos        = memos;
