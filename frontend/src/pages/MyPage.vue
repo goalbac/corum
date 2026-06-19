@@ -167,30 +167,34 @@
 
         <!-- 내 문의 내역 -->
         <section v-else-if="activeTab === 'inquiries'">
-          <div class="section-head">
-            <h2>내 문의 내역</h2>
-            <p>내가 접수한 문의 목록입니다.</p>
+          <div class="section-head-row">
+            <div>
+              <h2>내 문의 내역</h2>
+              <p>내가 접수한 문의 목록입니다.</p>
+            </div>
+            <el-button @click="router.push('/inquiry')">
+              <i class="ti ti-plus" style="margin-right:4px"></i>문의하기
+            </el-button>
           </div>
           <div v-if="myInquiries.length === 0 && !myInquiryLoading" class="my-empty">
             <i class="ti ti-mail"></i>
             <span>접수한 문의가 없습니다.</span>
           </div>
           <div v-else class="my-inquiry-list" v-loading="myInquiryLoading">
-            <div v-for="item in myInquiries" :key="item.id" class="my-inquiry-item">
+            <div
+              v-for="item in myInquiries" :key="item.id"
+              class="my-inquiry-item clickable"
+              @click="openInquiryDetail(item)"
+            >
               <div class="mi-top">
                 <span class="mi-title">{{ item.title }}</span>
                 <span :class="['mi-badge', statusBadge(item.status)]">{{ statusLabel(item.status) }}</span>
+                <i class="ti ti-chevron-right mi-arrow"></i>
               </div>
-              <div class="mi-meta">
-                <span>{{ fmtDate(item.createdAt) }}</span>
-              </div>
-              <div v-if="item.replyContent" class="mi-reply">
-                <div class="mi-reply-head">
-                  <i class="ti ti-message-reply"></i>
-                  <span class="mi-reply-who">{{ item.repliedByName || '담당자' }}</span>
-                  <span class="mi-reply-date">{{ fmtDate(item.repliedAt) }}</span>
-                </div>
-                <div class="mi-reply-content">{{ item.replyContent }}</div>
+              <div class="mi-meta">{{ fmtDate(item.createdAt) }}</div>
+              <div v-if="item.replyContent" class="mi-reply-preview">
+                <i class="ti ti-message-reply"></i>
+                <span>{{ item.replyContent.slice(0, 60) }}{{ item.replyContent.length > 60 ? '...' : '' }}</span>
               </div>
               <div v-else class="mi-no-reply">
                 <i class="ti ti-clock-hour-3"></i> 아직 답변이 등록되지 않았습니다.
@@ -201,16 +205,25 @@
 
         <!-- 내 제보 내역 -->
         <section v-else-if="activeTab === 'reports'">
-          <div class="section-head">
-            <h2>내 제보 내역</h2>
-            <p>내가 접수한 오류 제보 및 기능 제안 목록입니다.</p>
+          <div class="section-head-row">
+            <div>
+              <h2>내 제보 내역</h2>
+              <p>내가 접수한 오류 제보 및 기능 제안 목록입니다.</p>
+            </div>
+            <el-button @click="router.push('/report')">
+              <i class="ti ti-bug" style="margin-right:4px"></i>오류/기능 제보
+            </el-button>
           </div>
           <div v-if="myReports.length === 0 && !myReportLoading" class="my-empty">
             <i class="ti ti-bug"></i>
             <span>접수한 제보가 없습니다.</span>
           </div>
           <div v-else class="my-inquiry-list" v-loading="myReportLoading">
-            <div v-for="item in myReports" :key="item.id" class="my-inquiry-item">
+            <div
+              v-for="item in myReports" :key="item.id"
+              class="my-inquiry-item clickable"
+              @click="openInquiryDetail(item)"
+            >
               <div class="mi-top">
                 <span :class="['mi-type-badge', item.inquiryType === 'BUG_REPORT' ? 'type-bug' : 'type-feature']">
                   <i :class="`ti ${item.inquiryType === 'BUG_REPORT' ? 'ti-bug' : 'ti-sparkles'}`"></i>
@@ -218,17 +231,12 @@
                 </span>
                 <span class="mi-title">{{ item.title }}</span>
                 <span :class="['mi-badge', statusBadge(item.status)]">{{ statusLabel(item.status) }}</span>
+                <i class="ti ti-chevron-right mi-arrow"></i>
               </div>
-              <div class="mi-meta">
-                <span>{{ fmtDate(item.createdAt) }}</span>
-              </div>
-              <div v-if="item.replyContent" class="mi-reply">
-                <div class="mi-reply-head">
-                  <i class="ti ti-message-reply"></i>
-                  <span class="mi-reply-who">{{ item.repliedByName || '담당자' }}</span>
-                  <span class="mi-reply-date">{{ fmtDate(item.repliedAt) }}</span>
-                </div>
-                <div class="mi-reply-content">{{ item.replyContent }}</div>
+              <div class="mi-meta">{{ fmtDate(item.createdAt) }}</div>
+              <div v-if="item.replyContent" class="mi-reply-preview">
+                <i class="ti ti-message-reply"></i>
+                <span>{{ item.replyContent.slice(0, 60) }}{{ item.replyContent.length > 60 ? '...' : '' }}</span>
               </div>
               <div v-else class="mi-no-reply">
                 <i class="ti ti-clock-hour-3"></i> 아직 답변이 등록되지 않았습니다.
@@ -236,6 +244,50 @@
             </div>
           </div>
         </section>
+
+        <!-- 문의 상세 모달 -->
+        <el-dialog v-model="showInquiryDetail" width="560px" :show-close="false" destroy-on-close class="inquiry-detail-dlg">
+          <template #header>
+            <div class="idlg-header">
+              <div class="idlg-header-left">
+                <span v-if="selectedInquiry?.inquiryType === 'BUG_REPORT'" class="mi-type-badge type-bug">
+                  <i class="ti ti-bug"></i> 오류 제보
+                </span>
+                <span v-else-if="selectedInquiry?.inquiryType === 'FEATURE_REQUEST'" class="mi-type-badge type-feature">
+                  <i class="ti ti-sparkles"></i> 기능 제안
+                </span>
+                <span v-else class="mi-type-badge" style="background:var(--surface2);color:var(--t3)">
+                  <i class="ti ti-mail"></i> 문의
+                </span>
+                <span :class="['mi-badge', statusBadge(selectedInquiry?.status)]">{{ statusLabel(selectedInquiry?.status) }}</span>
+              </div>
+              <button class="idlg-close" @click="showInquiryDetail = false"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="idlg-title">{{ selectedInquiry?.title }}</div>
+            <div class="idlg-meta">{{ fmtDate(selectedInquiry?.createdAt) }}</div>
+          </template>
+          <div v-if="selectedInquiry" class="idlg-body">
+            <!-- 내가 작성한 내용 -->
+            <div class="idlg-section-label">내용</div>
+            <div class="idlg-content">{{ selectedInquiry.content }}</div>
+
+            <!-- 답변 -->
+            <template v-if="selectedInquiry.replyContent">
+              <div class="idlg-section-label" style="margin-top:20px">
+                <i class="ti ti-message-reply"></i> 답변
+                <span class="idlg-reply-meta">{{ selectedInquiry.repliedByName || '담당자' }} · {{ fmtDate(selectedInquiry.repliedAt) }}</span>
+              </div>
+              <div class="idlg-reply-box">{{ selectedInquiry.replyContent }}</div>
+            </template>
+            <div v-else class="idlg-no-reply">
+              <i class="ti ti-clock-hour-3"></i>
+              <div>
+                <div class="idlg-no-reply-title">아직 답변이 등록되지 않았습니다.</div>
+                <div class="idlg-no-reply-sub">담당자 검토 후 순차적으로 답변드립니다.</div>
+              </div>
+            </div>
+          </div>
+        </el-dialog>
 
         <!-- 회원 탈퇴 -->
         <section v-else-if="activeTab === 'withdraw'">
@@ -321,6 +373,14 @@ async function fetchMyReports() {
     const r = await api.get('/inquiries/my')
     myReports.value = r.data.data || []
   } finally { myReportLoading.value = false }
+}
+
+const showInquiryDetail = ref(false)
+const selectedInquiry   = ref(null)
+
+function openInquiryDetail(item) {
+  selectedInquiry.value = item
+  showInquiryDetail.value = true
 }
 
 function statusLabel(s) { return { RECEIVED: '접수', CHECKING: '확인중', DONE: '처리완료' }[s] || s }
@@ -722,6 +782,14 @@ watch(activeTab, (tab) => {
   margin-top: 8px;
 }
 
+/* 섹션 헤더 (제목 + 버튼) */
+.section-head-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-bottom: 16px;
+}
+.section-head-row h2 { font-size: 18px; font-weight: 800; color: var(--t1); margin-bottom: 4px; }
+.section-head-row p  { font-size: 14px; color: var(--t3); }
+
 /* ===== 내 문의/제보 ===== */
 .my-empty {
   display: flex; align-items: center; gap: 10px;
@@ -736,10 +804,21 @@ watch(activeTab, (tab) => {
   border-radius: var(--radius-xs);
   background: var(--surface);
   display: flex; flex-direction: column; gap: 6px;
+  transition: var(--transition);
 }
+.my-inquiry-item.clickable { cursor: pointer; }
+.my-inquiry-item.clickable:hover { border-color: var(--accent); background: var(--surface2); }
 .mi-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mi-title { flex: 1; font-size: 14px; font-weight: 600; color: var(--t1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-arrow { font-size: 13px; color: var(--t4); flex-shrink: 0; }
 .mi-meta { font-size: 12px; color: var(--t4); }
+.mi-reply-preview {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 12px; color: #1E40AF;
+  background: #EFF6FF; border-radius: 4px;
+  padding: 5px 8px; margin-top: 2px;
+}
+.mi-reply-preview i { flex-shrink: 0; margin-top: 1px; }
 .mi-badge {
   flex-shrink: 0; padding: 2px 8px; border-radius: 20px;
   font-size: 11px; font-weight: 700;
@@ -781,6 +860,56 @@ watch(activeTab, (tab) => {
 }
 .type-bug     { background: #FEE2E2; color: #991B1B; }
 .type-feature { background: #EDE9FE; color: #5B21B6; }
+
+/* ===== 문의 상세 다이얼로그 ===== */
+.idlg-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.idlg-header-left { display: flex; align-items: center; gap: 8px; }
+.idlg-close {
+  background: none; border: none; color: var(--t4);
+  cursor: pointer; font-size: 16px; padding: 4px; line-height: 1;
+  border-radius: var(--radius-xs); transition: var(--transition);
+}
+.idlg-close:hover { background: var(--surface2); color: var(--t1); }
+.idlg-title {
+  font-size: 16px; font-weight: 700; color: var(--t1); line-height: 1.4; margin-bottom: 4px;
+}
+.idlg-meta { font-size: 12px; color: var(--t4); }
+
+.idlg-body { display: flex; flex-direction: column; gap: 8px; }
+.idlg-section-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 700; color: var(--t4); letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.idlg-reply-meta {
+  font-weight: 400; color: var(--t4); font-size: 11px; margin-left: 4px;
+}
+.idlg-content {
+  padding: 12px 14px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-xs);
+  font-size: 14px; color: var(--t1); line-height: 1.7;
+  white-space: pre-wrap; min-height: 60px; max-height: 300px; overflow-y: auto;
+}
+.idlg-reply-box {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-left: 4px solid #3B82F6;
+  border-radius: var(--radius-xs);
+  padding: 12px 14px;
+  font-size: 14px; color: #1e3a5f; line-height: 1.7; white-space: pre-wrap;
+}
+.idlg-no-reply {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px; background: var(--surface2);
+  border-radius: var(--radius-xs); color: var(--t3);
+}
+.idlg-no-reply i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.idlg-no-reply-title { font-size: 13px; font-weight: 600; color: var(--t2); }
+.idlg-no-reply-sub { font-size: 12px; color: var(--t4); margin-top: 2px; }
 
 .withdraw-notice {
   margin-top: 4px;

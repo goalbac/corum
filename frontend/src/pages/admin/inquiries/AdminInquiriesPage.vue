@@ -21,27 +21,32 @@
     <div class="adm-card" v-loading="loading">
       <div class="at-wrap">
         <div class="at-head">
+          <div class="at-col" style="width:90px;text-align:center">유형</div>
           <div class="at-col" style="flex:1">제목</div>
-          <div class="at-col" style="width:120px">연락처</div>
-          <div class="at-col" style="width:120px">이메일</div>
+          <div class="at-col" style="width:90px">접수자</div>
           <div class="at-col" style="width:80px;text-align:center">상태</div>
-          <div class="at-col" style="width:120px">접수일</div>
-          <div class="at-col" style="width:60px;text-align:center">관리</div>
+          <div class="at-col" style="width:80px;text-align:center">답변</div>
+          <div class="at-col" style="width:100px">접수일</div>
+          <div class="at-col" style="width:52px;text-align:center">관리</div>
         </div>
         <div v-for="row in list" :key="row.id" class="at-row clickable" @click="openDetail(row)">
-          <div class="at-col bold" style="flex:1">
-            <span v-if="row.inquiryType && row.inquiryType !== 'INQUIRY'" :class="['mi-type-badge', row.inquiryType === 'BUG_REPORT' ? 'type-bug' : 'type-feature']" style="margin-right:6px">
-              {{ row.inquiryType === 'BUG_REPORT' ? '오류제보' : '기능제안' }}
+          <div class="at-col" style="width:90px;text-align:center">
+            <span :class="['type-chip', typeChipClass(row.inquiryType)]">
+              <i :class="`ti ${typeIcon(row.inquiryType)}`"></i>
+              {{ typeLabel(row.inquiryType) }}
             </span>
-            {{ row.title }}
           </div>
-          <div class="at-col muted" style="width:120px">{{ row.contactPhone || '-' }}</div>
-          <div class="at-col muted" style="width:120px">{{ row.contactEmail || '-' }}</div>
+          <div class="at-col bold" style="flex:1">{{ row.title }}</div>
+          <div class="at-col muted" style="width:90px;font-size:12px">{{ row.writerName || '-' }}</div>
           <div class="at-col" style="width:80px;text-align:center">
             <span :class="['adm-badge', statusBadge(row.status)]">{{ statusLabel(row.status) }}</span>
           </div>
-          <div class="at-col muted" style="width:120px;font-size:12px">{{ fmtDate(row.createdAt) }}</div>
-          <div class="at-col at-actions" style="width:60px" @click.stop>
+          <div class="at-col" style="width:80px;text-align:center">
+            <span v-if="row.replyContent" class="reply-done-chip"><i class="ti ti-check"></i> 완료</span>
+            <span v-else class="reply-none-chip">미답변</span>
+          </div>
+          <div class="at-col muted" style="width:100px;font-size:12px">{{ fmtDate(row.createdAt) }}</div>
+          <div class="at-col at-actions" style="width:52px" @click.stop>
             <button class="act-btn danger" @click="deleteInquiry(row.id)"><i class="ti ti-trash"></i></button>
           </div>
         </div>
@@ -240,6 +245,9 @@ const statusOptions = [
   { value: 'DONE',     label: '처리완료', icon: 'ti-circle-check', cls: 'opt-done' },
 ]
 
+function typeLabel(t) { return { INQUIRY: '문의', BUG_REPORT: '오류제보', FEATURE_REQUEST: '기능제안' }[t] || t }
+function typeIcon(t) { return { INQUIRY: 'ti-mail', BUG_REPORT: 'ti-bug', FEATURE_REQUEST: 'ti-sparkles' }[t] || 'ti-mail' }
+function typeChipClass(t) { return { INQUIRY: 'chip-inquiry', BUG_REPORT: 'chip-bug', FEATURE_REQUEST: 'chip-feature' }[t] || 'chip-inquiry' }
 function statusLabel(s) { return { RECEIVED: '접수', CHECKING: '확인중', DONE: '처리완료' }[s] || s }
 function statusBadge(s) { return { RECEIVED: 'badge-warning', CHECKING: 'badge-info', DONE: 'badge-success' }[s] || 'badge-muted' }
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR') }
@@ -255,7 +263,29 @@ onMounted(() => fetchInquiries())
 @import '@/assets/admin-table.css';
 .at-row.clickable { cursor: pointer; }
 
-/* 유형 뱃지 */
+/* 유형 칩 (목록용) */
+.type-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.type-chip i { font-size: 11px; }
+.chip-inquiry { background: var(--surface2); color: var(--t3); }
+.chip-bug     { background: #FEE2E2; color: #991B1B; }
+.chip-feature { background: #EDE9FE; color: #5B21B6; }
+
+/* 답변 상태 칩 */
+.reply-done-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: #D1FAE5; color: #065F46;
+}
+.reply-none-chip {
+  display: inline-block;
+  padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: var(--surface2); color: var(--t4);
+}
+
+/* 유형 뱃지 (다이얼로그용) */
 .mi-type-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
