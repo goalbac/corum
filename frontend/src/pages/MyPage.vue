@@ -172,7 +172,7 @@
               <h2>내 문의 내역</h2>
               <p>내가 접수한 문의 목록입니다.</p>
             </div>
-            <el-button @click="router.push('/inquiry')">
+            <el-button @click="activeTab = 'new-inquiry'">
               <i class="ti ti-plus" style="margin-right:4px"></i>문의하기
             </el-button>
           </div>
@@ -210,7 +210,7 @@
               <h2>내 제보 내역</h2>
               <p>내가 접수한 오류 제보 및 기능 제안 목록입니다.</p>
             </div>
-            <el-button @click="router.push('/report')">
+            <el-button @click="activeTab = 'new-report'">
               <i class="ti ti-bug" style="margin-right:4px"></i>오류/기능 제보
             </el-button>
           </div>
@@ -243,6 +243,94 @@
               </div>
             </div>
           </div>
+        </section>
+
+        <!-- 문의 작성 -->
+        <section v-else-if="activeTab === 'new-inquiry'">
+          <div class="section-head-row">
+            <div>
+              <h2>문의하기</h2>
+              <p>로그인 사용자로 문의를 접수합니다.</p>
+            </div>
+            <el-button @click="activeTab = 'inquiries'">
+              <i class="ti ti-arrow-left" style="margin-right:4px"></i>내 문의 목록
+            </el-button>
+          </div>
+          <el-form ref="inquiryFormRef" :model="inquiryForm" :rules="inquiryRules" label-position="top" class="write-form">
+            <el-form-item label="제목" prop="title">
+              <el-input v-model="inquiryForm.title" placeholder="문의 제목을 입력하세요." />
+            </el-form-item>
+            <el-form-item label="내용" prop="content">
+              <el-input v-model="inquiryForm.content" type="textarea" :rows="7" placeholder="문의 내용을 입력하세요." resize="none" />
+            </el-form-item>
+            <div class="write-form-row">
+              <el-form-item label="연락처">
+                <el-input v-model="inquiryForm.contactPhone" placeholder="010-0000-0000" />
+              </el-form-item>
+              <el-form-item label="이메일">
+                <el-input v-model="inquiryForm.contactEmail" placeholder="example@email.com" />
+              </el-form-item>
+            </div>
+            <div class="write-form-actions">
+              <el-button @click="activeTab = 'inquiries'">취소</el-button>
+              <el-button type="primary" :loading="inquirySubmitting" @click="submitInquiry">
+                <i class="ti ti-send" style="margin-right:4px"></i>문의 접수
+              </el-button>
+            </div>
+          </el-form>
+        </section>
+
+        <!-- 제보 작성 -->
+        <section v-else-if="activeTab === 'new-report'">
+          <div class="section-head-row">
+            <div>
+              <h2>{{ reportForm.inquiryType === 'BUG_REPORT' ? '오류 제보' : '기능 제안' }}</h2>
+              <p>{{ reportForm.inquiryType === 'BUG_REPORT' ? '시스템 오류를 제보합니다.' : '새로운 기능을 제안합니다.' }}</p>
+            </div>
+            <el-button @click="activeTab = 'reports'">
+              <i class="ti ti-arrow-left" style="margin-right:4px"></i>내 제보 목록
+            </el-button>
+          </div>
+
+          <!-- 유형 탭 -->
+          <div class="report-type-tabs" style="margin-bottom:20px">
+            <button :class="['rtype-btn', { active: reportForm.inquiryType === 'BUG_REPORT' }]" @click="reportForm.inquiryType = 'BUG_REPORT'">
+              <i class="ti ti-bug"></i> 오류 제보
+            </button>
+            <button :class="['rtype-btn', { active: reportForm.inquiryType === 'FEATURE_REQUEST' }]" @click="reportForm.inquiryType = 'FEATURE_REQUEST'">
+              <i class="ti ti-sparkles"></i> 기능 제안
+            </button>
+          </div>
+
+          <!-- 가이드 -->
+          <div class="report-guide">
+            <div class="rg-title"><i class="ti ti-bulb"></i> {{ currentReportGuide.title }}</div>
+            <ul class="rg-list">
+              <li v-for="(item, i) in currentReportGuide.items" :key="i" v-html="item"></li>
+            </ul>
+          </div>
+
+          <el-form ref="reportFormRef" :model="reportForm" :rules="reportRules" label-position="top" class="write-form" style="margin-top:16px">
+            <el-form-item label="제목" prop="title">
+              <el-input v-model="reportForm.title" :placeholder="currentReportGuide.titlePlaceholder" />
+            </el-form-item>
+            <el-form-item v-if="reportForm.inquiryType === 'BUG_REPORT'" label="오류 발생 페이지 / URL">
+              <el-input v-model="reportForm.pageUrl" placeholder="예: 알려드려요 게시판 (https://...)" />
+            </el-form-item>
+            <el-form-item v-if="reportForm.inquiryType === 'FEATURE_REQUEST'" label="참고 서비스 또는 링크">
+              <el-input v-model="reportForm.reference" placeholder="예: 구글 캘린더, https://..." />
+            </el-form-item>
+            <el-form-item label="내용" prop="content">
+              <el-input v-model="reportForm.content" type="textarea" :rows="8" :placeholder="currentReportGuide.contentPlaceholder" resize="none" />
+            </el-form-item>
+            <div class="write-form-actions">
+              <el-button @click="activeTab = 'reports'">취소</el-button>
+              <el-button type="primary" :loading="reportSubmitting" @click="submitReport">
+                <i class="ti ti-send" style="margin-right:4px"></i>
+                {{ reportForm.inquiryType === 'BUG_REPORT' ? '오류 제보 접수' : '기능 제안 접수' }}
+              </el-button>
+            </div>
+          </el-form>
         </section>
 
         <!-- 회원 탈퇴 -->
@@ -321,7 +409,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
@@ -379,6 +467,107 @@ const selectedInquiry   = ref(null)
 function openInquiryDetail(item) {
   selectedInquiry.value = item
   showInquiryDetail.value = true
+}
+
+// ===== 문의 작성 =====
+const inquiryFormRef   = ref()
+const inquirySubmitting = ref(false)
+const inquiryForm = ref({ title: '', content: '', contactPhone: '', contactEmail: '' })
+const inquiryRules = {
+  title:   [{ required: true, message: '제목을 입력해주세요.' }],
+  content: [{ required: true, message: '내용을 입력해주세요.' }],
+}
+
+watch(() => activeTab.value, (tab) => {
+  if (tab === 'new-inquiry') {
+    inquiryForm.value = {
+      title: '', content: '',
+      contactPhone: authStore.member?.phone || '',
+      contactEmail: authStore.member?.email || '',
+    }
+  }
+  if (tab === 'new-report') {
+    reportForm.value = { inquiryType: 'BUG_REPORT', title: '', content: '', pageUrl: '', reference: '' }
+  }
+})
+
+async function submitInquiry() {
+  await inquiryFormRef.value?.validate(async (valid) => {
+    if (!valid) return
+    inquirySubmitting.value = true
+    try {
+      await api.post('/inquiries', {
+        ...inquiryForm.value,
+        inquiryType: 'INQUIRY',
+        writerName: authStore.member?.name,
+      })
+      ElMessage.success('문의가 접수되었습니다.')
+      activeTab.value = 'inquiries'
+      fetchMyInquiries()
+    } catch (e) {
+      ElMessage.error(e.response?.data?.message || '접수에 실패했습니다.')
+    } finally { inquirySubmitting.value = false }
+  })
+}
+
+// ===== 제보 작성 =====
+const reportFormRef   = ref()
+const reportSubmitting = ref(false)
+const reportForm = ref({ inquiryType: 'BUG_REPORT', title: '', content: '', pageUrl: '', reference: '' })
+const reportRules = {
+  title:   [{ required: true, message: '제목을 입력해주세요.' }],
+  content: [{ required: true, message: '내용을 입력해주세요.' }],
+}
+
+const reportGuides = {
+  BUG_REPORT: {
+    title: '오류 제보 작성 가이드',
+    items: [
+      '오류가 발생한 <strong>페이지 또는 URL</strong>을 정확히 알려주세요.',
+      '어떤 동작을 했을 때 오류가 발생했는지 <strong>순서대로</strong> 기술해 주세요.',
+      '오류 메시지가 있다면 <strong>정확히 복사</strong>해서 붙여넣어 주세요.',
+      '어떤 <strong>기기(PC/모바일)</strong>와 <strong>브라우저</strong>를 사용하는지 알려주세요.',
+    ],
+    titlePlaceholder: '예: 갤러리 게시판에서 사진 업로드 시 오류 발생',
+    contentPlaceholder: '재현 순서:\n1. \n2. \n3. \n\n오류 메시지: \n\n사용 환경 (PC/모바일, 브라우저):',
+  },
+  FEATURE_REQUEST: {
+    title: '기능 제안 작성 가이드',
+    items: [
+      '어떤 문제를 해결하기 위한 기능인지 <strong>배경과 이유</strong>를 설명해 주세요.',
+      '원하는 기능을 <strong>구체적으로</strong> 설명해 주세요.',
+      '다른 서비스에서 본 기능이라면 <strong>서비스명 또는 링크</strong>를 남겨주세요.',
+      '<strong>사용 시나리오</strong>를 예시로 들어주시면 더 잘 이해할 수 있습니다.',
+    ],
+    titlePlaceholder: '예: 캘린더 일정에 참석 여부 응답 기능 추가',
+    contentPlaceholder: '배경/이유:\n\n기능 설명:\n\n참고 서비스/링크:\n\n사용 시나리오:',
+  },
+}
+const currentReportGuide = computed(() => reportGuides[reportForm.value.inquiryType])
+
+async function submitReport() {
+  await reportFormRef.value?.validate(async (valid) => {
+    if (!valid) return
+    reportSubmitting.value = true
+    try {
+      let content = reportForm.value.content
+      if (reportForm.value.pageUrl)  content = `[오류 페이지]\n${reportForm.value.pageUrl}\n\n${content}`
+      if (reportForm.value.reference) content = `[참고 서비스/링크]\n${reportForm.value.reference}\n\n${content}`
+      await api.post('/inquiries', {
+        title: reportForm.value.title,
+        content,
+        inquiryType: reportForm.value.inquiryType,
+        writerName: authStore.member?.name,
+        contactEmail: authStore.member?.email,
+        contactPhone: authStore.member?.phone,
+      })
+      ElMessage.success('접수되었습니다.')
+      activeTab.value = 'reports'
+      fetchMyReports()
+    } catch (e) {
+      ElMessage.error(e.response?.data?.message || '접수에 실패했습니다.')
+    } finally { reportSubmitting.value = false }
+  })
 }
 
 function statusLabel(s) { return { RECEIVED: '접수', CHECKING: '확인중', DONE: '처리완료' }[s] || s }
@@ -587,11 +776,12 @@ onMounted(() => {
   if (activeTab.value === 'reports')   fetchMyReports()
 })
 
+// 기존 watch와 통합 (new-inquiry/new-report는 위의 watch에서 처리)
 watch(activeTab, (tab) => {
   if (tab === 'notif')     fetchNotifPrefs()
   if (tab === 'inquiries') fetchMyInquiries()
   if (tab === 'reports')   fetchMyReports()
-})
+}, { immediate: false })
 </script>
 
 <style scoped>
@@ -779,6 +969,39 @@ watch(activeTab, (tab) => {
   justify-content: flex-end;
   margin-top: 8px;
 }
+
+/* 작성 폼 */
+.write-form { display: flex; flex-direction: column; gap: 4px; }
+.write-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.write-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+/* 제보 유형 탭 */
+.report-type-tabs { display: flex; gap: 8px; }
+.rtype-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: var(--radius-xs);
+  border: 1.5px solid var(--border2); background: var(--surface);
+  color: var(--t2); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: var(--transition);
+}
+.rtype-btn:hover { border-color: var(--accent); color: var(--accent); }
+.rtype-btn.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+/* 제보 가이드 */
+.report-guide {
+  background: var(--surface2); border-radius: var(--radius-xs);
+  padding: 14px 16px; font-size: 13px;
+}
+.rg-title {
+  font-weight: 700; color: var(--t1); font-size: 13px;
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 10px;
+}
+.rg-title i { color: var(--accent); }
+.rg-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.rg-list li { display: flex; align-items: flex-start; gap: 6px; color: var(--t2); line-height: 1.5; }
+.rg-list li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+.rg-list li :deep(strong) { color: var(--t1); }
 
 /* 섹션 헤더 (제목 + 버튼) */
 .section-head-row {
