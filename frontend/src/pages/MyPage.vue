@@ -245,50 +245,6 @@
           </div>
         </section>
 
-        <!-- 문의 상세 모달 -->
-        <el-dialog v-model="showInquiryDetail" width="560px" :show-close="false" destroy-on-close class="inquiry-detail-dlg">
-          <template #header>
-            <div class="idlg-header">
-              <div class="idlg-header-left">
-                <span v-if="selectedInquiry?.inquiryType === 'BUG_REPORT'" class="mi-type-badge type-bug">
-                  <i class="ti ti-bug"></i> 오류 제보
-                </span>
-                <span v-else-if="selectedInquiry?.inquiryType === 'FEATURE_REQUEST'" class="mi-type-badge type-feature">
-                  <i class="ti ti-sparkles"></i> 기능 제안
-                </span>
-                <span v-else class="mi-type-badge" style="background:var(--surface2);color:var(--t3)">
-                  <i class="ti ti-mail"></i> 문의
-                </span>
-                <span :class="['mi-badge', statusBadge(selectedInquiry?.status)]">{{ statusLabel(selectedInquiry?.status) }}</span>
-              </div>
-              <button class="idlg-close" @click="showInquiryDetail = false"><i class="ti ti-x"></i></button>
-            </div>
-            <div class="idlg-title">{{ selectedInquiry?.title }}</div>
-            <div class="idlg-meta">{{ fmtDate(selectedInquiry?.createdAt) }}</div>
-          </template>
-          <div v-if="selectedInquiry" class="idlg-body">
-            <!-- 내가 작성한 내용 -->
-            <div class="idlg-section-label">내용</div>
-            <div class="idlg-content">{{ selectedInquiry.content }}</div>
-
-            <!-- 답변 -->
-            <template v-if="selectedInquiry.replyContent">
-              <div class="idlg-section-label" style="margin-top:20px">
-                <i class="ti ti-message-reply"></i> 답변
-                <span class="idlg-reply-meta">{{ selectedInquiry.repliedByName || '담당자' }} · {{ fmtDate(selectedInquiry.repliedAt) }}</span>
-              </div>
-              <div class="idlg-reply-box">{{ selectedInquiry.replyContent }}</div>
-            </template>
-            <div v-else class="idlg-no-reply">
-              <i class="ti ti-clock-hour-3"></i>
-              <div>
-                <div class="idlg-no-reply-title">아직 답변이 등록되지 않았습니다.</div>
-                <div class="idlg-no-reply-sub">담당자 검토 후 순차적으로 답변드립니다.</div>
-              </div>
-            </div>
-          </div>
-        </el-dialog>
-
         <!-- 회원 탈퇴 -->
         <section v-else-if="activeTab === 'withdraw'">
           <div class="section-head">
@@ -320,6 +276,48 @@
       </main>
     </div>
   </div>
+
+  <!-- 문의 상세 모달 -->
+  <el-dialog v-model="showInquiryDetail" width="560px" :show-close="false" destroy-on-close class="inquiry-detail-dlg">
+    <template #header>
+      <div class="idlg-header">
+        <div class="idlg-header-left">
+          <span v-if="selectedInquiry?.inquiryType === 'BUG_REPORT'" class="mi-type-badge type-bug">
+            <i class="ti ti-bug"></i> 오류 제보
+          </span>
+          <span v-else-if="selectedInquiry?.inquiryType === 'FEATURE_REQUEST'" class="mi-type-badge type-feature">
+            <i class="ti ti-sparkles"></i> 기능 제안
+          </span>
+          <span v-else class="mi-type-badge" style="background:var(--surface2);color:var(--t3)">
+            <i class="ti ti-mail"></i> 문의
+          </span>
+          <span :class="['mi-badge', statusBadge(selectedInquiry?.status)]">{{ statusLabel(selectedInquiry?.status) }}</span>
+        </div>
+        <button class="idlg-close" @click="showInquiryDetail = false"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="idlg-title">{{ selectedInquiry?.title }}</div>
+      <div class="idlg-meta">{{ fmtDate(selectedInquiry?.createdAt) }}</div>
+    </template>
+    <div v-if="selectedInquiry" class="idlg-body">
+      <div class="idlg-section-label">내용</div>
+      <div class="idlg-content">{{ selectedInquiry.content }}</div>
+
+      <template v-if="selectedInquiry.replyContent">
+        <div class="idlg-section-label" style="margin-top:20px">
+          <i class="ti ti-message-reply"></i> 답변
+          <span class="idlg-reply-meta">{{ selectedInquiry.repliedByName || '담당자' }} · {{ fmtDate(selectedInquiry.repliedAt) }}</span>
+        </div>
+        <div class="idlg-reply-box">{{ selectedInquiry.replyContent }}</div>
+      </template>
+      <div v-else class="idlg-no-reply">
+        <i class="ti ti-clock-hour-3"></i>
+        <div>
+          <div class="idlg-no-reply-title">아직 답변이 등록되지 않았습니다.</div>
+          <div class="idlg-no-reply-sub">담당자 검토 후 순차적으로 답변드립니다.</div>
+        </div>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup>
