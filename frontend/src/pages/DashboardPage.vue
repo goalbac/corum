@@ -181,9 +181,9 @@
                           :key="ev.id"
                           class="cal-event-chip"
                           :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
-                          :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
+                          :title="(showEventTime(ev) ? formatEventTime(ev.startAt) + ' ' : '[종일] ') + ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
                         >
-                          <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
+                          <span v-if="showEventTime(ev)" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
                           <span class="cal-ev-title">{{ ev.title }}</span>
                           <span v-if="ev.calendarName && !parseCalendarId(widget)" class="cal-ev-cal">{{ ev.calendarName }}</span>
                         </div>
@@ -239,12 +239,12 @@
                       <span v-if="cell.holidayName" class="cm-holiday-name">{{ cell.holidayName }}</span>
                     </div>
                   </template>
-                  <!-- row 2+: 연속 일정 밴드 (전체 월 기준 레인 번호로 주간 일관성 보장) -->
+                  <!-- row 2+: 연속 일정 밴드 (rowIndex로 주 내 연속 배치 → 빈 row 없음) -->
                   <template v-for="item in bands" :key="'b'+item.ev.id">
                     <div class="cal-event-chip cm-band-chip"
                          :style="{
                            gridColumn: `${item.startCol} / ${item.endCol}`,
-                           gridRow: 2 + item.lane,
+                           gridRow: 2 + item.rowIndex,
                            background: item.ev.calendarColor ? item.ev.calendarColor + '22' : 'var(--accent-bg)',
                            borderLeft: '3px solid ' + (item.ev.calendarColor || 'var(--accent)')
                          }"
@@ -252,16 +252,16 @@
                       <span class="cal-ev-title">{{ item.ev.title }}</span>
                     </div>
                   </template>
-                  <!-- last row: 단일 일정 (최대 레인 + 3) -->
+                  <!-- last row: 단일 일정 (bands.length + 2 → band 수만큼만 row 소비) -->
                   <template v-for="(cell, ci) in weekCells" :key="'e'+cell.dateStr">
                     <div class="cm-events-cell"
                          :class="{ 'cm-other-month': !cell.thisMonth, 'cm-today-body': cell.isToday }"
-                         :style="{ gridColumn: ci+1, gridRow: bands.reduce((m, b) => Math.max(m, b.lane), -1) + 3 }">
+                         :style="{ gridColumn: ci+1, gridRow: bands.length + 2 }">
                       <div v-for="ev in getMonthSingleDayEvents(widget, cell.dateStr)" :key="ev.id"
                            class="cal-event-chip"
                            :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
-                           :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title">
-                        <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
+                           :title="(showEventTime(ev) ? formatEventTime(ev.startAt) + ' ' : '[종일] ') + ev.title">
+                        <span v-if="showEventTime(ev)" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
                         <span class="cal-ev-title">{{ ev.title }}</span>
                       </div>
                     </div>
@@ -558,6 +558,24 @@ function formatEventTime(dt) {
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
+// 종일 일정의 exclusive end date 처리: endAt이 startAt + 1일인 경우 동일 날짜로 반환
+function eventEndDate(ev) {
+  const start = (ev.startAt || '').slice(0, 10)
+  const raw   = (ev.endAt   || start).slice(0, 10)
+  if (ev.isAllDay && raw > start) {
+    const diff = Math.round((new Date(raw) - new Date(start)) / 86400000)
+    if (diff === 1) return start
+  }
+  return raw
+}
+
+// 00:00은 종일 일정의 기본 시각이므로 표시하지 않음
+function showEventTime(ev) {
+  if (ev.isAllDay) return false
+  const t = formatEventTime(ev.startAt)
+  return !!t && t !== '00:00'
+}
+
 function getEventsForDay(widget, dateStr) {
   const wid = widget.id
   // 네비게이션 후 별도 로드된 이벤트가 있으면 우선 사용
@@ -567,7 +585,7 @@ function getEventsForDay(widget, dateStr) {
   // 단일 일정만 반환 (연속 일정은 getWeekMultiDayEvents에서 별도 처리)
   return events.filter(ev => {
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = (ev.endAt   || start).slice(0, 10)
+    const end   = eventEndDate(ev)
     return start === end && start === dateStr
   })
 }
@@ -582,8 +600,8 @@ function getWeekMultiDayEvents(widget) {
   const result = []
   events.forEach(ev => {
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = (ev.endAt   || start).slice(0, 10)
-    if (start === end) return  // 단일 일정 제외
+    const end   = eventEndDate(ev)
+    if (start === end) return  // 단일 일정 제외 (종일 exclusive end 포함)
     if (start > weekEnd || end < weekStart) return  // 이번 주 범위 밖
     // 이번 주에서 보이는 컬럼 범위 계산 (1-based)
     const startCol = weekDays.findIndex(d => d.date >= start) + 1 || 1
@@ -689,13 +707,13 @@ function getMonthEventLaneMap(widget) {
   const multiDay = events.filter(ev => {
     if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = (ev.endAt   || start).slice(0, 10)
+    const end   = eventEndDate(ev)
     return start !== end
   }).sort((a, b) => {
     const as = (a.startAt || '').slice(0, 10)
     const bs = (b.startAt || '').slice(0, 10)
-    const ae = (a.endAt   || as).slice(0, 10)
-    const be = (b.endAt   || bs).slice(0, 10)
+    const ae = eventEndDate(a)
+    const be = eventEndDate(b)
     if (as !== bs) return as < bs ? -1 : 1
     return ae > be ? -1 : ae < be ? 1 : 0
   })
@@ -703,7 +721,7 @@ function getMonthEventLaneMap(widget) {
   const laneEnd = []
   multiDay.forEach(ev => {
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = (ev.endAt   || start).slice(0, 10)
+    const end   = eventEndDate(ev)
     let lane = 0
     while (laneEnd[lane] !== undefined && laneEnd[lane] >= start) lane++
     laneEnd[lane] = end
@@ -723,15 +741,17 @@ function getMonthRowMultiDayEvents(widget, weekCells) {
   events.forEach(ev => {
     if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = (ev.endAt   || start).slice(0, 10)
-    if (start === end) return
+    const end   = eventEndDate(ev)
+    if (start === end) return  // 단일 일정(종일 exclusive end 포함) 제외
     if (start > weekEnd || end < weekStart) return
     const startCol = weekCells.findIndex(c => c.dateStr >= start) + 1 || 1
     const endColIdx = weekCells.findLastIndex(c => c.dateStr <= end)
     const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
     result.push({ ev, startCol, endCol, lane: laneMap[ev.id] ?? 0 })
   })
+  // lane 순 정렬 후 주(week) 내 연속 row 인덱스 부여 → 빈 row 방지
   result.sort((a, b) => a.lane - b.lane)
+  result.forEach((item, idx) => { item.rowIndex = idx })
   return result
 }
 
@@ -742,7 +762,7 @@ function getMonthSingleDayEvents(widget, dateStr) {
   return events.filter(ev => {
     if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = (ev.endAt   || start).slice(0, 10)
+    const end   = eventEndDate(ev)
     return start === end && start === dateStr
   })
 }
