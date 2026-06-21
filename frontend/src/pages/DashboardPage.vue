@@ -1298,7 +1298,6 @@ onMounted(async () => {
   cursor: default;
 }
 .cm-head-cell.cm-other-month { opacity: 0.35; }
-.cm-head-cell.cm-today-head { background: var(--accent-bg); }
 /* row 2+: 연속 일정 밴드 */
 .cm-band-chip {
   border-radius: 4px !important;
@@ -1317,19 +1316,29 @@ onMounted(async () => {
   cursor: default;
   transition: background 0.12s;
 }
-.cm-events-cell:hover:not(.cm-today-body) { background: var(--surface2); }
 .cm-events-cell.cm-other-month { opacity: 0.35; }
-.cm-events-cell.cm-today-body { background: var(--accent-bg); }
 .cm-date-num {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--t1);
   line-height: 1;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
-.cm-today-head .cm-date-num { color: var(--accent-t); }
+.cm-today-head .cm-date-num {
+  background: var(--accent);
+  color: #fff;
+}
 .cm-head-cell.cm-sun .cm-date-num { color: #EF4444; }
 .cm-head-cell.cm-sat .cm-date-num { color: #3B82F6; }
 .cm-head-cell.cm-holiday .cm-date-num { color: #EF4444; }
+.cm-today-head.cm-sun .cm-date-num,
+.cm-today-head.cm-sat .cm-date-num,
+.cm-today-head.cm-holiday .cm-date-num { color: #fff; }
 .cm-holiday-name {
   font-size: 9px;
   color: #EF4444;
