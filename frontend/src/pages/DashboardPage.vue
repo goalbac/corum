@@ -223,8 +223,9 @@
                        }"
                        :title="(item.ev.isAllDay ? '[종일] ' : formatEventTime(item.ev.startAt) + ' ') + item.ev.title">
                     <template v-if="item.isRowStart">
-                      <span v-if="!item.ev.isAllDay" class="cal-ev-time">{{ formatEventTime(item.ev.startAt) }}</span>
-                      <span class="cal-ev-title">{{ item.ev.title }}</span>
+                      <span class="cal-ev-title">
+                        <span v-if="!item.ev.isAllDay" class="cal-ev-time-inline">{{ formatEventTime(item.ev.startAt) }} </span>{{ item.ev.title }}
+                      </span>
                     </template>
                   </div>
                 </div>
@@ -525,10 +526,14 @@ function getEventsForDay(widget, dateStr) {
   const events = calWeekEvents.value[wid] !== undefined
     ? calWeekEvents.value[wid]
     : (widget.calendarEvents || [])
+  const weekDates = getWeekDays(wid).map(d => d.date)
   return events.filter(ev => {
     const start = (ev.startAt || '').slice(0, 10)
     const end   = (ev.endAt   || start).slice(0, 10)
-    return dateStr >= start && dateStr <= end
+    if (start === end) return start === dateStr
+    // 연속 일정: 이번 주에서 처음 나타나는 날에만 표시 (중복 방지)
+    const firstInWeek = weekDates.find(d => d >= start && d <= end)
+    return dateStr === firstInWeek
   })
 }
 
@@ -1136,6 +1141,12 @@ onMounted(async () => {
   letter-spacing: -0.2px;
   line-height: 1.2;
 }
+.cal-ev-time-inline {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t3);
+  letter-spacing: -0.2px;
+}
 .cal-ev-title {
   display: block;
   font-size: 12px;
@@ -1209,11 +1220,13 @@ onMounted(async () => {
 
 /* 연속 일정 스패닝 칩 — 셀 패딩(4px)을 음수 마진으로 상쇄해 셀 가득 채움 */
 .cm-span-chip {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 22px;
   overflow: hidden;
   cursor: default;
   margin: 0 -4px;
-  padding: 3px 5px;
+  padding: 2px 5px;
   border-left: 3px solid transparent;
   border-radius: 0;
 }
