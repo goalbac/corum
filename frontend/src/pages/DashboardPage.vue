@@ -579,17 +579,19 @@ function getMonthCells(widget) {
   // 달력 시작: 해당 월 1일의 요일(일=0)에 맞춰 이전달 날짜 채움
   const firstDow = new Date(year, month, 1).getDay()
   const lastDay = new Date(year, month + 1, 0).getDate()
+  const pad = n => String(n).padStart(2, '0')
+  const localDate = dt => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`
   const cells = []
   // 이전달 채우기
   for (let i = firstDow - 1; i >= 0; i--) {
     const d = new Date(year, month, -i)
-    const dateStr = d.toISOString().slice(0, 10)
+    const dateStr = localDate(d)
     cells.push({ dateStr, day: d.getDate(), dow: d.getDay(), thisMonth: false, isToday: false, isHoliday: false, holidayName: '' })
   }
   // 이번달
   for (let d = 1; d <= lastDay; d++) {
     const dt = new Date(year, month, d)
-    const dateStr = dt.toISOString().slice(0, 10)
+    const dateStr = localDate(dt)
     const hol = holidayMap[dateStr]
     const isToday = dt.toDateString() === today.toDateString()
     cells.push({ dateStr, day: d, dow: dt.getDay(), thisMonth: true, isToday,
@@ -600,7 +602,7 @@ function getMonthCells(widget) {
   const remaining = 42 - cells.length
   for (let d = 1; d <= remaining; d++) {
     const dt = new Date(year, month + 1, d)
-    const dateStr = dt.toISOString().slice(0, 10)
+    const dateStr = localDate(dt)
     cells.push({ dateStr, day: d, dow: dt.getDay(), thisMonth: false, isToday: false, isHoliday: false, holidayName: '' })
   }
   return cells
@@ -1145,7 +1147,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 3px;
-  padding-top: 2px;
+  padding: 4px 0 6px;
 }
 .cm-dow-head {
   padding: 4px 0 5px;
