@@ -1205,29 +1205,30 @@ onMounted(async () => {
 
 /* 연속 일정 스패닝 칩 — 셀 패딩(4px)을 음수 마진으로 상쇄해 셀 가득 채움 */
 .cm-span-chip {
-  height: 17px;
   display: flex;
   align-items: center;
   overflow: hidden;
   cursor: default;
   margin: 0 -4px;
-  padding-left: 4px;
+  padding: 3px 5px;
   border-left: 3px solid transparent;
+  border-radius: 4px;
 }
-/* 시작: 왼쪽 radius + 색상 border-left + 제목 노출 */
+/* 시작: 왼쪽 margin 복원 (border-left 색상은 inline style) */
 .cm-span-chip.cm-span-start {
   margin-left: 0;
-  border-radius: 4px 0 0 4px;
 }
-/* 종료: 오른쪽 radius */
+/* 종료: 오른쪽 margin 복원 */
 .cm-span-chip.cm-span-end {
   margin-right: 0;
-  border-radius: 0 4px 4px 0;
 }
-/* 단일 일정 (시작=종료): 완전한 radius */
+/* 중간: radius 제거 (셀 경계까지 채움) */
+.cm-span-chip.cm-span-mid {
+  border-radius: 0;
+}
+/* 단일 일정 (시작=종료): margin 모두 복원 */
 .cm-span-chip.cm-span-start.cm-span-end {
   margin: 0;
-  border-radius: 4px;
 }
 .cal-ev-cal {
   display: block;
