@@ -210,11 +210,11 @@
                 </div>
                 <div class="cm-events">
                   <div v-for="ev in getMonthEventsForDay(widget, cell.dateStr)" :key="ev.id + cell.dateStr"
-                       class="cm-event-chip"
+                       class="cal-event-chip"
                        :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
                        :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title">
-                    <span v-if="!ev.isAllDay" class="cm-ev-time">{{ formatEventTime(ev.startAt) }}</span>
-                    <span class="cm-ev-title">{{ ev.title }}</span>
+                    <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
+                    <span class="cal-ev-title">{{ ev.title }}</span>
                   </div>
                 </div>
               </div>
@@ -1118,50 +1118,44 @@ onMounted(async () => {
 }
 
 /* ===== 월간 캘린더 위젯 ===== */
-.cal-month-card { padding-bottom: 8px; }
 .cal-month-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-top: 0.5px solid var(--border);
-  border-left: 0.5px solid var(--border);
+  gap: 3px;
+  padding-top: 2px;
 }
 .cm-dow-head {
-  padding: 6px 4px;
+  padding: 4px 0 5px;
   text-align: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--t3);
-  letter-spacing: 0.2px;
-  border-right: 0.5px solid var(--border);
-  border-bottom: 0.5px solid var(--border);
-  background: var(--surface2);
+  letter-spacing: 0.3px;
 }
 .cm-dow-head.cm-sun { color: #EF4444; }
 .cm-dow-head.cm-sat { color: #3B82F6; }
 .cm-cell {
-  border-right: 0.5px solid var(--border);
-  border-bottom: 0.5px solid var(--border);
-  min-height: 72px;
-  padding: 3px 4px 4px;
-  background: var(--surface);
+  min-height: 68px;
+  padding: 4px 4px 5px;
+  border-radius: 7px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
 }
-.cm-cell.cm-other-month { background: var(--surface2); opacity: 0.6; }
+.cm-cell.cm-other-month { opacity: 0.35; }
 .cm-cell.cm-today { background: var(--accent-bg); }
 .cm-cell-head {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  min-height: 20px;
+  gap: 3px;
+  min-height: 22px;
 }
 .cm-date-num {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--t2);
-  line-height: 1.4;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--t1);
+  line-height: 1;
   flex-shrink: 0;
 }
 .cm-cell.cm-today .cm-date-num { color: var(--accent-t); }
@@ -1176,28 +1170,9 @@ onMounted(async () => {
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+  font-weight: 600;
 }
 .cm-events { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
-.cm-event-chip {
-  border-radius: 3px;
-  padding: 2px 4px;
-  overflow: hidden;
-  cursor: default;
-}
-.cm-ev-time {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--t3);
-}
-.cm-ev-title {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--t1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .cal-ev-cal {
   display: block;
   font-size: 10px;
