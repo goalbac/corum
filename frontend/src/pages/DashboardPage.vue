@@ -153,6 +153,7 @@
                      :class="['cal-day-head', day.isToday ? 'today' : '', day.isSunday ? 'sunday' : '', day.isSaturday ? 'saturday' : '']">
                   <span class="cal-dow">{{ day.dow }}</span>
                   <span class="cal-dnum">{{ day.dnum }}</span>
+                  <span v-if="getWeekHoliday(widget, day.date)" class="cal-holiday-name">{{ getWeekHoliday(widget, day.date) }}</span>
                 </div>
               </div>
               <!-- 연속 일정 스패닝 밴드 -->
@@ -216,36 +217,45 @@
             <div v-if="calMonthLoading[widget.id]" class="cal-loading">
               <i class="ti ti-loader-2 spinning"></i>
             </div>
-            <div v-else class="cal-month-grid">
+            <div v-else class="cal-month-wrap">
               <!-- 요일 헤더 -->
-              <div v-for="d in DOW_KO" :key="d" class="cm-dow-head"
-                   :class="d === '일' ? 'cm-sun' : d === '토' ? 'cm-sat' : ''">{{ d }}</div>
-              <!-- 날짜 셀 -->
-              <div v-for="cell in getMonthCells(widget)" :key="cell.dateStr"
-                   class="cm-cell"
-                   :class="{ 'cm-other-month': !cell.thisMonth, 'cm-today': cell.isToday }">
-                <div class="cm-cell-head"
-                     :class="{ 'cm-sun': cell.dow === 0, 'cm-sat': cell.dow === 6, 'cm-holiday': cell.isHoliday }">
-                  <span class="cm-date-num">{{ cell.day }}</span>
-                  <span v-if="cell.holidayName" class="cm-holiday-name">{{ cell.holidayName }}</span>
-                </div>
-                <div class="cm-events">
-                  <div v-for="item in getMonthEventsForDay(widget, cell.dateStr, cell.dow)"
-                       :key="item.ev.id + cell.dateStr"
-                       class="cm-span-chip"
-                       :class="{
-                         'cm-span-start': item.isRowStart,
-                         'cm-span-end':   item.isRowEnd,
-                         'cm-span-mid':   !item.isRowStart && !item.isRowEnd,
-                       }"
+              <div class="cm-dow-row">
+                <div v-for="d in DOW_KO" :key="d" class="cm-dow-head"
+                     :class="d === '일' ? 'cm-sun' : d === '토' ? 'cm-sat' : ''">{{ d }}</div>
+              </div>
+              <!-- 6주 행 -->
+              <div v-for="(weekCells, ri) in getMonthRows(widget)" :key="ri" class="cm-week-row">
+                <!-- 연속 일정 스패닝 밴드 -->
+                <div v-if="getMonthRowMultiDayEvents(widget, weekCells).length" class="cm-row-multiday">
+                  <div v-for="item in getMonthRowMultiDayEvents(widget, weekCells)" :key="item.ev.id"
+                       class="cal-event-chip cm-band-chip"
                        :style="{
+                         gridColumn: `${item.startCol} / ${item.endCol}`,
                          background: item.ev.calendarColor ? item.ev.calendarColor + '22' : 'var(--accent-bg)',
-                         borderLeftColor: item.isRowStart ? (item.ev.calendarColor || 'var(--accent)') : 'transparent',
+                         borderLeft: '3px solid ' + (item.ev.calendarColor || 'var(--accent)')
                        }"
-                       :title="(item.ev.isAllDay ? '[종일] ' : formatEventTime(item.ev.startAt) + ' ') + item.ev.title">
-                    <div v-if="item.isRowStart" class="cm-chip-content">
-                      <span v-if="!item.ev.isAllDay" class="cal-ev-time">{{ formatEventTime(item.ev.startAt) }}</span>
-                      <span class="cal-ev-title">{{ item.ev.title }}</span>
+                       :title="item.ev.title">
+                    <span class="cal-ev-title">{{ item.ev.title }}</span>
+                  </div>
+                </div>
+                <!-- 날짜 셀 행 -->
+                <div class="cm-cells-row">
+                  <div v-for="cell in weekCells" :key="cell.dateStr"
+                       class="cm-cell"
+                       :class="{ 'cm-other-month': !cell.thisMonth, 'cm-today': cell.isToday }">
+                    <div class="cm-cell-head"
+                         :class="{ 'cm-sun': cell.dow === 0, 'cm-sat': cell.dow === 6, 'cm-holiday': cell.isHoliday }">
+                      <span class="cm-date-num">{{ cell.day }}</span>
+                      <span v-if="cell.holidayName" class="cm-holiday-name">{{ cell.holidayName }}</span>
+                    </div>
+                    <div class="cm-events">
+                      <div v-for="ev in getMonthSingleDayEvents(widget, cell.dateStr)" :key="ev.id"
+                           class="cal-event-chip"
+                           :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
+                           :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title">
+                        <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
+                        <span class="cal-ev-title">{{ ev.title }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -656,30 +666,55 @@ function getMonthCells(widget) {
   return cells
 }
 
-function getMonthEventsForDay(widget, dateStr, dow) {
+function getMonthRows(widget) {
+  const cells = getMonthCells(widget)
+  const rows = []
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7))
+  return rows
+}
+
+function getMonthRowMultiDayEvents(widget, weekCells) {
   const wid = widget.id
   const events = calMonthEvents.value[wid] !== undefined
-    ? calMonthEvents.value[wid]
-    : (widget.calendarEvents || [])
-  return events
-    .filter(ev => {
-      if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
-      const start = (ev.startAt || '').slice(0, 10)
-      const end = (ev.endAt || start).slice(0, 10)
-      return dateStr >= start && dateStr <= end
-    })
-    .map(ev => {
-      const start = (ev.startAt || '').slice(0, 10)
-      const end = (ev.endAt || start).slice(0, 10)
-      const isStart = start === dateStr
-      const isEnd = end === dateStr
-      // 행 첫 칸(일요일) 또는 실제 시작일이면 시각적 시작
-      const isRowStart = isStart || dow === 0
-      // 행 마지막 칸(토요일) 또는 실제 종료일이면 시각적 끝
-      const isRowEnd = isEnd || dow === 6
-      const isMultiDay = start !== end
-      return { ev, isStart, isEnd, isRowStart, isRowEnd, isMultiDay }
-    })
+    ? calMonthEvents.value[wid] : (widget.calendarEvents || [])
+  const weekStart = weekCells[0].dateStr
+  const weekEnd   = weekCells[6].dateStr
+  const result = []
+  events.forEach(ev => {
+    if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return
+    const start = (ev.startAt || '').slice(0, 10)
+    const end   = (ev.endAt   || start).slice(0, 10)
+    if (start === end) return
+    if (start > weekEnd || end < weekStart) return
+    const startCol = weekCells.findIndex(c => c.dateStr >= start) + 1 || 1
+    const endColIdx = weekCells.findLastIndex(c => c.dateStr <= end)
+    const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
+    result.push({ ev, startCol, endCol })
+  })
+  return result
+}
+
+function getMonthSingleDayEvents(widget, dateStr) {
+  const wid = widget.id
+  const events = calMonthEvents.value[wid] !== undefined
+    ? calMonthEvents.value[wid] : (widget.calendarEvents || [])
+  return events.filter(ev => {
+    if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
+    const start = (ev.startAt || '').slice(0, 10)
+    const end   = (ev.endAt   || start).slice(0, 10)
+    return start === end && start === dateStr
+  })
+}
+
+function getWeekHoliday(widget, dateStr) {
+  const wid = widget.id
+  const events = calWeekEvents.value[wid] !== undefined
+    ? calWeekEvents.value[wid] : (widget.calendarEvents || [])
+  const hol = events.find(ev =>
+    (ev.isHoliday || ev.calendarType === 'HOLIDAY') &&
+    (ev.startAt || '').slice(0, 10) === dateStr
+  )
+  return hol ? hol.title : ''
 }
 
 const WIDGET_LABELS = {
@@ -1180,6 +1215,16 @@ onMounted(async () => {
 .cal-day-head.sunday .cal-dnum { color: #EF4444; }
 .cal-day-head.saturday .cal-dow,
 .cal-day-head.saturday .cal-dnum { color: #3B82F6; }
+.cal-holiday-name {
+  font-size: 9px;
+  font-weight: 600;
+  color: #EF4444;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
 .cal-events { display: flex; flex-direction: column; gap: 3px; }
 .cal-event-chip {
   border-radius: 4px;
@@ -1212,11 +1257,15 @@ onMounted(async () => {
 }
 
 /* ===== 월간 캘린더 위젯 ===== */
-.cal-month-grid {
+.cal-month-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 6px;
+}
+.cm-dow-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-  padding: 4px 0 6px;
 }
 .cm-dow-head {
   padding: 4px 0 5px;
@@ -1228,8 +1277,29 @@ onMounted(async () => {
 }
 .cm-dow-head.cm-sun { color: #EF4444; }
 .cm-dow-head.cm-sat { color: #3B82F6; }
+.cm-week-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cm-row-multiday {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px 3px;
+}
+.cm-band-chip {
+  border-radius: 4px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cm-cells-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
 .cm-cell {
-  min-height: 68px;
+  min-height: 58px;
   padding: 4px 4px 5px;
   border-radius: 7px;
   display: flex;
@@ -1244,61 +1314,32 @@ onMounted(async () => {
 .cm-cell.cm-today { background: var(--accent-bg); }
 .cm-cell-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-height: 22px;
+  gap: 1px;
+  min-height: 20px;
 }
 .cm-date-num {
   font-size: 14px;
   font-weight: 800;
   color: var(--t1);
   line-height: 1;
-  flex-shrink: 0;
 }
 .cm-cell.cm-today .cm-date-num { color: var(--accent-t); }
 .cm-cell-head.cm-sun .cm-date-num { color: #EF4444; }
 .cm-cell-head.cm-sat .cm-date-num { color: #3B82F6; }
 .cm-cell-head.cm-holiday .cm-date-num { color: #EF4444; }
 .cm-holiday-name {
-  font-size: 10px;
+  font-size: 9px;
   color: #EF4444;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
-  min-width: 0;
+  text-align: center;
+  width: 100%;
   font-weight: 600;
 }
 .cm-events { display: flex; flex-direction: column; gap: 2px; }
-
-/* 연속 일정 스패닝 칩 — 셀 패딩(4px)을 음수 마진으로 상쇄해 셀 가득 채움 */
-.cm-span-chip {
-  display: flex;
-  align-items: center;
-  min-height: 22px;
-  overflow: hidden;
-  cursor: default;
-  margin: 0 -4px;
-  padding: 2px 5px;
-  border-left: 3px solid transparent;
-  border-radius: 0;
-}
-/* 시작: 왼쪽 margin 복원 + 왼쪽 radius */
-.cm-span-chip.cm-span-start {
-  margin-left: 0;
-  border-radius: 4px 0 0 4px;
-}
-/* 종료: 오른쪽 margin 복원 + 오른쪽 radius */
-.cm-span-chip.cm-span-end {
-  margin-right: 0;
-  border-radius: 0 4px 4px 0;
-}
-/* 단일 일정 (시작=종료): margin 모두 복원 + 완전한 radius */
-.cm-span-chip.cm-span-start.cm-span-end {
-  margin: 0;
-  border-radius: 4px;
-}
 .cal-ev-cal {
   display: block;
   font-size: 10px;
