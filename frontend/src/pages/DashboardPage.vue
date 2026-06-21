@@ -209,12 +209,23 @@
                   <span v-if="cell.holidayName" class="cm-holiday-name">{{ cell.holidayName }}</span>
                 </div>
                 <div class="cm-events">
-                  <div v-for="ev in getMonthEventsForDay(widget, cell.dateStr)" :key="ev.id + cell.dateStr"
-                       class="cal-event-chip"
-                       :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
-                       :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title">
-                    <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
-                    <span class="cal-ev-title">{{ ev.title }}</span>
+                  <div v-for="item in getMonthEventsForDay(widget, cell.dateStr, cell.dow)"
+                       :key="item.ev.id + cell.dateStr"
+                       class="cm-span-chip"
+                       :class="{
+                         'cm-span-start': item.isRowStart,
+                         'cm-span-end':   item.isRowEnd,
+                         'cm-span-mid':   !item.isRowStart && !item.isRowEnd,
+                       }"
+                       :style="{
+                         background: item.ev.calendarColor ? item.ev.calendarColor + '22' : 'var(--accent-bg)',
+                         borderLeftColor: item.isRowStart ? (item.ev.calendarColor || 'var(--accent)') : 'transparent',
+                       }"
+                       :title="(item.ev.isAllDay ? '[종일] ' : formatEventTime(item.ev.startAt) + ' ') + item.ev.title">
+                    <template v-if="item.isRowStart">
+                      <span v-if="!item.ev.isAllDay" class="cal-ev-time">{{ formatEventTime(item.ev.startAt) }}</span>
+                      <span class="cal-ev-title">{{ item.ev.title }}</span>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -595,18 +606,30 @@ function getMonthCells(widget) {
   return cells
 }
 
-function getMonthEventsForDay(widget, dateStr) {
+function getMonthEventsForDay(widget, dateStr, dow) {
   const wid = widget.id
   const events = calMonthEvents.value[wid] !== undefined
     ? calMonthEvents.value[wid]
     : (widget.calendarEvents || [])
-  // HOLIDAY 타입은 날짜 셀 헤더에 표시하므로 이벤트 칩에서 제외
-  return events.filter(ev => {
-    if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
-    const start = (ev.startAt || '').slice(0, 10)
-    const end = (ev.endAt || start).slice(0, 10)
-    return dateStr >= start && dateStr <= end
-  })
+  return events
+    .filter(ev => {
+      if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
+      const start = (ev.startAt || '').slice(0, 10)
+      const end = (ev.endAt || start).slice(0, 10)
+      return dateStr >= start && dateStr <= end
+    })
+    .map(ev => {
+      const start = (ev.startAt || '').slice(0, 10)
+      const end = (ev.endAt || start).slice(0, 10)
+      const isStart = start === dateStr
+      const isEnd = end === dateStr
+      // 행 첫 칸(일요일) 또는 실제 시작일이면 시각적 시작
+      const isRowStart = isStart || dow === 0
+      // 행 마지막 칸(토요일) 또는 실제 종료일이면 시각적 끝
+      const isRowEnd = isEnd || dow === 6
+      const isMultiDay = start !== end
+      return { ev, isStart, isEnd, isRowStart, isRowEnd, isMultiDay }
+    })
 }
 
 const WIDGET_LABELS = {
@@ -1141,7 +1164,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  overflow: hidden;
+  overflow: visible;
 }
 .cm-cell.cm-other-month { opacity: 0.35; }
 .cm-cell.cm-today { background: var(--accent-bg); }
@@ -1172,7 +1195,35 @@ onMounted(async () => {
   min-width: 0;
   font-weight: 600;
 }
-.cm-events { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.cm-events { display: flex; flex-direction: column; gap: 2px; }
+
+/* 연속 일정 스패닝 칩 */
+.cm-span-chip {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  cursor: default;
+  border-left: 3px solid transparent;
+  /* 셀 패딩(4px) + gap(3px) 만큼 음수 마진으로 이웃 셀과 시각적으로 연결 */
+  margin-right: -7px;
+  margin-left: -7px;
+  padding-left: 5px;
+}
+.cm-span-chip.cm-span-start {
+  margin-left: 0;
+  border-radius: 4px 0 0 4px;
+  padding-left: 4px;
+}
+.cm-span-chip.cm-span-end {
+  margin-right: 0;
+  border-radius: 0 4px 4px 0;
+}
+.cm-span-chip.cm-span-start.cm-span-end {
+  margin-left: 0;
+  margin-right: 0;
+  border-radius: 4px;
+}
 .cal-ev-cal {
   display: block;
   font-size: 10px;
