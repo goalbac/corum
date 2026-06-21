@@ -416,11 +416,12 @@ function getWeekDays(widgetId) {
   const dow    = today.getDay()
   const sunday = new Date(today)
   sunday.setDate(today.getDate() - dow + offset * 7)
+  const pad = n => String(n).padStart(2, '0')
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(sunday)
     d.setDate(sunday.getDate() + i)
     return {
-      date:       d.toISOString().slice(0, 10),
+      date:       `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,
       dow:        DOW_KO[d.getDay()],
       dnum:       d.getDate(),
       isToday:    d.toDateString() === today.toDateString(),

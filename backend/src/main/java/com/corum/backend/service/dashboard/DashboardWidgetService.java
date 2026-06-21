@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -323,7 +324,10 @@ public class DashboardWidgetService {
     private List<DashboardCalendarEventResponse> buildCalendarEvents(DashboardWidget widget, int weekOffset, Long memberId) {
         Long calendarId = parseCalendarId(widget.getExtraConfig());
 
-        LocalDateTime weekStart = LocalDate.now().with(DayOfWeek.MONDAY).plusWeeks(weekOffset).atStartOfDay();
+        LocalDateTime weekStart = LocalDate.now()
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+                .plusWeeks(weekOffset)
+                .atStartOfDay();
         LocalDateTime weekEnd   = weekStart.plusDays(7).minusNanos(1);
 
         // 열람 권한이 있는 캘린더 ID 목록
