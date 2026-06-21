@@ -863,9 +863,6 @@ async function handleLogout() {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 0.5px solid var(--border2);
 }
 
 .user-menu-item {
