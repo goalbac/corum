@@ -1164,13 +1164,17 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  overflow: visible;
+  overflow: hidden;
+  cursor: default;
+  transition: background 0.12s;
 }
+.cm-cell:hover:not(.cm-today) { background: var(--surface2); }
 .cm-cell.cm-other-month { opacity: 0.35; }
 .cm-cell.cm-today { background: var(--accent-bg); }
 .cm-cell-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: center;
   gap: 3px;
   min-height: 22px;
 }
@@ -1197,31 +1201,30 @@ onMounted(async () => {
 }
 .cm-events { display: flex; flex-direction: column; gap: 2px; }
 
-/* 연속 일정 스패닝 칩 */
+/* 연속 일정 스패닝 칩 — 셀 패딩(4px)을 음수 마진으로 상쇄해 셀 가득 채움 */
 .cm-span-chip {
-  height: 18px;
+  height: 17px;
   display: flex;
   align-items: center;
   overflow: hidden;
   cursor: default;
+  margin: 0 -4px;
+  padding-left: 4px;
   border-left: 3px solid transparent;
-  /* 셀 패딩(4px) + gap(3px) 만큼 음수 마진으로 이웃 셀과 시각적으로 연결 */
-  margin-right: -7px;
-  margin-left: -7px;
-  padding-left: 5px;
 }
+/* 시작: 왼쪽 radius + 색상 border-left + 제목 노출 */
 .cm-span-chip.cm-span-start {
   margin-left: 0;
   border-radius: 4px 0 0 4px;
-  padding-left: 4px;
 }
+/* 종료: 오른쪽 radius */
 .cm-span-chip.cm-span-end {
   margin-right: 0;
   border-radius: 0 4px 4px 0;
 }
+/* 단일 일정 (시작=종료): 완전한 radius */
 .cm-span-chip.cm-span-start.cm-span-end {
-  margin-left: 0;
-  margin-right: 0;
+  margin: 0;
   border-radius: 4px;
 }
 .cal-ev-cal {
