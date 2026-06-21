@@ -257,7 +257,7 @@
                     <div class="cm-events-cell"
                          :class="{ 'cm-other-month': !cell.thisMonth, 'cm-today-body': cell.isToday }"
                          :style="{ gridColumn: ci+1, gridRow: bands.length + 2 }">
-                      <div v-for="ev in getMonthSingleDayEvents(widget, cell.dateStr)" :key="ev.id"
+                      <div v-for="ev in getMonthSingleDayEvents(widget, cell.dateStr, weekCells)" :key="ev.id"
                            class="cal-event-chip"
                            :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
                            :title="(showEventTime(ev) ? formatEventTime(ev.startAt) + ' ' : '[종일] ') + ev.title">
@@ -558,17 +558,6 @@ function formatEventTime(dt) {
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
-// 종일 일정의 exclusive end date 처리: endAt이 startAt + 1일인 경우 동일 날짜로 반환
-function eventEndDate(ev) {
-  const start = (ev.startAt || '').slice(0, 10)
-  const raw   = (ev.endAt   || start).slice(0, 10)
-  if (ev.isAllDay && raw > start) {
-    const diff = Math.round((new Date(raw) - new Date(start)) / 86400000)
-    if (diff === 1) return start
-  }
-  return raw
-}
-
 // 00:00은 종일 일정의 기본 시각이므로 표시하지 않음
 function showEventTime(ev) {
   if (ev.isAllDay) return false
@@ -578,15 +567,20 @@ function showEventTime(ev) {
 
 function getEventsForDay(widget, dateStr) {
   const wid = widget.id
-  // 네비게이션 후 별도 로드된 이벤트가 있으면 우선 사용
   const events = calWeekEvents.value[wid] !== undefined
     ? calWeekEvents.value[wid]
     : (widget.calendarEvents || [])
-  // 단일 일정만 반환 (연속 일정은 getWeekMultiDayEvents에서 별도 처리)
+  const weekDays = getWeekDays(wid)
   return events.filter(ev => {
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = eventEndDate(ev)
-    return start === end && start === dateStr
+    const end   = (ev.endAt || start).slice(0, 10)
+    if (start === end) return start === dateStr
+    // 연속 일정 중 이번 주에서 1컬럼만 차지하는 경우(시작일 = dateStr)는 단일처럼 표시
+    if (start !== dateStr) return false
+    const startCol = weekDays.findIndex(d => d.date >= start) + 1 || 1
+    const endColIdx = weekDays.findLastIndex(d => d.date <= end)
+    const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
+    return (endCol - startCol) === 1
   })
 }
 
@@ -600,13 +594,13 @@ function getWeekMultiDayEvents(widget) {
   const result = []
   events.forEach(ev => {
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = eventEndDate(ev)
-    if (start === end) return  // 단일 일정 제외 (종일 exclusive end 포함)
-    if (start > weekEnd || end < weekStart) return  // 이번 주 범위 밖
-    // 이번 주에서 보이는 컬럼 범위 계산 (1-based)
+    const end   = (ev.endAt || start).slice(0, 10)
+    if (start === end) return
+    if (start > weekEnd || end < weekStart) return
     const startCol = weekDays.findIndex(d => d.date >= start) + 1 || 1
     const endColIdx = weekDays.findLastIndex(d => d.date <= end)
     const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
+    if (endCol - startCol === 1) return  // 1컬럼짜리는 단일 이벤트로 처리
     result.push({ ev, startCol, endCol })
   })
   return result
@@ -707,13 +701,13 @@ function getMonthEventLaneMap(widget) {
   const multiDay = events.filter(ev => {
     if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = eventEndDate(ev)
+    const end   = (ev.endAt || start).slice(0, 10)
     return start !== end
   }).sort((a, b) => {
     const as = (a.startAt || '').slice(0, 10)
     const bs = (b.startAt || '').slice(0, 10)
-    const ae = eventEndDate(a)
-    const be = eventEndDate(b)
+    const ae = (a.endAt || as).slice(0, 10)
+    const be = (b.endAt || bs).slice(0, 10)
     if (as !== bs) return as < bs ? -1 : 1
     return ae > be ? -1 : ae < be ? 1 : 0
   })
@@ -721,7 +715,7 @@ function getMonthEventLaneMap(widget) {
   const laneEnd = []
   multiDay.forEach(ev => {
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = eventEndDate(ev)
+    const end   = (ev.endAt || start).slice(0, 10)
     let lane = 0
     while (laneEnd[lane] !== undefined && laneEnd[lane] >= start) lane++
     laneEnd[lane] = end
@@ -741,12 +735,13 @@ function getMonthRowMultiDayEvents(widget, weekCells) {
   events.forEach(ev => {
     if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = eventEndDate(ev)
-    if (start === end) return  // 단일 일정(종일 exclusive end 포함) 제외
+    const end   = (ev.endAt || start).slice(0, 10)
+    if (start === end) return
     if (start > weekEnd || end < weekStart) return
     const startCol = weekCells.findIndex(c => c.dateStr >= start) + 1 || 1
     const endColIdx = weekCells.findLastIndex(c => c.dateStr <= end)
     const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
+    if (endCol - startCol === 1) return  // 1컬럼짜리는 단일 이벤트로 처리
     result.push({ ev, startCol, endCol, lane: laneMap[ev.id] ?? 0 })
   })
   // lane 순 정렬 후 주(week) 내 연속 row 인덱스 부여 → 빈 row 방지
@@ -755,15 +750,21 @@ function getMonthRowMultiDayEvents(widget, weekCells) {
   return result
 }
 
-function getMonthSingleDayEvents(widget, dateStr) {
+function getMonthSingleDayEvents(widget, dateStr, weekCells) {
   const wid = widget.id
   const events = calMonthEvents.value[wid] !== undefined
     ? calMonthEvents.value[wid] : (widget.calendarEvents || [])
   return events.filter(ev => {
     if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
     const start = (ev.startAt || '').slice(0, 10)
-    const end   = eventEndDate(ev)
-    return start === end && start === dateStr
+    const end   = (ev.endAt || start).slice(0, 10)
+    if (start === end) return start === dateStr
+    // 연속 일정 중 이번 주에서 시작하고 1컬럼만 차지하는 경우 단일처럼 표시
+    if (!weekCells || start !== dateStr) return false
+    const startCol = weekCells.findIndex(c => c.dateStr >= start) + 1 || 1
+    const endColIdx = weekCells.findLastIndex(c => c.dateStr <= end)
+    const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
+    return (endCol - startCol) === 1
   })
 }
 
@@ -1358,7 +1359,7 @@ onMounted(async () => {
 /* last row: 단일 일정 컨테이너 */
 .cm-events-cell {
   min-height: 36px;
-  padding: 2px 4px 5px;
+  padding: 2px 0 5px;
   border-radius: 0 0 7px 7px;
   display: flex;
   flex-direction: column;
