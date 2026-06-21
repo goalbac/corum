@@ -17,9 +17,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Map;
@@ -155,47 +157,164 @@ public class CalendarService {
 
     private void expandAndAdd(CalendarEventDto dto, LocalDateTime windowStart, LocalDateTime windowEnd,
                                List<CalendarEventDto> result, Set<String> addedKeys) {
-        LocalDateTime until = parseUntil(dto.getRecurrenceRule(), windowEnd);
+        JsonNode rule = parseRule(dto.getRecurrenceRule());
+        LocalDateTime until = parseUntil(rule, windowEnd);
+        int maxCount = parseCount(rule);
+        int interval = parseInterval(rule);
         Duration duration = dto.getEndAt() != null
                 ? Duration.between(dto.getStartAt(), dto.getEndAt()) : null;
 
+        String type = dto.getRecurrenceType();
+
+        // WEEKLY with days[]: 각 요일별로 occurrence 생성
+        if ("WEEKLY".equals(type) && rule != null && rule.has("days") && rule.get("days").isArray()) {
+            List<Integer> days = new ArrayList<>();
+            rule.get("days").forEach(d -> days.add(d.asInt()));
+            if (days.isEmpty()) return;
+
+            // 시작일 기준 주의 첫날(일요일)부터 탐색
+            LocalDateTime weekStart = dto.getStartAt().with(DayOfWeek.SUNDAY);
+            if (weekStart.isAfter(dto.getStartAt())) weekStart = weekStart.minusWeeks(1);
+
+            int occCount = 0;
+            int weekSafety = 0;
+            outer:
+            while (!weekStart.isAfter(windowEnd) && !weekStart.isAfter(until) && weekSafety++ < 3000) {
+                for (int dayNum : days) {
+                    // dayNum: 0=Sun,1=Mon,...,6=Sat (JS getDay() 기준)
+                    DayOfWeek dow = dayNumToDayOfWeek(dayNum);
+                    LocalDateTime occStart = weekStart.with(TemporalAdjusters.nextOrSame(dow))
+                            .withHour(dto.getStartAt().getHour())
+                            .withMinute(dto.getStartAt().getMinute())
+                            .withSecond(dto.getStartAt().getSecond());
+                    if (occStart.isBefore(dto.getStartAt()) || occStart.isAfter(until) || occStart.isAfter(windowEnd)) continue;
+                    if (occCount >= maxCount) break outer;
+                    LocalDateTime occEnd = duration != null ? occStart.plus(duration) : null;
+                    if (!occStart.isBefore(windowStart) || (occEnd != null && !occEnd.isBefore(windowStart))) {
+                        String key = dto.getId() + "_" + occStart;
+                        if (addedKeys.add(key)) {
+                            result.add(dto.withTimes(occStart, occEnd));
+                            occCount++;
+                        }
+                    }
+                }
+                weekStart = weekStart.plusWeeks(interval);
+            }
+            return;
+        }
+
+        // MONTHLY with monthlyType=WEEKDAY: N번째 X요일
+        if ("MONTHLY".equals(type) && rule != null && "WEEKDAY".equals(rule.path("monthlyType").asText(""))) {
+            LocalDateTime occStart = dto.getStartAt();
+            int occCount = 0;
+            int safety = 0;
+            while (!occStart.isAfter(windowEnd) && !occStart.isAfter(until) && safety++ < 3000 && occCount < maxCount) {
+                LocalDateTime occEnd = duration != null ? occStart.plus(duration) : null;
+                if (!occStart.isBefore(windowStart) || (occEnd != null && !occEnd.isBefore(windowStart))) {
+                    String key = dto.getId() + "_" + occStart;
+                    if (addedKeys.add(key)) {
+                        result.add(dto.withTimes(occStart, occEnd));
+                        occCount++;
+                    }
+                }
+                // 다음달 같은 N번째 X요일 계산
+                occStart = nextNthWeekday(occStart, interval);
+            }
+            return;
+        }
+
+        // 기본 처리: DAILY, WEEKLY(단순), MONTHLY, YEARLY
         LocalDateTime occStart = dto.getStartAt();
+        int occCount = 0;
         int safety = 0;
-        while (!occStart.isAfter(windowEnd) && !occStart.isAfter(until) && safety++ < 3000) {
+        while (!occStart.isAfter(windowEnd) && !occStart.isAfter(until) && safety++ < 3000 && occCount < maxCount) {
             LocalDateTime occEnd = duration != null ? occStart.plus(duration) : null;
-            // 이 occurrence가 window와 겹치는지 확인
             boolean overlaps = !occStart.isAfter(windowEnd)
                     && (occEnd == null || !occEnd.isBefore(windowStart))
-                    && !occStart.isBefore(windowStart.minusDays(1)); // 최소 window 하루 전부터
+                    && !occStart.isBefore(windowStart.minusDays(1));
             if (overlaps || !occStart.isBefore(windowStart)) {
                 String key = dto.getId() + "_" + occStart;
                 if (addedKeys.add(key)) {
                     result.add(dto.withTimes(occStart, occEnd));
+                    occCount++;
                 }
             }
-            occStart = advance(occStart, dto.getRecurrenceType());
+            occStart = advance(occStart, type, interval);
         }
     }
 
-    private LocalDateTime advance(LocalDateTime dt, String type) {
-        return switch (type) {
-            case "DAILY"   -> dt.plusDays(1);
-            case "WEEKLY"  -> dt.plusWeeks(1);
-            case "MONTHLY" -> dt.plusMonths(1);
-            default        -> dt.plusYears(1000); // 종료
+    private DayOfWeek dayNumToDayOfWeek(int dayNum) {
+        return switch (dayNum) {
+            case 0 -> DayOfWeek.SUNDAY;
+            case 1 -> DayOfWeek.MONDAY;
+            case 2 -> DayOfWeek.TUESDAY;
+            case 3 -> DayOfWeek.WEDNESDAY;
+            case 4 -> DayOfWeek.THURSDAY;
+            case 5 -> DayOfWeek.FRIDAY;
+            default -> DayOfWeek.SATURDAY;
         };
     }
 
-    private LocalDateTime parseUntil(String recurrenceRule, LocalDateTime fallback) {
-        if (recurrenceRule == null || recurrenceRule.isBlank()) return fallback;
+    private LocalDateTime nextNthWeekday(LocalDateTime current, int monthInterval) {
+        // 현재가 몇 번째 주 무슨 요일인지 파악
+        int dayOfMonth = current.getDayOfMonth();
+        int nth = (dayOfMonth - 1) / 7 + 1; // 1~5
+        DayOfWeek dow = current.getDayOfWeek();
+
+        LocalDateTime base = current.plusMonths(monthInterval).withDayOfMonth(1);
+        LocalDateTime first = base.with(TemporalAdjusters.firstInMonth(dow));
+        LocalDateTime result = first.plusWeeks(nth - 1);
+        // 같은 달인지 확인 (5번째 요일이 없는 경우 마지막으로)
+        if (result.getMonth() != base.getMonth()) {
+            result = first.plusWeeks(nth - 2);
+        }
+        return result.withHour(current.getHour()).withMinute(current.getMinute()).withSecond(current.getSecond());
+    }
+
+    private LocalDateTime advance(LocalDateTime dt, String type, int interval) {
+        return switch (type) {
+            case "DAILY"   -> dt.plusDays(interval);
+            case "WEEKLY"  -> dt.plusWeeks(interval);
+            case "MONTHLY" -> dt.plusMonths(interval);
+            case "YEARLY"  -> dt.plusYears(interval);
+            default        -> dt.plusYears(1000);
+        };
+    }
+
+    private JsonNode parseRule(String recurrenceRule) {
+        if (recurrenceRule == null || recurrenceRule.isBlank()) return null;
         try {
-            JsonNode node = new ObjectMapper().readTree(recurrenceRule);
-            JsonNode until = node.get("until");
-            if (until != null && !until.isNull()) {
+            return new ObjectMapper().readTree(recurrenceRule);
+        } catch (Exception ignored) { return null; }
+    }
+
+    private LocalDateTime parseUntil(JsonNode rule, LocalDateTime fallback) {
+        if (rule == null) return fallback;
+        try {
+            JsonNode until = rule.get("until");
+            if (until != null && !until.isNull() && !until.asText().isBlank()) {
                 return LocalDate.parse(until.asText()).atTime(23, 59, 59);
             }
         } catch (Exception ignored) {}
         return fallback;
+    }
+
+    private int parseCount(JsonNode rule) {
+        if (rule == null) return Integer.MAX_VALUE;
+        JsonNode count = rule.get("count");
+        if (count != null && !count.isNull() && count.asInt(0) > 0) return count.asInt();
+        return Integer.MAX_VALUE;
+    }
+
+    private int parseInterval(JsonNode rule) {
+        if (rule == null) return 1;
+        JsonNode interval = rule.get("interval");
+        int v = interval != null ? interval.asInt(1) : 1;
+        return v < 1 ? 1 : v;
+    }
+
+    private LocalDateTime parseUntil(String recurrenceRule, LocalDateTime fallback) {
+        return parseUntil(parseRule(recurrenceRule), fallback);
     }
 
     // ===== 일정 단건 조회 =====

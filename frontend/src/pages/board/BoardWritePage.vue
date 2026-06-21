@@ -40,17 +40,18 @@
         <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="400px" style="width:100%" />
       </el-form-item>
 
-      <el-form-item label="파일 첨부">
+      <el-form-item :label="board?.boardType === 'DOCUMENT' ? '파일 첨부 *' : '파일 첨부'">
         <el-upload
           v-model:file-list="fileList"
           :auto-upload="false"
           multiple
           :on-change="handleFileChange"
         >
-          <el-button size="small">파일 선택</el-button>
+          <el-button size="small" :type="board?.boardType === 'DOCUMENT' && !isEdit && files.length === 0 ? 'primary' : 'default'">파일 선택</el-button>
           <template #tip>
             <div class="upload-tip">
-              파일을 선택하면 저장 시 함께 업로드됩니다.
+              <span v-if="board?.boardType === 'DOCUMENT'" class="doc-required-tip">자료실은 파일 첨부가 필수입니다.</span>
+              <span v-else>파일을 선택하면 저장 시 함께 업로드됩니다.</span>
               <span v-if="board">
                 최대 {{ board.fileMaxSizeMb || DEFAULT_MAX_MB }}MB,
                 {{ board.fileMaxCount || DEFAULT_MAX_COUNT }}개까지
@@ -162,6 +163,10 @@ async function handleSubmit() {
     ElMessage.error('연결된 게시판을 찾을 수 없습니다.')
     return
   }
+  if (board.value?.boardType === 'DOCUMENT' && !isEdit.value && files.value.length === 0) {
+    ElMessage.warning('자료실에는 파일을 반드시 첨부해야 합니다.')
+    return
+  }
 
   loading.value = true
   try {
@@ -232,6 +237,12 @@ onMounted(async () => {
   font-size: 14px;
   color: var(--t3);
   margin-top: 4px;
+}
+
+.doc-required-tip {
+  color: var(--warning, #e6a23c);
+  font-weight: 500;
+  margin-right: 6px;
 }
 
 @media (max-width: 768px) {

@@ -121,6 +121,14 @@
             </div>
           </template>
 
+          <!-- CALENDAR_MONTHLY -->
+          <template v-else-if="w.widgetType === 'CALENDAR_MONTHLY'">
+            <div class="wp-empty" style="gap:6px">
+              <i class="ti ti-calendar-month"></i>
+              {{ parseConfig(w).calendarId ? (calendarName(parseConfig(w).calendarId)) : '모든 캘린더' }} 월간 캘린더 표시
+            </div>
+          </template>
+
           <!-- IMAGE_GRID -->
           <template v-else-if="w.widgetType === 'IMAGE_GRID'">
             <div class="wp-slides">
@@ -210,7 +218,8 @@
                 <el-option value="RECENT_GALLERY"  label="최신 글 (갤러리/웹진)" />
               </el-option-group>
               <el-option-group label="캘린더">
-                <el-option value="CALENDAR_WEEKLY" label="캘린더 (주간)" />
+                <el-option value="CALENDAR_WEEKLY"  label="캘린더 (주간)" />
+                <el-option value="CALENDAR_MONTHLY" label="캘린더 (월간)" />
               </el-option-group>
               <el-option-group label="콘텐츠">
                 <el-option value="IMAGE_SLIDER"    label="이미지 슬라이더" />
@@ -284,20 +293,23 @@
           </div>
         </template>
 
-        <!-- CALENDAR_WEEKLY -->
-        <template v-if="form.widgetType === 'CALENDAR_WEEKLY'">
+        <!-- CALENDAR_WEEKLY / CALENDAR_MONTHLY 공통 설정 -->
+        <template v-if="form.widgetType === 'CALENDAR_WEEKLY' || form.widgetType === 'CALENDAR_MONTHLY'">
           <hr class="dlg-divider"/>
           <div class="dlg-row">
             <div class="dlg-field">
               <label>대상 캘린더</label>
               <el-select v-model="config.calendarId" clearable placeholder="모든 캘린더" style="width:100%">
-                <el-option v-for="c in calendars" :key="c.id" :value="c.id" :label="c.name">
+                <el-option v-for="c in calendars.filter(c => c.calendarType !== 'HOLIDAY')" :key="c.id" :value="c.id" :label="c.name">
                   <span style="display:flex;align-items:center;gap:8px">
                     <span v-if="c.color" :style="{ display:'inline-block', width:'12px', height:'12px', borderRadius:'50%', background:c.color }"></span>
                     {{ c.name }}
                   </span>
                 </el-option>
               </el-select>
+              <div v-if="form.widgetType === 'CALENDAR_MONTHLY'" style="font-size:12px;color:var(--t3);margin-top:4px">
+                <i class="ti ti-info-circle" style="margin-right:3px"></i>월간 위젯은 대한민국 공휴일을 항상 함께 표시합니다.
+              </div>
             </div>
           </div>
         </template>
@@ -512,7 +524,7 @@ const widgetSortable = ref(null)
 let sortableInstance = null
 
 // 크기 선택이 있는 위젯 유형
-const SIZE_PICKER_TYPES = ['RECENT_POSTS', 'RECENT_GALLERY', 'CALENDAR_WEEKLY', 'LINK_LIST', 'QUICK_LINKS', 'CUSTOM']
+const SIZE_PICKER_TYPES = ['RECENT_POSTS', 'RECENT_GALLERY', 'CALENDAR_WEEKLY', 'CALENDAR_MONTHLY', 'LINK_LIST', 'QUICK_LINKS', 'CUSTOM']
 function hasSizePicker(type) { return SIZE_PICKER_TYPES.includes(type) }
 
 const defaultForm = () => ({
@@ -533,7 +545,8 @@ function typeLabel(t) {
     WELCOME:         '웰컴 카드',
     RECENT_POSTS:    '최신 글',
     RECENT_GALLERY:  '갤러리 최신글',
-    CALENDAR_WEEKLY: '캘린더 주간',
+    CALENDAR_WEEKLY:  '캘린더 주간',
+    CALENDAR_MONTHLY: '캘린더 월간',
     IMAGE_SLIDER:    '슬라이더',
     IMAGE_GRID:      '이미지 그리드',
     LINK_LIST:       '링크',
@@ -712,7 +725,7 @@ async function saveWidget() {
     if (form.value.widgetType === 'IMAGE_GRID')         extra.images     = config.value.images
     if (['LINK_LIST','QUICK_LINKS'].includes(form.value.widgetType)) extra.links = config.value.links
     if (form.value.widgetType === 'CUSTOM')             extra.content    = config.value.content
-    if (form.value.widgetType === 'CALENDAR_WEEKLY')    extra.calendarId = config.value.calendarId
+    if (form.value.widgetType === 'CALENDAR_WEEKLY' || form.value.widgetType === 'CALENDAR_MONTHLY') extra.calendarId = config.value.calendarId
     if (form.value.widgetType === 'WELCOME') {
       extra.subText   = config.value.subText
       extra.showClock = config.value.showClock

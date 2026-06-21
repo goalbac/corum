@@ -88,25 +88,75 @@
         <div class="form-row">
           <el-form-item label="시작">
             <el-date-picker v-model="eventForm.startAt" :type="eventForm.isAllDay ? 'date' : 'datetime'"
-              style="width:100%" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DDTHH:mm:ss" />
+              style="width:100%"
+              :format="eventForm.isAllDay ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm'"
+              :value-format="eventForm.isAllDay ? 'YYYY-MM-DD' : 'YYYY-MM-DDTHH:mm:ss'" />
           </el-form-item>
           <el-form-item label="종료">
             <el-date-picker v-model="eventForm.endAt" :type="eventForm.isAllDay ? 'date' : 'datetime'"
-              style="width:100%" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DDTHH:mm:ss" />
+              style="width:100%"
+              :format="eventForm.isAllDay ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm'"
+              :value-format="eventForm.isAllDay ? 'YYYY-MM-DD' : 'YYYY-MM-DDTHH:mm:ss'" />
           </el-form-item>
         </div>
+        <!-- 반복 설정 -->
         <el-form-item label="반복">
-          <el-select v-model="eventForm.recurrenceType" style="width:100%">
+          <el-select v-model="eventForm.recurrenceType" style="width:100%" @change="onRecurrenceTypeChange">
             <el-option value="NONE" label="반복 없음" />
             <el-option value="DAILY" label="매일" />
             <el-option value="WEEKLY" label="매주" />
             <el-option value="MONTHLY" label="매월" />
+            <el-option value="YEARLY" label="매년" />
           </el-select>
         </el-form-item>
-        <el-form-item v-if="eventForm.recurrenceType !== 'NONE'" label="반복 종료일">
-          <el-date-picker v-model="recurrenceEndDate" type="date" style="width:100%"
-            format="YYYY-MM-DD" value-format="YYYY-MM-DD" placeholder="종료일 (선택)" />
-        </el-form-item>
+
+        <template v-if="eventForm.recurrenceType !== 'NONE'">
+          <!-- 반복 간격 -->
+          <el-form-item>
+            <div class="rec-interval-row">
+              <span class="rec-label">매</span>
+              <el-input-number v-model="recurrenceRule.interval" :min="1" :max="99" controls-position="right" style="width:90px" />
+              <span class="rec-label">{{ intervalUnitLabel }}</span>
+            </div>
+          </el-form-item>
+
+          <!-- 매주: 요일 선택 -->
+          <el-form-item v-if="eventForm.recurrenceType === 'WEEKLY'" label="반복 요일">
+            <div class="rec-days">
+              <button v-for="(d, i) in dayLabels" :key="i" type="button"
+                class="rec-day-btn"
+                :class="{ active: recurrenceRule.days.includes(i) }"
+                @click="toggleDay(i)">{{ d }}</button>
+            </div>
+          </el-form-item>
+
+          <!-- 매월: 기준 선택 -->
+          <el-form-item v-if="eventForm.recurrenceType === 'MONTHLY'" label="반복 기준">
+            <el-radio-group v-model="recurrenceRule.monthlyType">
+              <el-radio value="DATE">{{ monthlyDateLabel }}</el-radio>
+              <el-radio value="WEEKDAY">{{ monthlyWeekdayLabel }}</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <!-- 반복 종료 -->
+          <el-form-item label="종료">
+            <div class="rec-end-row">
+              <el-select v-model="recurrenceRule.endType" style="width:110px">
+                <el-option value="NONE" label="없음" />
+                <el-option value="DATE" label="날짜" />
+                <el-option value="COUNT" label="횟수" />
+              </el-select>
+              <el-date-picker v-if="recurrenceRule.endType === 'DATE'"
+                v-model="recurrenceRule.until" type="date"
+                format="YYYY-MM-DD" value-format="YYYY-MM-DD"
+                placeholder="종료일" style="flex:1" />
+              <template v-if="recurrenceRule.endType === 'COUNT'">
+                <el-input-number v-model="recurrenceRule.count" :min="1" :max="999" controls-position="right" style="width:90px" />
+                <span class="rec-label">회</span>
+              </template>
+            </div>
+          </el-form-item>
+        </template>
         <el-form-item label="내용">
           <el-input v-model="eventForm.description" type="textarea" :rows="3" resize="none" />
         </el-form-item>
@@ -149,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -181,7 +231,15 @@ const currentTitle = ref('')
 const currentView  = ref('dayGridMonth')
 const editingEvent = ref(null)
 const selectedEvent = ref(null)
-const recurrenceEndDate = ref(null)
+const recurrenceEndDate = ref(null) // 하위 호환용 (미사용)
+const recurrenceRule = ref({
+  interval: 1,
+  days: [],        // WEEKLY 요일 (0=일,1=월,...,6=토)
+  monthlyType: 'DATE', // 'DATE' or 'WEEKDAY'
+  endType: 'NONE', // 'NONE' | 'DATE' | 'COUNT'
+  until: null,
+  count: 10,
+})
 const showFilter = ref(false)
 const filterWrap = ref(null)
 // 날짜별 공휴일 정보 (HOLIDAY 캘린더 이벤트에서 추출)
@@ -419,6 +477,8 @@ async function fetchEvents(info, successCallback, failureCallback) {
       }
     })
     holidayMap.value = newHolidayMap
+    // 날짜 셀 공휴일 표시 갱신 (dayCellContent는 render 시 재호출)
+    nextTick(() => calApi.value?.render())
 
     // HOLIDAY 캘린더 이벤트는 블록으로 표시하지 않음
     const events = allData.filter(e => !holidayCalIds.has(e.calendarId)).map(e => {
@@ -443,6 +503,7 @@ async function fetchEvents(info, successCallback, failureCallback) {
           location: e.location,
           calendarId: e.calendarId,
           recurrenceType: e.recurrenceType,
+          recurrenceRule: e.recurrenceRule,
           createdBy: e.createdBy,
         }
       }
@@ -492,12 +553,34 @@ function defaultEventTimes(baseDate) {
 
 function handleDateClick(info) {
   if (!writableCalendars.value.length) return
-  const { startAt, endAt } = defaultEventTimes(info.date)
+  const pad = n => String(n).padStart(2, '0')
+  const viewType = info.view.type
+  let startAt, endAt, isAllDay
+
+  if (viewType === 'dayGridMonth') {
+    // 월간 뷰: 구글 캘린더처럼 종일 이벤트로 생성
+    const d = info.date
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+    startAt = dateStr
+    endAt = dateStr
+    isAllDay = true
+  } else {
+    // 주간/일간 뷰: 클릭한 시간 슬롯 기준으로 1시간 블록
+    const d = new Date(info.date)
+    d.setMinutes(0, 0, 0)
+    const end = new Date(d)
+    end.setHours(end.getHours() + 1)
+    const fmt = dt => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:00:00`
+    startAt = fmt(d)
+    endAt = fmt(end)
+    isAllDay = false
+  }
+
   eventForm.value = {
     calendarId: writableCalendars.value[0]?.id || null,
     title: '', location: '', description: '',
     startAt, endAt,
-    isAllDay: false, recurrenceType: 'NONE',
+    isAllDay, recurrenceType: 'NONE',
   }
   recurrenceEndDate.value = null
   editingEvent.value = null
@@ -511,13 +594,13 @@ function changeView(view) {
 
 function openCreate() {
   editingEvent.value = null
-  recurrenceEndDate.value = null
   const { startAt, endAt } = defaultEventTimes()
   eventForm.value = {
     calendarId: writableCalendars.value[0]?.id || null,
     title: '', location: '', description: '',
     startAt, endAt, isAllDay: false, recurrenceType: 'NONE',
   }
+  resetRecurrenceRule()
   showForm.value = true
 }
 
@@ -526,17 +609,117 @@ function editEvent() {
   const e = selectedEvent.value
   editingEvent.value = e
   recurrenceEndDate.value = null
+  let endAt = stripTz(e.endStr)
+  // FullCalendar은 종일 end를 exclusive로 전달하므로 하루 빼서 복원
+  if (e.allDay && endAt) {
+    const d = new Date(endAt)
+    d.setDate(d.getDate() - 1)
+    const pad = n => String(n).padStart(2, '0')
+    endAt = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+  }
+  const recType = e.extendedProps.recurrenceType || 'NONE'
   eventForm.value = {
     calendarId: e.extendedProps.calendarId,
     title: e.title,
     location: e.extendedProps.location || '',
     description: e.extendedProps.description || '',
     startAt: stripTz(e.startStr),
-    endAt: stripTz(e.endStr),
+    endAt,
     isAllDay: e.allDay,
-    recurrenceType: e.extendedProps.recurrenceType || 'NONE',
+    recurrenceType: recType,
   }
+  loadRecurrenceRule(e.extendedProps.recurrenceRule || null, recType)
   showForm.value = true
+}
+
+// ===== 반복 관련 =====
+const dayLabels = ['일', '월', '화', '수', '목', '금', '토']
+
+const intervalUnitLabel = computed(() => {
+  switch (eventForm.value.recurrenceType) {
+    case 'DAILY':   return '일마다'
+    case 'WEEKLY':  return '주마다'
+    case 'MONTHLY': return '개월마다'
+    case 'YEARLY':  return '년마다'
+    default:        return ''
+  }
+})
+
+const monthlyDateLabel = computed(() => {
+  const d = eventForm.value.startAt
+  if (!d) return '날짜 기준'
+  const date = new Date(d)
+  return `매월 ${date.getDate()}일`
+})
+
+const monthlyWeekdayLabel = computed(() => {
+  const d = eventForm.value.startAt
+  if (!d) return '요일 기준'
+  const date = new Date(d)
+  const nth = Math.ceil(date.getDate() / 7)
+  const dayName = dayLabels[date.getDay()]
+  return `매월 ${nth}번째 ${dayName}요일`
+})
+
+function toggleDay(i) {
+  const days = recurrenceRule.value.days
+  const idx = days.indexOf(i)
+  if (idx === -1) days.push(i)
+  else days.splice(idx, 1)
+  days.sort((a, b) => a - b)
+}
+
+function onRecurrenceTypeChange(type) {
+  // 매주: 시작일 요일 기본 선택
+  if (type === 'WEEKLY') {
+    const d = eventForm.value.startAt
+    if (d) {
+      const dow = new Date(d).getDay()
+      if (!recurrenceRule.value.days.includes(dow)) {
+        recurrenceRule.value.days = [dow]
+      }
+    }
+    if (recurrenceRule.value.days.length === 0) recurrenceRule.value.days = [1] // 월요일 기본
+  }
+}
+
+function resetRecurrenceRule() {
+  const d = eventForm.value.startAt
+  const defaultDow = d ? new Date(d).getDay() : 1
+  recurrenceRule.value = {
+    interval: 1,
+    days: [defaultDow],
+    monthlyType: 'DATE',
+    endType: 'NONE',
+    until: null,
+    count: 10,
+  }
+}
+
+function buildRecurrenceRule() {
+  const type = eventForm.value.recurrenceType
+  if (type === 'NONE') return null
+  const r = recurrenceRule.value
+  const rule = {}
+  if (r.interval > 1) rule.interval = r.interval
+  if (type === 'WEEKLY' && r.days.length > 0) rule.days = [...r.days]
+  if (type === 'MONTHLY' && r.monthlyType === 'WEEKDAY') rule.monthlyType = 'WEEKDAY'
+  if (r.endType === 'DATE' && r.until) rule.until = r.until
+  if (r.endType === 'COUNT' && r.count > 0) rule.count = r.count
+  return Object.keys(rule).length ? JSON.stringify(rule) : null
+}
+
+function loadRecurrenceRule(recurrenceRuleStr, recurrenceType) {
+  resetRecurrenceRule()
+  if (!recurrenceRuleStr || recurrenceType === 'NONE') return
+  try {
+    const parsed = JSON.parse(recurrenceRuleStr)
+    if (parsed.interval) recurrenceRule.value.interval = parsed.interval
+    if (parsed.days) recurrenceRule.value.days = parsed.days
+    if (parsed.monthlyType) recurrenceRule.value.monthlyType = parsed.monthlyType
+    if (parsed.until) { recurrenceRule.value.endType = 'DATE'; recurrenceRule.value.until = parsed.until }
+    else if (parsed.count) { recurrenceRule.value.endType = 'COUNT'; recurrenceRule.value.count = parsed.count }
+  } catch {}
 }
 
 async function saveEvent() {
@@ -545,9 +728,7 @@ async function saveEvent() {
   try {
     const payload = {
       ...eventForm.value,
-      recurrenceRule: recurrenceEndDate.value
-        ? JSON.stringify({ until: recurrenceEndDate.value })
-        : null,
+      recurrenceRule: buildRecurrenceRule(),
     }
     if (editingEvent.value) {
       await api.put(`/calendars/events/${editingEvent.value.id}`, payload)
@@ -571,9 +752,15 @@ async function deleteEvent() {
 function formatEventDate(event) {
   if (!event) return ''
   const s = new Date(event.startStr)
-  const e = event.endStr ? new Date(event.endStr) : null
   const fmt = d => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
-  if (event.allDay) return e ? `${fmt(s)} ~ ${fmt(e)}` : fmt(s)
+  if (event.allDay) {
+    // FullCalendar end는 exclusive → 하루 빼서 표시
+    if (!event.endStr) return fmt(s)
+    const e = new Date(event.endStr)
+    e.setDate(e.getDate() - 1)
+    return s.toDateString() === e.toDateString() ? fmt(s) : `${fmt(s)} ~ ${fmt(e)}`
+  }
+  const e = event.endStr ? new Date(event.endStr) : null
   const timeFmt = d => `${fmt(d)} ${d.toTimeString().slice(0,5)}`
   return e ? `${timeFmt(s)} ~ ${timeFmt(e)}` : timeFmt(s)
 }
@@ -611,7 +798,12 @@ onMounted(async () => {
     const linkedIds = activeMenu?.targetCalendarIds?.length
       ? activeMenu.targetCalendarIds.map(Number)
       : (activeMenu?.targetId ? [Number(activeMenu.targetId)] : [])
-    calendars.value = linkedIds.length ? all.filter(c => linkedIds.includes(c.id)) : all
+    // HOLIDAY 캘린더는 메뉴 연결 여부와 무관하게 항상 포함 (별도 처리)
+    const holidayAll = all.filter(c => c.calendarType === 'HOLIDAY')
+    const filtered = linkedIds.length ? all.filter(c => linkedIds.includes(c.id)) : all
+    const merged = [...filtered]
+    holidayAll.forEach(h => { if (!merged.find(c => c.id === h.id)) merged.push(h) })
+    calendars.value = merged
     // 메뉴 설정이 있으면 그 값을 사용, 없으면 localStorage 유지
     if (activeMenu && activeMenu.showHoliday !== undefined) {
       showHolidayCalendar.value = activeMenu.showHoliday !== false
@@ -971,6 +1163,25 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .detail-row i { font-size: 16px; color: var(--t3); margin-top: 2px; flex-shrink: 0; }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* 반복 설정 */
+.rec-interval-row { display: flex; align-items: center; gap: 8px; }
+.rec-label { font-size: 13px; color: var(--t2); white-space: nowrap; }
+.rec-days { display: flex; gap: 6px; flex-wrap: wrap; }
+.rec-day-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border2);
+  background: var(--surface);
+  color: var(--t2);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+}
+.rec-day-btn:hover { border-color: var(--accent); color: var(--accent); }
+.rec-day-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rec-end-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 @media (max-width: 768px) {
   .cal-layout { padding: 12px 0 20px; }

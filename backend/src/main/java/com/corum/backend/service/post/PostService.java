@@ -1,9 +1,11 @@
 package com.corum.backend.service.post;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.board.Board;
 import com.corum.backend.domain.board.BoardCategory;
 import com.corum.backend.domain.board.BoardCategoryRepository;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
+import com.corum.backend.domain.board.BoardRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.Post;
@@ -44,6 +46,7 @@ public class PostService {
     private final MemberGroupRepository memberGroupRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final BoardCategoryRepository boardCategoryRepository;
+    private final BoardRepository boardRepository;
     private final NotificationService notificationService;
 
     // 24시간 내 동일 게시글 중복 조회 방지 (key: "postId:u{memberId}" or "postId:i{ip}")
@@ -66,7 +69,9 @@ public class PostService {
     // ===== 게시글 목록 =====
     @Transactional(readOnly = true)
     public Page<PostSummaryResponse> getPosts(Long boardId, String searchType,
-                                               String keyword, Long categoryId, Pageable pageable) {
+                                              String keyword, Long categoryId, Pageable pageable) {
+        Board board = boardRepository.findById(boardId).orElse(null);
+        boolean isDocument = board != null && "DOCUMENT".equals(board.getBoardType());
         Page<Post> posts;
         boolean hasKeyword = keyword != null && !keyword.isBlank();
         if (categoryId != null) {
@@ -126,7 +131,19 @@ public class PostService {
             int commentCount = commentRepository.countByPostIdAndIsDeletedFalse(p.getId());
             String catName = p.getCategoryId() != null ? categoryNameMap.get(p.getCategoryId()) : null;
             String profileImageUrl = p.getMemberId() != null ? profileImageMap.getOrDefault(p.getMemberId(), "") : "";
-            content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, imageUrls, rowNum, catName, profileImageUrl));
+
+            if (isDocument) {
+                // 자료실: 이미지 외 첫 번째 파일을 대표 파일로
+                FileResponse primary = files.isEmpty() ? null : files.get(0);
+                content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(),
+                        null, List.of(), rowNum, catName, profileImageUrl,
+                        primary != null ? primary.getOriginalName() : null,
+                        primary != null ? primary.getFileSize() : null,
+                        primary != null ? primary.getDownloadCount() : null,
+                        files.size()));
+            } else {
+                content.add(new PostSummaryResponse(p, commentCount, !files.isEmpty(), thumbnailUrl, imageUrls, rowNum, catName, profileImageUrl));
+            }
         }
 
         return new PageImpl<>(content, pageable, posts.getTotalElements());

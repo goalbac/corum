@@ -38,7 +38,7 @@ api.interceptors.response.use(
     const message = error.response?.data?.message
     const hasToken = !!localStorage.getItem('accessToken')
 
-    if (status === 401 || (status === 403 && !hasToken)) {
+    if (status === 401) {
       redirectToLogin()
       return Promise.reject(error)
     }

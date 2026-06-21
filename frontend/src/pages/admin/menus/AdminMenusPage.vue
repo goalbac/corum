@@ -279,6 +279,36 @@
           <el-input v-model="boardForm.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
         </el-form-item>
 
+        <!-- 카테고리 설정 -->
+        <div class="res-section-title">카테고리 설정</div>
+        <div class="check-row" style="margin-bottom:10px">
+          <el-checkbox v-model="boardForm.useAllCategory">"전체" 카테고리 사용</el-checkbox>
+        </div>
+        <div class="cat-add-row">
+          <el-input v-model="boardNewCatName" placeholder="카테고리명 입력" size="small" @keyup.enter="addBoardCategory" style="flex:1" />
+          <button class="adm-btn primary sm" @click="addBoardCategory" :disabled="!boardNewCatName.trim()">
+            <i class="ti ti-plus"></i> 추가
+          </button>
+        </div>
+        <div v-if="boardForm.categories?.length" class="cat-list">
+          <div v-for="(cat, idx) in boardForm.categories" :key="cat.id ?? cat._uid ?? idx" class="cat-item">
+            <div class="cat-ord-btns">
+              <button class="ord-btn" :disabled="idx === 0" @click="moveBoardCategory(idx, -1)">
+                <i class="ti ti-chevron-up"></i>
+              </button>
+              <button class="ord-btn" :disabled="idx === boardForm.categories.length - 1" @click="moveBoardCategory(idx, 1)">
+                <i class="ti ti-chevron-down"></i>
+              </button>
+            </div>
+            <el-input v-model="cat.name" size="small" style="flex:1" />
+            <span v-if="cat.postCount > 0" class="cat-count">{{ cat.postCount }}글</span>
+            <button class="del-btn" :class="{ disabled: cat.id && cat.postCount > 0 }" @click="removeBoardCategory(idx)">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+        </div>
+        <div v-else class="perm-empty-msg">카테고리가 없으면 분류 없이 작성됩니다.</div>
+
         <!-- 그룹 권한 -->
         <div class="res-section-title">그룹 권한</div>
         <div class="perm-hint-sm">
@@ -446,7 +476,36 @@ const defaultBoardForm = () => ({
   useAnonymous: false, useNotice: true, noticeCountLimit: 5,
   isActive: true, fileMaxSizeMb: null, fileMaxCount: 5,
   fileAllowedExtensions: '', permissions: [],
+  useAllCategory: false, categories: [],
 })
+
+const boardNewCatName = ref('')
+
+function addBoardCategory() {
+  const name = boardNewCatName.value.trim()
+  if (!name) return
+  if (!boardForm.value.categories) boardForm.value.categories = []
+  boardForm.value.categories.push({ name, sortOrder: boardForm.value.categories.length, _uid: Date.now() + Math.random() })
+  boardNewCatName.value = ''
+}
+
+function removeBoardCategory(idx) {
+  const cat = boardForm.value.categories[idx]
+  if (cat.id && cat.postCount > 0) {
+    return ElMessage.warning(`'${cat.name}' 카테고리에 게시글이 ${cat.postCount}건 있어 삭제할 수 없습니다.`)
+  }
+  boardForm.value.categories.splice(idx, 1)
+  boardForm.value.categories.forEach((c, i) => { c.sortOrder = i })
+}
+
+function moveBoardCategory(idx, dir) {
+  const arr = boardForm.value.categories
+  const target = idx + dir
+  if (target < 0 || target >= arr.length) return
+  const [item] = arr.splice(idx, 1)
+  arr.splice(target, 0, item)
+  arr.forEach((c, i) => { c.sortOrder = i })
+}
 
 const defaultCalendarForm = () => ({
   name: '', color: '#4f6ef7', description: '', isActive: true, permissions: [],
@@ -621,7 +680,8 @@ async function openResourceManager(menu) {
   resourceSaving.value = false
   if (menu.pageType === 'BOARD') {
     const res = await api.get(`/boards/${menu.targetId}`)
-    boardForm.value = { ...defaultBoardForm(), ...res.data.data }
+    boardForm.value = { ...defaultBoardForm(), ...res.data.data, categories: (res.data.data.categories || []).map(c => ({ ...c })) }
+    boardNewCatName.value = ''
     boardAddGroupId.value = null
     boardPermRows.value = []
     boardPermLoading.value = true
@@ -691,7 +751,8 @@ async function saveResource() {
   resourceSaving.value = true
   try {
     if (resourceType.value === 'BOARD') {
-      await api.put(`/boards/${resourceMenu.value.targetId}`, boardForm.value)
+      const boardPayload = { ...boardForm.value, permissions: boardPermRows.value, categories: boardForm.value.categories || [] }
+      await api.put(`/boards/${resourceMenu.value.targetId}`, boardPayload)
       await api.put(`/admin/boards/${resourceMenu.value.targetId}/permissions`, boardPermRows.value)
       await fetchBoards()
     } else if (resourceType.value === 'CALENDAR') {
@@ -1009,6 +1070,26 @@ onBeforeUnmount(() => {
 }
 .del-btn:hover { border-color: var(--color-danger); color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
 .perm-empty-msg { text-align: center; color: var(--t3); font-size: 13px; padding: 16px 0; }
+
+.cat-add-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.cat-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.cat-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+.cat-ord-btns { display: flex; flex-direction: column; gap: 2px; }
+.ord-btn {
+  width: 22px; height: 13px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--t3);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; line-height: 1; padding: 0; border-radius: 3px; transition: all .12s;
+}
+.ord-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.ord-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.cat-count {
+  font-size: 11px; font-weight: 600; color: var(--t3);
+  background: var(--surface2); border: 0.5px solid var(--border);
+  border-radius: 4px; padding: 2px 7px; white-space: nowrap; flex-shrink: 0;
+}
+.del-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+.del-btn.disabled:hover { border-color: var(--border); color: var(--t3); background: transparent; }
 </style>
 
 <style>

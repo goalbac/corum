@@ -26,32 +26,45 @@ public class PostSummaryResponse {
     private final Long categoryId;
     private final String categoryName;
     private final String writerProfileImageUrl;
+    // 자료실(DOCUMENT) 전용 필드
+    private final String primaryFileName;
+    private final Long primaryFileSize;
+    private final Integer primaryFileDownloadCount;
+    private final int fileCount;
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile) {
-        this(post, commentCount, hasFile, null, List.of(), null, null, null);
+        this(post, commentCount, hasFile, null, List.of(), null, null, null, null, null, null, 0);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl) {
-        this(post, commentCount, hasFile, thumbnailUrl, List.of(), null, null, null);
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), null, null, null, null, null, null, 0);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile, String thumbnailUrl, Long rowNum) {
-        this(post, commentCount, hasFile, thumbnailUrl, List.of(), rowNum, null, null);
+        this(post, commentCount, hasFile, thumbnailUrl, List.of(), rowNum, null, null, null, null, null, 0);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
                                String thumbnailUrl, List<String> imageUrls, Long rowNum) {
-        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, null, null);
+        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, null, null, null, null, null, 0);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
                                String thumbnailUrl, List<String> imageUrls, Long rowNum, String categoryName) {
-        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, categoryName, null);
+        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, categoryName, null, null, null, null, 0);
     }
 
     public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
                                String thumbnailUrl, List<String> imageUrls, Long rowNum,
                                String categoryName, String writerProfileImageUrl) {
+        this(post, commentCount, hasFile, thumbnailUrl, imageUrls, rowNum, categoryName, writerProfileImageUrl, null, null, null, 0);
+    }
+
+    public PostSummaryResponse(Post post, int commentCount, boolean hasFile,
+                               String thumbnailUrl, List<String> imageUrls, Long rowNum,
+                               String categoryName, String writerProfileImageUrl,
+                               String primaryFileName, Long primaryFileSize,
+                               Integer primaryFileDownloadCount, int fileCount) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.title = post.getTitle();
@@ -69,6 +82,10 @@ public class PostSummaryResponse {
         this.categoryId = post.getCategoryId();
         this.categoryName = categoryName;
         this.writerProfileImageUrl = writerProfileImageUrl;
+        this.primaryFileName = primaryFileName;
+        this.primaryFileSize = primaryFileSize;
+        this.primaryFileDownloadCount = primaryFileDownloadCount;
+        this.fileCount = fileCount;
     }
 
     private static String createExcerpt(String content) {

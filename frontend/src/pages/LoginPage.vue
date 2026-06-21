@@ -4,7 +4,7 @@
       <!-- 그라디언트 헤더 (LNB 스타일과 통일) -->
       <div class="login-hero">
         <div class="hero-overlay"></div>
-        <span class="hero-logo">Corum</span>
+        <span class="hero-logo">{{ siteStore.siteName }}</span>
         <p class="hero-sub">사단법인 통합 관리 시스템</p>
       </div>
 
@@ -65,8 +65,11 @@
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useSiteStore } from '@/stores/site'
 import { ElMessage } from 'element-plus'
 import api from '@/api/axios'
+
+const siteStore = useSiteStore()
 
 const router = useRouter()
 const route = useRoute()

@@ -37,9 +37,12 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -137,12 +140,15 @@ public class DashboardWidgetService {
 
     private DashboardWidgetResponse toResponseWithOffset(DashboardWidget widget, int weekOffset, Long memberId) {
         if (weekOffset == 0) return toResponse(widget, memberId);
-        // weekOffset != 0 이면 캘린더만 특별 처리, 나머지는 기존과 동일
-        if ("CALENDAR_WEEKLY".equals(widget.getWidgetType())) {
+        // weekOffset/monthOffset != 0 이면 캘린더만 특별 처리
+        String type = widget.getWidgetType();
+        if ("CALENDAR_WEEKLY".equals(type) || "CALENDAR_MONTHLY".equals(type)) {
             String boardName = widget.getTargetBoardId() != null
                     ? boardRepository.findById(widget.getTargetBoardId()).map(b -> b.getName()).orElse(null)
                     : null;
-            List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget, weekOffset, memberId);
+            List<DashboardCalendarEventResponse> events = "CALENDAR_MONTHLY".equals(type)
+                    ? buildMonthlyCalendarEvents(widget, weekOffset, memberId)
+                    : buildCalendarEvents(widget, weekOffset, memberId);
             return new DashboardWidgetResponse(widget, boardName, List.of(), null, events);
         }
         return toResponse(widget, memberId);
@@ -245,6 +251,12 @@ public class DashboardWidgetService {
         // 캘린더 위클리
         if ("CALENDAR_WEEKLY".equals(type)) {
             List<DashboardCalendarEventResponse> events = buildCalendarEvents(widget, 0, memberId);
+            return new DashboardWidgetResponse(widget, boardName, List.of(), null, events);
+        }
+
+        // 캘린더 월간
+        if ("CALENDAR_MONTHLY".equals(type)) {
+            List<DashboardCalendarEventResponse> events = buildMonthlyCalendarEvents(widget, 0, memberId);
             return new DashboardWidgetResponse(widget, boardName, List.of(), null, events);
         }
 
@@ -353,6 +365,50 @@ public class DashboardWidgetService {
         List<Long> calIds = calendarList.stream().map(CalendarEntity::getId).toList();
 
         return calendarService.getEvents(weekStart, weekEnd, memberId, calIds)
+                .stream()
+                .map(dto -> new DashboardCalendarEventResponse(dto, calMap.get(dto.getCalendarId())))
+                .toList();
+    }
+
+    private List<DashboardCalendarEventResponse> buildMonthlyCalendarEvents(DashboardWidget widget, int monthOffset, Long memberId) {
+        Long calendarId = parseCalendarId(widget.getExtraConfig());
+
+        LocalDate firstDay = LocalDate.now().withDayOfMonth(1).plusMonths(monthOffset);
+        // FullCalendar 월간 뷰처럼 앞뒤 여유 있는 범위 (전달 마지막 주 ~ 다음달 첫 주)
+        LocalDateTime rangeStart = firstDay.with(java.time.DayOfWeek.MONDAY).minusWeeks(1).atStartOfDay();
+        LocalDateTime rangeEnd   = firstDay.plusMonths(1).with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY)).plusDays(1).atStartOfDay();
+
+        List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
+
+        // HOLIDAY 캘린더 항상 포함 (공개 캘린더이므로 readableIds에 포함됨)
+        List<CalendarEntity> holidayCalendars = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
+                .filter(c -> "HOLIDAY".equals(c.getCalendarType()))
+                .collect(Collectors.toList());
+
+        List<CalendarEntity> calendarList;
+        if (calendarId != null) {
+            if (!readableIds.contains(calendarId)) {
+                calendarList = new ArrayList<>(holidayCalendars);
+            } else {
+                calendarList = calendarRepository.findById(calendarId)
+                        .map(c -> { List<CalendarEntity> l = new ArrayList<>(); l.add(c); return l; })
+                        .orElse(new ArrayList<>());
+                // HOLIDAY 추가 (중복 제거)
+                Set<Long> existing = calendarList.stream().map(CalendarEntity::getId).collect(Collectors.toSet());
+                holidayCalendars.forEach(h -> { if (!existing.contains(h.getId())) calendarList.add(h); });
+            }
+        } else {
+            calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
+                    .filter(c -> readableIds.contains(c.getId()) || "HOLIDAY".equals(c.getCalendarType()))
+                    .collect(Collectors.toList());
+        }
+        if (calendarList.isEmpty()) return List.of();
+
+        Map<Long, CalendarEntity> calMap = calendarList.stream()
+                .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
+        List<Long> calIds = calendarList.stream().map(CalendarEntity::getId).toList();
+
+        return calendarService.getEvents(rangeStart, rangeEnd, memberId, calIds)
                 .stream()
                 .map(dto -> new DashboardCalendarEventResponse(dto, calMap.get(dto.getCalendarId())))
                 .toList();

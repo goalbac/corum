@@ -173,6 +173,55 @@
           </div>
         </div>
 
+        <!-- 캘린더 월간 위젯 -->
+        <div v-else-if="widget.widgetType === 'CALENDAR_MONTHLY'"
+             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+          <div class="wcard cal-month-card">
+            <div class="wcard-head">
+              <div class="wcard-head-left">
+                <span class="wcard-title">{{ widget.title || '이번 달 일정' }}</span>
+                <span v-if="widget.description" class="wcard-desc-inline">{{ widget.description }}</span>
+              </div>
+              <div class="cal-week-nav">
+                <button class="cal-nav-btn" @click.stop="navigateMonth(widget, -1)" :disabled="calMonthLoading[widget.id]">
+                  <i class="ti ti-chevron-left"></i>
+                </button>
+                <span class="wcard-week-range">{{ getMonthLabel(widget.id) }}</span>
+                <button class="cal-nav-btn" @click.stop="navigateMonth(widget, +1)" :disabled="calMonthLoading[widget.id]">
+                  <i class="ti ti-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+            <div v-if="calMonthLoading[widget.id]" class="cal-loading">
+              <i class="ti ti-loader-2 spinning"></i>
+            </div>
+            <div v-else class="cal-month-grid">
+              <!-- 요일 헤더 -->
+              <div v-for="d in DOW_KO" :key="d" class="cm-dow-head"
+                   :class="d === '일' ? 'cm-sun' : d === '토' ? 'cm-sat' : ''">{{ d }}</div>
+              <!-- 날짜 셀 -->
+              <div v-for="cell in getMonthCells(widget)" :key="cell.dateStr"
+                   class="cm-cell"
+                   :class="{ 'cm-other-month': !cell.thisMonth, 'cm-today': cell.isToday }">
+                <div class="cm-cell-head"
+                     :class="{ 'cm-sun': cell.dow === 0, 'cm-sat': cell.dow === 6, 'cm-holiday': cell.isHoliday }">
+                  <span class="cm-date-num">{{ cell.day }}</span>
+                  <span v-if="cell.holidayName" class="cm-holiday-name">{{ cell.holidayName }}</span>
+                </div>
+                <div class="cm-events">
+                  <div v-for="ev in getMonthEventsForDay(widget, cell.dateStr)" :key="ev.id + cell.dateStr"
+                       class="cm-event-chip"
+                       :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
+                       :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title">
+                    <span v-if="!ev.isAllDay" class="cm-ev-time">{{ formatEventTime(ev.startAt) }}</span>
+                    <span class="cm-ev-title">{{ ev.title }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 링크 모음 -->
         <div v-else-if="widget.widgetType === 'LINK_LIST'"
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
@@ -468,10 +517,103 @@ function getEventsForDay(widget, dateStr) {
   return events.filter(ev => (ev.startAt || '').slice(0, 10) === dateStr)
 }
 
+// ===== 캘린더 월간 위젯 =====
+const calMonthOffset  = ref({})  // widgetId → number (월 오프셋)
+const calMonthEvents  = ref({})  // widgetId → events[]
+const calMonthLoading = ref({})  // widgetId → boolean
+
+function getMonthLabel(widgetId) {
+  const offset = calMonthOffset.value[widgetId] ?? 0
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + offset)
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월`
+}
+
+async function navigateMonth(widget, delta) {
+  const wid = widget.id
+  const newOffset = (calMonthOffset.value[wid] ?? 0) + delta
+  calMonthOffset.value[wid] = newOffset
+  calMonthLoading.value[wid] = true
+  try {
+    const res = await api.get(`/dashboard/widgets/${wid}`, { params: { weekOffset: newOffset } })
+    calMonthEvents.value[wid] = res.data.data?.calendarEvents || []
+  } catch {
+    calMonthEvents.value[wid] = []
+  } finally {
+    calMonthLoading.value[wid] = false
+  }
+}
+
+function getMonthCells(widget) {
+  const wid = widget.id
+  const offset = calMonthOffset.value[wid] ?? 0
+  const today = new Date()
+  const base = new Date(today.getFullYear(), today.getMonth() + offset, 1)
+  const year = base.getFullYear()
+  const month = base.getMonth()
+
+  // HOLIDAY 이벤트에서 공휴일 맵 생성
+  const events = calMonthEvents.value[wid] !== undefined
+    ? calMonthEvents.value[wid]
+    : (widget.calendarEvents || [])
+  const holidayMap = {}
+  events.forEach(ev => {
+    if (ev.isHoliday || ev.calendarType === 'HOLIDAY') {
+      const dateStr = (ev.startAt || '').slice(0, 10)
+      if (dateStr) holidayMap[dateStr] = { name: ev.title, isHoliday: ev.description === '공휴일' || ev.isHoliday }
+    }
+  })
+
+  // 달력 시작: 해당 월 1일의 요일(일=0)에 맞춰 이전달 날짜 채움
+  const firstDow = new Date(year, month, 1).getDay()
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  const cells = []
+  // 이전달 채우기
+  for (let i = firstDow - 1; i >= 0; i--) {
+    const d = new Date(year, month, -i)
+    const dateStr = d.toISOString().slice(0, 10)
+    cells.push({ dateStr, day: d.getDate(), dow: d.getDay(), thisMonth: false, isToday: false, isHoliday: false, holidayName: '' })
+  }
+  // 이번달
+  for (let d = 1; d <= lastDay; d++) {
+    const dt = new Date(year, month, d)
+    const dateStr = dt.toISOString().slice(0, 10)
+    const hol = holidayMap[dateStr]
+    const isToday = dt.toDateString() === today.toDateString()
+    cells.push({ dateStr, day: d, dow: dt.getDay(), thisMonth: true, isToday,
+      isHoliday: dt.getDay() === 0 || !!hol?.isHoliday,
+      holidayName: hol?.name || '' })
+  }
+  // 다음달 채우기 (6주 고정)
+  const remaining = 42 - cells.length
+  for (let d = 1; d <= remaining; d++) {
+    const dt = new Date(year, month + 1, d)
+    const dateStr = dt.toISOString().slice(0, 10)
+    cells.push({ dateStr, day: d, dow: dt.getDay(), thisMonth: false, isToday: false, isHoliday: false, holidayName: '' })
+  }
+  return cells
+}
+
+function getMonthEventsForDay(widget, dateStr) {
+  const wid = widget.id
+  const events = calMonthEvents.value[wid] !== undefined
+    ? calMonthEvents.value[wid]
+    : (widget.calendarEvents || [])
+  // HOLIDAY 타입은 날짜 셀 헤더에 표시하므로 이벤트 칩에서 제외
+  return events.filter(ev => {
+    if (ev.calendarType === 'HOLIDAY' || ev.isHoliday) return false
+    const start = (ev.startAt || '').slice(0, 10)
+    const end = (ev.endAt || start).slice(0, 10)
+    return dateStr >= start && dateStr <= end
+  })
+}
+
 const WIDGET_LABELS = {
   WELCOME: '웰컴 카드',
   RECENT_POSTS: '최신 글', RECENT_GALLERY: '갤러리 최신글',
-  CALENDAR_WEEKLY: '캘린더', IMAGE_SLIDER: '슬라이더',
+  CALENDAR_WEEKLY: '캘린더 (주간)', CALENDAR_MONTHLY: '캘린더 (월간)',
+  IMAGE_SLIDER: '슬라이더',
   IMAGE_GRID: '이미지', LINK_LIST: '링크', QUICK_LINKS: '바로가기',
   MEMBER_STATS: '회원 현황', VISIT_STATS: '접속 통계', CUSTOM: '커스텀',
 }
@@ -968,6 +1110,88 @@ onMounted(async () => {
 .cal-ev-title {
   display: block;
   font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 월간 캘린더 위젯 ===== */
+.cal-month-card { padding-bottom: 8px; }
+.cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 0.5px solid var(--border);
+  border-left: 0.5px solid var(--border);
+}
+.cm-dow-head {
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t3);
+  letter-spacing: 0.2px;
+  border-right: 0.5px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
+  background: var(--surface2);
+}
+.cm-dow-head.cm-sun { color: #EF4444; }
+.cm-dow-head.cm-sat { color: #3B82F6; }
+.cm-cell {
+  border-right: 0.5px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
+  min-height: 72px;
+  padding: 3px 4px 4px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.cm-cell.cm-other-month { background: var(--surface2); opacity: 0.6; }
+.cm-cell.cm-today { background: var(--accent-bg); }
+.cm-cell-head {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-height: 20px;
+}
+.cm-date-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t2);
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+.cm-cell.cm-today .cm-date-num { color: var(--accent-t); }
+.cm-cell-head.cm-sun .cm-date-num { color: #EF4444; }
+.cm-cell-head.cm-sat .cm-date-num { color: #3B82F6; }
+.cm-cell-head.cm-holiday .cm-date-num { color: #EF4444; }
+.cm-holiday-name {
+  font-size: 10px;
+  color: #EF4444;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.cm-events { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.cm-event-chip {
+  border-radius: 3px;
+  padding: 2px 4px;
+  overflow: hidden;
+  cursor: default;
+}
+.cm-ev-time {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
+}
+.cm-ev-title {
+  display: block;
+  font-size: 11px;
   font-weight: 600;
   color: var(--t1);
   overflow: hidden;

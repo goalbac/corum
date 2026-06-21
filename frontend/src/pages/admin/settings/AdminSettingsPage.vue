@@ -201,6 +201,9 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
+import { useSiteStore } from '@/stores/site'
+
+const siteStore = useSiteStore()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -248,6 +251,7 @@ async function saveSettings() {
     await api.put('/admin/settings', form.value)
     ElMessage.success('저장되었습니다.')
     fetchSettings()
+    siteStore.fetchSettings()
   } finally {
     saving.value = false
   }

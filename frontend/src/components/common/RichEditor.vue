@@ -209,7 +209,7 @@ async function handleImageUpload(e) {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       const url = res.data.data.url
-      editor.chain().focus().setImage({ src: url }).run()
+      editor.chain().focus().setImage({ src: url }).createParagraphNear().focus('end').run()
     } catch {
       failCount++
     }

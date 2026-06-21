@@ -214,7 +214,7 @@
                     >
                       <i class="ti ti-settings menu-item-icon"></i>관리자
                     </button>
-                    <button class="user-menu-item user-menu-item--danger" @click="handleLogout; userMenuOpen = false">
+                    <button class="user-menu-item user-menu-item--danger" @click="handleLogout(); userMenuOpen = false">
                       <i class="ti ti-logout menu-item-icon"></i>로그아웃
                     </button>
                   </div>
@@ -282,8 +282,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useThemeStore } from '@/stores/theme'
 import { useNotificationStore } from '@/stores/notification'
+import { useSiteStore } from '@/stores/site'
 import { useRouter } from 'vue-router'
-import api from '@/api/axios'
 
 const emit = defineEmits(['toggle-mobile-menu'])
 const authStore = useAuthStore()
@@ -292,10 +292,11 @@ watch(() => authStore.member?.profileImageUrl, () => { headerAvatarError.value =
 const menuStore = useMenuStore()
 const themeStore = useThemeStore()
 const notifStore = useNotificationStore()
+const siteStore = useSiteStore()
 const router = useRouter()
 
-const siteName = ref('')
-const logoUrl  = ref('')
+const siteName = computed(() => siteStore.siteName)
+const logoUrl  = computed(() => siteStore.logoUrl)
 const unreadMsgCount = computed(() => notifStore.unreadMsgCount)
 
 // 모바일 여부 (768px 기준)
@@ -320,15 +321,9 @@ async function openMobileNotif() {
   mobileNotifOpen.value = true
 }
 
-onMounted(async () => {
+onMounted(() => {
   updateIsMobile()
   window.addEventListener('resize', updateIsMobile)
-  try {
-    const res = await api.get('/site/public')
-    const d = res.data.data
-    siteName.value = d.siteName || ''
-    logoUrl.value  = d.logoUrl  || ''
-  } catch { /* ignore */ }
 })
 
 onUnmounted(() => {

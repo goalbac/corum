@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +16,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -32,7 +34,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (StringUtils.hasText(token) && jwtProvider.validate(token) && !tokenSessionService.isInvalidated(token)) {
+        if (StringUtils.hasText(token)) {
+            if (!jwtProvider.validate(token) || tokenSessionService.isInvalidated(token)) {
+                // 토큰이 있지만 만료/무효 → 401 반환 (프론트에서 세션 만료로 처리)
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                response.getWriter().write("{\"success\":false,\"message\":\"세션이 만료되었습니다. 다시 로그인해주세요.\"}");
+                return;
+            }
             String username = jwtProvider.getUsername(token);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             UsernamePasswordAuthenticationToken auth =

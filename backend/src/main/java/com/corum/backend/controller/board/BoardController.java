@@ -99,10 +99,20 @@ public class BoardController {
     public ApiResponse<PostResponse> getPost(
             @PathVariable Long boardId,
             @PathVariable Long postId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletRequest httpRequest) {
 
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        return ApiResponse.ok(postService.getPost(postId, memberId));
+        String ip = resolveClientIp(httpRequest);
+        return ApiResponse.ok(postService.getPost(postId, memberId, ip));
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/api/boards/{boardId}/posts")

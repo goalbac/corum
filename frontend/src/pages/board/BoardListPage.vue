@@ -90,7 +90,7 @@
           </div>
         </div>
         <div v-if="!loading && !posts.length" class="gallery-empty">
-          <i class="ti ti-photo-off"></i>
+          <i class="ti ti-inbox"></i>
           <p>등록된 게시글이 없습니다.</p>
         </div>
       </div>
@@ -170,8 +170,8 @@
           </div>
         </article>
         <div v-if="!loading && !posts.length" class="webzine-empty">
-          <i class="ti ti-news-off"></i>
-          <p>No posts yet.</p>
+          <i class="ti ti-inbox"></i>
+          <p>등록된 게시글이 없습니다.</p>
         </div>
       </div>
 
@@ -291,7 +291,7 @@
         </div>
 
         <div v-if="!loading && !posts.length" class="lv-empty">
-          <i class="ti ti-list"></i>
+          <i class="ti ti-inbox"></i>
           <p>등록된 게시글이 없습니다.</p>
         </div>
       </div>
@@ -327,7 +327,127 @@
       </div>
     </template>
 
-    <!-- ===== 일반/자료실 테이블 뷰 ===== -->
+    <!-- ===== 자료실 테이블 뷰 ===== -->
+    <template v-else-if="isDocumentBoard">
+      <div class="post-table doc-table" v-loading="loading">
+        <div class="pt-head">
+          <div class="pt-col num">번호</div>
+          <div class="pt-col doc-title">제목</div>
+          <div class="pt-col doc-file">파일명</div>
+          <div class="pt-col doc-size">크기</div>
+          <div class="pt-col writer">작성자</div>
+          <div class="pt-col date">등록일</div>
+          <div class="pt-col count">다운로드</div>
+        </div>
+
+        <!-- 공지 행 -->
+        <template v-for="post in noticePosts" :key="`notice-${post.id}`">
+          <div class="pt-row notice-row" @click="goDetail(post)">
+            <div class="pt-col num"><span class="notice-tag">공지</span></div>
+            <div class="pt-col doc-title">
+              <div class="pt-title-line">
+                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+                <span class="pt-title notice-title">{{ post.title }}</span>
+                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
+              </div>
+              <div class="pt-meta-mobile">
+                <span>{{ post.writerName }}</span><span class="pt-meta-sep">·</span>
+                <span>{{ formatDate(post.createdAt) }}</span>
+                <template v-if="post.primaryFileName">
+                  <span class="pt-meta-sep">·</span>
+                  <span><i class="ti ti-paperclip"></i> {{ post.primaryFileName }}</span>
+                </template>
+              </div>
+            </div>
+            <div class="pt-col doc-file">
+              <span v-if="post.primaryFileName" class="doc-file-cell">
+                <i :class="['ti', fileExtIcon(post.primaryFileName), 'doc-ext-icon']"></i>
+                <span class="doc-filename">{{ post.primaryFileName }}</span>
+                <span v-if="post.fileCount > 1" class="doc-more-badge">+{{ post.fileCount - 1 }}</span>
+              </span>
+              <span v-else class="doc-no-file">-</span>
+            </div>
+            <div class="pt-col doc-size">{{ formatFileSize(post.primaryFileSize) }}</div>
+            <div class="pt-col writer">{{ post.writerName }}</div>
+            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
+            <div class="pt-col count">{{ post.primaryFileDownloadCount ?? 0 }}</div>
+          </div>
+        </template>
+
+        <div v-if="noticePosts.length && normalPosts.length" class="notice-divider" />
+
+        <!-- 일반 글 행 -->
+        <template v-for="post in normalPosts" :key="post.id">
+          <div class="pt-row" @click="goDetail(post)">
+            <div class="pt-col num"><span class="row-num">{{ post.rowNum }}</span></div>
+            <div class="pt-col doc-title">
+              <div class="pt-title-line">
+                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+                <span class="pt-title">{{ post.title }}</span>
+                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
+              </div>
+              <div class="pt-meta-mobile">
+                <span>{{ post.writerName }}</span><span class="pt-meta-sep">·</span>
+                <span>{{ formatDate(post.createdAt) }}</span>
+                <template v-if="post.primaryFileName">
+                  <span class="pt-meta-sep">·</span>
+                  <span><i class="ti ti-paperclip"></i> {{ post.primaryFileName }}</span>
+                </template>
+              </div>
+            </div>
+            <div class="pt-col doc-file">
+              <span v-if="post.primaryFileName" class="doc-file-cell">
+                <i :class="['ti', fileExtIcon(post.primaryFileName), 'doc-ext-icon']"></i>
+                <span class="doc-filename">{{ post.primaryFileName }}</span>
+                <span v-if="post.fileCount > 1" class="doc-more-badge">+{{ post.fileCount - 1 }}</span>
+              </span>
+              <span v-else class="doc-no-file">파일 없음</span>
+            </div>
+            <div class="pt-col doc-size">{{ formatFileSize(post.primaryFileSize) }}</div>
+            <div class="pt-col writer">{{ post.writerName }}</div>
+            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
+            <div class="pt-col count">{{ post.primaryFileDownloadCount ?? 0 }}</div>
+          </div>
+        </template>
+
+        <div v-if="!loading && !posts.length" class="pt-empty">
+          <i class="ti ti-inbox"></i>
+          <p>등록된 자료가 없습니다.</p>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <el-pagination v-model:current-page="page" :page-size="size" :total="total"
+          layout="prev, pager, next" background small @current-change="fetchPosts" />
+      </div>
+      <div class="list-toolbar">
+        <div class="search-group">
+          <div class="search-type-wrap">
+            <el-select v-model="searchType" size="small" class="search-type">
+              <el-option value="title" label="제목" />
+              <el-option value="content" label="내용" />
+              <el-option value="writer" label="작성자" />
+              <el-option value="all" label="전체" />
+            </el-select>
+          </div>
+          <div class="search-input-wrap">
+            <i class="ti ti-search search-icon"></i>
+            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
+              @keyup.enter="handleSearch" />
+            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <button class="search-btn" @click="handleSearch">검색</button>
+        </div>
+        <button v-if="canWrite" class="write-btn" @click="goWrite">
+          <i class="ti ti-upload"></i>
+          <span>자료 등록</span>
+        </button>
+      </div>
+    </template>
+
+    <!-- ===== 일반 테이블 뷰 ===== -->
     <template v-else>
       <div class="post-table" v-loading="loading">
         <!-- 헤더 -->
@@ -506,10 +626,11 @@ function prevImg(postId, total) {
 
 const noticePosts = computed(() => posts.value.filter(p => p.isNotice))
 const normalPosts = computed(() => posts.value.filter(p => !p.isNotice))
-const isGalleryBoard = computed(() => board.value?.boardType === 'GALLERY')
-const isWebzineBoard = computed(() => board.value?.boardType === 'WEBZINE')
-const isListBoard   = computed(() => board.value?.boardType === 'LIST')
-const isVisualBoard = computed(() => isGalleryBoard.value || isWebzineBoard.value)
+const isGalleryBoard  = computed(() => board.value?.boardType === 'GALLERY')
+const isWebzineBoard  = computed(() => board.value?.boardType === 'WEBZINE')
+const isListBoard     = computed(() => board.value?.boardType === 'LIST')
+const isDocumentBoard = computed(() => board.value?.boardType === 'DOCUMENT')
+const isVisualBoard   = computed(() => isGalleryBoard.value || isWebzineBoard.value)
 
 const canWrite = computed(() => {
   if (!board.value) return false
@@ -589,6 +710,30 @@ function formatDate(d) {
 }
 
 function isNew(d) { return d && Date.now() - new Date(d).getTime() < 3 * 86400000 }
+
+function formatFileSize(bytes) {
+  if (!bytes) return '-'
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+function fileExtIcon(filename) {
+  if (!filename) return 'ti-file'
+  const ext = filename.split('.').pop()?.toLowerCase()
+  const map = {
+    pdf: 'ti-file-type-pdf', doc: 'ti-file-type-doc', docx: 'ti-file-type-doc',
+    xls: 'ti-file-type-xls', xlsx: 'ti-file-type-xls',
+    ppt: 'ti-file-type-ppt', pptx: 'ti-file-type-ppt',
+    zip: 'ti-file-zip', rar: 'ti-file-zip', '7z': 'ti-file-zip',
+    jpg: 'ti-file-type-jpg', jpeg: 'ti-file-type-jpg',
+    png: 'ti-file-type-png', gif: 'ti-file-type-jpg',
+    txt: 'ti-file-type-txt', csv: 'ti-file-type-csv',
+    mp4: 'ti-file-type-mp4', mp3: 'ti-file-music',
+    hwp: 'ti-file-text', hwpx: 'ti-file-text',
+  }
+  return map[ext] || 'ti-file'
+}
 
 function formatRelativeDate(d) {
   if (!d) return ''
@@ -837,6 +982,74 @@ onMounted(async () => {
 
 .pt-empty i { font-size: 36px; }
 
+/* ===== 자료실 테이블 전용 ===== */
+.pt-col.doc-title {
+  flex: 1;
+  min-width: 0;
+}
+.pt-col.doc-file {
+  width: 200px;
+  flex-shrink: 0;
+  min-width: 0;
+  padding-left: 12px;
+  text-align: left;
+}
+.pt-col.doc-size {
+  width: 80px;
+  flex-shrink: 0;
+  padding-right: 4px;
+  text-align: right;
+}
+
+.doc-file-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.doc-ext-icon {
+  font-size: 15px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.doc-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--t2);
+}
+
+.doc-more-badge {
+  flex-shrink: 0;
+  background: var(--border);
+  color: var(--t3);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.doc-no-file {
+  color: var(--t4);
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .doc-table .pt-head,
+  .doc-table .pt-row {
+    grid-template-columns: 46px 1fr;
+  }
+  .pt-col.doc-file,
+  .pt-col.doc-size,
+  .pt-col.doc-size,
+  .doc-table .pt-col.date,
+  .doc-table .pt-col.count { display: none; }
+  .doc-table .pt-col.writer { display: none; }
+}
+
 /* ===== 갤러리 ===== */
 .gallery-grid {
   display: grid;
@@ -885,7 +1098,6 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
   transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
 }
 .carousel-img {
   flex-shrink: 0;

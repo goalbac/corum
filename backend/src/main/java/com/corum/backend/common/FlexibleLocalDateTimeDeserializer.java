@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 
@@ -30,6 +32,11 @@ public class FlexibleLocalDateTimeDeserializer extends JsonDeserializer<LocalDat
             return OffsetDateTime.parse(normalized).toLocalDateTime();
         } catch (RuntimeException ignored) {
         }
-        return ZonedDateTime.parse(normalized).toLocalDateTime();
+        try {
+            return ZonedDateTime.parse(normalized).toLocalDateTime();
+        } catch (RuntimeException ignored) {
+        }
+        // 날짜만 있는 경우 (종일 이벤트: "2026-06-17")
+        return LocalDate.parse(normalized).atTime(LocalTime.MIDNIGHT);
     }
 }
