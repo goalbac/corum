@@ -344,18 +344,24 @@ public class DashboardWidgetService {
 
         // 열람 권한이 있는 캘린더 ID 목록
         List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
-        if (readableIds.isEmpty()) return List.of();
+
+        // HOLIDAY 캘린더는 항상 포함
+        List<CalendarEntity> holidayCalendars = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
+                .filter(c -> "HOLIDAY".equals(c.getCalendarType()))
+                .collect(Collectors.toList());
 
         List<CalendarEntity> calendarList;
         if (calendarId != null) {
-            // 위젯에 특정 캘린더가 지정된 경우: 열람 권한이 있을 때만 표시
-            if (!readableIds.contains(calendarId)) return List.of();
-            calendarList = calendarRepository.findById(calendarId)
-                    .map(List::of).orElse(List.of());
+            if (!readableIds.contains(calendarId)) {
+                calendarList = new ArrayList<>(holidayCalendars);
+            } else {
+                calendarList = new ArrayList<>(calendarRepository.findById(calendarId).map(List::of).orElse(List.of()));
+                Set<Long> existing = calendarList.stream().map(CalendarEntity::getId).collect(Collectors.toSet());
+                holidayCalendars.forEach(h -> { if (!existing.contains(h.getId())) calendarList.add(h); });
+            }
         } else {
-            // 전체 캘린더: 읽기 권한 있는 것만
             calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
-                    .filter(c -> readableIds.contains(c.getId()))
+                    .filter(c -> readableIds.contains(c.getId()) || "HOLIDAY".equals(c.getCalendarType()))
                     .collect(Collectors.toList());
         }
         if (calendarList.isEmpty()) return List.of();
@@ -374,9 +380,9 @@ public class DashboardWidgetService {
         Long calendarId = parseCalendarId(widget.getExtraConfig());
 
         LocalDate firstDay = LocalDate.now().withDayOfMonth(1).plusMonths(monthOffset);
-        // FullCalendar 월간 뷰처럼 앞뒤 여유 있는 범위 (전달 마지막 주 ~ 다음달 첫 주)
-        LocalDateTime rangeStart = firstDay.with(java.time.DayOfWeek.MONDAY).minusWeeks(1).atStartOfDay();
-        LocalDateTime rangeEnd   = firstDay.plusMonths(1).with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY)).plusDays(1).atStartOfDay();
+        // 일요일 시작 6주 그리드: 해당 월 1일이 속한 주의 일요일 ~ 마지막 토요일 다음날
+        LocalDateTime rangeStart = firstDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)).atStartOfDay();
+        LocalDateTime rangeEnd   = firstDay.plusMonths(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY)).plusDays(1).atStartOfDay();
 
         List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
 

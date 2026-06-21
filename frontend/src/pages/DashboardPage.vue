@@ -225,19 +225,6 @@
               </div>
               <!-- 6주 행 -->
               <div v-for="(weekCells, ri) in getMonthRows(widget)" :key="ri" class="cm-week-row">
-                <!-- 연속 일정 스패닝 밴드 -->
-                <div v-if="getMonthRowMultiDayEvents(widget, weekCells).length" class="cm-row-multiday">
-                  <div v-for="item in getMonthRowMultiDayEvents(widget, weekCells)" :key="item.ev.id"
-                       class="cal-event-chip cm-band-chip"
-                       :style="{
-                         gridColumn: `${item.startCol} / ${item.endCol}`,
-                         background: item.ev.calendarColor ? item.ev.calendarColor + '22' : 'var(--accent-bg)',
-                         borderLeft: '3px solid ' + (item.ev.calendarColor || 'var(--accent)')
-                       }"
-                       :title="item.ev.title">
-                    <span class="cal-ev-title">{{ item.ev.title }}</span>
-                  </div>
-                </div>
                 <!-- 날짜 셀 행 -->
                 <div class="cm-cells-row">
                   <div v-for="cell in weekCells" :key="cell.dateStr"
@@ -257,6 +244,19 @@
                         <span class="cal-ev-title">{{ ev.title }}</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+                <!-- 연속 일정 스패닝 밴드 (셀 아래에 표시) -->
+                <div v-if="getMonthRowMultiDayEvents(widget, weekCells).length" class="cm-row-multiday">
+                  <div v-for="item in getMonthRowMultiDayEvents(widget, weekCells)" :key="item.ev.id"
+                       class="cal-event-chip cm-band-chip"
+                       :style="{
+                         gridColumn: `${item.startCol} / ${item.endCol}`,
+                         background: item.ev.calendarColor ? item.ev.calendarColor + '22' : 'var(--accent-bg)',
+                         borderLeft: '3px solid ' + (item.ev.calendarColor || 'var(--accent)')
+                       }"
+                       :title="item.ev.title">
+                    <span class="cal-ev-title">{{ item.ev.title }}</span>
                   </div>
                 </div>
               </div>
