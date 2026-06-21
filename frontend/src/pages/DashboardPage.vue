@@ -575,8 +575,8 @@ function getEventsForDay(widget, dateStr) {
     const start = (ev.startAt || '').slice(0, 10)
     const end   = (ev.endAt || start).slice(0, 10)
     if (start === end) return start === dateStr
-    // 연속 일정 중 이번 주에서 1컬럼만 차지하는 경우(시작일 = dateStr)는 단일처럼 표시
-    if (start !== dateStr) return false
+    // 연속 일정 중 이번 주에서 1컬럼만 차지하면 해당 날짜에 단일처럼 표시
+    if (start > dateStr || end < dateStr) return false
     const startCol = weekDays.findIndex(d => d.date >= start) + 1 || 1
     const endColIdx = weekDays.findLastIndex(d => d.date <= end)
     const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
@@ -759,8 +759,8 @@ function getMonthSingleDayEvents(widget, dateStr, weekCells) {
     const start = (ev.startAt || '').slice(0, 10)
     const end   = (ev.endAt || start).slice(0, 10)
     if (start === end) return start === dateStr
-    // 연속 일정 중 이번 주에서 시작하고 1컬럼만 차지하는 경우 단일처럼 표시
-    if (!weekCells || start !== dateStr) return false
+    // 연속 일정 중 이번 주에서 1컬럼만 차지하면 해당 날짜에 단일처럼 표시
+    if (!weekCells || start > dateStr || end < dateStr) return false
     const startCol = weekCells.findIndex(c => c.dateStr >= start) + 1 || 1
     const endColIdx = weekCells.findLastIndex(c => c.dateStr <= end)
     const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
