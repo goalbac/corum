@@ -146,27 +146,48 @@
             <div v-if="calWeekLoading[widget.id]" class="cal-loading">
               <i class="ti ti-loader-2 spinning"></i>
             </div>
-            <div v-else class="cal-week">
-              <div v-for="day in getWeekDays(widget.id)" :key="day.date" class="cal-day-col">
-                <div :class="['cal-day-head', day.isToday ? 'today' : '', day.isSunday ? 'sunday' : '', day.isSaturday ? 'saturday' : '']">
+            <div v-else class="cal-week-wrap">
+              <!-- 요일 헤더 -->
+              <div class="cal-week-header">
+                <div v-for="day in getWeekDays(widget.id)" :key="'h'+day.date"
+                     :class="['cal-day-head', day.isToday ? 'today' : '', day.isSunday ? 'sunday' : '', day.isSaturday ? 'saturday' : '']">
                   <span class="cal-dow">{{ day.dow }}</span>
                   <span class="cal-dnum">{{ day.dnum }}</span>
                 </div>
-                <div class="cal-events">
-                  <template v-if="getEventsForDay(widget, day.date).length">
-                    <div
-                      v-for="ev in getEventsForDay(widget, day.date)"
-                      :key="ev.id"
-                      class="cal-event-chip"
-                      :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
-                      :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
-                    >
-                      <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
-                      <span class="cal-ev-title">{{ ev.title }}</span>
-                      <span v-if="ev.calendarName && !parseCalendarId(widget)" class="cal-ev-cal">{{ ev.calendarName }}</span>
-                    </div>
-                  </template>
-                  <div v-else class="cal-no-event"></div>
+              </div>
+              <!-- 연속 일정 스패닝 밴드 -->
+              <div v-if="getWeekMultiDayEvents(widget).length" class="cal-week-multiday">
+                <div v-for="item in getWeekMultiDayEvents(widget)"
+                     :key="item.ev.id"
+                     class="cal-event-chip cal-week-span-chip"
+                     :style="{
+                       gridColumn: `${item.startCol} / ${item.endCol}`,
+                       background: item.ev.calendarColor ? item.ev.calendarColor + '22' : 'var(--accent-bg)',
+                       borderLeft: '3px solid ' + (item.ev.calendarColor || 'var(--accent)')
+                     }"
+                     :title="item.ev.title">
+                  <span class="cal-ev-title">{{ item.ev.title }}</span>
+                </div>
+              </div>
+              <!-- 단일 일정 -->
+              <div class="cal-week">
+                <div v-for="day in getWeekDays(widget.id)" :key="day.date" class="cal-day-col">
+                  <div class="cal-events">
+                    <template v-if="getEventsForDay(widget, day.date).length">
+                      <div
+                        v-for="ev in getEventsForDay(widget, day.date)"
+                        :key="ev.id"
+                        class="cal-event-chip"
+                        :style="{ background: ev.calendarColor ? ev.calendarColor + '22' : 'var(--accent-bg)', borderLeft: '3px solid ' + (ev.calendarColor || 'var(--accent)') }"
+                        :title="(ev.isAllDay ? '[종일] ' : formatEventTime(ev.startAt) + ' ') + ev.title + (ev.calendarName ? ' · ' + ev.calendarName : '')"
+                      >
+                        <span v-if="!ev.isAllDay" class="cal-ev-time">{{ formatEventTime(ev.startAt) }}</span>
+                        <span class="cal-ev-title">{{ ev.title }}</span>
+                        <span v-if="ev.calendarName && !parseCalendarId(widget)" class="cal-ev-cal">{{ ev.calendarName }}</span>
+                      </div>
+                    </template>
+                    <div v-else class="cal-no-event"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -222,11 +243,10 @@
                          borderLeftColor: item.isRowStart ? (item.ev.calendarColor || 'var(--accent)') : 'transparent',
                        }"
                        :title="(item.ev.isAllDay ? '[종일] ' : formatEventTime(item.ev.startAt) + ' ') + item.ev.title">
-                    <template v-if="item.isRowStart">
-                      <span class="cal-ev-title">
-                        <span v-if="!item.ev.isAllDay" class="cal-ev-time-inline">{{ formatEventTime(item.ev.startAt) }} </span>{{ item.ev.title }}
-                      </span>
-                    </template>
+                    <div v-if="item.isRowStart" class="cm-chip-content">
+                      <span v-if="!item.ev.isAllDay" class="cal-ev-time">{{ formatEventTime(item.ev.startAt) }}</span>
+                      <span class="cal-ev-title">{{ item.ev.title }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -526,15 +546,34 @@ function getEventsForDay(widget, dateStr) {
   const events = calWeekEvents.value[wid] !== undefined
     ? calWeekEvents.value[wid]
     : (widget.calendarEvents || [])
-  const weekDates = getWeekDays(wid).map(d => d.date)
+  // 단일 일정만 반환 (연속 일정은 getWeekMultiDayEvents에서 별도 처리)
   return events.filter(ev => {
     const start = (ev.startAt || '').slice(0, 10)
     const end   = (ev.endAt   || start).slice(0, 10)
-    if (start === end) return start === dateStr
-    // 연속 일정: 이번 주에서 처음 나타나는 날에만 표시 (중복 방지)
-    const firstInWeek = weekDates.find(d => d >= start && d <= end)
-    return dateStr === firstInWeek
+    return start === end && start === dateStr
   })
+}
+
+function getWeekMultiDayEvents(widget) {
+  const wid = widget.id
+  const events = calWeekEvents.value[wid] !== undefined
+    ? calWeekEvents.value[wid] : (widget.calendarEvents || [])
+  const weekDays = getWeekDays(wid)
+  const weekStart = weekDays[0].date
+  const weekEnd   = weekDays[6].date
+  const result = []
+  events.forEach(ev => {
+    const start = (ev.startAt || '').slice(0, 10)
+    const end   = (ev.endAt   || start).slice(0, 10)
+    if (start === end) return  // 단일 일정 제외
+    if (start > weekEnd || end < weekStart) return  // 이번 주 범위 밖
+    // 이번 주에서 보이는 컬럼 범위 계산 (1-based)
+    const startCol = weekDays.findIndex(d => d.date >= start) + 1 || 1
+    const endColIdx = weekDays.findLastIndex(d => d.date <= end)
+    const endCol = (endColIdx >= 0 ? endColIdx : 6) + 2
+    result.push({ ev, startCol, endCol })
+  })
+  return result
 }
 
 // ===== 캘린더 월간 위젯 =====
@@ -1091,6 +1130,21 @@ onMounted(async () => {
 }
 
 /* ===== 캘린더 위클리 ===== */
+.cal-week-wrap { display: flex; flex-direction: column; gap: 4px; }
+.cal-week-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-week-multiday {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px 0;
+  row-gap: 2px;
+}
+.cal-week-span-chip {
+  border-radius: 4px !important;
+}
 .cal-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -1141,11 +1195,11 @@ onMounted(async () => {
   letter-spacing: -0.2px;
   line-height: 1.2;
 }
-.cal-ev-time-inline {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--t3);
-  letter-spacing: -0.2px;
+.cm-chip-content {
+  display: block;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
 }
 .cal-ev-title {
   display: block;
