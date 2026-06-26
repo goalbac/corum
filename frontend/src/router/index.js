@@ -263,13 +263,10 @@ router.beforeEach(async (to, from, next) => {
   next()
 })
 
-// 페이지 이동 시 방문 집계 (관리자 경로 제외, 세션당 경로별 1회)
-const _trackedPaths = new Set()
+// 페이지 이동 시 방문 집계 (관리자 경로 제외)
 router.afterEach((to) => {
   if (to.path.startsWith('/admin')) return
-  if (_trackedPaths.has(to.path)) return
-  _trackedPaths.add(to.path)
-  api.get('/health', { headers: { 'X-Page-View': '1' } }).catch(() => {})
+  api.post('/page-view').catch(() => {})
 })
 
 export default router

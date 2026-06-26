@@ -67,6 +67,7 @@ public class SecurityConfig {
                                 "/api/calendars",
                                 "/api/calendars/events"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/page-view").permitAll()
                         .requestMatchers(
                                 "/api/health",
                                 "/api/terms/active",

@@ -54,7 +54,18 @@ public class OperationLogService {
     public void visit(Long memberId, HttpServletRequest request) {
         String uri = request.getRequestURI();
         if (uri == null || !uri.startsWith("/api") || uri.equals("/api/health")) return;
+        doVisit(memberId, request, uri);
+    }
 
+    /** POST /api/page-view 전용 — URI 필터 없이 바로 집계 */
+    @Transactional
+    public void recordPageView(Long memberId, HttpServletRequest request) {
+        String referer = request.getHeader("Referer");
+        String pageUri = trim(referer, 1000);
+        doVisit(memberId, request, pageUri != null ? pageUri : "/");
+    }
+
+    private void doVisit(Long memberId, HttpServletRequest request, String logUri) {
         LocalDate today = LocalDate.now();
         String ip = getClientIp(request);
         boolean unique = !visitLogRepository.existsByVisitDateAndIpAddress(today, ip);
@@ -64,7 +75,7 @@ public class OperationLogService {
                 .memberId(memberId)
                 .ipAddress(ip)
                 .userAgent(trim(request.getHeader("User-Agent"), 500))
-                .requestUri(trim(uri, 1000))
+                .requestUri(trim(logUri, 1000))
                 .referer(trim(request.getHeader("Referer"), 1000))
                 .visitDate(today)
                 .build());
