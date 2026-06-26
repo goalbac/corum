@@ -7,12 +7,14 @@ import com.corum.backend.dto.setting.SiteSettingResponse;
 import com.corum.backend.dto.setting.SiteSettingUpdateRequest;
 import com.corum.backend.service.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SiteSettingService {
 
     private final SiteSettingRepository siteSettingRepository;
@@ -50,6 +52,7 @@ public class SiteSettingService {
                 request.getContactAddress(),
                 request.getContactPhone(),
                 request.getAdminEmail(),
+                request.getNotificationRetentionDays(),
                 updatedBy
         );
         return new SiteSettingResponse(setting);

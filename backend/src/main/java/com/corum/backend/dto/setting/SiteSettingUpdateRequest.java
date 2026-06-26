@@ -56,4 +56,7 @@ public class SiteSettingUpdateRequest {
     private String contactAddress;
     private String contactPhone;
     private String adminEmail;
+
+    @Min(value = 1, message = "알림 보존 기간은 1일 이상이어야 합니다.")
+    private Integer notificationRetentionDays;
 }

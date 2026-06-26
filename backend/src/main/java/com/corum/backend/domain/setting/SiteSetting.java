@@ -89,6 +89,16 @@ public class SiteSetting {
     @Column(name = "admin_email", length = 200)
     private String adminEmail;
 
+    @Column(name = "notification_retention_days", nullable = false)
+    @Builder.Default
+    private Integer notificationRetentionDays = 30;
+
+    @Column(name = "vapid_public_key", columnDefinition = "TEXT")
+    private String vapidPublicKey;
+
+    @Column(name = "vapid_private_key", columnDefinition = "TEXT")
+    private String vapidPrivateKey;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -116,6 +126,7 @@ public class SiteSetting {
             String contactAddress,
             String contactPhone,
             String adminEmail,
+            Integer notificationRetentionDays,
             Long updatedBy
     ) {
         this.siteName = siteName;
@@ -138,7 +149,14 @@ public class SiteSetting {
         this.contactAddress = contactAddress;
         this.contactPhone = contactPhone;
         this.adminEmail = adminEmail;
+        this.notificationRetentionDays = notificationRetentionDays != null ? notificationRetentionDays : 30;
         this.updatedBy = updatedBy;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateVapidKeys(String publicKey, String privateKey) {
+        this.vapidPublicKey = publicKey;
+        this.vapidPrivateKey = privateKey;
         this.updatedAt = LocalDateTime.now();
     }
 

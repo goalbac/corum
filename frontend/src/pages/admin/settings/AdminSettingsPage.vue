@@ -193,6 +193,48 @@
         </div>
       </div>
     </section>
+
+    <!-- ⑧ 알림 자동 정리 설정 -->
+    <section class="settings-section" style="margin-top: 28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="margin:0">알림 자동 정리</h3>
+        <button class="adm-btn primary" :disabled="saving" @click="saveSettings">
+          <i class="ti ti-device-floppy"></i> 저장
+        </button>
+      </div>
+      <p class="settings-desc">읽은 알림을 일정 기간이 지나면 자동으로 삭제합니다. 매일 새벽 3시에 실행됩니다.</p>
+      <el-form label-width="200px">
+        <el-form-item label="읽은 알림 보존 기간 (일)">
+          <el-input-number v-model="form.notificationRetentionDays" :min="1" :max="365" />
+          <span style="margin-left:8px;color:var(--text-sub);font-size:13px">일 이상 지난 읽은 알림을 삭제합니다.</span>
+        </el-form-item>
+      </el-form>
+    </section>
+
+    <!-- ⑨ 웹 푸시 (VAPID) 설정 -->
+    <section class="settings-section" style="margin-top: 28px">
+      <div style="margin-bottom:16px">
+        <h3 style="margin:0 0 8px">웹 푸시 알림 (Web Push)</h3>
+        <p class="settings-desc">브라우저 탭이 닫혀 있어도 알림을 받을 수 있는 Web Push 기능입니다. VAPID 키를 생성한 후 회원이 마이페이지에서 구독할 수 있습니다.</p>
+      </div>
+      <el-form label-width="200px">
+        <el-form-item label="현재 VAPID 공개키">
+          <div v-if="vapidPublicKey" style="display:flex;align-items:center;gap:8px;flex:1">
+            <el-input :value="vapidPublicKey" readonly style="font-family:monospace;font-size:12px" />
+          </div>
+          <span v-else style="color:var(--text-sub);font-size:13px">아직 키가 생성되지 않았습니다.</span>
+        </el-form-item>
+        <el-form-item label="">
+          <el-button type="warning" :loading="vapidGenerating" @click="generateVapid">
+            <i class="ti ti-key"></i>&nbsp;
+            {{ vapidPublicKey ? 'VAPID 키 재생성' : 'VAPID 키 생성' }}
+          </el-button>
+          <p v-if="vapidPublicKey" style="margin:6px 0 0;font-size:12px;color:var(--danger)">
+            ⚠️ 키를 재생성하면 기존 구독자들은 모두 재구독이 필요합니다.
+          </p>
+        </el-form-item>
+      </el-form>
+    </section>
   </div>
 </template>
 
@@ -231,7 +273,8 @@ const form = ref({
   smtpUsername: '',
   smtpPasswordEnc: '',
   smtpUseTls: true,
-  footerHtml: ''
+  footerHtml: '',
+  notificationRetentionDays: 30
 })
 
 async function fetchSettings() {
@@ -239,6 +282,7 @@ async function fetchSettings() {
   try {
     const res = await api.get('/admin/settings')
     form.value = { ...form.value, ...(res.data.data || {}) }
+    vapidPublicKey.value = res.data.data?.vapidPublicKey || ''
   } finally {
     loading.value = false
   }
@@ -319,6 +363,23 @@ async function saveNotifDefaults() {
     ElMessage.success('저장되었습니다.')
   } finally {
     notifSaving.value = false
+  }
+}
+
+// ===== VAPID 키 생성 =====
+const vapidPublicKey = ref('')
+const vapidGenerating = ref(false)
+
+async function generateVapid() {
+  vapidGenerating.value = true
+  try {
+    const res = await api.post('/admin/settings/vapid/generate')
+    vapidPublicKey.value = res.data.data?.vapidPublicKey || ''
+    ElMessage.success('VAPID 키가 생성되었습니다. 기존 구독자들은 재구독이 필요합니다.')
+  } catch {
+    ElMessage.error('VAPID 키 생성에 실패했습니다.')
+  } finally {
+    vapidGenerating.value = false
   }
 }
 

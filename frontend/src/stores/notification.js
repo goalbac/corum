@@ -7,6 +7,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const unreadCount = ref(0)
   const unreadMsgCount = ref(0)
   const toastNotif = ref(null)
+  const isPushSubscribed = ref(false)
   let eventSource = null
   let reconnectTimer = null
 
@@ -122,11 +123,72 @@ export const useNotificationStore = defineStore('notification', () => {
     toastNotif.value = null
   }
 
+  // ===== Web Push =====
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const raw = atob(base64)
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+  }
+
+  async function checkPushSubscribed() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      isPushSubscribed.value = false
+      return
+    }
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      isPushSubscribed.value = !!sub
+    } catch {
+      isPushSubscribed.value = false
+    }
+  }
+
+  async function subscribePush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      throw new Error('이 브라우저는 웹 푸시를 지원하지 않습니다.')
+    }
+    const keyRes = await api.get('/notifications/push/vapid-key')
+    const vapidKey = keyRes.data.data?.vapidPublicKey
+    if (!vapidKey) throw new Error('VAPID 공개키가 설정되지 않았습니다. 관리자에게 문의하세요.')
+
+    const reg = await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.ready
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey),
+    })
+
+    const json = sub.toJSON()
+    await api.post('/notifications/push/subscribe', {
+      endpoint: sub.endpoint,
+      p256dh:   json.keys.p256dh,
+      auth:     json.keys.auth,
+    })
+    isPushSubscribed.value = true
+  }
+
+  async function unsubscribePush() {
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) {
+        await api.post('/notifications/push/unsubscribe', { endpoint: sub.endpoint })
+        await sub.unsubscribe()
+      }
+    } catch { /* ignore */ }
+    isPushSubscribed.value = false
+  }
+
   return {
     notifications,
     unreadCount,
     unreadMsgCount,
     toastNotif,
+    isPushSubscribed,
     fetchNotifications,
     fetchUnreadCount,
     fetchUnreadMsgCount,
@@ -136,6 +198,9 @@ export const useNotificationStore = defineStore('notification', () => {
     remove,
     removeAll,
     connect,
-    disconnect
+    disconnect,
+    checkPushSubscribed,
+    subscribePush,
+    unsubscribePush,
   }
 })

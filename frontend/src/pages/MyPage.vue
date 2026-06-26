@@ -169,6 +169,23 @@
           <div class="form-actions">
             <el-button type="primary" :loading="notifSaving" @click="saveNotifPrefs">저장</el-button>
           </div>
+
+          <!-- 브라우저 푸시 알림 -->
+          <div class="push-section">
+            <h3>브라우저 푸시 알림</h3>
+            <p class="push-desc">사이트를 닫아도 알림을 받을 수 있습니다. 브라우저가 Web Push를 지원하는 경우에만 동작합니다.</p>
+            <div class="push-toggle-row">
+              <span>{{ notifStore.isPushSubscribed ? '구독 중' : '구독 안 함' }}</span>
+              <el-switch
+                :model-value="notifStore.isPushSubscribed"
+                :loading="pushLoading"
+                active-text="켜기"
+                inactive-text="끄기"
+                @change="togglePush"
+              />
+            </div>
+            <p v-if="pushError" class="push-error">{{ pushError }}</p>
+          </div>
         </section>
 
         <!-- 내 문의 내역 -->
@@ -419,11 +436,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 import api from '@/api/axios'
 
 const router = useRouter()
 const route  = useRoute()
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 const isForcedPasswordChange = computed(() => !!authStore.member?.mustChangePassword)
 const activeTab = ref(isForcedPasswordChange.value ? 'password' : (route.query.tab || 'info'))
 const loading = ref(false)
@@ -584,6 +603,8 @@ function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString(
 // ===== 알림 설정 =====
 const notifPrefs = ref([])
 const notifSaving = ref(false)
+const pushLoading = ref(false)
+const pushError = ref('')
 
 async function fetchNotifPrefs() {
   const res = await api.get('/notifications/prefs')
@@ -601,6 +622,24 @@ async function saveNotifPrefs() {
     ElMessage.success('알림 설정이 저장되었습니다.')
   } finally {
     notifSaving.value = false
+  }
+}
+
+async function togglePush(val) {
+  pushLoading.value = true
+  pushError.value = ''
+  try {
+    if (val) {
+      await notifStore.subscribePush()
+      ElMessage.success('브라우저 푸시 알림 구독이 완료되었습니다.')
+    } else {
+      await notifStore.unsubscribePush()
+      ElMessage.success('브라우저 푸시 알림 구독이 취소되었습니다.')
+    }
+  } catch (e) {
+    pushError.value = e.message || '푸시 알림 설정 중 오류가 발생했습니다.'
+  } finally {
+    pushLoading.value = false
   }
 }
 
@@ -784,6 +823,7 @@ async function handleUploadPhoto() {
 onMounted(() => {
   fetchMember()
   fetchNotifPrefs()
+  notifStore.checkPushSubscribed()
   if (activeTab.value === 'inquiries') fetchMyInquiries()
   if (activeTab.value === 'reports')   fetchMyReports()
 })
@@ -1205,6 +1245,25 @@ watch(activeTab, (tab) => {
 .notif-pref-channels span {
   width: 68px;
   display: inline-block;
+}
+
+.push-section {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border2);
+}
+.push-section h3 { margin: 0 0 6px; font-size: 15px; }
+.push-desc { font-size: 13px; color: var(--text-sub); margin: 0 0 14px; }
+.push-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+.push-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--danger);
 }
 
 @media (max-width: 768px) {

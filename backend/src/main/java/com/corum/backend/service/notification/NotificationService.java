@@ -22,6 +22,7 @@ public class NotificationService {
     private final NotificationDefaultRepository defaultRepository;
     private final MemberRepository memberRepository;
     private final MailService mailService;
+    private final WebPushService webPushService;
 
     // ===== 알림 생성 =====
     @Transactional
@@ -39,6 +40,8 @@ public class NotificationService {
                     .build();
             Notification saved = notificationRepository.save(notification);
             sseEmitterRegistry.send(memberId, new NotificationResponse(saved));
+            // Web Push: 탭이 닫혀 있어도 수신 가능
+            webPushService.sendPush(memberId, title, content, linkUrl);
         }
 
         if (emailOn) {

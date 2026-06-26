@@ -5,6 +5,8 @@ import com.corum.backend.dto.notification.NotificationResponse;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.service.notification.NotificationService;
 import com.corum.backend.service.notification.SseEmitterRegistry;
+import com.corum.backend.service.notification.WebPushService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +23,7 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final SseEmitterRegistry sseEmitterRegistry;
+    private final WebPushService webPushService;
 
     // SSE 스트림 구독 (token 쿼리파라미터로 인증)
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -91,5 +94,39 @@ public class NotificationController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         notificationService.updatePrefs(userDetails.getMemberId(), updates);
         return ApiResponse.ok("저장되었습니다.");
+    }
+
+    // ===== Web Push =====
+
+    // VAPID 공개키 조회 (비인증)
+    @GetMapping("/push/vapid-key")
+    public ApiResponse<Map<String, String>> getVapidPublicKey() {
+        String key = webPushService.getVapidPublicKey();
+        return ApiResponse.ok(Map.of("vapidPublicKey", key != null ? key : ""));
+    }
+
+    // 구독 등록
+    @PostMapping("/push/subscribe")
+    public ApiResponse<Void> subscribe(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletRequest request) {
+        webPushService.subscribe(
+                userDetails.getMemberId(),
+                body.get("endpoint"),
+                body.get("p256dh"),
+                body.get("auth"),
+                request.getHeader("User-Agent")
+        );
+        return ApiResponse.ok("구독되었습니다.");
+    }
+
+    // 구독 취소
+    @PostMapping("/push/unsubscribe")
+    public ApiResponse<Void> unsubscribe(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        webPushService.unsubscribe(userDetails.getMemberId(), body.get("endpoint"));
+        return ApiResponse.ok("구독이 취소되었습니다.");
     }
 }

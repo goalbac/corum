@@ -4,6 +4,7 @@ import com.corum.backend.common.ApiResponse;
 import com.corum.backend.dto.setting.SiteSettingResponse;
 import com.corum.backend.dto.setting.SiteSettingUpdateRequest;
 import com.corum.backend.security.CustomUserDetails;
+import com.corum.backend.service.notification.WebPushService;
 import com.corum.backend.service.setting.SiteSettingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +18,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/settings")
 public class AdminSettingController {
 
     private final SiteSettingService siteSettingService;
+    private final WebPushService webPushService;
 
     @GetMapping
     public ApiResponse<SiteSettingResponse> getSetting() {
@@ -51,5 +55,12 @@ public class AdminSettingController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long updatedBy = userDetails != null ? userDetails.getMemberId() : null;
         return ApiResponse.ok("파비콘이 업로드되었습니다.", siteSettingService.uploadFavicon(file, updatedBy));
+    }
+
+    // VAPID 키 생성 (관리자)
+    @PostMapping("/vapid/generate")
+    public ApiResponse<Map<String, String>> generateVapid() {
+        String pubKey = webPushService.generateVapidKeys();
+        return ApiResponse.ok(Map.of("vapidPublicKey", pubKey));
     }
 }

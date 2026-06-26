@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @EnableJpaAuditing
 @EnableAsync
+@org.springframework.scheduling.annotation.EnableScheduling
 public class CorumApplication {
 
     public static void main(String[] args) {

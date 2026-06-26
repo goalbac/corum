@@ -30,6 +30,8 @@ public class SiteSettingResponse {
     private final String contactAddress;
     private final String contactPhone;
     private final String adminEmail;
+    private final Integer notificationRetentionDays;
+    private final String vapidPublicKey;
     private final LocalDateTime updatedAt;
     private final Long updatedBy;
 
@@ -56,6 +58,8 @@ public class SiteSettingResponse {
         this.contactAddress = setting.getContactAddress();
         this.contactPhone = setting.getContactPhone();
         this.adminEmail = setting.getAdminEmail();
+        this.notificationRetentionDays = setting.getNotificationRetentionDays();
+        this.vapidPublicKey = setting.getVapidPublicKey();
         this.updatedAt = setting.getUpdatedAt();
         this.updatedBy = setting.getUpdatedBy();
     }
