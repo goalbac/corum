@@ -318,38 +318,42 @@
         <template v-if="form.widgetType === 'IMAGE_SLIDER'">
           <hr class="dlg-divider"/>
           <div class="dlg-section-title">슬라이드</div>
-          <div v-for="(s, i) in config.slides" :key="i" class="sub-item">
-            <div class="img-upload-row">
-              <div
-                class="img-upload-preview"
-                :style="s.imageUrl ? `background-image:url(${s.imageUrl})` : ''"
-                @click="triggerSliderUpload(i)"
-                :title="s.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
-              >
-                <template v-if="sliderUploading[i]">
-                  <i class="ti ti-loader-2 spinning" style="font-size:22px;color:#fff"></i>
-                </template>
-                <template v-else-if="!s.imageUrl">
-                  <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--t4)"></i>
-                  <span style="font-size:12px;color:var(--t4);margin-top:4px">클릭해서 업로드</span>
-                </template>
-                <div v-if="s.imageUrl && !sliderUploading[i]" class="img-upload-change-overlay">
-                  <i class="ti ti-refresh"></i> 변경
-                </div>
+          <div ref="slidesSortableEl">
+            <div v-for="(s, i) in config.slides" :key="i" class="sub-item">
+              <div class="sub-item-header">
+                <i class="ti ti-grip-vertical sub-drag-handle" title="드래그해서 순서 변경"></i>
+                <span class="sub-item-label">슬라이드 {{ i + 1 }}</span>
+                <button class="act-btn danger" @click="config.slides.splice(i,1)"><i class="ti ti-trash"></i></button>
               </div>
-              <input
-                :ref="el => sliderInputRefs[i] = el"
-                type="file"
-                accept="image/*"
-                style="display:none"
-                @change="e => uploadSliderImage(e, i)"
-              />
-              <div class="img-upload-fields">
-                <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="s.title" /></div>
-                <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="s.url" placeholder="https:// 또는 /path" /></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-                  <label class="chk-item"><el-checkbox v-model="s.newWindow" />새 창</label>
-                  <button class="act-btn danger" @click="config.slides.splice(i,1)"><i class="ti ti-trash"></i></button>
+              <div class="img-upload-row">
+                <div
+                  class="img-upload-preview"
+                  :style="s.imageUrl ? `background-image:url(${s.imageUrl})` : ''"
+                  @click="triggerSliderUpload(i)"
+                  :title="s.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
+                >
+                  <template v-if="sliderUploading[i]">
+                    <i class="ti ti-loader-2 spinning" style="font-size:22px;color:#fff"></i>
+                  </template>
+                  <template v-else-if="!s.imageUrl">
+                    <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--t4)"></i>
+                    <span style="font-size:12px;color:var(--t4);margin-top:4px">클릭해서 업로드</span>
+                  </template>
+                  <div v-if="s.imageUrl && !sliderUploading[i]" class="img-upload-change-overlay">
+                    <i class="ti ti-refresh"></i> 변경
+                  </div>
+                </div>
+                <input
+                  :ref="el => sliderInputRefs[i] = el"
+                  type="file"
+                  accept="image/*"
+                  style="display:none"
+                  @change="e => uploadSliderImage(e, i)"
+                />
+                <div class="img-upload-fields">
+                  <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="s.title" /></div>
+                  <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="s.url" placeholder="https:// 또는 /path" /></div>
+                  <label class="chk-item" style="margin-top:4px"><el-checkbox v-model="s.newWindow" />새 창</label>
                 </div>
               </div>
             </div>
@@ -363,40 +367,43 @@
         <template v-if="form.widgetType === 'IMAGE_GRID'">
           <hr class="dlg-divider"/>
           <div class="dlg-section-title">이미지 (최대 4개)</div>
-          <div v-for="(img, i) in config.images" :key="i" class="sub-item">
-            <!-- 이미지 업로드 영역 -->
-            <div class="img-upload-row">
-              <div
-                class="img-upload-preview"
-                :style="img.imageUrl ? `background-image:url(${img.imageUrl})` : ''"
-                @click="triggerImgUpload(i)"
-                :title="img.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
-              >
-                <template v-if="imgUploading[i]">
-                  <i class="ti ti-loader-2 spinning" style="font-size:22px;color:#fff"></i>
-                </template>
-                <template v-else-if="!img.imageUrl">
-                  <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--t4)"></i>
-                  <span style="font-size:12px;color:var(--t4);margin-top:4px">클릭해서 업로드</span>
-                </template>
-                <div v-if="img.imageUrl && !imgUploading[i]" class="img-upload-change-overlay">
-                  <i class="ti ti-refresh"></i> 변경
-                </div>
+          <div ref="imagesSortableEl">
+            <div v-for="(img, i) in config.images" :key="i" class="sub-item">
+              <div class="sub-item-header">
+                <i class="ti ti-grip-vertical sub-drag-handle" title="드래그해서 순서 변경"></i>
+                <span class="sub-item-label">이미지 {{ i + 1 }}</span>
+                <button class="act-btn danger" @click="config.images.splice(i,1)"><i class="ti ti-trash"></i></button>
               </div>
-              <input
-                :ref="el => imgInputRefs[i] = el"
-                type="file"
-                accept="image/*"
-                style="display:none"
-                @change="e => uploadGridImage(e, i)"
-              />
-              <div class="img-upload-fields">
-                <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="img.title" /></div>
-                <div class="dlg-field"><label>설명 (선택)</label><el-input v-model="img.desc" /></div>
-                <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="img.linkUrl" placeholder="https:// 또는 /path" /></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-                  <label class="chk-item"><el-checkbox v-model="img.newWindow" />새 창</label>
-                  <button class="act-btn danger" @click="config.images.splice(i,1)"><i class="ti ti-trash"></i></button>
+              <div class="img-upload-row">
+                <div
+                  class="img-upload-preview"
+                  :style="img.imageUrl ? `background-image:url(${img.imageUrl})` : ''"
+                  @click="triggerImgUpload(i)"
+                  :title="img.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
+                >
+                  <template v-if="imgUploading[i]">
+                    <i class="ti ti-loader-2 spinning" style="font-size:22px;color:#fff"></i>
+                  </template>
+                  <template v-else-if="!img.imageUrl">
+                    <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--t4)"></i>
+                    <span style="font-size:12px;color:var(--t4);margin-top:4px">클릭해서 업로드</span>
+                  </template>
+                  <div v-if="img.imageUrl && !imgUploading[i]" class="img-upload-change-overlay">
+                    <i class="ti ti-refresh"></i> 변경
+                  </div>
+                </div>
+                <input
+                  :ref="el => imgInputRefs[i] = el"
+                  type="file"
+                  accept="image/*"
+                  style="display:none"
+                  @change="e => uploadGridImage(e, i)"
+                />
+                <div class="img-upload-fields">
+                  <div class="dlg-field"><label>제목 (선택)</label><el-input v-model="img.title" /></div>
+                  <div class="dlg-field"><label>설명 (선택)</label><el-input v-model="img.desc" /></div>
+                  <div class="dlg-field"><label>링크 URL (선택)</label><el-input v-model="img.linkUrl" placeholder="https:// 또는 /path" /></div>
+                  <label class="chk-item" style="margin-top:4px"><el-checkbox v-model="img.newWindow" />새 창</label>
                 </div>
               </div>
             </div>
@@ -411,14 +418,18 @@
         <template v-if="form.widgetType === 'LINK_LIST'">
           <hr class="dlg-divider"/>
           <div class="dlg-section-title">링크</div>
-          <div v-for="(l, i) in config.links" :key="i" class="sub-item">
-            <div class="dlg-row">
-              <div class="dlg-field"><label>레이블</label><el-input v-model="l.label" /></div>
-              <div class="dlg-field"><label>URL</label><el-input v-model="l.url" /></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
+          <div ref="linksSortableEl">
+            <div v-for="(l, i) in config.links" :key="i" class="sub-item">
+              <div class="sub-item-header">
+                <i class="ti ti-grip-vertical sub-drag-handle" title="드래그해서 순서 변경"></i>
+                <span class="sub-item-label">링크 {{ i + 1 }}</span>
+                <button class="act-btn danger" @click="config.links.splice(i,1)"><i class="ti ti-trash"></i></button>
+              </div>
+              <div class="dlg-row">
+                <div class="dlg-field"><label>레이블</label><el-input v-model="l.label" /></div>
+                <div class="dlg-field"><label>URL</label><el-input v-model="l.url" /></div>
+              </div>
               <label class="chk-item"><el-checkbox v-model="l.newWindow" />새 창</label>
-              <button class="act-btn danger" @click="config.links.splice(i,1)"><i class="ti ti-trash"></i></button>
             </div>
           </div>
           <button class="adm-btn ghost" style="width:100%" @click="config.links.push({label:'',url:'',newWindow:false})">
@@ -495,7 +506,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Sortable from 'sortablejs'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
@@ -520,8 +531,14 @@ const sortSaving  = ref(false)
 const sortChanged = ref(false)
 const showForm    = ref(false)
 const editing     = ref(null)
-const widgetSortable = ref(null)
-let sortableInstance = null
+const widgetSortable    = ref(null)
+const slidesSortableEl  = ref(null)
+const imagesSortableEl  = ref(null)
+const linksSortableEl   = ref(null)
+let sortableInstance   = null
+let slidesSortable     = null
+let imagesSortable     = null
+let linksSortable      = null
 
 // 크기 선택이 있는 위젯 유형
 const SIZE_PICKER_TYPES = ['RECENT_POSTS', 'RECENT_GALLERY', 'CALENDAR_WEEKLY', 'CALENDAR_MONTHLY', 'LINK_LIST', 'QUICK_LINKS', 'CUSTOM']
@@ -668,6 +685,41 @@ function initSortable() {
   })
 }
 
+function moveItem(arr, from, to) {
+  if (from === to) return
+  const [item] = arr.splice(from, 1)
+  arr.splice(to, 0, item)
+}
+
+function destroyDialogSortables() {
+  slidesSortable?.destroy(); slidesSortable = null
+  imagesSortable?.destroy(); imagesSortable = null
+  linksSortable?.destroy();  linksSortable  = null
+}
+
+function initDialogSortables() {
+  destroyDialogSortables()
+  nextTick(() => {
+    const opts = (arr) => ({
+      animation: 150,
+      handle: '.sub-drag-handle',
+      ghostClass: 'sub-sortable-ghost',
+      onEnd({ oldIndex, newIndex }) { moveItem(arr, oldIndex, newIndex) },
+    })
+    if (slidesSortableEl.value)
+      slidesSortable = Sortable.create(slidesSortableEl.value, opts(config.value.slides))
+    if (imagesSortableEl.value)
+      imagesSortable = Sortable.create(imagesSortableEl.value, opts(config.value.images))
+    if (linksSortableEl.value)
+      linksSortable  = Sortable.create(linksSortableEl.value,  opts(config.value.links))
+  })
+}
+
+watch(showForm, (val) => {
+  if (val) nextTick(initDialogSortables)
+  else destroyDialogSortables()
+})
+
 async function saveSortOrder() {
   if (!widgetSortable.value) return
   sortSaving.value = true
@@ -690,6 +742,7 @@ function onTypeChange() {
   }
   form.value.targetBoardId = null
   form.value.postCount = 5
+  nextTick(initDialogSortables)
 }
 
 function openCreate() {
@@ -747,7 +800,7 @@ async function deleteWidget(id) {
 }
 
 onMounted(() => { menuStore.fetchMenus(); fetchDashboards(); fetchWidgets(); fetchBoards(); fetchCalendars() })
-onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
+onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy(); destroyDialogSortables() })
 </script>
 
 <style scoped>
@@ -917,6 +970,18 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
   border-radius: var(--radius-xs); padding: 12px;
   display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px;
 }
+.sub-item-header {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 8px; border-bottom: 0.5px solid var(--border2);
+  margin-bottom: 2px;
+}
+.sub-drag-handle {
+  font-size: 16px; color: var(--t4); cursor: grab; flex-shrink: 0;
+  padding: 2px 3px; border-radius: 4px; transition: color 0.15s, background 0.15s;
+}
+.sub-drag-handle:hover { color: var(--accent-t); background: var(--accent-bg); }
+.sub-drag-handle:active { cursor: grabbing; }
+.sub-item-label { flex: 1; font-size: 12px; font-weight: 700; color: var(--t3); }
 
 /* 이미지 그리드 업로드 */
 .img-upload-row {
@@ -974,4 +1039,5 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy() })
 <style>
 .sortable-ghost { opacity: 0.35 !important; background: var(--accent-bg) !important; border: 2px dashed var(--accent) !important; }
 .sortable-drag  { opacity: 0.96 !important; box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important; }
+.sub-sortable-ghost { opacity: 0.3 !important; border: 1.5px dashed var(--accent) !important; }
 </style>
