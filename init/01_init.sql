@@ -27,6 +27,7 @@ CREATE TABLE members (
     is_locked           BOOLEAN      NOT NULL DEFAULT FALSE,
     login_fail_count    INT          NOT NULL DEFAULT 0,
     locked_at           TIMESTAMP,
+    must_change_password BOOLEAN     NOT NULL DEFAULT FALSE,
     joined_at           TIMESTAMP    NOT NULL DEFAULT NOW(),
     withdrawn_at        TIMESTAMP,
     withdrawn_ip        VARCHAR(50),

@@ -98,7 +98,23 @@
         </div>
       </div>
       <template #footer>
-        <button class="adm-btn ghost" @click="showDetail = false">닫기</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+          <div style="display:flex;gap:8px">
+            <button
+              class="adm-btn ghost"
+              :disabled="resetingPassword"
+              @click="resetPassword"
+              title="임시 비밀번호를 생성해 이메일로 발송하고, 다음 로그인 시 비밀번호 변경을 강제합니다"
+            >
+              <i :class="['ti', resetingPassword ? 'ti-loader-2 spinning' : 'ti-key']"></i>
+              {{ resetingPassword ? '처리 중...' : '비밀번호 초기화' }}
+            </button>
+            <span v-if="detail?.mustChangePassword" class="adm-badge badge-warning" style="align-self:center">
+              <i class="ti ti-alert-circle"></i> 비밀번호 변경 필요
+            </span>
+          </div>
+          <button class="adm-btn ghost" @click="showDetail = false">닫기</button>
+        </div>
       </template>
     </el-dialog>
 
@@ -155,7 +171,7 @@ import api from '@/api/axios'
 const members = ref([]); const loading = ref(false)
 const keyword = ref(''); const groupFilter = ref(null); const statusFilter = ref('')
 const page = ref(1); const size = 15; const total = ref(0)
-const showDetail = ref(false); const detail = ref(null)
+const showDetail = ref(false); const detail = ref(null); const resetingPassword = ref(false)
 const groups = ref([]); const addGroupId = ref(null); const newMemo = ref('')
 const showCreate = ref(false); const creating = ref(false)
 const emptyCreateForm = () => ({
@@ -226,6 +242,23 @@ async function createMember() {
   } finally { creating.value = false }
 }
 async function openDetail(row) { const r = await api.get(`/admin/members/${row.id}`); detail.value = r.data.data; showDetail.value = true }
+async function resetPassword() {
+  if (!detail.value) return
+  try {
+    await ElMessageBox.confirm(
+      `${detail.value.name || detail.value.username} 회원의 비밀번호를 초기화하시겠습니까?\n임시 비밀번호가 생성되어 이메일(${detail.value.email})로 발송됩니다.`,
+      '비밀번호 초기화',
+      { type: 'warning', confirmButtonText: '초기화', cancelButtonText: '취소', dangerouslyUseHTMLString: false }
+    )
+  } catch { return }
+  resetingPassword.value = true
+  try {
+    await api.post(`/admin/members/${detail.value.id}/reset-password`)
+    ElMessage.success('비밀번호가 초기화되었습니다. 임시 비밀번호를 이메일로 발송했습니다.')
+    const r = await api.get(`/admin/members/${detail.value.id}`)
+    detail.value = r.data.data
+  } finally { resetingPassword.value = false }
+}
 async function unlockMember(row) { await api.put(`/admin/members/${row.id}/unlock`); ElMessage.success('계정이 잠금 해제되었습니다.'); fetchMembers() }
 async function forceLogout(row) { await ElMessageBox.confirm(`${row.name} 회원을 강제 로그아웃하시겠습니까?`, '강제 로그아웃', { type: 'warning', confirmButtonText: '로그아웃', cancelButtonText: '취소' }); await api.post(`/admin/members/${row.id}/force-logout`); ElMessage.success('강제 로그아웃되었습니다.') }
 async function addGroup() { if (!addGroupId.value) return; await api.post(`/admin/members/${detail.value.id}/groups`, { groupId: addGroupId.value }); addGroupId.value = null; const r = await api.get(`/admin/members/${detail.value.id}`); detail.value = r.data.data }

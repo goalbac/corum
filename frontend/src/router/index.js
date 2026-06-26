@@ -53,7 +53,7 @@ const routes = [
         path: 'mypage',
         name: 'MyPage',
         component: () => import('@/pages/MyPage.vue'),
-        meta: { requiresAuth: true, title: '마이페이지' }
+        meta: { requiresAuth: true, title: '마이페이지', allowPendingPasswordChange: true }
       },
       {
         path: 'messages',
@@ -234,6 +234,9 @@ router.beforeEach(async (to, from, next) => {
   }
   if (authStore.isLoggedIn && authStore.member?.requiresTermsAgreement && !to.meta.allowPendingTerms) {
     return next({ name: 'TermsAgreement' })
+  }
+  if (authStore.isLoggedIn && authStore.member?.mustChangePassword && !to.meta.allowPendingPasswordChange) {
+    return next({ name: 'MyPage', query: { tab: 'password', forced: '1' } })
   }
 
   if (to.path.startsWith('/admin')) {

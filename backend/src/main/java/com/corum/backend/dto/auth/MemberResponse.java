@@ -27,6 +27,7 @@ public class MemberResponse {
     private final String profileImageUrl;
     private final Boolean isActive;
     private final Boolean isLocked;
+    private final Boolean mustChangePassword;
     private final LocalDateTime joinedAt;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
@@ -63,6 +64,7 @@ public class MemberResponse {
         this.profileImageUrl = member.getProfileImageUrl();
         this.isActive = member.getIsActive();
         this.isLocked = member.getIsLocked();
+        this.mustChangePassword = member.getMustChangePassword();
         this.joinedAt = member.getJoinedAt();
         this.createdAt = member.getCreatedAt();
         this.updatedAt = member.getUpdatedAt();

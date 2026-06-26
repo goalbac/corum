@@ -36,8 +36,9 @@
           <button
             v-for="tab in tabs"
             :key="tab.name"
-            :class="['pnav-item', { active: activeTab === tab.name }]"
-            @click="tab.name === 'messages' ? router.push('/messages') : (activeTab = tab.name)"
+            :class="['pnav-item', { active: activeTab === tab.name, disabled: isForcedPasswordChange && tab.name !== 'password' }]"
+            :disabled="isForcedPasswordChange && tab.name !== 'password'"
+            @click="isForcedPasswordChange && tab.name !== 'password' ? null : (tab.name === 'messages' ? router.push('/messages') : (activeTab = tab.name))"
           >
             <i :class="`ti ${tab.icon}`"></i>
             {{ tab.label }}
@@ -115,6 +116,11 @@
           <div class="section-head">
             <h2>비밀번호 변경</h2>
             <p>현재 비밀번호를 확인한 후 새 비밀번호로 변경합니다.</p>
+          </div>
+          <div v-if="isForcedPasswordChange" class="forced-pw-banner">
+            <i class="ti ti-shield-lock"></i>
+            관리자에 의해 비밀번호가 초기화되었습니다. 임시 비밀번호로 로그인하셨습니다.
+            <strong>보안을 위해 지금 바로 새 비밀번호로 변경해주세요.</strong>
           </div>
           <el-form
             ref="pwFormRef"
@@ -418,7 +424,8 @@ import api from '@/api/axios'
 const router = useRouter()
 const route  = useRoute()
 const authStore = useAuthStore()
-const activeTab = ref(route.query.tab || 'info')
+const isForcedPasswordChange = computed(() => !!authStore.member?.mustChangePassword)
+const activeTab = ref(isForcedPasswordChange.value ? 'password' : (route.query.tab || 'info'))
 const loading = ref(false)
 const saving = ref(false)
 const pwSaving = ref(false)
@@ -674,6 +681,11 @@ async function handleUpdatePassword() {
       })
       ElMessage.success('비밀번호가 변경되었습니다.')
       pwForm.value = { currentPassword: '', newPassword: '', newPasswordConfirm: '' }
+      // 강제 변경 플래그 해제 후 re-fetch
+      await authStore.fetchMe()
+      if (!authStore.member?.mustChangePassword) {
+        activeTab.value = 'info'
+      }
     } catch (e) {
       ElMessage.error(e.response?.data?.message || '변경에 실패했습니다.')
     } finally {
@@ -969,6 +981,17 @@ watch(activeTab, (tab) => {
   justify-content: flex-end;
   margin-top: 8px;
 }
+
+.forced-pw-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #fff7ed; border: 1px solid #f97316; border-radius: 8px;
+  padding: 14px 16px; margin-bottom: 20px; max-width: 420px;
+  font-size: 13px; line-height: 1.6; color: #9a3412;
+}
+.forced-pw-banner i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.forced-pw-banner strong { display: block; margin-top: 2px; font-weight: 700; }
+
+.pnav-item.disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* 작성 폼 */
 .write-form { display: flex; flex-direction: column; gap: 4px; }

@@ -159,6 +159,7 @@ public class AuthService {
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
         member.updatePassword(passwordEncoder.encode(request.getNewPassword()));
         member.unlock();
+        member.clearMustChangePassword();
         tokenSessionService.invalidateMember(memberId);
         operationLogService.audit(memberId, "UPDATE", "members", memberId, "password_reset_requested", "password_reset_done", httpRequest);
     }
@@ -186,6 +187,7 @@ public class AuthService {
             throw new BusinessException("현재 비밀번호가 올바르지 않습니다.");
         }
         member.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+        member.clearMustChangePassword();
         tokenSessionService.invalidateMember(memberId);
     }
 
