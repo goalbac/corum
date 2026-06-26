@@ -3,6 +3,8 @@ package com.corum.backend.service.comment;
 import com.corum.backend.common.BusinessException;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.comment.Comment;
+import com.corum.backend.domain.comment.CommentReaction;
+import com.corum.backend.domain.comment.CommentReactionRepository;
 import com.corum.backend.domain.comment.CommentRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
@@ -10,6 +12,7 @@ import com.corum.backend.domain.post.Post;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.comment.CommentCreateRequest;
 import com.corum.backend.dto.comment.CommentResponse;
+import com.corum.backend.dto.post.ReactionResult;
 import com.corum.backend.service.notification.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +33,7 @@ import java.util.stream.Collectors;
 public class CommentService {
 
     private final CommentRepository commentRepository;
+    private final CommentReactionRepository commentReactionRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final MemberGroupRepository memberGroupRepository;
@@ -34,10 +41,12 @@ public class CommentService {
     private final NotificationService notificationService;
 
     private static final int MAX_DEPTH = 2; // 0-based (0,1,2 = 3뎁스)
+    private static final List<String> EMOJI_ORDER =
+            List.of("HEART", "THUMBS_UP", "SMILE", "LAUGH_CRY", "SAD", "ANGRY");
 
     // ===== 댓글 목록 (트리 구조) =====
     @Transactional(readOnly = true)
-    public List<CommentResponse> getComments(Long postId) {
+    public List<CommentResponse> getComments(Long postId, Long memberId) {
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
 
         // memberId → profileImageUrl 배치 조회
@@ -49,9 +58,37 @@ public class CommentService {
                 .filter(m -> m.getProfileImageUrl() != null)
                 .collect(Collectors.toMap(m -> m.getId(), m -> m.getProfileImageUrl()));
 
+        // 댓글 리액션 배치 조회
+        List<Long> commentIds = comments.stream().map(Comment::getId).toList();
+        List<CommentReaction> allReactions = commentIds.isEmpty()
+                ? List.of()
+                : commentReactionRepository.findByCommentIdIn(commentIds);
+
+        // commentId → (emojiType → count)
+        Map<Long, Map<String, Integer>> reactionCountMap = new HashMap<>();
+        // commentId → 내가 누른 타입 목록
+        Map<Long, Set<String>> myReactionMap = new HashMap<>();
+        for (CommentReaction r : allReactions) {
+            reactionCountMap.computeIfAbsent(r.getCommentId(), k -> new LinkedHashMap<>())
+                    .merge(r.getEmojiType(), 1, Integer::sum);
+            if (memberId != null && r.getMemberId().equals(memberId)) {
+                myReactionMap.computeIfAbsent(r.getCommentId(), k -> new HashSet<>())
+                        .add(r.getEmojiType());
+            }
+        }
+
         Map<Long, CommentResponse> map = comments.stream()
                 .collect(Collectors.toMap(Comment::getId,
                         c -> new CommentResponse(c, profileImageMap.get(c.getMemberId()))));
+
+        // 리액션 정보 주입
+        map.values().forEach(cr -> {
+            Map<String, Integer> counts = new LinkedHashMap<>();
+            for (String type : EMOJI_ORDER) counts.put(type, 0);
+            Map<String, Integer> actual = reactionCountMap.getOrDefault(cr.getId(), Map.of());
+            actual.forEach(counts::put);
+            cr.setReactions(counts, myReactionMap.getOrDefault(cr.getId(), Set.of()));
+        });
 
         List<CommentResponse> roots = new ArrayList<>();
         comments.forEach(c -> {
@@ -66,6 +103,29 @@ public class CommentService {
         });
 
         return roots;
+    }
+
+    // ===== 댓글 리액션 토글 =====
+    @Transactional
+    public ReactionResult toggleCommentReaction(Long commentId, Long memberId, String emojiType) {
+        if (!commentRepository.existsById(commentId)) {
+            throw BusinessException.notFound("댓글을 찾을 수 없습니다.");
+        }
+        if (commentReactionRepository.existsByCommentIdAndMemberIdAndEmojiType(commentId, memberId, emojiType)) {
+            commentReactionRepository.deleteByCommentIdAndMemberIdAndEmojiType(commentId, memberId, emojiType);
+        } else {
+            commentReactionRepository.save(CommentReaction.builder()
+                    .commentId(commentId).memberId(memberId).emojiType(emojiType).build());
+        }
+        List<CommentReaction> allReactions = commentReactionRepository.findByCommentId(commentId);
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String type : EMOJI_ORDER) counts.put(type, 0);
+        allReactions.forEach(r -> counts.merge(r.getEmojiType(), 1, Integer::sum));
+        Set<String> myReactions = allReactions.stream()
+                .filter(r -> r.getMemberId().equals(memberId))
+                .map(CommentReaction::getEmojiType)
+                .collect(Collectors.toCollection(HashSet::new));
+        return new ReactionResult(counts, myReactions);
     }
 
     // ===== 댓글 작성 =====

@@ -47,20 +47,28 @@
 
         <template v-else>
           <p class="comment-content">{{ comment.content }}</p>
-          <div class="comment-actions">
-            <button
-              v-if="authStore.isLoggedIn && comment.depth < 2 && canComment"
-              class="action-btn"
-              @click="replyMode = !replyMode"
-            >
-              <i class="ti ti-corner-down-right"></i> 답글
-            </button>
-            <button v-if="isOwner || hasManage" class="action-btn" @click="startEdit">
-              <i class="ti ti-edit"></i> 수정
-            </button>
-            <button v-if="isOwner || isAdmin || hasManage" class="action-btn danger" @click="handleDelete">
-              <i class="ti ti-trash"></i> 삭제
-            </button>
+          <div class="comment-footer">
+            <EmojiReactionBar
+              :reactions="localReactions"
+              :my-reactions="localMyReactions"
+              :disabled="!authStore.isLoggedIn"
+              @toggle="handleReaction"
+            />
+            <div class="comment-actions">
+              <button
+                v-if="authStore.isLoggedIn && comment.depth < 2 && canComment"
+                class="action-btn"
+                @click="replyMode = !replyMode"
+              >
+                <i class="ti ti-corner-down-right"></i> 답글
+              </button>
+              <button v-if="isOwner || hasManage" class="action-btn" @click="startEdit">
+                <i class="ti ti-edit"></i> 수정
+              </button>
+              <button v-if="isOwner || isAdmin || hasManage" class="action-btn danger" @click="handleDelete">
+                <i class="ti ti-trash"></i> 삭제
+              </button>
+            </div>
           </div>
         </template>
       </div>
@@ -135,6 +143,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 import UserProfileModal from '@/components/common/UserProfileModal.vue'
+import EmojiReactionBar from '@/components/common/EmojiReactionBar.vue'
 
 const props = defineProps({
   comment:    { type: Object, required: true },
@@ -153,6 +162,19 @@ const editMode    = ref(false)
 const replyMode   = ref(false)
 const editContent = ref('')
 const replyContent = ref('')
+
+// 리액션은 로컬 상태로 즉시 반영 (refresh 없이)
+const localReactions   = ref({ ...(props.comment.reactions   ?? {}) })
+const localMyReactions = ref([...(props.comment.myReactions  ?? [])])
+
+async function handleReaction(emojiType) {
+  const res = await api.post(
+    `/boards/${props.boardId}/posts/${props.postId}/comments/${props.comment.id}/reactions`,
+    { emojiType }
+  )
+  localReactions.value   = res.data.data.reactions
+  localMyReactions.value = res.data.data.myReactions
+}
 
 const isOwner = computed(() =>
   authStore.isLoggedIn && authStore.member?.id === props.comment.memberId
@@ -303,11 +325,19 @@ function formatDate(dateStr) {
   font-style: italic;
 }
 
+/* 리액션 + 액션 묶음 */
+.comment-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 /* 액션 버튼 */
 .comment-actions {
   display: flex;
   gap: 2px;
-  margin-top: 6px;
 }
 
 .action-btn {

@@ -6,6 +6,8 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Getter
 public class PostResponse {
@@ -23,17 +25,25 @@ public class PostResponse {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
     private final List<FileResponse> files;
-    private final boolean liked;
     private final int commentCount;
     private final Long categoryId;
     private final String categoryName;
 
-    public PostResponse(Post post, List<FileResponse> files, boolean liked, int commentCount, String writerProfileImageUrl) {
-        this(post, files, liked, commentCount, writerProfileImageUrl, null);
+    /** 리액션 집계: emoji_type → 개수 */
+    private final Map<String, Integer> reactions;
+
+    /** 현재 사용자가 누른 리액션 타입 목록 */
+    private final Set<String> myReactions;
+
+    public PostResponse(Post post, List<FileResponse> files, int commentCount,
+                        String writerProfileImageUrl,
+                        Map<String, Integer> reactions, Set<String> myReactions) {
+        this(post, files, commentCount, writerProfileImageUrl, null, reactions, myReactions);
     }
 
-    public PostResponse(Post post, List<FileResponse> files, boolean liked, int commentCount,
-                        String writerProfileImageUrl, String categoryName) {
+    public PostResponse(Post post, List<FileResponse> files, int commentCount,
+                        String writerProfileImageUrl, String categoryName,
+                        Map<String, Integer> reactions, Set<String> myReactions) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.memberId = post.getMemberId();
@@ -47,9 +57,10 @@ public class PostResponse {
         this.createdAt = post.getCreatedAt();
         this.updatedAt = post.getUpdatedAt();
         this.files = files;
-        this.liked = liked;
         this.commentCount = commentCount;
         this.categoryId = post.getCategoryId();
         this.categoryName = categoryName;
+        this.reactions = reactions != null ? reactions : Map.of();
+        this.myReactions = myReactions != null ? myReactions : Set.of();
     }
 }

@@ -9,6 +9,7 @@ import com.corum.backend.dto.post.AdjacentPostsResponse;
 import com.corum.backend.dto.post.PostCreateRequest;
 import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
+import com.corum.backend.dto.post.ReactionResult;
 import com.corum.backend.security.CustomUserDetails;
 import com.corum.backend.dto.file.FileResponse;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
@@ -186,14 +187,15 @@ public class BoardController {
         return boardGroupPermissionRepository.existsManagePermission(boardId, groupIds);
     }
 
-    @PostMapping("/api/boards/{boardId}/posts/{postId}/like")
-    public ApiResponse<Map<String, Object>> toggleLike(
+    @PostMapping("/api/boards/{boardId}/posts/{postId}/reactions")
+    public ApiResponse<ReactionResult> togglePostReaction(
             @PathVariable Long boardId,
             @PathVariable Long postId,
+            @RequestBody Map<String, String> body,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        boolean liked = postService.toggleLike(postId, userDetails.getMemberId());
-        return ApiResponse.ok(Map.of("liked", liked));
+        String emojiType = body.getOrDefault("emojiType", "HEART");
+        return ApiResponse.ok(postService.toggleReaction(postId, userDetails.getMemberId(), emojiType));
     }
 
     // ===== 댓글 =====
@@ -201,8 +203,22 @@ public class BoardController {
     @GetMapping("/api/boards/{boardId}/posts/{postId}/comments")
     public ApiResponse<List<CommentResponse>> getComments(
             @PathVariable Long boardId,
-            @PathVariable Long postId) {
-        return ApiResponse.ok(commentService.getComments(postId));
+            @PathVariable Long postId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        return ApiResponse.ok(commentService.getComments(postId, memberId));
+    }
+
+    @PostMapping("/api/boards/{boardId}/posts/{postId}/comments/{commentId}/reactions")
+    public ApiResponse<ReactionResult> toggleCommentReaction(
+            @PathVariable Long boardId,
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        String emojiType = body.getOrDefault("emojiType", "HEART");
+        return ApiResponse.ok(commentService.toggleCommentReaction(commentId, userDetails.getMemberId(), emojiType));
     }
 
     @PostMapping("/api/boards/{boardId}/posts/{postId}/comments")

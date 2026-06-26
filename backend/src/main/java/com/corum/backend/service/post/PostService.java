@@ -9,14 +9,15 @@ import com.corum.backend.domain.board.BoardRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.Post;
-import com.corum.backend.domain.post.PostLike;
-import com.corum.backend.domain.post.PostLikeRepository;
+import com.corum.backend.domain.post.PostReaction;
+import com.corum.backend.domain.post.PostReactionRepository;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.file.FileResponse;
 import com.corum.backend.dto.post.AdjacentPostsResponse;
 import com.corum.backend.dto.post.PostCreateRequest;
 import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
+import com.corum.backend.dto.post.ReactionResult;
 import com.corum.backend.domain.comment.CommentRepository;
 import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.notification.NotificationService;
@@ -30,7 +31,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -39,7 +45,7 @@ import java.util.stream.Collectors;
 public class PostService {
 
     private final PostRepository postRepository;
-    private final PostLikeRepository postLikeRepository;
+    private final PostReactionRepository postReactionRepository;
     private final MemberRepository memberRepository;
     private final FileStorageService fileStorageService;
     private final CommentRepository commentRepository;
@@ -160,8 +166,15 @@ public class PostService {
         }
 
         List<FileResponse> files = fileStorageService.getFiles("POST", postId);
-        boolean liked = memberId != null && postLikeRepository
-                .existsByPostIdAndMemberId(postId, memberId);
+
+        List<PostReaction> allReactions = postReactionRepository.findByPostId(postId);
+        Map<String, Integer> reactionCounts = buildReactionCounts(allReactions);
+        Set<String> myReactions = memberId != null
+                ? allReactions.stream()
+                        .filter(r -> r.getMemberId().equals(memberId))
+                        .map(PostReaction::getEmojiType)
+                        .collect(Collectors.toCollection(HashSet::new))
+                : Set.of();
 
         String writerProfileImageUrl = post.getMemberId() != null
                 ? memberRepository.findById(post.getMemberId())
@@ -171,7 +184,7 @@ public class PostService {
         String categoryName = post.getCategoryId() != null
                 ? boardCategoryRepository.findById(post.getCategoryId()).map(BoardCategory::getName).orElse(null)
                 : null;
-        return new PostResponse(post, files, liked, 0, writerProfileImageUrl, categoryName);
+        return new PostResponse(post, files, 0, writerProfileImageUrl, categoryName, reactionCounts, myReactions);
     }
 
     // ===== 게시글 작성 =====
@@ -218,7 +231,7 @@ public class PostService {
 
         String savedProfileImageUrl = memberRepository.findById(memberId)
                 .map(m -> m.getProfileImageUrl()).orElse(null);
-        return new PostResponse(saved, fileResponses, false, 0, savedProfileImageUrl);
+        return new PostResponse(saved, fileResponses, 0, savedProfileImageUrl, buildReactionCounts(List.of()), Set.of());
     }
 
     // ===== 이전/다음 글 =====
@@ -251,10 +264,15 @@ public class PostService {
         }
 
         List<FileResponse> files = fileStorageService.getFiles("POST", postId);
-        boolean liked = postLikeRepository.existsByPostIdAndMemberId(postId, memberId);
+        List<PostReaction> reactions = postReactionRepository.findByPostId(postId);
+        Map<String, Integer> counts = buildReactionCounts(reactions);
+        Set<String> myReact = reactions.stream()
+                .filter(r -> r.getMemberId().equals(memberId))
+                .map(PostReaction::getEmojiType)
+                .collect(Collectors.toCollection(HashSet::new));
         String updaterProfileImageUrl = memberRepository.findById(memberId)
                 .map(m -> m.getProfileImageUrl()).orElse(null);
-        return new PostResponse(post, files, liked, 0, updaterProfileImageUrl);
+        return new PostResponse(post, files, 0, updaterProfileImageUrl, counts, myReact);
     }
 
     // ===== 게시글 삭제 =====
@@ -272,22 +290,44 @@ public class PostService {
         postRepository.delete(post);
     }
 
-    // ===== 좋아요 토글 =====
+    // ===== 리액션 토글 =====
     @Transactional
-    public boolean toggleLike(Long postId, Long memberId) {
+    public ReactionResult toggleReaction(Long postId, Long memberId, String emojiType) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
 
-        if (postLikeRepository.existsByPostIdAndMemberId(postId, memberId)) {
-            postLikeRepository.deleteByPostIdAndMemberId(postId, memberId);
-            post.decreaseLikeCount();
-            return false;
+        if (postReactionRepository.existsByPostIdAndMemberIdAndEmojiType(postId, memberId, emojiType)) {
+            postReactionRepository.deleteByPostIdAndMemberIdAndEmojiType(postId, memberId, emojiType);
         } else {
-            postLikeRepository.save(PostLike.builder()
-                    .postId(postId).memberId(memberId).build());
-            post.increaseLikeCount();
-            return true;
+            postReactionRepository.save(PostReaction.builder()
+                    .postId(postId).memberId(memberId).emojiType(emojiType).build());
         }
+
+        // like_count = 전체 리액션 수 (목록 표시용 캐시)
+        int total = postReactionRepository.countByPostId(postId);
+        if (post.getLikeCount() != total) {
+            post.adminUpdate(post.getTitle(), post.getContent(), post.getWriterName(),
+                    post.getIsNotice(), post.getIsHidden(), post.getViewCount(), total, post.getUpdatedBy());
+        }
+
+        List<PostReaction> allReactions = postReactionRepository.findByPostId(postId);
+        Map<String, Integer> counts = buildReactionCounts(allReactions);
+        Set<String> myReactions = allReactions.stream()
+                .filter(r -> r.getMemberId().equals(memberId))
+                .map(PostReaction::getEmojiType)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        return new ReactionResult(counts, myReactions);
+    }
+
+    private static final List<String> EMOJI_ORDER =
+            List.of("HEART", "THUMBS_UP", "SMILE", "LAUGH_CRY", "SAD", "ANGRY");
+
+    private Map<String, Integer> buildReactionCounts(List<PostReaction> reactions) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String type : EMOJI_ORDER) counts.put(type, 0);
+        for (PostReaction r : reactions) counts.merge(r.getEmojiType(), 1, Integer::sum);
+        return counts;
     }
 
     // ===== 대시보드용 최신글 =====

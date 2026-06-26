@@ -43,7 +43,10 @@
           </div>
           <div class="meta-stats">
             <span class="meta-stat"><i class="ti ti-eye"></i> {{ post.viewCount }}</span>
-            <span v-if="board?.useLike" class="meta-stat"><i class="ti ti-heart"></i> {{ post.likeCount }}</span>
+            <span v-if="board?.useLike" class="meta-stat">
+            <i class="ti ti-heart"></i>
+            {{ totalReactionCount }}
+          </span>
           </div>
         </div>
       </div>
@@ -80,14 +83,13 @@
       <!-- ===== 액션 바 ===== -->
       <div class="post-actions">
         <div class="actions-left">
-          <button
+          <EmojiReactionBar
             v-if="board?.useLike"
-            :class="['like-btn', { liked: post.liked }]"
-            @click="handleLike"
-          >
-            <i :class="post.liked ? 'ti ti-heart-filled' : 'ti ti-heart'"></i>
-            <span>{{ post.likeCount }}</span>
-          </button>
+            :reactions="post.reactions"
+            :my-reactions="post.myReactions"
+            :disabled="!authStore.isLoggedIn"
+            @toggle="handleReaction"
+          />
           <button class="action-btn ghost" @click="handlePrint">
             <i class="ti ti-printer"></i>
             <span class="btn-label">인쇄</span>
@@ -231,6 +233,7 @@ import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 import CommentSection from '@/components/board/CommentSection.vue'
 import UserProfileModal from '@/components/common/UserProfileModal.vue'
+import EmojiReactionBar from '@/components/common/EmojiReactionBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -318,11 +321,17 @@ async function fetchPost() {
   }
 }
 
-async function handleLike() {
+const totalReactionCount = computed(() => {
+  if (!post.value?.reactions) return 0
+  return Object.values(post.value.reactions).reduce((a, b) => a + b, 0)
+})
+
+async function handleReaction(emojiType) {
   if (!authStore.isLoggedIn) { ElMessage.warning('로그인이 필요합니다.'); return }
-  const res = await api.post(`/boards/${boardId.value}/posts/${postId.value}/like`)
-  post.value.liked = res.data.data.liked
-  post.value.likeCount += res.data.data.liked ? 1 : -1
+  const res = await api.post(`/boards/${boardId.value}/posts/${postId.value}/reactions`, { emojiType })
+  post.value.reactions = res.data.data.reactions
+  post.value.myReactions = res.data.data.myReactions
+  post.value.likeCount = res.data.data.totalCount
 }
 
 async function handleDelete() {

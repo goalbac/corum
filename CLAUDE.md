@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Corum 프로젝트
 
 사단법인 단체 내부용 게시판 중심 웹사이트. 개인 포트폴리오 겸용.
@@ -26,66 +30,144 @@
 | 컨테이너 | Docker Desktop |
 | Backend IDE | IntelliJ IDEA 2024.1 |
 | Frontend IDE | WebStorm 2024.1.1 |
-| JDK | OpenJDK 17 (WSL: /usr/lib/jvm/java-17-openjdk-amd64) |
+| JDK | OpenJDK 21 (JAVA_HOME=C:\Program Files\Java\jdk-21.0.1) |
 | Node.js | v22.22.3 |
 | WSL alias | `idea .` / `webstorm .` |
 
 ---
 
-## 프로젝트 구조
+## 빌드 및 실행 명령어
+
+### Backend (PowerShell — D:\workspace\corum\backend)
+
+```powershell
+# 빌드 (QueryDSL Q클래스 포함)
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.1"; .\gradlew build
+
+# 컴파일만 (Q클래스 생성 포함)
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.1"; .\gradlew compileJava
+
+# 테스트 전체 실행
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.1"; .\gradlew test
+
+# 특정 테스트 클래스 실행
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.1"; .\gradlew test --tests "com.corum.backend.SomeTest"
+
+# 빌드 없이 bootRun (개발 시)
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.1"; .\gradlew bootRun
+```
+
+> **주의:** JAVA_HOME 없이 실행하면 시스템 기본 JDK로 실행될 수 있음. 항상 명시적으로 지정.
+
+### Frontend (PowerShell — D:\workspace\corum\frontend)
+
+```powershell
+# 개발 서버 (localhost:5173, /api → localhost:8080 프록시)
+npm run dev
+
+# 프로덕션 빌드
+npm run build
+
+# 빌드 결과물 미리보기
+npm run preview
+```
+
+> Frontend는 lint·test 스크립트 없음 (현재 설정 안 됨).
+
+### 인프라 (Docker)
+
+```bash
+# 로컬 Docker 시작 (PostgreSQL :5432 / pgAdmin :5050 / MinIO :9000 API, :9001 Console)
+cd ~/corum && docker compose up -d
+
+# 로컬 Docker 종료
+cd ~/corum && docker compose down
+
+# 볼륨까지 삭제 (DB 초기화)
+docker compose down -v
+```
+
+---
+
+## 아키텍처 개요
+
+### Backend 레이어 구조
 
 ```
-~/corum/
-├── CLAUDE.md
-├── docker-compose.yml
-├── .env
-├── init/01_init.sql            # DB 스키마 DDL (39개 테이블 + 기본 데이터)
-├── backend/                    # Spring Boot
-│   ├── build.gradle
-│   ├── settings.gradle
-│   └── src/main/java/com/corum/backend/
-│       ├── CorumApplication.java
-│       ├── common/             # BaseEntity, ApiResponse, BusinessException, GlobalExceptionHandler
-│       ├── config/             # SecurityConfig, WebMvcConfig, S3StorageConfig
-│       ├── controller/         # REST 컨트롤러
-│       ├── service/            # 비즈니스 로직
-│       ├── repository/         # JPA Repository
-│       ├── domain/             # JPA 엔티티
-│       ├── dto/                # Request/Response DTO
-│       └── security/           # JWT 필터, UserDetails
-└── frontend/                   # Vue 3 + Vite
-    └── src/
-        ├── api/axios.js        # Axios 인스턴스 (토큰 자동 첨부, 에러 인터셉터)
-        ├── router/index.js     # Vue Router + 네비게이션 가드
-        ├── stores/auth.js      # Pinia 인증 스토어
-        ├── layouts/            # DefaultLayout, AdminLayout
-        ├── pages/              # 페이지 컴포넌트
-        ├── pages/admin/        # 관리자 페이지
-        ├── components/         # 공통 컴포넌트
-        └── utils/              # 유틸 함수
+Controller → Service → Repository (JPA / QueryDSL)
+                ↓
+            Domain (JPA 엔티티, BaseEntity 상속)
+                ↓
+            DTO (Request/Response 분리)
 ```
+
+- **공통 응답:** 모든 API는 `ApiResponse<T>` 래퍼 반환 (`success`, `message`, `data` 필드)
+- **예외 처리:** `BusinessException` 사용 (`notFound`, `forbidden`, `unauthorized` 정적 팩토리) → `GlobalExceptionHandler`가 일관된 에러 응답 생성
+- **엔티티:** `BaseEntity` 상속으로 `createdAt`, `updatedAt` 자동 관리
+- **동적 쿼리:** QueryDSL Q클래스는 `build/generated/querydsl`에 생성됨 (빌드 후 사용 가능)
+
+### Security / JWT 흐름
+
+1. `POST /api/auth/login` → `JwtProvider`가 accessToken 발급
+2. 이후 요청: `JwtAuthFilter`(OncePerRequestFilter)가 `Authorization: Bearer <token>` 파싱 → `CustomUserDetailsService`로 사용자 조회 → SecurityContext 설정
+3. 로그아웃/강제 만료: `TokenSessionService`가 JWT 블랙리스트 관리
+4. 공개 API 경로는 `SecurityConfig`에서 `permitAll()` 명시
+
+### Frontend 상태 관리
+
+- **인증:** `stores/auth.js` — accessToken을 `localStorage`에 보관, 사용자 정보 캐시
+- **메뉴:** `stores/menu.js` — 백엔드에서 받아온 메뉴 트리를 저장
+- **알림:** `stores/notification.js`
+- **사이트 설정:** `stores/site.js`
+- **API 호출:** 반드시 `src/api/axios.js` 인스턴스 사용 (토큰 자동 첨부, 401 시 로그인 리다이렉트, 에러 메시지 자동 표시)
+
+### 라우팅 규칙
+
+- `meta: { guest: true }` — 비로그인 전용 (로그인 상태면 `/` 리다이렉트)
+- `meta: { requiresAuth: true }` — 로그인 필수
+- `meta: { requiresAdmin: true }` — 관리자 전용 (`/admin/**`)
+- 동적 메뉴 경로: `/:pathMatch(.*)` → `MenuPage.vue`에서 백엔드 메뉴 트리 기반으로 페이지 유형 판별 후 렌더링
+
+### Vite 프록시
+
+개발 중 `/api/*` 요청은 자동으로 `http://localhost:8080`으로 프록시됨. 프론트에서 별도 baseURL 설정 불필요.
+
+---
+
+## DB 설계 원칙
+
+- **FK 제약조건 없음** — 정합성은 JPA + 서비스 레이어에서 보장
+- **CHECK 제약조건 없음** — 값 유형은 Java enum으로 관리
+- **ENUM 타입 없음** — varchar + Java enum 조합
+- 참조 컬럼에는 인덱스 필수
+- `before_value` / `after_value`는 JSON 문자열로 저장
+- `ddl-auto: none` — DDL은 `init/01_init.sql`로 직접 관리 (스키마 변경 시 이 파일 수정)
+
+---
+
+## 코딩 컨벤션
+
+- API 응답은 항상 `ApiResponse<T>` 래퍼 사용
+- 예외는 `BusinessException` 사용 (`notFound`, `forbidden`, `unauthorized` 정적 팩토리)
+- 엔티티는 `BaseEntity` 상속 (`createdAt`, `updatedAt` 자동 관리)
+- Lombok 적극 사용 (`@Getter`, `@Builder`, `@RequiredArgsConstructor`)
+- REST API prefix: `/api`
+- 프론트 API 호출은 `src/api/axios.js` 인스턴스 사용
 
 ---
 
 ## 로컬 개발 실행
 
 ```bash
-# 1. Docker 컨테이너 시작 (PostgreSQL :5432 / pgAdmin :5050 / MinIO :9000 API, :9001 Console)
+# 1. Docker 컨테이너 시작
 cd ~/corum && docker compose up -d
 
-# 2. Spring Boot 실행
-# IntelliJ에서 CorumApplication.java 실행
+# 2. Spring Boot 실행 (IntelliJ에서 CorumApplication.java 실행)
 # 확인: http://localhost:8080/api/health
 
 # 3. Vue 개발 서버 실행
 cd ~/corum/frontend && npm run dev
 # 확인: http://localhost:5173
-```
-
-**로컬 Docker 종료:**
-```bash
-cd ~/corum && docker compose down
-# 볼륨까지 삭제(DB 초기화): docker compose down -v
 ```
 
 ---
@@ -98,65 +180,22 @@ cd ~/corum && docker compose down
 - **컨테이너 구성:** postgres / minio / backend / frontend(nginx)
 - **포트:** 80 (nginx → frontend + `/api` proxy → backend:8080)
 
-**운영 서버 시작:**
-```bash
-cd ~/corum
-docker compose -p corum-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build
-```
-
-**운영 서버 종료:**
-```bash
-cd ~/corum
-docker compose -p corum-prod -f docker-compose.prod.yml down
-```
-
-**운영 서버 재시작 (코드 배포 포함):**
-```bash
-cd ~/corum
-git pull
-docker compose -p corum-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build
-```
-
-**컨테이너 상태 확인:**
-```bash
-docker compose -p corum-prod -f docker-compose.prod.yml ps
-```
-
-**로그 확인:**
-```bash
-# 전체 로그
-docker compose -p corum-prod -f docker-compose.prod.yml logs -f
-
-# 서비스별 로그
-docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
-docker compose -p corum-prod -f docker-compose.prod.yml logs -f frontend
-```
-
 > **주의:** `--env-file .env.prod` 없이 실행하면 `JWT_SECRET`이 비어 `WeakKeyException`으로 backend가 시작되지 않음.
 
 > **배포 규칙:** 운영 서버 배포는 사용자가 명시적으로 요청한 경우에만 실행한다.
 
----
+```bash
+# 운영 서버 시작 / 재배포
+cd ~/corum
+git pull
+docker compose -p corum-prod -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
-## DB 설계 원칙
+# 운영 서버 종료
+docker compose -p corum-prod -f docker-compose.prod.yml down
 
-- **FK 제약조건 없음** — 정합성은 JPA + 서비스 레이어에서 보장
-- **CHECK 제약조건 없음** — 값 유형은 Java enum으로 관리
-- **ENUM 타입 없음** — varchar + Java enum 조합
-- 참조 컬럼에는 인덱스 필수
-- before_value / after_value 는 JSON 문자열로 저장
-- ddl-auto: none (DDL은 init/01_init.sql로 직접 관리)
-
----
-
-## 코딩 컨벤션
-
-- API 응답은 항상 `ApiResponse<T>` 래퍼 사용
-- 예외는 `BusinessException` 사용 (notFound, forbidden, unauthorized 정적 팩토리)
-- 엔티티는 `BaseEntity` 상속 (createdAt, updatedAt 자동 관리)
-- Lombok 적극 사용 (@Getter, @Builder, @RequiredArgsConstructor)
-- REST API prefix: `/api`
-- 프론트 API 호출은 `src/api/axios.js` 인스턴스 사용
+# 로그 확인
+docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
+```
 
 ---
 
@@ -409,42 +448,17 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f frontend
 - [x] DB 스키마 39개 테이블 + 기본 데이터 (init/01_init.sql)
 - [x] Spring Boot 초기 세팅 (`/api/health` 확인)
 - [x] Vue 3 + Vite 초기 세팅 (localhost:5173 확인)
-- [ ] **인증 구현 ← 현재 여기**
-- [ ] 그룹/권한 구현
-- [ ] 메뉴 구현
-- [ ] 게시판 구현 (POST/GALLERY/DOCUMENT)
-- [ ] 캘린더 구현
-- [ ] 쪽지 구현
-- [ ] 문의하기 구현
-- [ ] 팝업/배너 구현
-- [ ] 안내 페이지 구현
-- [ ] 대시보드 구현
-- [ ] 관리자 패널 구현
+- [x] 인증 구현 (JWT, 회원가입, 로그인, 이메일 인증, 비밀번호 재설정)
+- [x] 그룹/권한 구현
+- [x] 메뉴 구현
+- [x] 게시판 구현 (POST/GALLERY/DOCUMENT)
+- [x] 캘린더 구현
+- [x] 쪽지 구현
+- [x] 문의하기 구현
+- [x] 팝업/배너 구현
+- [x] 안내 페이지 구현
+- [x] 대시보드 구현
+- [x] 관리자 패널 구현
 - [ ] 통계/감사로그 구현
 - [ ] SMTP 연동
 - [ ] 운영 환경 배포
-
----
-
-## 다음 작업: 인증 구현 상세
-
-### Backend 순서
-1. `domain/Member.java` — members 테이블 매핑
-2. `domain/Group.java`, `domain/MemberGroup.java`
-3. `repository/MemberRepository.java`, `repository/GroupRepository.java`
-4. `security/JwtUtil.java` — JWT 발급/검증/파싱 (jjwt 0.12.5)
-5. `security/JwtAuthFilter.java` — OncePerRequestFilter
-6. `security/CustomUserDetailsService.java`
-7. `config/SecurityConfig.java` 업데이트 — JWT 필터 등록, 경로별 권한
-8. `dto/auth/RegisterRequest.java`, `LoginRequest.java`, `AuthResponse.java`
-9. `service/AuthService.java`
-10. `controller/AuthController.java`
-    - POST /api/auth/register
-    - POST /api/auth/login
-    - POST /api/auth/logout
-    - GET /api/auth/me
-
-### Frontend 순서
-1. `pages/LoginPage.vue` — 로그인 폼 완성 + auth store 연동
-2. `pages/RegisterPage.vue` — 회원가입 폼
-3. `router/index.js` — 네비게이션 가드 확인

@@ -1,5 +1,6 @@
 # 환경변수
 .env
+.env.prod
 
 # Java
 backend/build/
