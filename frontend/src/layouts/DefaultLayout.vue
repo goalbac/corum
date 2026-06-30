@@ -141,7 +141,7 @@
             <nav v-if="breadcrumbs.length > 1" class="breadcrumb" aria-label="breadcrumb">
               <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
                 <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">{{ item.name }}</span>
-                <svg v-if="index < breadcrumbs.length - 1" class="bc-sep" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                <span v-if="index < breadcrumbs.length - 1" class="bc-sep">/</span>
               </span>
             </nav>
             <h1 class="page-title">{{ routeMenu.name }}</h1>
@@ -489,7 +489,13 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.bc-sep { color: var(--t3); }
+.bc-sep {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t3);
+  opacity: 0.5;
+  margin: 0 4px;
+}
 
 .page-title {
   font-size: 25px;

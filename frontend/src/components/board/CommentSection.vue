@@ -39,12 +39,10 @@
             <span class="cs-hint">Ctrl+Enter로 등록</span>
             <button
               class="cs-submit-btn"
-              :class="{ active: newComment.trim() }"
               :disabled="submitting || !newComment.trim()"
               @click="submitComment(null)"
             >
-              <i class="ti ti-send" v-if="!submitting"></i>
-              <i class="ti ti-loader-2 spinning" v-else></i>
+              <i v-if="submitting" class="ti ti-loader-2 spinning"></i>
               등록
             </button>
           </div>
@@ -215,7 +213,6 @@ onMounted(fetchComments)
 /* ===== 댓글 작성 ===== */
 .cs-write {
   padding: 18px 28px 22px;
-  background: var(--surface2);
   border-bottom: 0.5px solid var(--border2);
 }
 
@@ -285,37 +282,28 @@ onMounted(fetchComments)
 .cs-write-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px 8px;
-}
-
-.cs-hint {
-  font-size: 11px;
-  color: var(--t4);
+  justify-content: flex-end;
+  padding: 8px 10px 10px;
 }
 
 .cs-submit-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 14px;
-  border-radius: var(--radius-xs);
+  padding: 9px 22px;
+  border-radius: 9px;
   border: none;
-  background: var(--surface2);
-  color: var(--t3);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.cs-submit-btn.active {
-  background: var(--accent);
+  background: var(--primary);
   color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.cs-submit-btn:disabled:not(.active) { cursor: default; }
-.cs-submit-btn.active:hover { opacity: 0.88; }
+.cs-submit-btn:hover:not(:disabled) { background: var(--primary-strong); }
+.cs-submit-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* ===== 로그인 안내 ===== */
 .cs-login-notice {

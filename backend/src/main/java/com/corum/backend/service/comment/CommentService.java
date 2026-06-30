@@ -6,6 +6,9 @@ import com.corum.backend.domain.comment.Comment;
 import com.corum.backend.domain.comment.CommentReaction;
 import com.corum.backend.domain.comment.CommentReactionRepository;
 import com.corum.backend.domain.comment.CommentRepository;
+import com.corum.backend.domain.group.Group;
+import com.corum.backend.domain.group.GroupRepository;
+import com.corum.backend.domain.group.MemberGroup;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.Post;
@@ -37,6 +40,7 @@ public class CommentService {
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final GroupRepository groupRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final NotificationService notificationService;
 
@@ -57,6 +61,18 @@ public class CommentService {
         Map<Long, String> profileImageMap = memberRepository.findAllById(memberIds).stream()
                 .filter(m -> m.getProfileImageUrl() != null)
                 .collect(Collectors.toMap(m -> m.getId(), m -> m.getProfileImageUrl()));
+
+        // memberId → 대표 그룹명 배치 조회 (정렬 순서 가장 낮은 leaf 그룹)
+        List<MemberGroup> memberGroups = memberGroupRepository.findByMemberIdIn(new ArrayList<>(memberIds));
+        Set<Long> groupIds = memberGroups.stream().map(MemberGroup::getGroupId).collect(Collectors.toSet());
+        Map<Long, Group> groupMap = groupRepository.findAllById(groupIds).stream()
+                .collect(Collectors.toMap(Group::getId, g -> g));
+        Map<Long, String> groupNameMap = new HashMap<>();
+        for (MemberGroup mg : memberGroups) {
+            Group g = groupMap.get(mg.getGroupId());
+            if (g == null || g.getParentId() == null) continue; // 최상위 그룹 제외
+            groupNameMap.merge(mg.getMemberId(), g.getName(), (a, b) -> a);
+        }
 
         // 댓글 리액션 배치 조회
         List<Long> commentIds = comments.stream().map(Comment::getId).toList();
@@ -79,7 +95,9 @@ public class CommentService {
 
         Map<Long, CommentResponse> map = comments.stream()
                 .collect(Collectors.toMap(Comment::getId,
-                        c -> new CommentResponse(c, profileImageMap.get(c.getMemberId()))));
+                        c -> new CommentResponse(c,
+                                profileImageMap.get(c.getMemberId()),
+                                groupNameMap.get(c.getMemberId()))));
 
         // 리액션 정보 주입
         map.values().forEach(cr -> {

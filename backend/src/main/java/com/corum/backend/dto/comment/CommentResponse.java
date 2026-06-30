@@ -17,6 +17,7 @@ public class CommentResponse {
     private final Long parentId;
     private final Long memberId;
     private final String writerName;
+    private final String writerGroupName;
     private final String writerProfileImageUrl;
     private final String content;
     private final Integer depth;
@@ -32,15 +33,20 @@ public class CommentResponse {
     private Set<String> myReactions;
 
     public CommentResponse(Comment comment) {
-        this(comment, null);
+        this(comment, null, null);
     }
 
     public CommentResponse(Comment comment, String writerProfileImageUrl) {
+        this(comment, writerProfileImageUrl, null);
+    }
+
+    public CommentResponse(Comment comment, String writerProfileImageUrl, String writerGroupName) {
         this.id = comment.getId();
         this.postId = comment.getPostId();
         this.parentId = comment.getParentId();
         this.memberId = comment.getMemberId();
         this.writerName = comment.getWriterName();
+        this.writerGroupName = writerGroupName;
         this.writerProfileImageUrl = writerProfileImageUrl;
         this.content = comment.getContent();
         this.depth = comment.getDepth();

@@ -22,6 +22,7 @@
             :class="{ clickable: authStore.isLoggedIn && comment.memberId }"
             @click="openProfile(comment.memberId)"
           >{{ comment.writerName }}</button>
+          <span v-if="comment.writerGroupName" class="writer-group-badge">{{ comment.writerGroupName }}</span>
           <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
         </div>
 
@@ -60,7 +61,7 @@
                 class="action-btn"
                 @click="replyMode = !replyMode"
               >
-                <i class="ti ti-corner-down-right"></i> 답글
+                ← 답글
               </button>
               <button v-if="isOwner || hasManage" class="action-btn" @click="startEdit">
                 <i class="ti ti-edit"></i> 수정
@@ -226,7 +227,9 @@ async function handleDelete() {
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${d.toTimeString().slice(0, 5)}`
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${mm}.${dd} ${d.toTimeString().slice(0, 5)}`
 }
 </script>
 
@@ -270,13 +273,14 @@ function formatDate(dateStr) {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f6ef7, #7c4ff7);
-  color: #fff;
+  background: var(--surface-2, #e5e7ef);
+  color: var(--t2);
   font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1.5px solid var(--border);
 }
 
 .c-avatar-placeholder.sm {
@@ -309,6 +313,18 @@ function formatDate(dateStr) {
   cursor: pointer;
 }
 .comment-writer.clickable:hover { color: var(--accent); }
+
+.writer-group-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: var(--surface-2, #eef1f6);
+  color: var(--t2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .comment-date   { font-size: 12px; color: var(--t3); }
 
 .comment-content {
@@ -446,10 +462,6 @@ function formatDate(dateStr) {
 
 .inline-write-wrap { flex: 1; min-width: 0; }
 
-/* ===== 답글 배경 ===== */
-.is-reply > .comment-inner {
-  background: var(--surface2);
-}
 
 @media (max-width: 768px) {
   .comment-inner { padding-right: 16px; }
