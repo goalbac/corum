@@ -13,26 +13,7 @@
       이 게시판은 댓글을 사용하지 않습니다. 관리자만 댓글을 달 수 있습니다.
     </div>
 
-    <!-- 댓글 목록 -->
-    <div class="comment-list">
-      <CommentItem
-        v-for="comment in comments"
-        :key="comment.id"
-        :comment="comment"
-        :board-id="boardId"
-        :post-id="postId"
-        :can-comment="canComment && useComment || isAdmin"
-        :is-admin="isAdmin"
-        :has-manage="hasManage"
-        @refresh="fetchComments"
-      />
-      <div v-if="!comments.length" class="cs-empty">
-        <i class="ti ti-message-circle-off"></i>
-        <span>아직 댓글이 없습니다</span>
-      </div>
-    </div>
-
-    <!-- 댓글 작성 영역 -->
+    <!-- 댓글 작성 영역 (상단) -->
     <div v-if="showWriteArea" class="cs-write">
       <div class="cs-write-inner">
         <div class="cs-avatar">
@@ -71,10 +52,29 @@
       </div>
     </div>
 
-    <!-- 로그인 필요 안내 -->
+    <!-- 로그인 필요 안내 (상단) -->
     <div v-else-if="!authStore.isLoggedIn" class="cs-login-notice">
       <i class="ti ti-lock"></i>
       <span>댓글을 작성하려면 <router-link to="/login">로그인</router-link>이 필요합니다.</span>
+    </div>
+
+    <!-- 댓글 목록 -->
+    <div class="comment-list">
+      <CommentItem
+        v-for="comment in comments"
+        :key="comment.id"
+        :comment="comment"
+        :board-id="boardId"
+        :post-id="postId"
+        :can-comment="canComment && useComment || isAdmin"
+        :is-admin="isAdmin"
+        :has-manage="hasManage"
+        @refresh="fetchComments"
+      />
+      <div v-if="!comments.length" class="cs-empty">
+        <i class="ti ti-message-circle-off"></i>
+        <span>아직 댓글이 없습니다</span>
+      </div>
     </div>
 
   </div>
@@ -216,7 +216,7 @@ onMounted(fetchComments)
 .cs-write {
   padding: 18px 28px 22px;
   background: var(--surface2);
-  border-top: 0.5px solid var(--border2);
+  border-bottom: 0.5px solid var(--border2);
 }
 
 .cs-write-inner {
@@ -326,7 +326,7 @@ onMounted(fetchComments)
   padding: 20px 28px;
   font-size: 14px;
   color: var(--t3);
-  border-top: 0.5px solid var(--border2);
+  border-bottom: 0.5px solid var(--border2);
   background: var(--surface2);
 }
 

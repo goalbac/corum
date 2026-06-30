@@ -1,14 +1,34 @@
 <template>
   <div class="board-page">
 
-    <!-- ===== 페이지 헤더 ===== -->
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">{{ board?.name || '게시판' }}</h1>
-        <p class="pg-desc" v-if="!loading || total > 0">
-          총 <strong>{{ total }}</strong>건의 {{ boardCountLabel }}
-        </p>
-      </div>
+    <!-- ===== 목록 툴바 (건수 + 글쓰기 [+ 카테고리 없을 때 검색]) ===== -->
+    <div class="list-toolbar">
+      <p class="pg-count" v-if="!loading || total > 0">
+        총 <strong>{{ total }}</strong>건의 {{ boardCountLabel }}이 등록되어 있습니다.
+      </p>
+
+      <!-- 카테고리 없을 때: 검색+정렬을 툴바 오른쪽에 인라인 배치 -->
+      <template v-if="!boardCategories.length">
+        <div class="toolbar-right">
+          <div class="search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              v-model="keyword"
+              class="search-input"
+              :placeholder="isDocumentBoard ? '파일명 검색' : isGalleryBoard ? '제목 검색' : '제목·작성자 검색'"
+              @keyup.enter="handleSearch"
+            />
+            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <button v-if="!isGalleryBoard && !isDocumentBoard && !isWebzineBoard && !isListBoard" class="sort-btn">
+            최신순
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </template>
+
       <button v-if="canWrite" class="action-btn" @click="goWrite">
         <svg v-if="isDocumentBoard" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -16,9 +36,9 @@
       </button>
     </div>
 
-    <!-- ===== 필터 바 (카테고리 + 검색) ===== -->
-    <div class="filter-bar">
-      <div v-if="boardCategories.length" class="cat-chips">
+    <!-- ===== 필터 바 (카테고리 있을 때만) ===== -->
+    <div v-if="boardCategories.length" class="filter-bar">
+      <div class="cat-chips">
         <button
           v-if="board?.useAllCategory"
           :class="['cat-chip', selectedCategoryId === null ? 'active' : '']"
@@ -31,7 +51,6 @@
           @click="selectCategory(cat.id)"
         >{{ cat.name }}</button>
       </div>
-      <div v-else class="cat-chips-spacer"></div>
 
       <div class="filter-right">
         <div class="search-box">
@@ -492,24 +511,19 @@ onMounted(async () => {
   box-shadow: var(--shadow-sm);
 }
 
-/* ===== 페이지 헤더 ===== */
-.pg-header {
+/* ===== 목록 툴바 ===== */
+.list-toolbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
-.pg-title {
-  margin: 0 0 5px;
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
+.pg-count { margin: 0; font-size: 13.5px; color: var(--t2); }
+.pg-count strong { color: var(--t1); font-weight: 700; }
 
-.pg-desc { margin: 0; font-size: 13.5px; color: var(--t2); }
-.pg-desc strong { color: var(--t1); font-weight: 700; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
 .action-btn {
   display: inline-flex;
@@ -1117,6 +1131,6 @@ onMounted(async () => {
   .ft-row > *:nth-child(n+3) { display: none; }
 
   .search-box { width: 160px; }
-  .pg-header { flex-direction: column; align-items: flex-start; }
+  .list-toolbar { flex-direction: column; align-items: flex-start; }
 }
 </style>

@@ -8,8 +8,8 @@
 
     <!-- 작성 카드 -->
     <div class="write-card">
-      <!-- 옵션 행 (카테고리 + 토글) -->
-      <div class="options-row">
+      <!-- 옵션 행 (카테고리 있거나 관리자 수정 시에만 표시) -->
+      <div v-if="boardCategories.length || (isAdmin && isEdit)" class="options-row">
         <div v-if="boardCategories.length" class="option-group">
           <label class="option-label">카테고리</label>
           <select v-model="form.categoryId" class="cat-select">
@@ -34,8 +34,16 @@
             />
           </div>
         </template>
+      </div>
 
-        <div v-if="isAdmin || board?.useNotice" class="option-group toggle-group">
+      <!-- 제목 + 공지 고정 토글 인라인 -->
+      <div class="title-row">
+        <input
+          v-model="form.title"
+          class="title-input"
+          placeholder="제목을 입력하세요"
+        />
+        <div v-if="isAdmin || board?.useNotice" class="notice-toggle-wrap">
           <span class="option-label">공지 고정</span>
           <button
             type="button"
@@ -47,13 +55,6 @@
           </button>
         </div>
       </div>
-
-      <!-- 제목 입력 -->
-      <input
-        v-model="form.title"
-        class="title-input"
-        placeholder="제목을 입력하세요"
-      />
 
       <!-- 에디터 -->
       <div class="editor-wrap">
@@ -317,21 +318,37 @@ onMounted(async () => {
 }
 .toggle-btn.on .toggle-knob { left: 20px; }
 
+/* ===== 제목 행 (제목 + 공지 고정 토글) ===== */
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-strong);
+  transition: border-color 0.15s;
+}
+.title-row:focus-within { border-color: var(--primary); }
+
+.notice-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
 /* ===== 제목 입력 ===== */
 .title-input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   font-family: inherit;
   font-size: 19px;
   font-weight: 600;
   color: var(--t1);
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--border-strong);
   padding: 11px 2px;
   outline: none;
-  transition: border-color 0.15s;
 }
-.title-input:focus { border-color: var(--primary); }
 .title-input::placeholder { color: var(--t3); }
 
 /* ===== 에디터 ===== */

@@ -137,13 +137,15 @@
       <div class="main-col">
         <main class="main-content">
           <!-- 브레드크럼 + 페이지 제목 -->
-          <div v-if="routeMenu && showSidebar" class="page-header">
+          <div v-if="routeMenu && showSidebar && !isDetailPage" class="page-header">
             <nav v-if="breadcrumbs.length > 1" class="breadcrumb" aria-label="breadcrumb">
               <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
                 <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">{{ item.name }}</span>
                 <svg v-if="index < breadcrumbs.length - 1" class="bc-sep" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
               </span>
             </nav>
+            <h1 class="page-title">{{ routeMenu.name }}</h1>
+            <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
           </div>
 
           <router-view v-slot="{ Component }">
@@ -179,6 +181,7 @@ const drawerRightRef = ref(null)
 
 const routeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
+const isDetailPage = computed(() => !!route.params.postId)
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 const showSidebar = computed(() => !!activeTopMenu.value && sideMenus.value.length > 0)
 
@@ -457,7 +460,7 @@ onMounted(async () => {
 
 /* ===== 페이지 헤더 (브레드크럼 + 제목) ===== */
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .breadcrumb {
@@ -465,7 +468,7 @@ onMounted(async () => {
   align-items: center;
   gap: 2px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .bc-wrap {
@@ -481,7 +484,7 @@ onMounted(async () => {
 }
 
 .bc-item.last {
-  color: var(--accent);
+  color: var(--primary);
   font-weight: 600;
 }
 
