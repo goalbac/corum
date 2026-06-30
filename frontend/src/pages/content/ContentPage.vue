@@ -55,7 +55,7 @@ onMounted(async () => {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 36px 40px 44px;
+  padding: 24px;
   min-height: 360px;
 }
 
