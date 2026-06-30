@@ -1,74 +1,101 @@
 <template>
   <div class="board-write">
-    <el-form :model="form" label-position="top">
-      <el-form-item label="제목">
-        <el-input v-model="form.title" placeholder="제목을 입력하세요." size="large" />
-      </el-form-item>
 
-      <el-form-item v-if="isAdmin || board?.useNotice" label="공지 설정">
-        <el-checkbox v-model="form.isNotice" :disabled="!isAdmin && !board?.useNotice">공지글로 등록</el-checkbox>
-      </el-form-item>
+    <!-- 페이지 헤더 -->
+    <div class="pg-header">
+      <h1 class="pg-title">{{ isEdit ? '게시글 수정' : '게시글 작성' }}</h1>
+    </div>
 
-      <template v-if="isAdmin && isEdit">
-        <el-form-item label="게시일">
-          <el-date-picker
-            v-model="form.createdAt"
-            type="datetime"
-            placeholder="게시일 변경 (비워두면 유지)"
-            format="YYYY-MM-DD HH:mm:ss"
-            value-format="YYYY-MM-DDTHH:mm:ss"
-            style="width:280px"
-          />
-        </el-form-item>
-        <el-form-item label="좋아요 수">
-          <el-input-number v-model="form.likeCount" :min="0" style="width:160px" />
-        </el-form-item>
-      </template>
+    <!-- 작성 카드 -->
+    <div class="write-card">
+      <!-- 옵션 행 (카테고리 + 토글) -->
+      <div class="options-row">
+        <div v-if="boardCategories.length" class="option-group">
+          <label class="option-label">카테고리</label>
+          <select v-model="form.categoryId" class="cat-select">
+            <option :value="null" disabled>카테고리 선택</option>
+            <option v-for="cat in boardCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+          </select>
+        </div>
 
-      <el-form-item v-if="boardCategories.length" label="카테고리" required>
-        <el-select v-model="form.categoryId" placeholder="카테고리를 선택하세요." style="width:240px">
-          <el-option
-            v-for="cat in boardCategories"
-            :key="cat.id"
-            :value="cat.id"
-            :label="cat.name"
-          />
-        </el-select>
-      </el-form-item>
+        <div class="option-spacer"></div>
 
-      <el-form-item label="내용">
-        <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="400px" style="width:100%" />
-      </el-form-item>
+        <!-- 관리자 전용 날짜/좋아요 수 -->
+        <template v-if="isAdmin && isEdit">
+          <div class="option-group">
+            <label class="option-label">게시일</label>
+            <el-date-picker
+              v-model="form.createdAt"
+              type="datetime"
+              placeholder="게시일 변경"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              style="width:200px"
+            />
+          </div>
+        </template>
 
-      <el-form-item :label="board?.boardType === 'DOCUMENT' ? '파일 첨부 *' : '파일 첨부'">
+        <div v-if="isAdmin || board?.useNotice" class="option-group toggle-group">
+          <span class="option-label">공지 고정</span>
+          <button
+            type="button"
+            class="toggle-btn"
+            :class="{ on: form.isNotice }"
+            @click="form.isNotice = !form.isNotice"
+          >
+            <span class="toggle-knob"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 제목 입력 -->
+      <input
+        v-model="form.title"
+        class="title-input"
+        placeholder="제목을 입력하세요"
+      />
+
+      <!-- 에디터 -->
+      <div class="editor-wrap">
+        <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="360px" style="width:100%" />
+      </div>
+
+      <!-- 파일 첨부 -->
+      <div class="attach-section">
+        <div class="attach-header">
+          <span class="attach-label">
+            파일 첨부
+            <span v-if="board?.boardType === 'DOCUMENT'" class="attach-required">*필수</span>
+          </span>
+          <span class="attach-tip">
+            최대 {{ board?.fileMaxSizeMb || 10 }}MB · {{ board?.fileMaxCount || 10 }}개
+            <template v-if="board?.fileAllowedExtensions"> · 허용: {{ board.fileAllowedExtensions }}</template>
+          </span>
+        </div>
         <el-upload
           v-model:file-list="fileList"
           :auto-upload="false"
           multiple
           :on-change="handleFileChange"
+          class="file-uploader"
         >
-          <el-button size="small" :type="board?.boardType === 'DOCUMENT' && !isEdit && files.length === 0 ? 'primary' : 'default'">파일 선택</el-button>
-          <template #tip>
-            <div class="upload-tip">
-              <span v-if="board?.boardType === 'DOCUMENT'" class="doc-required-tip">자료실은 파일 첨부가 필수입니다.</span>
-              <span v-else>파일을 선택하면 저장 시 함께 업로드됩니다.</span>
-              <span v-if="board">
-                최대 {{ board.fileMaxSizeMb || DEFAULT_MAX_MB }}MB,
-                {{ board.fileMaxCount || DEFAULT_MAX_COUNT }}개까지
-                <template v-if="board.fileAllowedExtensions"> / 허용: {{ board.fileAllowedExtensions }}</template>
-              </span>
-            </div>
-          </template>
+          <button type="button" class="attach-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            파일 선택
+          </button>
         </el-upload>
-      </el-form-item>
-
-      <div class="write-actions">
-        <el-button @click="router.push(basePath)">취소</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
-          {{ isEdit ? '수정' : '등록' }}
-        </el-button>
       </div>
-    </el-form>
+
+      <!-- 액션 버튼 -->
+      <div class="write-actions">
+        <button type="button" class="cancel-btn" @click="router.push(basePath)">취소</button>
+        <button type="button" class="submit-btn" :disabled="loading" @click="handleSubmit">
+          <span v-if="loading" class="loading-dots">처리 중...</span>
+          <span v-else>{{ isEdit ? '수정하기' : '등록하기' }}</span>
+        </button>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -132,7 +159,7 @@ function validateFiles(newFiles) {
     if (allowedExts) {
       const ext = f.name.split('.').pop().toLowerCase()
       if (!allowedExts.includes(ext)) {
-        ElMessage.warning(`허용되지 않는 파일 형식입니다: .${ext} (허용: ${board.value.fileAllowedExtensions})`)
+        ElMessage.warning(`허용되지 않는 파일 형식입니다: .${ext}`)
         return false
       }
     }
@@ -151,18 +178,9 @@ function handleFileChange(file) {
 }
 
 async function handleSubmit() {
-  if (!form.value.title.trim()) {
-    ElMessage.warning('제목을 입력해주세요.')
-    return
-  }
-  if (boardCategories.value.length && !form.value.categoryId) {
-    ElMessage.warning('카테고리를 선택해주세요.')
-    return
-  }
-  if (!boardId.value) {
-    ElMessage.error('연결된 게시판을 찾을 수 없습니다.')
-    return
-  }
+  if (!form.value.title.trim()) { ElMessage.warning('제목을 입력해주세요.'); return }
+  if (boardCategories.value.length && !form.value.categoryId) { ElMessage.warning('카테고리를 선택해주세요.'); return }
+  if (!boardId.value) { ElMessage.error('연결된 게시판을 찾을 수 없습니다.'); return }
   if (board.value?.boardType === 'DOCUMENT' && !isEdit.value && files.value.length === 0) {
     ElMessage.warning('자료실에는 파일을 반드시 첨부해야 합니다.')
     return
@@ -171,22 +189,17 @@ async function handleSubmit() {
   loading.value = true
   try {
     let savedPostId = postId.value
-
     if (isEdit.value) {
       await api.put(`/boards/${boardId.value}/posts/${postId.value}`, form.value)
     } else {
       const res = await api.post(`/boards/${boardId.value}/posts`, form.value)
       savedPostId = res.data.data.id
     }
-
     if (files.value.length > 0) {
       const formData = new FormData()
       files.value.forEach(f => formData.append('files', f))
-      await api.post(`/posts/${savedPostId}/files`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await api.post(`/posts/${savedPostId}/files`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     }
-
     ElMessage.success(isEdit.value ? '수정되었습니다.' : '등록되었습니다.')
     router.push(`${basePath.value}/posts/${savedPostId}`)
   } finally {
@@ -208,10 +221,7 @@ async function fetchPost() {
   }
 }
 
-watch([boardId, postId], async () => {
-  await fetchBoard()
-  fetchPost()
-})
+watch([boardId, postId], async () => { await fetchBoard(); fetchPost() })
 
 onMounted(async () => {
   if (route.params.menuId) await menuStore.fetchMenus()
@@ -221,33 +231,229 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.board-write {
-  padding: 30px;
-  color: var(--t1);
+.board-write { color: var(--t1); }
+
+/* ===== 페이지 헤더 ===== */
+.pg-header { margin-bottom: 18px; }
+.pg-title {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
+/* ===== 작성 카드 ===== */
+.write-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ===== 옵션 행 ===== */
+.options-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.option-group { display: flex; flex-direction: column; gap: 7px; }
+.option-spacer { flex: 1; }
+
+.option-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--t2);
+}
+
+.cat-select {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t1);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 9px 12px;
+  outline: none;
+  cursor: pointer;
+  min-width: 160px;
+  transition: border-color 0.15s;
+}
+.cat-select:focus { border-color: var(--primary); }
+
+/* ===== 토글 ===== */
+.toggle-group { flex-direction: row; align-items: center; gap: 9px; }
+
+.toggle-btn {
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: var(--border-strong);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.toggle-btn.on { background: var(--primary); }
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.toggle-btn.on .toggle-knob { left: 20px; }
+
+/* ===== 제목 입력 ===== */
+.title-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--t1);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  padding: 11px 2px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.title-input:focus { border-color: var(--primary); }
+.title-input::placeholder { color: var(--t3); }
+
+/* ===== 에디터 ===== */
+.editor-wrap {
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ===== 파일 첨부 ===== */
+.attach-section {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attach-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.attach-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attach-required {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--warn);
+}
+
+.attach-tip {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.attach-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--t2);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.attach-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ===== 액션 버튼 ===== */
 .write-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
-  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
 }
 
-.upload-tip {
+.cancel-btn {
+  padding: 10px 20px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--t2);
+  font-family: inherit;
   font-size: 14px;
-  color: var(--t3);
-  margin-top: 4px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
 }
+.cancel-btn:hover { border-color: var(--primary); color: var(--primary); }
 
-.doc-required-tip {
-  color: var(--warning, #e6a23c);
-  font-weight: 500;
-  margin-right: 6px;
+.submit-btn {
+  padding: 10px 24px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s;
 }
+.submit-btn:hover:not(:disabled) { background: var(--primary-strong); }
+.submit-btn:disabled { opacity: 0.6; cursor: default; }
 
-@media (max-width: 768px) {
-  .board-write { padding: 20px; }
-  :deep(.el-input__inner),
-  :deep(.el-textarea__inner) { font-size: 16px !important; }
+/* el-upload 내부 버튼 숨기고 우리 버튼 사용 */
+:deep(.el-upload) { display: inline-block; }
+:deep(.el-upload-list) {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+:deep(.el-upload-list__item) {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--t2);
+}
+:deep(.el-upload-list__item .el-upload-list__item-name) { color: var(--t2); }
+
+@media (max-width: 640px) {
+  .write-card { padding: 16px; }
+  .title-input { font-size: 16px; }
+  .options-row { gap: 14px; }
 }
 </style>

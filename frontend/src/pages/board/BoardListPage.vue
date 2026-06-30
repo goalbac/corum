@@ -1,19 +1,56 @@
 <template>
-  <div class="board-list">
+  <div class="board-page">
 
-    <!-- ===== 카테고리 필터 칩 ===== -->
-    <div v-if="boardCategories.length" class="cat-chips">
-      <button
-        v-if="board?.useAllCategory"
-        :class="['cat-chip', selectedCategoryId === null ? 'active' : '']"
-        @click="selectCategory(null)"
-      >전체</button>
-      <button
-        v-for="cat in boardCategories"
-        :key="cat.id"
-        :class="['cat-chip', selectedCategoryId === cat.id ? 'active' : '']"
-        @click="selectCategory(cat.id)"
-      >{{ cat.name }}</button>
+    <!-- ===== 페이지 헤더 ===== -->
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-title">{{ board?.name || '게시판' }}</h1>
+        <p class="pg-desc" v-if="!loading || total > 0">
+          총 <strong>{{ total }}</strong>건의 {{ boardCountLabel }}
+        </p>
+      </div>
+      <button v-if="canWrite" class="action-btn" @click="goWrite">
+        <svg v-if="isDocumentBoard" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {{ writeLabel }}
+      </button>
+    </div>
+
+    <!-- ===== 필터 바 (카테고리 + 검색) ===== -->
+    <div class="filter-bar">
+      <div v-if="boardCategories.length" class="cat-chips">
+        <button
+          v-if="board?.useAllCategory"
+          :class="['cat-chip', selectedCategoryId === null ? 'active' : '']"
+          @click="selectCategory(null)"
+        >전체</button>
+        <button
+          v-for="cat in boardCategories"
+          :key="cat.id"
+          :class="['cat-chip', selectedCategoryId === cat.id ? 'active' : '']"
+          @click="selectCategory(cat.id)"
+        >{{ cat.name }}</button>
+      </div>
+      <div v-else class="cat-chips-spacer"></div>
+
+      <div class="filter-right">
+        <div class="search-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            v-model="keyword"
+            class="search-input"
+            :placeholder="isDocumentBoard ? '파일명 검색' : isGalleryBoard ? '제목 검색' : '제목·작성자 검색'"
+            @keyup.enter="handleSearch"
+          />
+          <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <button v-if="!isGalleryBoard && !isDocumentBoard && !isWebzineBoard && !isListBoard" class="sort-btn">
+          최신순
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ===== 갤러리 뷰 ===== -->
@@ -22,558 +59,216 @@
         <div v-for="post in posts" :key="post.id" class="gallery-card" @click="goDetail(post)">
           <div class="gallery-thumb">
             <template v-if="displayUrls(post).length > 0">
-              <!-- 트랙 방식 캐러셀: 이미지들을 가로 나열 후 translateX로 슬라이드 -->
-              <div
-                class="carousel-track"
-                :style="{ transform: `translateX(-${getImgIdx(post.id, displayUrls(post).length) * 100}%)` }"
-              >
-                <img
-                  v-for="(url, i) in displayUrls(post)"
-                  :key="i"
-                  :src="url"
-                  :alt="post.title"
-                  class="carousel-img"
-                />
+              <div class="carousel-track" :style="{ transform: `translateX(-${getImgIdx(post.id, displayUrls(post).length) * 100}%)` }">
+                <img v-for="(url, i) in displayUrls(post)" :key="i" :src="url" :alt="post.title" class="carousel-img" />
               </div>
               <template v-if="displayUrls(post).length > 1">
                 <button class="carousel-btn prev" @click.stop="prevImg(post.id, displayUrls(post).length)">
-                  <i class="ti ti-chevron-left"></i>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
                 <button class="carousel-btn next" @click.stop="nextImg(post.id, displayUrls(post).length)">
-                  <i class="ti ti-chevron-right"></i>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
                 <div class="carousel-dots">
-                  <span
-                    v-for="(_, i) in displayUrls(post)"
-                    :key="i"
-                    :class="['carousel-dot', i === getImgIdx(post.id, displayUrls(post).length) ? 'active' : '']"
-                  ></span>
+                  <span v-for="(_, i) in displayUrls(post)" :key="i" :class="['carousel-dot', i === getImgIdx(post.id, displayUrls(post).length) ? 'active' : '']"></span>
                 </div>
               </template>
             </template>
             <template v-else-if="post.thumbnailUrl">
-              <div class="thumb-spinner"><div class="spinner-ring"></div></div>
-              <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img"
-                @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
-                @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }" />
+              <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img" />
             </template>
-            <div v-else class="no-thumb"><i class="ti ti-photo-off"></i></div>
-            <div v-if="post.isNotice" class="gallery-notice-badge">공지</div>
+            <div v-else class="no-thumb">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <span v-if="post.isNotice" class="gallery-notice-badge">공지</span>
+            <span v-if="isNew(post.createdAt)" class="gallery-new-badge">NEW</span>
           </div>
           <div class="gallery-info">
-            <div class="gallery-title-row">
-              <span class="gallery-title">{{ post.title }}</span><i v-if="isNew(post.createdAt)" class="ti ti-point-filled gallery-new-dot"></i>
-            </div>
-            <div class="gallery-meta-row">
-              <span class="gallery-avatar">
-                <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="gallery-avatar-img" />
-                <span v-else class="gallery-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
-              </span>
-              <span class="gallery-writer">{{ post.writerName }}</span>
-              <span class="gallery-dot">·</span>
-              <span class="gallery-date">{{ formatDate(post.createdAt) }}</span>
-            </div>
-            <div class="gallery-stats">
-              <span v-if="showViewCount" class="stat-chip">
-                <i class="ti ti-eye"></i> {{ post.viewCount }}
-              </span>
-              <span v-if="board?.useLike" class="stat-chip">
-                <i class="ti ti-heart"></i> {{ post.likeCount }}
-              </span>
-              <span class="stat-chip">
-                <i class="ti ti-message-circle"></i> {{ post.commentCount }}
-              </span>
-              <span v-if="post.hasFile" class="stat-chip">
-                <i class="ti ti-paperclip"></i>
-              </span>
+            <div class="gallery-title">{{ post.title }}</div>
+            <div class="gallery-meta">
+              <span class="gallery-author-date">{{ post.writerName }} · {{ formatDate(post.createdAt) }}</span>
+              <div class="gallery-stats">
+                <span v-if="board?.useLike" class="gallery-stat">❤️ {{ post.likeCount }}</span>
+                <span class="gallery-stat">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1l-4 1 1-3.5A8.4 8.4 0 1 1 21 11.5z"/></svg>
+                  {{ post.commentCount }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-        <div v-if="!loading && !posts.length" class="gallery-empty">
-          <i class="ti ti-inbox"></i>
+        <div v-if="!loading && !posts.length" class="board-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="m14 17 3 3 4-4"/></svg>
           <p>등록된 게시글이 없습니다.</p>
         </div>
       </div>
+    </template>
 
-      <div class="pagination">
-        <el-pagination v-model:current-page="page" :page-size="gallerySize" :total="total"
-          layout="prev, pager, next" background small @current-change="fetchPosts" />
-      </div>
-      <div class="list-toolbar">
-        <div class="search-group">
-          <div class="search-type-wrap">
-            <el-select v-model="searchType" size="small" class="search-type">
-              <el-option value="title" label="제목" />
-              <el-option value="content" label="내용" />
-              <el-option value="writer" label="작성자" />
-              <el-option value="all" label="전체" />
-            </el-select>
-          </div>
-          <div class="search-input-wrap">
-            <i class="ti ti-search search-icon"></i>
-            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
-              @keyup.enter="handleSearch" />
-            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
-              <i class="ti ti-x"></i>
-            </button>
-          </div>
-          <button class="search-btn" @click="handleSearch">검색</button>
+    <!-- ===== 자료실 뷰 ===== -->
+    <template v-else-if="isDocumentBoard">
+      <div v-loading="loading" class="doc-file-table card">
+        <div class="ft-head">
+          <span>파일명</span>
+          <span class="tc">버전</span>
+          <span class="tc">크기</span>
+          <span class="tc">등록자</span>
+          <span class="tc">등록일</span>
+          <span class="tc">받기</span>
         </div>
-        <button v-if="canWrite" class="write-btn" @click="goWrite">
-          <i class="ti ti-pencil-plus"></i>
-          <span>글쓰기</span>
-        </button>
+        <div v-for="post in noticePosts" :key="`n-${post.id}`" class="ft-row notice-row" @click="goDetail(post)">
+          <div class="ft-name-cell">
+            <span class="ft-ext-badge" :style="extStyle(post.primaryFileName)">{{ extLabel(post.primaryFileName) }}</span>
+            <div class="ft-name-info">
+              <span class="ft-filename notice-name">{{ post.title }}</span>
+              <span class="ft-cat" v-if="post.categoryName">{{ post.categoryName }}</span>
+            </div>
+          </div>
+          <div class="tc"><span class="ft-version"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/><polyline points="12 7 12 12 15 14"/></svg>v1.0</span></div>
+          <span class="tc ft-meta">{{ formatFileSize(post.primaryFileSize) }}</span>
+          <span class="tc ft-meta">{{ post.writerName }}</span>
+          <span class="tc ft-meta">{{ formatDate(post.createdAt) }}</span>
+          <div class="tc"><button class="dl-btn" @click.stop="goDetail(post)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></div>
+        </div>
+        <div v-if="noticePosts.length && normalPosts.length" class="notice-divider"></div>
+        <div v-for="post in normalPosts" :key="post.id" class="ft-row" @click="goDetail(post)">
+          <div class="ft-name-cell">
+            <span class="ft-ext-badge" :style="extStyle(post.primaryFileName)">{{ extLabel(post.primaryFileName) }}</span>
+            <div class="ft-name-info">
+              <span class="ft-filename">{{ post.primaryFileName || post.title }}</span>
+              <span class="ft-cat" v-if="post.categoryName">{{ post.categoryName }}</span>
+            </div>
+          </div>
+          <div class="tc"><span class="ft-version"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/><polyline points="12 7 12 12 15 14"/></svg>v{{ post.documentVersion || '1.0' }}</span></div>
+          <span class="tc ft-meta">{{ formatFileSize(post.primaryFileSize) }}</span>
+          <span class="tc ft-meta">{{ post.writerName }}</span>
+          <span class="tc ft-meta">{{ formatDate(post.createdAt) }}</span>
+          <div class="tc"><button class="dl-btn" @click.stop="goDetail(post)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></div>
+        </div>
+        <div v-if="!loading && !posts.length" class="board-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="m14 17 3 3 4-4"/></svg>
+          <p>등록된 자료가 없습니다.</p>
+        </div>
       </div>
     </template>
 
     <!-- ===== 웹진 뷰 ===== -->
     <template v-else-if="isWebzineBoard">
-      <div v-loading="loading" class="webzine-list">
-        <article
-          v-for="post in posts"
-          :key="post.id"
-          :class="['webzine-item', { notice: post.isNotice }]"
-          @click="goDetail(post)"
-        >
+      <div v-loading="loading" class="webzine-list card">
+        <article v-for="post in posts" :key="post.id" :class="['webzine-item', { notice: post.isNotice }]" @click="goDetail(post)">
           <div class="webzine-thumb">
-            <template v-if="post.thumbnailUrl">
-              <div class="thumb-spinner"><div class="spinner-ring"></div></div>
-              <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img"
-                @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
-                @error="e => { e.target.style.display='none'; e.target.previousElementSibling.style.display='none' }" />
-            </template>
-            <div v-else class="no-thumb"><i class="ti ti-news"></i></div>
+            <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title" class="thumb-img" />
+            <div v-else class="no-thumb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
           </div>
           <div class="webzine-body">
             <div class="webzine-kicker">
-              <span v-if="post.isNotice" class="notice-tag">Notice</span>
+              <span v-if="post.isNotice" class="notice-tag">공지</span>
               <span>{{ formatDate(post.createdAt) }}</span>
             </div>
-            <div class="webzine-title-row">
-              <h3 class="webzine-title">{{ post.title }}</h3>
-              <i v-if="isNew(post.createdAt)" class="ti ti-point-filled webzine-new-dot"></i>
-            </div>
+            <h3 class="webzine-title">{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge" style="margin-left:6px">N</span></h3>
             <p v-if="post.excerpt" class="webzine-excerpt">{{ post.excerpt }}</p>
             <div class="webzine-meta">
-              <span class="webzine-meta-chip webzine-writer-chip">
-                <span class="webzine-avatar">
-                  <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="webzine-avatar-img" />
-                  <span v-else class="webzine-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
-                </span>
-                {{ post.writerName }}
-              </span>
-              <span v-if="showViewCount" class="webzine-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
-              <span v-if="showLikeCount && board?.useLike" class="webzine-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
-              <span class="webzine-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
-              <span v-if="post.hasFile" class="webzine-meta-chip"><i class="ti ti-paperclip"></i></span>
+              <span>{{ post.writerName }}</span>
+              <span v-if="showViewCount">· 조회 {{ post.viewCount }}</span>
+              <span>· 댓글 {{ post.commentCount }}</span>
             </div>
           </div>
         </article>
-        <div v-if="!loading && !posts.length" class="webzine-empty">
-          <i class="ti ti-inbox"></i>
+        <div v-if="!loading && !posts.length" class="board-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="m14 17 3 3 4-4"/></svg>
           <p>등록된 게시글이 없습니다.</p>
         </div>
-      </div>
-
-      <div class="pagination">
-        <el-pagination v-model:current-page="page" :page-size="gallerySize" :total="total"
-          layout="prev, pager, next" background small @current-change="fetchPosts" />
-      </div>
-      <div class="list-toolbar">
-        <div class="search-group">
-          <div class="search-type-wrap">
-            <el-select v-model="searchType" size="small" class="search-type">
-              <el-option value="title" label="제목" />
-              <el-option value="content" label="내용" />
-              <el-option value="writer" label="작성자" />
-              <el-option value="all" label="전체" />
-            </el-select>
-          </div>
-          <div class="search-input-wrap">
-            <i class="ti ti-search search-icon"></i>
-            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
-              @keyup.enter="handleSearch" />
-            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
-              <i class="ti ti-x"></i>
-            </button>
-          </div>
-          <button class="search-btn" @click="handleSearch">검색</button>
-        </div>
-        <button v-if="canWrite" class="write-btn" @click="goWrite">
-          <i class="ti ti-pencil-plus"></i>
-          <span>글쓰기</span>
-        </button>
       </div>
     </template>
 
     <!-- ===== 리스트형 뷰 ===== -->
     <template v-else-if="isListBoard">
-      <div v-loading="loading" class="lv-list">
-        <!-- 공지 -->
-        <div
-          v-for="post in noticePosts"
-          :key="`notice-${post.id}`"
-          class="lv-item lv-notice"
-          @click="goDetail(post)"
-        >
-          <div class="lv-main">
-            <div class="lv-upper">
-              <div class="lv-kicker">
-                <span class="lv-tag lv-tag-notice">공지</span>
-                <span v-if="post.categoryName && selectedCategoryId === null" class="lv-category">{{ post.categoryName }}</span>
-              </div>
-              <div class="lv-title-row">
-                <h3 class="lv-title">{{ post.title }}</h3>
-                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled lv-new-dot"></i>
-              </div>
-              <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
+      <div v-loading="loading" class="list-view card">
+        <div v-for="post in posts" :key="post.id" :class="['lv-item', { notice: post.isNotice }]" @click="goDetail(post)">
+          <div v-if="post.thumbnailUrl" class="lv-thumb"><img :src="post.thumbnailUrl" :alt="post.title" /></div>
+          <div class="lv-body">
+            <div class="lv-kicker">
+              <span v-if="post.isNotice" class="notice-tag">공지</span>
+              <span v-if="post.categoryName" class="cat-tag">{{ post.categoryName }}</span>
             </div>
+            <div class="lv-title-row">
+              <h3 class="lv-title">{{ post.title }}</h3>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </div>
+            <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
             <div class="lv-meta">
-              <span class="lv-meta-chip lv-writer">
-                <span class="lv-avatar">
-                  <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="lv-avatar-img" />
-                  <span v-else class="lv-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
-                </span>
-                {{ post.writerName }}
-              </span>
-              <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
-              <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
-              <span class="lv-meta-dot">·</span>
-              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
-              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
-              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
+              <span>{{ post.writerName }}</span>
+              <span class="lv-sep">·</span>
+              <span>{{ formatRelativeDate(post.createdAt) }}</span>
+              <template v-if="showViewCount"><span class="lv-sep">·</span><span>조회 {{ post.viewCount }}</span></template>
+              <span class="lv-sep">·</span><span>댓글 {{ post.commentCount }}</span>
             </div>
-          </div>
-          <div v-if="post.thumbnailUrl" class="lv-thumb">
-            <img :src="post.thumbnailUrl" :alt="post.title" />
           </div>
         </div>
-
-        <div v-if="noticePosts.length && normalPosts.length" class="lv-notice-divider" />
-
-        <!-- 일반 글 -->
-        <div
-          v-for="post in normalPosts"
-          :key="post.id"
-          class="lv-item"
-          @click="goDetail(post)"
-        >
-          <div class="lv-main">
-            <div class="lv-upper">
-              <div v-if="post.categoryName && selectedCategoryId === null" class="lv-kicker">
-                <span class="lv-category">{{ post.categoryName }}</span>
-              </div>
-              <div class="lv-title-row">
-                <h3 class="lv-title">{{ post.title }}</h3>
-                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled lv-new-dot"></i>
-              </div>
-              <p v-if="post.excerpt" class="lv-excerpt">{{ post.excerpt }}</p>
-            </div>
-            <div class="lv-meta">
-              <span class="lv-meta-chip lv-writer">
-                <span class="lv-avatar">
-                  <img v-if="post.writerProfileImageUrl" :src="post.writerProfileImageUrl" :alt="post.writerName" class="lv-avatar-img" />
-                  <span v-else class="lv-avatar-txt">{{ post.writerName?.charAt(0) }}</span>
-                </span>
-                {{ post.writerName }}
-              </span>
-              <span class="lv-meta-chip"><i class="ti ti-clock"></i>{{ formatRelativeDate(post.createdAt) }}</span>
-              <span v-if="post.hasFile" class="lv-meta-chip"><i class="ti ti-paperclip"></i></span>
-              <span class="lv-meta-dot">·</span>
-              <span v-if="showViewCount" class="lv-meta-chip"><i class="ti ti-eye"></i>{{ post.viewCount }}</span>
-              <span v-if="showLikeCount && board?.useLike" class="lv-meta-chip"><i class="ti ti-heart"></i>{{ post.likeCount }}</span>
-              <span class="lv-meta-chip"><i class="ti ti-message-circle"></i>{{ post.commentCount }}</span>
-            </div>
-          </div>
-          <div v-if="post.thumbnailUrl" class="lv-thumb">
-            <img :src="post.thumbnailUrl" :alt="post.title" />
-          </div>
-        </div>
-
-        <div v-if="!loading && !posts.length" class="lv-empty">
-          <i class="ti ti-inbox"></i>
+        <div v-if="!loading && !posts.length" class="board-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="m14 17 3 3 4-4"/></svg>
           <p>등록된 게시글이 없습니다.</p>
         </div>
       </div>
-
-      <div class="pagination">
-        <el-pagination v-model:current-page="page" :page-size="size" :total="total"
-          layout="prev, pager, next" background small @current-change="fetchPosts" />
-      </div>
-      <div class="list-toolbar">
-        <div class="search-group">
-          <div class="search-type-wrap">
-            <el-select v-model="searchType" size="small" class="search-type">
-              <el-option value="title" label="제목" />
-              <el-option value="content" label="내용" />
-              <el-option value="writer" label="작성자" />
-              <el-option value="all" label="전체" />
-            </el-select>
-          </div>
-          <div class="search-input-wrap">
-            <i class="ti ti-search search-icon"></i>
-            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
-              @keyup.enter="handleSearch" />
-            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
-              <i class="ti ti-x"></i>
-            </button>
-          </div>
-          <button class="search-btn" @click="handleSearch">검색</button>
-        </div>
-        <button v-if="canWrite" class="write-btn" @click="goWrite">
-          <i class="ti ti-pencil-plus"></i>
-          <span>글쓰기</span>
-        </button>
-      </div>
     </template>
 
-    <!-- ===== 자료실 테이블 뷰 ===== -->
-    <template v-else-if="isDocumentBoard">
-      <div class="post-table doc-table" v-loading="loading">
-        <div class="pt-head">
-          <div class="pt-col num">번호</div>
-          <div class="pt-col doc-title">제목</div>
-          <div class="pt-col doc-file">파일명</div>
-          <div class="pt-col doc-size">크기</div>
-          <div class="pt-col writer">작성자</div>
-          <div class="pt-col date">등록일</div>
-          <div class="pt-col count">다운로드</div>
-        </div>
-
-        <!-- 공지 행 -->
-        <template v-for="post in noticePosts" :key="`notice-${post.id}`">
-          <div class="pt-row notice-row" @click="goDetail(post)">
-            <div class="pt-col num"><span class="notice-tag">공지</span></div>
-            <div class="pt-col doc-title">
-              <div class="pt-title-line">
-                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-                <span class="pt-title notice-title">{{ post.title }}</span>
-                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
-              </div>
-              <div class="pt-meta-mobile">
-                <span>{{ post.writerName }}</span><span class="pt-meta-sep">·</span>
-                <span>{{ formatDate(post.createdAt) }}</span>
-                <template v-if="post.primaryFileName">
-                  <span class="pt-meta-sep">·</span>
-                  <span><i class="ti ti-paperclip"></i> {{ post.primaryFileName }}</span>
-                </template>
-              </div>
-            </div>
-            <div class="pt-col doc-file">
-              <span v-if="post.primaryFileName" class="doc-file-cell">
-                <i :class="['ti', fileExtIcon(post.primaryFileName), 'doc-ext-icon']"></i>
-                <span class="doc-filename">{{ post.primaryFileName }}</span>
-                <span v-if="post.fileCount > 1" class="doc-more-badge">+{{ post.fileCount - 1 }}</span>
-              </span>
-              <span v-else class="doc-no-file">-</span>
-            </div>
-            <div class="pt-col doc-size">{{ formatFileSize(post.primaryFileSize) }}</div>
-            <div class="pt-col writer">{{ post.writerName }}</div>
-            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
-            <div class="pt-col count">{{ post.primaryFileDownloadCount ?? 0 }}</div>
-          </div>
-        </template>
-
-        <div v-if="noticePosts.length && normalPosts.length" class="notice-divider" />
-
-        <!-- 일반 글 행 -->
-        <template v-for="post in normalPosts" :key="post.id">
-          <div class="pt-row" @click="goDetail(post)">
-            <div class="pt-col num"><span class="row-num">{{ post.rowNum }}</span></div>
-            <div class="pt-col doc-title">
-              <div class="pt-title-line">
-                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-                <span class="pt-title">{{ post.title }}</span>
-                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
-              </div>
-              <div class="pt-meta-mobile">
-                <span>{{ post.writerName }}</span><span class="pt-meta-sep">·</span>
-                <span>{{ formatDate(post.createdAt) }}</span>
-                <template v-if="post.primaryFileName">
-                  <span class="pt-meta-sep">·</span>
-                  <span><i class="ti ti-paperclip"></i> {{ post.primaryFileName }}</span>
-                </template>
-              </div>
-            </div>
-            <div class="pt-col doc-file">
-              <span v-if="post.primaryFileName" class="doc-file-cell">
-                <i :class="['ti', fileExtIcon(post.primaryFileName), 'doc-ext-icon']"></i>
-                <span class="doc-filename">{{ post.primaryFileName }}</span>
-                <span v-if="post.fileCount > 1" class="doc-more-badge">+{{ post.fileCount - 1 }}</span>
-              </span>
-              <span v-else class="doc-no-file">파일 없음</span>
-            </div>
-            <div class="pt-col doc-size">{{ formatFileSize(post.primaryFileSize) }}</div>
-            <div class="pt-col writer">{{ post.writerName }}</div>
-            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
-            <div class="pt-col count">{{ post.primaryFileDownloadCount ?? 0 }}</div>
-          </div>
-        </template>
-
-        <div v-if="!loading && !posts.length" class="pt-empty">
-          <i class="ti ti-inbox"></i>
-          <p>등록된 자료가 없습니다.</p>
-        </div>
-      </div>
-
-      <div class="pagination">
-        <el-pagination v-model:current-page="page" :page-size="size" :total="total"
-          layout="prev, pager, next" background small @current-change="fetchPosts" />
-      </div>
-      <div class="list-toolbar">
-        <div class="search-group">
-          <div class="search-type-wrap">
-            <el-select v-model="searchType" size="small" class="search-type">
-              <el-option value="title" label="제목" />
-              <el-option value="content" label="내용" />
-              <el-option value="writer" label="작성자" />
-              <el-option value="all" label="전체" />
-            </el-select>
-          </div>
-          <div class="search-input-wrap">
-            <i class="ti ti-search search-icon"></i>
-            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
-              @keyup.enter="handleSearch" />
-            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
-              <i class="ti ti-x"></i>
-            </button>
-          </div>
-          <button class="search-btn" @click="handleSearch">검색</button>
-        </div>
-        <button v-if="canWrite" class="write-btn" @click="goWrite">
-          <i class="ti ti-upload"></i>
-          <span>자료 등록</span>
-        </button>
-      </div>
-    </template>
-
-    <!-- ===== 일반 테이블 뷰 ===== -->
+    <!-- ===== 일반 테이블 뷰 (POST 기본) ===== -->
     <template v-else>
-      <div class="post-table" v-loading="loading">
-        <!-- 헤더 -->
+      <div v-loading="loading" class="post-table card">
         <div class="pt-head">
-          <div class="pt-col num">번호</div>
-          <div class="pt-col title">제목</div>
-          <div class="pt-col writer">작성자</div>
-          <div class="pt-col date">작성일</div>
-          <div v-if="showViewCount" class="pt-col count">조회</div>
-          <div v-if="showLikeCount && board?.useLike" class="pt-col count">좋아요</div>
+          <span class="tc">번호</span>
+          <span>제목</span>
+          <span class="tc">작성자</span>
+          <span class="tc">작성일</span>
+          <span v-if="showViewCount" class="tc">조회</span>
         </div>
 
-        <!-- 공지 행 -->
-        <template v-for="post in noticePosts" :key="`notice-${post.id}`">
-          <div class="pt-row notice-row" @click="goDetail(post)">
-            <div class="pt-col num">
-              <span class="notice-tag">공지</span>
-            </div>
-            <div class="pt-col title">
-              <div class="pt-title-line">
-                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-                <span class="pt-title notice-title">{{ post.title }}</span>
-                <span v-if="post.commentCount > 0" class="comment-chip">
-                  <i class="ti ti-message-2"></i>{{ post.commentCount }}
-                </span>
-                <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
-                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
-              </div>
-              <div class="pt-meta-mobile">
-                <span>{{ post.writerName }}</span>
-                <span class="pt-meta-sep">·</span>
-                <span>{{ formatDate(post.createdAt) }}</span>
-                <template v-if="showViewCount">
-                  <span class="pt-meta-sep">·</span>
-                  <span><i class="ti ti-eye"></i> {{ post.viewCount }}</span>
-                </template>
-                <template v-if="showLikeCount && board?.useLike">
-                  <span class="pt-meta-sep">·</span>
-                  <span><i class="ti ti-heart"></i> {{ post.likeCount }}</span>
-                </template>
-              </div>
-            </div>
-            <div class="pt-col writer">{{ post.writerName }}</div>
-            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
-            <div v-if="showViewCount" class="pt-col count">{{ post.viewCount }}</div>
-            <div v-if="showLikeCount && board?.useLike" class="pt-col count">{{ post.likeCount }}</div>
+        <div v-for="post in noticePosts" :key="`n-${post.id}`" class="pt-row notice-row" @click="goDetail(post)">
+          <div class="tc"><span class="notice-tag">공지</span></div>
+          <div class="pt-title-cell">
+            <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+            <span class="pt-title notice-title">{{ post.title }}</span>
+            <span v-if="post.commentCount > 0" class="comment-count">[{{ post.commentCount }}]</span>
+            <svg v-if="post.hasFile" class="file-clip" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
+            <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
           </div>
-        </template>
+          <span class="tc pt-meta">{{ post.writerName }}</span>
+          <span class="tc pt-meta">{{ formatDate(post.createdAt) }}</span>
+          <span v-if="showViewCount" class="tc pt-meta">{{ post.viewCount }}</span>
+        </div>
 
-        <!-- 구분선 (공지 있을 때) -->
-        <div v-if="noticePosts.length && normalPosts.length" class="notice-divider" />
+        <div v-if="noticePosts.length && normalPosts.length" class="notice-divider"></div>
 
-        <!-- 일반 글 행 -->
-        <template v-for="post in normalPosts" :key="post.id">
-          <div class="pt-row" @click="goDetail(post)">
-            <div class="pt-col num">
-              <span class="row-num">{{ post.rowNum }}</span>
-            </div>
-            <div class="pt-col title">
-              <div class="pt-title-line">
-                <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-                <span class="pt-title">{{ post.title }}</span>
-                <span v-if="post.commentCount > 0" class="comment-chip">
-                  <i class="ti ti-message-2"></i>{{ post.commentCount }}
-                </span>
-                <span v-if="post.hasFile" class="file-chip"><i class="ti ti-paperclip"></i></span>
-                <i v-if="isNew(post.createdAt)" class="ti ti-point-filled pt-new-dot"></i>
-              </div>
-              <div class="pt-meta-mobile">
-                <span>{{ post.writerName }}</span>
-                <span class="pt-meta-sep">·</span>
-                <span>{{ formatDate(post.createdAt) }}</span>
-                <template v-if="showViewCount">
-                  <span class="pt-meta-sep">·</span>
-                  <span><i class="ti ti-eye"></i> {{ post.viewCount }}</span>
-                </template>
-                <template v-if="showLikeCount && board?.useLike">
-                  <span class="pt-meta-sep">·</span>
-                  <span><i class="ti ti-heart"></i> {{ post.likeCount }}</span>
-                </template>
-              </div>
-            </div>
-            <div class="pt-col writer">{{ post.writerName }}</div>
-            <div class="pt-col date">{{ formatDate(post.createdAt) }}</div>
-            <div v-if="showViewCount" class="pt-col count">{{ post.viewCount }}</div>
-            <div v-if="showLikeCount && board?.useLike" class="pt-col count">{{ post.likeCount }}</div>
+        <div v-for="post in normalPosts" :key="post.id" class="pt-row" @click="goDetail(post)">
+          <div class="tc pt-num">{{ post.rowNum }}</div>
+          <div class="pt-title-cell">
+            <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+            <span class="pt-title">{{ post.title }}</span>
+            <span v-if="post.commentCount > 0" class="comment-count">[{{ post.commentCount }}]</span>
+            <svg v-if="post.hasFile" class="file-clip" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
+            <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
           </div>
-        </template>
+          <span class="tc pt-meta">{{ post.writerName }}</span>
+          <span class="tc pt-meta">{{ formatDate(post.createdAt) }}</span>
+          <span v-if="showViewCount" class="tc pt-meta">{{ post.viewCount }}</span>
+        </div>
 
-        <!-- 빈 상태 -->
-        <div v-if="!loading && !posts.length" class="pt-empty">
-          <i class="ti ti-inbox"></i>
+        <div v-if="!loading && !posts.length" class="board-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="m14 17 3 3 4-4"/></svg>
           <p>등록된 게시글이 없습니다.</p>
         </div>
       </div>
-
-      <div class="pagination">
-        <el-pagination v-model:current-page="page" :page-size="size" :total="total"
-          layout="prev, pager, next" background small @current-change="fetchPosts" />
-      </div>
-      <div class="list-toolbar">
-        <div class="search-group">
-          <div class="search-type-wrap">
-            <el-select v-model="searchType" size="small" class="search-type">
-              <el-option value="title" label="제목" />
-              <el-option value="content" label="내용" />
-              <el-option value="writer" label="작성자" />
-              <el-option value="all" label="전체" />
-            </el-select>
-          </div>
-          <div class="search-input-wrap">
-            <i class="ti ti-search search-icon"></i>
-            <input v-model="keyword" class="search-input" placeholder="검색어 입력..."
-              @keyup.enter="handleSearch" />
-            <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
-              <i class="ti ti-x"></i>
-            </button>
-          </div>
-          <button class="search-btn" @click="handleSearch">검색</button>
-        </div>
-        <button v-if="canWrite" class="write-btn" @click="goWrite">
-          <i class="ti ti-pencil-plus"></i>
-          <span>글쓰기</span>
-        </button>
-      </div>
     </template>
+
+    <!-- ===== 페이지네이션 ===== -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button class="pg-btn" :disabled="page <= 1" @click="changePage(page - 1)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button v-for="n in pageNums" :key="n" :class="['pg-btn', n === page ? 'active' : '']" @click="changePage(n)">{{ n }}</button>
+      <button class="pg-btn" :disabled="page >= totalPages" @click="changePage(page + 1)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
 
   </div>
 </template>
@@ -600,29 +295,18 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const size = ref(15)
-const gallerySize = ref(8)
+const gallerySize = ref(9)
 const keyword = ref('')
 const searchType = ref('title')
 const selectedCategoryId = ref(null)
 
 const boardCategories = computed(() => board.value?.categories || [])
+const imgIndexMap = ref({})
 
-// ===== 갤러리 이미지 캐러셀 =====
-const imgIndexMap = ref({})   // postId -> currentIndex
-
-function displayUrls(post) {
-  return (post.imageUrls || []).slice(0, 3)
-}
-function getImgIdx(postId, total) {
-  const idx = imgIndexMap.value[postId] ?? 0
-  return Math.min(idx, total - 1)
-}
-function nextImg(postId, total) {
-  imgIndexMap.value[postId] = (getImgIdx(postId, total) + 1) % total
-}
-function prevImg(postId, total) {
-  imgIndexMap.value[postId] = (getImgIdx(postId, total) - 1 + total) % total
-}
+function displayUrls(post) { return (post.imageUrls || []).slice(0, 3) }
+function getImgIdx(postId, len) { return Math.min(imgIndexMap.value[postId] ?? 0, len - 1) }
+function nextImg(postId, len) { imgIndexMap.value[postId] = (getImgIdx(postId, len) + 1) % len }
+function prevImg(postId, len) { imgIndexMap.value[postId] = (getImgIdx(postId, len) - 1 + len) % len }
 
 const noticePosts = computed(() => posts.value.filter(p => p.isNotice))
 const normalPosts = computed(() => posts.value.filter(p => !p.isNotice))
@@ -631,6 +315,31 @@ const isWebzineBoard  = computed(() => board.value?.boardType === 'WEBZINE')
 const isListBoard     = computed(() => board.value?.boardType === 'LIST')
 const isDocumentBoard = computed(() => board.value?.boardType === 'DOCUMENT')
 const isVisualBoard   = computed(() => isGalleryBoard.value || isWebzineBoard.value)
+
+const boardCountLabel = computed(() => {
+  if (isGalleryBoard.value) return '사진 게시물'
+  if (isDocumentBoard.value) return '파일'
+  return '게시글'
+})
+
+const writeLabel = computed(() => {
+  if (isDocumentBoard.value) return '파일 업로드'
+  if (isGalleryBoard.value) return '사진 올리기'
+  return '글쓰기'
+})
+
+const totalPages = computed(() => {
+  const s = isVisualBoard.value ? gallerySize.value : size.value
+  return Math.ceil(total.value / s)
+})
+
+const pageNums = computed(() => {
+  const tp = totalPages.value
+  const cur = page.value
+  const start = Math.max(1, cur - 2)
+  const end = Math.min(tp, cur + 2)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
 
 const canWrite = computed(() => {
   if (!board.value) return false
@@ -656,7 +365,6 @@ async function fetchBoard() {
 
 const categoryStorageKey = () => `board_cat_${boardId.value}`
 
-// 상세→목록 등 재진입 시 직전에 보던 카테고리 복원 (없으면 첫 번째)
 function restoreCategory() {
   const cats = board.value?.categories || []
   if (!cats.length) { selectedCategoryId.value = null; return }
@@ -666,7 +374,6 @@ function restoreCategory() {
     const id = Number(saved)
     if (cats.some(c => c.id === id)) { selectedCategoryId.value = id; return }
   }
-  // 기본값: '전체' 기능을 쓰면 전체(null), 아니면 첫 번째 카테고리
   selectedCategoryId.value = board.value?.useAllCategory ? null : cats[0].id
 }
 
@@ -676,19 +383,21 @@ async function fetchPosts() {
   try {
     const pageSize = isVisualBoard.value ? gallerySize.value : size.value
     const params = { page: page.value - 1, size: pageSize }
-    if (keyword.value) {
-      params.keyword = keyword.value
-      params.searchType = searchType.value
-    }
-    if (selectedCategoryId.value !== null) {
-      params.categoryId = selectedCategoryId.value
-    }
+    if (keyword.value) { params.keyword = keyword.value; params.searchType = searchType.value }
+    if (selectedCategoryId.value !== null) params.categoryId = selectedCategoryId.value
     const res = await api.get(`/boards/${boardId.value}/posts`, { params })
     posts.value = res.data.data?.content || []
     total.value = res.data.data?.totalElements || 0
   } finally {
     loading.value = false
   }
+}
+
+function changePage(n) {
+  if (n < 1 || n > totalPages.value) return
+  page.value = n
+  fetchPosts()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function handleSearch() { page.value = 1; fetchPosts() }
@@ -698,6 +407,7 @@ function selectCategory(id) {
   page.value = 1
   fetchPosts()
 }
+
 function goWrite() { router.push(`${basePath.value}/write`) }
 function goDetail(row) { router.push(`${basePath.value}/posts/${row.id}`) }
 
@@ -707,32 +417,6 @@ function formatDate(d) {
   const today = new Date()
   if (dt.toDateString() === today.toDateString()) return dt.toTimeString().slice(0, 5)
   return `${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}`
-}
-
-function isNew(d) { return d && Date.now() - new Date(d).getTime() < 3 * 86400000 }
-
-function formatFileSize(bytes) {
-  if (!bytes) return '-'
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-function fileExtIcon(filename) {
-  if (!filename) return 'ti-file'
-  const ext = filename.split('.').pop()?.toLowerCase()
-  const map = {
-    pdf: 'ti-file-type-pdf', doc: 'ti-file-type-doc', docx: 'ti-file-type-doc',
-    xls: 'ti-file-type-xls', xlsx: 'ti-file-type-xls',
-    ppt: 'ti-file-type-ppt', pptx: 'ti-file-type-ppt',
-    zip: 'ti-file-zip', rar: 'ti-file-zip', '7z': 'ti-file-zip',
-    jpg: 'ti-file-type-jpg', jpeg: 'ti-file-type-jpg',
-    png: 'ti-file-type-png', gif: 'ti-file-type-jpg',
-    txt: 'ti-file-type-txt', csv: 'ti-file-type-csv',
-    mp4: 'ti-file-type-mp4', mp3: 'ti-file-music',
-    hwp: 'ti-file-text', hwpx: 'ti-file-text',
-  }
-  return map[ext] || 'ti-file'
 }
 
 function formatRelativeDate(d) {
@@ -750,6 +434,38 @@ function formatRelativeDate(d) {
   return `${Math.floor(day / 365)}년 전`
 }
 
+function isNew(d) { return d && Date.now() - new Date(d).getTime() < 3 * 86400000 }
+
+function formatFileSize(bytes) {
+  if (!bytes) return '-'
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / 1048576).toFixed(1) + ' MB'
+}
+
+const EXT_MAP = {
+  pdf:  { bg: 'rgba(214,69,63,0.12)', color: '#d6453f', label: 'PDF' },
+  doc:  { bg: '#e9f0fe', color: '#2f5fd6', label: 'DOC' },
+  docx: { bg: '#e9f0fe', color: '#2f5fd6', label: 'DOC' },
+  xls:  { bg: '#e3f5ec', color: '#1f9d6b', label: 'XLS' },
+  xlsx: { bg: '#e3f5ec', color: '#1f9d6b', label: 'XLS' },
+  ppt:  { bg: 'rgba(217,119,6,0.1)', color: '#d97706', label: 'PPT' },
+  pptx: { bg: 'rgba(217,119,6,0.1)', color: '#d97706', label: 'PPT' },
+  zip:  { bg: '#eef1f6', color: '#929aab', label: 'ZIP' },
+  rar:  { bg: '#eef1f6', color: '#929aab', label: 'ZIP' },
+  hwp:  { bg: 'rgba(14,138,128,0.1)', color: '#0e8a80', label: 'HWP' },
+  hwpx: { bg: 'rgba(14,138,128,0.1)', color: '#0e8a80', label: 'HWP' },
+}
+function getExtInfo(filename) {
+  const ext = filename?.split('.').pop()?.toLowerCase()
+  return EXT_MAP[ext] || { bg: '#eef1f6', color: '#566072', label: (ext?.toUpperCase() || 'FILE').slice(0, 4) }
+}
+function extStyle(filename) {
+  const { bg, color } = getExtInfo(filename)
+  return { background: bg, color }
+}
+function extLabel(filename) { return getExtInfo(filename).label }
+
 watch(boardId, async () => {
   page.value = 1; keyword.value = ''; selectedCategoryId.value = null
   await fetchBoard(); fetchPosts()
@@ -762,373 +478,380 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ===== 카테고리 칩 ===== */
-.cat-chips {
+.board-page {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 12px 20px 14px;
+  flex-direction: column;
+  color: var(--t1);
 }
 
-@media (max-width: 600px) {
-  .cat-chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 10px 16px 12px;
-  }
-  .cat-chips::-webkit-scrollbar { display: none; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
-.cat-chip {
+
+/* ===== 페이지 헤더 ===== */
+.pg-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.pg-title {
+  margin: 0 0 5px;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.pg-desc { margin: 0; font-size: 13.5px; color: var(--t2); }
+.pg-desc strong { color: var(--t1); font-weight: 700; }
+
+.action-btn {
   display: inline-flex;
   align-items: center;
-  padding: 10px 14px;
-  border-radius: 999px;
-  font-size: 15px;
-  font-weight: 500;
+  gap: 6px;
   border: none;
-  background: var(--border2);
-  color: var(--t2);
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 9px;
   cursor: pointer;
-  transition: all .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.action-btn:hover { background: var(--primary-strong); }
+
+/* ===== 필터 바 ===== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.cat-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.cat-chips-spacer { flex: 1; }
+
+.cat-chip {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--t2);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
   white-space: nowrap;
 }
-.cat-chip:hover { background: var(--border); color: var(--accent); }
-.cat-chip.active { background: var(--accent); color: #fff; }
+.cat-chip:hover { border-color: var(--primary); color: var(--primary); }
+.cat-chip.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+
+.filter-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 7px 12px;
+  width: 218px;
+}
+.search-box svg { flex-shrink: 0; color: var(--t3); }
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--t1);
+  min-width: 0;
+}
+.search-input::placeholder { color: var(--t3); }
+
+.search-clear {
+  background: none;
+  border: none;
+  color: var(--t3);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--t2);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 13px;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s;
+}
+.sort-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ===== 공통 배지 ===== */
+.notice-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
 
 .cat-name-chip {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
-  border: none;
-  background: var(--border2);
+  background: var(--surface-2);
   color: var(--t2);
-  white-space: nowrap;
   flex-shrink: 0;
-}
-
-.board-list {
-  display: flex;
-  flex-direction: column;
-  color: var(--t1);
-}
-
-/* ===== 공통 배지 ===== */
-.pt-new-dot {
-  font-size: 14px;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-/* ===== 테이블 뷰 ===== */
-.post-table {
-  width: 100%;
-}
-
-.pt-head {
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  height: 44px;
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border2);
-  border-top: 1px solid var(--border2);
-}
-
-.pt-col {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
-.pt-col.num   { width: 64px; flex-shrink: 0; text-align: center; }
-.pt-col.title { flex: 1; min-width: 0; }
-.pt-col.writer{ width: 110px; flex-shrink: 0; text-align: center; }
-.pt-col.date  { width: 106px; flex-shrink: 0; text-align: center; }
-.pt-col.count { width: 66px; flex-shrink: 0; text-align: center; }
-
-/* 행 */
-.pt-row {
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  min-height: 56px;
-  border-bottom: 0.5px solid var(--border2);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.pt-row:hover { background: var(--surface2); }
-.pt-row:hover .pt-title { color: var(--accent-t); }
-
-.pt-row .pt-col {
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--t2);
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.pt-row .pt-col.title {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pt-title-line {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-}
-
-/* 모바일 메타 (기본 숨김) */
-.pt-meta-mobile { display: none; }
-
-.pt-title {
-  color: var(--t1);
-  font-size: 15px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color 0.12s;
-}
-
-.notice-row { background: var(--accent-bg); }
-.notice-row:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.notice-title { font-weight: 700; color: var(--accent-t); }
-
-.notice-tag {
+.new-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 7px;
-  border-radius: 3px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.row-num { font-size: 14px; color: var(--t4); }
-
-.comment-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 13px;
-  color: var(--t3);
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 5px;
+  color: var(--new);
+  border: 1px solid var(--new);
   flex-shrink: 0;
+  line-height: 1.6;
 }
 
-.comment-chip i { font-size: 13px; }
+.notice-divider { height: 1px; background: var(--border-strong); }
 
-.file-chip {
-  font-size: 14px;
-  color: var(--t3);
-  flex-shrink: 0;
-}
-
-/* ===== 테이블 모바일 ===== */
-@media (max-width: 640px) {
-  .pt-head .pt-col.num,
-  .pt-head .pt-col.writer,
-  .pt-head .pt-col.date,
-  .pt-head .pt-col.count { display: none; }
-
-  .pt-row .pt-col.num { display: none; }
-  .pt-row .pt-col.writer,
-  .pt-row .pt-col.date,
-  .pt-row .pt-col.count { display: none; }
-
-  .pt-meta-mobile {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    font-size: 12px;
-    color: var(--t3);
-  }
-  .pt-meta-mobile i { font-size: 12px; vertical-align: middle; }
-  .pt-meta-sep { color: var(--border); }
-
-  .pt-row { min-height: 62px; padding: 10px 16px; }
-  .pt-head { padding: 0 16px; }
-}
-
-.notice-divider {
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
-  opacity: 0.15;
-}
-
-.pt-empty {
+.board-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: 60px 0;
-  color: var(--t4);
+  color: var(--t3);
   font-size: 14px;
 }
 
-.pt-empty i { font-size: 36px; }
+/* ===== POST 테이블 ===== */
+.post-table { width: 100%; }
 
-/* ===== 자료실 테이블 전용 ===== */
-.pt-col.doc-title {
-  flex: 1;
-  min-width: 0;
-}
-.pt-col.doc-file {
-  width: 200px;
-  flex-shrink: 0;
-  min-width: 0;
-  padding-left: 12px;
-  text-align: left;
-}
-.pt-col.doc-size {
-  width: 80px;
-  flex-shrink: 0;
-  padding-right: 4px;
-  text-align: right;
+.pt-head {
+  display: grid;
+  grid-template-columns: 70px 1fr 100px 76px 64px;
+  gap: 10px;
+  padding: 12px 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--t3);
+  border-bottom: 1px solid var(--border-strong);
 }
 
-.doc-file-cell {
+.pt-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 100px 76px 64px;
+  gap: 10px;
+  align-items: center;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.pt-row:last-child { border-bottom: none; }
+.pt-row:hover { background: var(--surface-2); }
+.pt-row:hover .pt-title { color: var(--primary); }
+.notice-row { background: var(--primary-weak); }
+.notice-row:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+
+.tc { text-align: center; display: flex; align-items: center; justify-content: center; }
+
+.pt-num { font-size: 13px; color: var(--t3); font-weight: 600; }
+
+.pt-title-cell {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   min-width: 0;
 }
 
-.doc-ext-icon {
-  font-size: 15px;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.doc-filename {
+.pt-title {
+  font-size: 14px;
+  color: var(--t1);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  color: var(--t2);
+  transition: color 0.12s;
 }
+.notice-title { font-weight: 700; }
 
-.doc-more-badge {
+.comment-count {
+  font-size: 12.5px;
+  color: var(--primary);
+  font-weight: 700;
   flex-shrink: 0;
-  background: var(--border);
+}
+
+.file-clip { color: var(--t3); flex-shrink: 0; }
+
+.pt-meta { font-size: 13px; color: var(--t2); }
+
+/* ===== 자료실 파일 테이블 ===== */
+.doc-file-table { width: 100%; }
+
+.ft-head {
+  display: grid;
+  grid-template-columns: 1fr 96px 80px 100px 80px 70px;
+  gap: 10px;
+  padding: 12px 18px;
+  font-size: 12.5px;
+  font-weight: 700;
   color: var(--t3);
-  font-size: 11px;
-  padding: 1px 5px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.ft-row {
+  display: grid;
+  grid-template-columns: 1fr 96px 80px 100px 80px 70px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ft-row:last-child { border-bottom: none; }
+.ft-row:hover { background: var(--surface-2); }
+.notice-row { background: var(--primary-weak); }
+.notice-row:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+
+.ft-name-cell { display: flex; align-items: center; gap: 11px; min-width: 0; }
+
+.ft-ext-badge {
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.ft-name-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.ft-filename {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--t1);
+  transition: color 0.12s;
+}
+.ft-row:hover .ft-filename { color: var(--primary); }
+.notice-name { font-weight: 700; }
+
+.ft-cat { font-size: 11.5px; color: var(--t3); }
+
+.ft-version {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--t2);
+  background: var(--surface-2);
+  padding: 4px 9px;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
-.doc-no-file {
-  color: var(--t4);
-  font-size: 13px;
-}
+.ft-meta { font-size: 13px; color: var(--t2); }
 
-@media (max-width: 700px) {
-  .doc-table .pt-head,
-  .doc-table .pt-row {
-    grid-template-columns: 46px 1fr;
-  }
-  .pt-col.doc-file,
-  .pt-col.doc-size,
-  .pt-col.doc-size,
-  .doc-table .pt-col.date,
-  .doc-table .pt-col.count { display: none; }
-  .doc-table .pt-col.writer { display: none; }
+.dl-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary-weak);
+  color: var(--primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
 }
+.dl-btn:hover { background: var(--primary); color: #fff; }
 
 /* ===== 갤러리 ===== */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  background: transparent;
-  padding: 16px 20px;
 }
 
 .gallery-card {
   background: var(--surface);
-  cursor: pointer;
-  transition: var(--transition);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  border: 0.5px solid var(--border2);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: border-color 0.15s;
 }
-
-.gallery-card:hover { background: var(--surface2); }
-.gallery-card:hover .gallery-title { color: var(--accent-t); }
+.gallery-card:hover { border-color: var(--border-strong); }
 
 .gallery-thumb {
   position: relative;
-  width: 100%;
-  aspect-ratio: 4/3;
-  background: var(--surface2);
-  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background: repeating-linear-gradient(135deg, var(--surface-2), var(--surface-2) 11px, var(--surface-3) 11px, var(--surface-3) 22px);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
-.thumb-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.thumb-img.loaded { opacity: 1; }
+.thumb-img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ===== 캐러셀 트랙 방식 ===== */
 .carousel-track {
   display: flex;
   width: 100%;
   height: 100%;
   transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.carousel-img {
-  flex-shrink: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s ease;
-}
-.gallery-card:hover .carousel-img { transform: scale(1.04); }
+.carousel-img { flex-shrink: 0; width: 100%; height: 100%; object-fit: cover; }
+.gallery-card:hover .carousel-img { transform: scale(1.03); }
 
-.thumb-spinner {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-.spinner-ring {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--border2);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.no-thumb { font-size: 28px; color: var(--t4); }
-
-/* ===== 캐러셀 버튼 ===== */
 .carousel-btn {
   position: absolute;
   top: 50%;
@@ -1140,15 +863,12 @@ onMounted(async () => {
   background: rgba(0,0,0,0.45);
   border: none;
   color: #fff;
-  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.18s, background 0.15s;
-  padding: 0;
-  line-height: 1;
+  transition: opacity 0.18s;
 }
 .carousel-btn.prev { left: 6px; }
 .carousel-btn.next { right: 6px; }
@@ -1158,215 +878,136 @@ onMounted(async () => {
 .carousel-dots {
   position: absolute;
   bottom: 7px;
-  left: 0;
-  right: 0;
+  left: 0; right: 0;
   display: flex;
   justify-content: center;
   gap: 4px;
-  z-index: 3;
 }
 .carousel-dot {
-  width: 5px;
-  height: 5px;
+  width: 5px; height: 5px;
   border-radius: 50%;
   background: rgba(255,255,255,0.5);
   transition: background 0.15s, transform 0.15s;
 }
-.carousel-dot.active {
-  background: #fff;
-  transform: scale(1.3);
-}
+.carousel-dot.active { background: #fff; transform: scale(1.3); }
+
+.no-thumb { color: var(--t3); display: flex; align-items: center; justify-content: center; }
 
 .gallery-notice-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  background: var(--accent);
+  top: 10px; right: 10px;
+  background: var(--primary);
   color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 8px;
+  font-size: 10px; font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
 }
 
-.gallery-info { padding: 10px 12px 12px; }
-
-.gallery-title-row {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  margin-bottom: 5px;
+.gallery-new-badge {
+  position: absolute;
+  top: 10px; left: 10px;
+  font-size: 9.5px; font-weight: 800;
+  color: #fff;
+  background: var(--new);
+  padding: 3px 8px;
+  border-radius: 6px;
 }
+
+.gallery-info { padding: 13px 15px; }
 
 .gallery-title {
-  display: inline;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 9px;
   color: var(--t1);
   transition: color 0.12s;
 }
+.gallery-card:hover .gallery-title { color: var(--primary); }
 
-.gallery-new-dot {
-  display: inline;
-  font-size: 12px;
-  color: var(--accent);
-  vertical-align: middle;
-  margin-left: 2px;
-}
-
-.gallery-meta-row {
+.gallery-meta {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--t3);
-  margin-bottom: 7px;
+  justify-content: space-between;
 }
 
-.gallery-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-.gallery-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.gallery-avatar-txt {
-  font-size: 9px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
-}
-
-.gallery-dot { color: var(--t4); }
+.gallery-author-date { font-size: 12px; color: var(--t3); }
 
 .gallery-stats {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.stat-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+  gap: 11px;
   font-size: 12px;
   color: var(--t3);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.stat-chip i { font-size: 12px; }
+.gallery-stat { display: inline-flex; align-items: center; gap: 3px; }
 
-.gallery-empty {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 60px 0;
-  color: var(--t4);
-  font-size: 14px;
-}
-
-.gallery-empty i { font-size: 36px; }
-
-/* ===== Webzine ===== */
-.webzine-list {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border2);
-}
+/* ===== 웹진 ===== */
+.webzine-list { overflow: hidden; }
 
 .webzine-item {
   display: grid;
-  grid-template-columns: minmax(160px, 240px) 1fr;
+  grid-template-columns: 200px 1fr;
   gap: 18px;
-  padding: 18px 20px;
-  border-bottom: 0.5px solid var(--border2);
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
-  background: var(--surface);
-  transition: background 0.15s;
+  transition: background 0.12s;
 }
-
-.webzine-item:hover { background: var(--surface2); }
-.webzine-item.notice { background: var(--accent-bg); }
+.webzine-item:last-child { border-bottom: none; }
+.webzine-item:hover { background: var(--surface-2); }
+.webzine-item.notice { background: var(--primary-weak); }
 
 .webzine-thumb {
-  width: 100%;
-  aspect-ratio: 16/10;
-  border-radius: var(--radius-xs);
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
   overflow: hidden;
-  background: var(--surface2);
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.webzine-item:hover .thumb-img { transform: scale(1.03); }
-
 .webzine-body {
-  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
-.webzine-kicker,
-.webzine-meta {
+.webzine-kicker {
   display: flex;
   align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
+  gap: 6px;
   font-size: 12px;
   color: var(--t3);
-}
-
-.webzine-title-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.webzine-new-dot {
-  font-size: 14px;
-  color: var(--accent);
-  flex-shrink: 0;
-  margin-top: -2px;
 }
 
 .webzine-title {
   margin: 0;
-  color: var(--t1);
-  font-size: 20px;
-  line-height: 1.35;
+  font-size: 18px;
   font-weight: 800;
+  color: var(--t1);
+  letter-spacing: -0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  transition: color 0.12s;
 }
-
-.webzine-item:hover .webzine-title { color: var(--accent-t); }
+.webzine-item:hover .webzine-title { color: var(--primary); }
 
 .webzine-excerpt {
   margin: 0;
-  color: var(--t2);
   font-size: 13px;
-  line-height: 1.55;
+  color: var(--t2);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -1374,149 +1015,51 @@ onMounted(async () => {
   -webkit-box-orient: vertical;
 }
 
-.webzine-meta-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 20px;
-}
-
-.webzine-meta-chip i {
-  font-size: 13px;
-  color: var(--t3);
-}
-
-.webzine-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-.webzine-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.webzine-avatar-txt {
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
-}
-
-.webzine-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 60px 0;
-  color: var(--t4);
-  font-size: 14px;
-}
-
-.webzine-empty i { font-size: 36px; }
+.webzine-meta { font-size: 12px; color: var(--t3); display: flex; gap: 4px; flex-wrap: wrap; }
 
 /* ===== 리스트형 ===== */
-.lv-list {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border2);
-}
+.list-view { overflow: hidden; }
 
 .lv-item {
   display: flex;
   align-items: stretch;
   gap: 14px;
-  padding: 20px 28px;
-  border-bottom: 0.5px solid var(--border2);
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.12s;
 }
+.lv-item:last-child { border-bottom: none; }
+.lv-item:hover { background: var(--surface-2); }
+.lv-item.notice { background: var(--primary-weak); }
 
-.lv-item:hover { background: var(--surface2); }
-.lv-item:hover .lv-title { color: var(--accent-t); }
+.lv-thumb { flex-shrink: 0; width: 120px; border-radius: 8px; overflow: hidden; }
+.lv-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
-.lv-notice { background: var(--accent-bg); }
-.lv-notice:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.lv-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; justify-content: center; }
+.lv-kicker { display: flex; align-items: center; gap: 6px; }
+.cat-tag { font-size: 12px; color: var(--t3); font-weight: 600; }
 
-.lv-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0;
-}
-
-.lv-upper {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex: 1;
-  min-width: 0;
-}
-
-.lv-kicker {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.lv-category {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--t3);
-}
-
-.lv-tags {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.lv-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 7px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.lv-tag-notice { background: var(--accent); color: #fff; }
-.lv-tag-new    { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent); opacity: 0.85; }
+.lv-title-row { display: flex; align-items: center; gap: 5px; }
 
 .lv-title {
-  margin: 0 0 0 -1px;
-  position: relative;
-  top: -1px;
-  font-size: 17px;
+  margin: 0;
+  font-size: 16px;
   font-weight: 700;
   color: var(--t1);
-  line-height: 1.45;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   transition: color 0.12s;
-  min-width: 0;
 }
+.lv-item:hover .lv-title { color: var(--primary); }
 
 .lv-excerpt {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--t3);
-  line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -1524,299 +1067,56 @@ onMounted(async () => {
   -webkit-box-orient: vertical;
 }
 
-.lv-meta {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 14px;
-  color: var(--t3);
-  flex-wrap: nowrap;
-  margin-top: 10px;
-  flex-shrink: 0;
-}
-
-.lv-meta-dot {
-  color: var(--t4);
-  font-size: 16px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.lv-meta-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 20px;
-  white-space: nowrap;
-}
-
-.lv-meta-chip i {
-  font-size: 14px;
-  color: var(--t3);
-}
-
-.lv-writer { font-weight: 600; color: var(--t2); }
-
-.lv-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-.lv-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.lv-avatar-txt {
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
-}
-.lv-sep    { color: var(--border); }
-
-.lv-title-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.lv-new-dot {
-  font-size: 14px;
-  color: var(--accent);
-  flex-shrink: 0;
-  margin-top: -3px;
-}
-
-.lv-stats {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.lv-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 12px;
-  color: var(--t3);
-  font-weight: 500;
-}
-
-.lv-stat i { font-size: 12px; }
-.lv-stat-comment { color: var(--accent-t); }
-
-.lv-thumb {
-  flex-shrink: 0;
-  width: 130px;
-  align-self: stretch;
-  min-height: 90px;
-  max-height: 140px;
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-  background: var(--surface2);
-}
-
-.lv-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.lv-notice-divider {
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
-  opacity: 0.15;
-}
-
-.lv-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 60px 0;
-  color: var(--t4);
-  font-size: 14px;
-}
-
-.lv-empty i { font-size: 36px; }
-
-/* ===== 툴바 ===== */
-.list-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 14px 20px;
-  border-top: 1px solid var(--border2);
-  background: var(--surface2);
-  flex-wrap: wrap;
-}
-
-.search-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.search-type-wrap { flex-shrink: 0; }
-.search-type { width: 82px; }
-
-.search-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  font-size: 13px;
-  color: var(--t3);
-  pointer-events: none;
-}
-
-.search-input {
-  padding: 7px 30px 7px 32px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  background: var(--surface2);
-  font-size: 13px;
-  color: var(--t1);
-  width: 200px;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  font-family: inherit;
-}
-
-.search-input:focus {
-  border-color: var(--accent);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.search-input::placeholder { color: var(--t4); }
-
-.search-clear {
-  position: absolute;
-  right: 8px;
-  background: none;
-  border: none;
-  color: var(--t3);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-}
-
-.search-btn {
-  padding: 7px 14px;
-  border-radius: var(--radius-xs);
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s;
-  white-space: nowrap;
-}
-
-.search-btn:hover { opacity: 0.88; }
-
-.write-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.write-btn:hover { opacity: 0.88; }
+.lv-meta { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--t3); }
+.lv-sep { color: var(--border-strong); }
 
 /* ===== 페이지네이션 ===== */
-.pagination { display: flex; justify-content: center; padding: 24px 0 20px; }
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 24px;
+}
 
-@media (max-width: 600px) {
-  /* ===== 리스트형 ===== */
-  .lv-item { padding: 14px 16px; gap: 12px; }
-  .lv-thumb { width: 90px; min-height: 72px; max-height: 120px; }
-  .lv-title { font-size: 15px; }
-  .lv-excerpt { font-size: 13px; }
+.pg-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 9px;
+  color: var(--t2);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+  font-family: inherit;
+}
+.pg-btn:hover:not(:disabled) { background: var(--surface-2); }
+.pg-btn.active { border: none; background: var(--primary); color: #fff; }
+.pg-btn:disabled { opacity: 0.35; cursor: default; }
 
-  /* ===== 테이블 ===== */
-  .pt-col.writer, .pt-col.count { display: none; }
-  .pt-col.date { width: 72px; font-size: 12px; }
-  .search-input { width: 130px; }
+/* ===== 반응형 ===== */
+@media (max-width: 768px) {
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
-  /* ===== 갤러리 : 모바일 2열 ===== */
-  .gallery-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 14px;
-  }
+  .pt-head,
+  .pt-row { grid-template-columns: 50px 1fr 64px; }
+  .pt-head > *:nth-child(3),
+  .pt-head > *:nth-child(5),
+  .pt-row > *:nth-child(3),
+  .pt-row > *:nth-child(5) { display: none; }
 
-  /* ===== 웹진 : 이미지 상단 full-width 카드 ===== */
-  .webzine-list {
-    gap: 12px;
-    padding: 12px;
-  }
+  .ft-head,
+  .ft-row { grid-template-columns: 1fr 70px; }
+  .ft-head > *:nth-child(n+3),
+  .ft-row > *:nth-child(n+3) { display: none; }
 
-  .webzine-item {
-    grid-template-columns: 1fr;
-    gap: 0;
-    padding: 0;
-    border-radius: 16px;
-    overflow: hidden;
-    border-bottom: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    border: 0.5px solid var(--border2);
-    background: var(--surface);
-  }
-
-  .webzine-thumb {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: 0;
-  }
-
-  .webzine-body {
-    padding: 12px 14px 14px;
-    gap: 6px;
-  }
-
-  .webzine-title {
-    font-size: 16px;
-    -webkit-line-clamp: 2;
-  }
-
-  .webzine-excerpt {
-    font-size: 12px;
-    -webkit-line-clamp: 2;
-  }
-
-  .webzine-meta { gap: 5px; font-size: 11px; }
+  .search-box { width: 160px; }
+  .pg-header { flex-direction: column; align-items: flex-start; }
 }
 </style>

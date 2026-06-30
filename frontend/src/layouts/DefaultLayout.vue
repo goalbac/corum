@@ -144,8 +144,6 @@
                 <svg v-if="index < breadcrumbs.length - 1" class="bc-sep" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
               </span>
             </nav>
-            <h1 class="page-title">{{ routeMenu.name }}</h1>
-            <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
           </div>
 
           <router-view v-slot="{ Component }">
