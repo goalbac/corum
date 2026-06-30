@@ -1,5 +1,5 @@
 <template>
-  <div class="cal-layout">
+  <div class="cal-layout" :class="{ 'has-sidebar': !isSingleCalendar && normalCalendars.length > 0 }">
 
     <!-- 사이드바 (모바일 제외, 단일 캘린더 메뉴 제외) -->
     <div v-if="!isSingleCalendar && normalCalendars.length > 0" class="cal-sidebar">
@@ -883,9 +883,12 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 /* ===== 레이아웃 ===== */
 .cal-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 1fr;
   gap: 20px;
   align-items: start;
+}
+.cal-layout.has-sidebar {
+  grid-template-columns: 220px 1fr;
 }
 
 /* ===== 사이드바 ===== */
@@ -967,7 +970,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   flex-wrap: wrap;
   gap: 10px;
 }
-.cal-left, .cal-right { display: flex; align-items: center; gap: 8px; }
+.cal-left, .cal-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .cal-title {
   margin: 0;
@@ -975,6 +978,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--t1);
+  white-space: nowrap;
 }
 
 /* prev / next 연결 버튼 */
