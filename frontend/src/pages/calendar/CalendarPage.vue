@@ -398,45 +398,33 @@ function fmtKorTime(date) {
   return m === 0 ? `${ap} ${hr}시` : `${ap} ${hr}:${String(m).padStart(2,'0')}`
 }
 
+// 24시간 형식 (13:00)
+function fmt24h(date) {
+  if (!date) return ''
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
 function eventContent(arg) {
   const { event, view } = arg
   const color    = event.backgroundColor || '#2563EB'
   const viewType = view.type
-  const isMobileView = window.innerWidth <= 768
 
   const el = document.createElement('div')
   el.style.setProperty('--ev-color', color)
 
   if (viewType === 'dayGridMonth') {
-    if (event.allDay) {
-      // 종일: 기존 pill 스타일
-      el.className = 'fc-ev-custom'
-      const n = document.createElement('div')
-      n.className = 'fc-ev-title'
-      n.textContent = event.title
-      el.appendChild(n)
-    } else if (isMobileView) {
-      // 모바일: 기존 스타일
-      el.className = 'fc-ev-custom'
-      const t = document.createElement('div')
-      t.className = 'fc-ev-time'
-      t.textContent = arg.timeText || ''
-      el.appendChild(t)
-      const n = document.createElement('div')
-      n.className = 'fc-ev-title'
-      n.textContent = event.title
-      el.appendChild(n)
-    } else {
-      // 데스크탑: 구글 캘린더 스타일 (● 오전 8시 제목)
-      el.className = 'fc-ev-goog'
-      const dot = document.createElement('span')
-      dot.className = 'fc-ev-goog-dot'
-      el.appendChild(dot)
-      const label = document.createElement('span')
-      label.className = 'fc-ev-goog-label'
-      label.textContent = `${fmtKorTime(event.start)} ${event.title}`
-      el.appendChild(label)
+    // 월뷰: 통일된 LINE 스타일 (종일/시간 공통)
+    el.className = 'fc-ev-line'
+    if (!event.allDay && event.start) {
+      const timeEl = document.createElement('span')
+      timeEl.className = 'fc-ev-line-time'
+      timeEl.textContent = fmt24h(event.start)
+      el.appendChild(timeEl)
     }
+    const titleEl = document.createElement('span')
+    titleEl.className = 'fc-ev-line-title'
+    titleEl.textContent = event.title
+    el.appendChild(titleEl)
   } else {
     // 주/일 뷰: 타임그리드 블록
     el.className = 'fc-ev-block'
@@ -1278,7 +1266,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-card :deep(.fc-more-link) { color: var(--accent-t) !important; }
 
 /* ===== 커스텀 이벤트 카드 ===== */
-/* 월 뷰(daygrid)만 투명 배경 처리 */
+/* 월 뷰(daygrid): FC 기본 스타일 초기화 */
 .cal-card :deep(.fc-daygrid-event) {
   background: transparent !important;
   border: none !important;
@@ -1288,66 +1276,34 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   overflow: visible;
 }
 
-/* 종일 / 모바일 폴백 스타일 */
-.cal-card :deep(.fc-ev-custom) {
-  display: flex;
-  flex-direction: column;
-  border-left: 3px solid var(--ev-color, var(--accent));
-  background: color-mix(in srgb, var(--ev-color, var(--accent)) 12%, var(--surface));
-  border-radius: 3px;
-  padding: 3px 5px;
-  width: 100%;
-  box-sizing: border-box;
-  gap: 1px;
-  cursor: pointer;
-}
-.cal-card :deep(.fc-ev-time) {
-  font-size: 11px;
-  color: var(--ev-color, var(--accent));
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-.cal-card :deep(.fc-ev-title) {
-  font-size: 13px;
-  color: var(--t1);
-  font-weight: 500;
-  line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 데스크탑 월뷰 구글 캘린더 스타일 */
-.cal-card :deep(.fc-ev-goog) {
+/* 월뷰 LINE 스타일 (종일/시간 공통) */
+.cal-card :deep(.fc-ev-line) {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 1px 4px;
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--ev-color, var(--accent)) 13%, transparent);
+  border-left: 2.5px solid var(--ev-color, var(--accent));
+  border-radius: 4px;
+  padding: 2px 5px;
+  overflow: hidden;
   width: 100%;
   box-sizing: border-box;
   cursor: pointer;
-  min-width: 0;
 }
-.cal-card :deep(.fc-ev-goog:hover) {
-  background: color-mix(in srgb, var(--ev-color, var(--accent)) 10%, var(--surface));
-}
-.cal-card :deep(.fc-ev-goog-dot) {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ev-color, var(--accent));
+.cal-card :deep(.fc-ev-line-time) {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
   flex-shrink: 0;
+  white-space: nowrap;
 }
-.cal-card :deep(.fc-ev-goog-label) {
-  font-size: 13px;
+.cal-card :deep(.fc-ev-line-title) {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--t1);
-  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.6;
 }
 
 /* 주/일 뷰 블록 스타일 */
