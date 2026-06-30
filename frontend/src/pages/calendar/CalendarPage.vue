@@ -474,10 +474,15 @@ const calOptions = computed(() => {
       const wrap = document.createElement('div')
       wrap.className = 'fc-day-custom'
 
-      // 날짜 숫자 왼쪽 ('일' 제거)
+      // 날짜 숫자 왼쪽 ('일' 제거, 오늘은 배지 스타일)
       const num = document.createElement('span')
-      num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
-      num.textContent = arg.dayNumberText.replace('일', '')
+      const label = arg.dayNumberText.replace('일', '')
+      if (arg.isToday) {
+        num.className = 'fc-day-num today-badge'
+      } else {
+        num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
+      }
+      num.textContent = label
       wrap.appendChild(num)
 
       // 공휴일명 오른쪽
@@ -970,7 +975,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   flex-wrap: wrap;
   gap: 10px;
 }
-.cal-left, .cal-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cal-left, .cal-right { display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
 
 .cal-title {
   margin: 0;
@@ -1175,7 +1180,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 .cal-card :deep(.fc-daygrid-day) { background: var(--surface) !important; }
 .cal-card :deep(.fc-day-other) { background: var(--surface) !important; }
-.cal-card :deep(.fc-day-today) { background: var(--accent-bg) !important; }
+.cal-card :deep(.fc-day-today) { background: var(--surface) !important; }
 .cal-card :deep(.fc-col-header-cell) {
   background: var(--surface) !important;
   font-size: 12px; font-weight: 700; color: var(--t2); padding: 11px 0;
@@ -1232,11 +1237,26 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   color: var(--t1);
   line-height: 1.4;
   flex-shrink: 0;
+  padding: 2px 4px;
 }
 .cal-card :deep(.fc-day-num.sat) { color: var(--primary); }
 .cal-card :deep(.fc-day-num.red) { color: var(--danger, #dc2626); }
 /* 지난달/다음달: t3 색상으로 덮어쓰기 */
 .cal-card :deep(.fc-day-other .fc-day-num) { color: var(--t3) !important; }
+/* 오늘 배지 */
+.cal-card :deep(.fc-day-num.today-badge) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+}
 
 /* 공휴일명 (오른쪽) */
 .cal-card :deep(.fc-day-hol) {
