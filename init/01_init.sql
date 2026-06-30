@@ -425,6 +425,9 @@ CREATE TABLE inquiries (
     contact_email VARCHAR(255),
     client_ip     VARCHAR(50),
     status        VARCHAR(20)  NOT NULL DEFAULT 'RECEIVED',
+    reply_content TEXT,
+    replied_at    TIMESTAMP,
+    replied_by    BIGINT,
     created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
