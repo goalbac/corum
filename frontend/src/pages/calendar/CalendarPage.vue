@@ -1271,6 +1271,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   margin-left: auto;
   text-align: right;
   flex-shrink: 1;
+  padding: 2px 4px;
 }
 .cal-card :deep(.fc-day-hol.red) { color: var(--danger, #dc2626); }
 .cal-card :deep(.fc-day-hol.sat) { color: var(--primary); }
