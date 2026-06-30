@@ -1,24 +1,74 @@
 <template>
   <div class="cal-layout">
 
+    <!-- 사이드바 (모바일 제외, 단일 캘린더 메뉴 제외) -->
+    <div v-if="!isSingleCalendar && normalCalendars.length > 0" class="cal-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">내 캘린더</div>
+        <div class="sidebar-cal-list">
+          <label
+            v-for="cal in normalCalendars"
+            :key="cal.id"
+            class="sidebar-cal-item"
+            @click.prevent="toggleCalendar(cal.id)"
+          >
+            <span
+              class="sidebar-check"
+              :style="{
+                borderColor: cal.color || '#2563EB',
+                background: visibleCalendars.has(cal.id) ? (cal.color || '#2563EB') : 'transparent'
+              }"
+            >
+              <svg v-if="visibleCalendars.has(cal.id)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="sidebar-cal-name" :style="{ color: visibleCalendars.has(cal.id) ? 'var(--t1)' : 'var(--t3)' }">{{ cal.name }}</span>
+          </label>
+        </div>
+        <template v-if="holidayCalendars.length">
+          <div class="sidebar-divider"></div>
+          <label
+            v-for="cal in holidayCalendars"
+            :key="cal.id"
+            class="sidebar-cal-item"
+            @click.prevent="showHolidayCalendar = !showHolidayCalendar; calApi?.refetchEvents()"
+          >
+            <span
+              class="sidebar-check"
+              :style="{
+                borderColor: cal.color || '#dc2626',
+                background: showHolidayCalendar ? (cal.color || '#dc2626') : 'transparent'
+              }"
+            >
+              <svg v-if="showHolidayCalendar" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="sidebar-cal-name" :style="{ color: showHolidayCalendar ? 'var(--t1)' : 'var(--t3)' }">{{ cal.name }}</span>
+          </label>
+        </template>
+      </div>
+    </div>
+
     <!-- 메인 캘린더 영역 -->
     <div class="cal-main">
       <!-- 툴바 -->
       <div class="cal-toolbar">
         <div class="cal-left">
-          <button class="cal-btn" @click="calApi?.prev()"><i class="ti ti-chevron-left"></i></button>
-          <button class="cal-btn" @click="calApi?.today()">오늘</button>
-          <button class="cal-btn" @click="calApi?.next()"><i class="ti ti-chevron-right"></i></button>
-          <span class="cal-title">{{ currentTitle }}</span>
+          <h2 class="cal-title">{{ currentTitle }}</h2>
+          <div class="cal-nav-group">
+            <button class="cal-nav-btn" @click="calApi?.prev()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="cal-nav-btn next" @click="calApi?.next()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <button class="cal-today-btn" @click="calApi?.today()">오늘</button>
         </div>
         <div class="cal-right">
-          <!-- 캘린더 선택 드롭다운 (단일 캘린더 메뉴에서는 숨김) -->
-          <div v-if="!isSingleCalendar" class="cal-filter-wrap" ref="filterWrap">
-            <button class="cal-btn" @click="showFilter = !showFilter">
+          <!-- 모바일 전용 캘린더 필터 드롭다운 -->
+          <div v-if="isMobile && !isSingleCalendar" class="cal-filter-wrap" ref="filterWrap">
+            <button class="cal-today-btn" @click="showFilter = !showFilter">
               <i class="ti ti-filter"></i>
-              캘린더
               <span v-if="visibleCalendars.size + (showHolidayCalendar && holidayCalendars.length ? 1 : 0) < normalCalendars.length + holidayCalendars.length" class="filter-badge">{{ visibleCalendars.size + (showHolidayCalendar && holidayCalendars.length ? 1 : 0) }}</span>
-              <i class="ti ti-chevron-down" style="font-size:11px"></i>
             </button>
             <div v-if="showFilter" class="cal-filter-panel">
               <div class="filter-title">표시할 캘린더</div>
@@ -27,7 +77,6 @@
                 <span class="cal-dot" :style="{ background: cal.color || '#2563EB' }"></span>
                 <span class="cal-check-name">{{ cal.name }}</span>
               </label>
-              <!-- 공휴일 캘린더 (구분선 후 표시) -->
               <template v-if="holidayCalendars.length">
                 <div class="filter-divider"></div>
                 <label v-for="cal in holidayCalendars" :key="cal.id" class="cal-check-item">
@@ -42,20 +91,26 @@
               </div>
             </div>
           </div>
-          <button v-if="writableCalendars.length" class="cal-btn primary" @click="openCreate">
-            <i class="ti ti-plus"></i><span class="btn-text"> 일정 추가</span>
-          </button>
-          <div class="view-btns">
-            <button v-for="v in views" :key="v.key" class="cal-btn"
-              :class="{ active: currentView === v.key }" @click="changeView(v.key)">
-              {{ v.label }}
-            </button>
+          <!-- 뷰 탭 (segmented control) -->
+          <div class="view-tabs">
+            <button
+              v-for="v in views"
+              :key="v.key"
+              class="view-tab-btn"
+              :class="{ active: currentView === v.key }"
+              @click="changeView(v.key)"
+            >{{ v.label }}</button>
           </div>
+          <!-- 일정 등록 버튼 -->
+          <button v-if="writableCalendars.length" class="cal-add-btn" @click="openCreate">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span class="btn-text">일정 등록</span>
+          </button>
         </div>
       </div>
 
-      <!-- 캘린더 -->
-      <div class="cal-wrap" v-loading="loading">
+      <!-- 캘린더 카드 -->
+      <div class="cal-card" v-loading="loading">
         <FullCalendar ref="calRef" :options="calOptions" />
       </div>
     </div>
@@ -825,16 +880,189 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 </script>
 
 <style scoped>
+/* ===== 레이아웃 ===== */
 .cal-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ===== 사이드바 ===== */
+.cal-sidebar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 20px;
+}
+
+.sidebar-section {}
+
+.sidebar-label {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--t3);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.sidebar-cal-list {
   display: flex;
-  min-height: 0;
-  padding: 20px 24px 24px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-cal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: background 0.12s;
+  user-select: none;
+}
+.sidebar-cal-item:hover { background: var(--surface2); }
+
+.sidebar-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+
+.sidebar-cal-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.12s;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
 }
 
 /* ===== 메인 ===== */
-.cal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.cal-main { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 
-/* ===== 캘린더 필터 드롭다운 ===== */
+/* ===== 툴바 ===== */
+.cal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cal-left, .cal-right { display: flex; align-items: center; gap: 8px; }
+
+.cal-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--t1);
+}
+
+/* prev / next 연결 버튼 */
+.cal-nav-group {
+  display: flex;
+}
+
+.cal-nav-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--t2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.cal-nav-btn:first-child { border-radius: 8px 0 0 8px; }
+.cal-nav-btn.next { border-left: none; border-radius: 0 8px 8px 0; }
+.cal-nav-btn:hover { background: var(--surface2); color: var(--t1); }
+
+/* 오늘 버튼 */
+.cal-today-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.cal-today-btn:hover { background: var(--surface2); color: var(--t1); }
+
+/* 뷰 탭 (segmented control) */
+.view-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--surface2);
+  border-radius: 9px;
+  padding: 3px;
+}
+
+.view-tab-btn {
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 17px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.view-tab-btn.active {
+  background: var(--surface);
+  color: var(--t1);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 일정 등록 버튼 */
+.cal-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.cal-add-btn:hover { background: var(--primary-strong); }
+
+/* ===== 모바일 필터 드롭다운 (사이드바 대체) ===== */
 .cal-filter-wrap { position: relative; }
 
 .cal-filter-panel {
@@ -918,86 +1146,58 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-check-item input { accent-color: var(--accent); cursor: pointer; }
 .cal-check-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.cal-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+/* ===== 캘린더 카드 ===== */
+.cal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
-.cal-left, .cal-right { display: flex; align-items: center; gap: 6px; }
 
-.cal-btn {
-  padding: 6px 12px;
-  border: 0.5px solid var(--border);
-  background: var(--surface2);
-  border-radius: var(--radius-xs);
-  font-size: 13px;
-  color: var(--t2);
-  cursor: pointer;
-  font-family: inherit;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.cal-btn:hover { color: var(--t1); background: var(--surface); }
-.cal-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); font-weight: 500; }
-.cal-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.cal-btn.primary:hover { opacity: 0.88; }
-
-.cal-hol-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: 0.5px solid var(--border);
-  background: var(--surface2);
-  border-radius: var(--radius-xs);
-  font-size: 13px;
-  color: var(--t2);
-  cursor: pointer;
-  user-select: none;
-  transition: var(--transition);
-}
-.cal-hol-toggle:hover { color: var(--t1); background: var(--surface); }
-.cal-hol-toggle input { accent-color: var(--accent); cursor: pointer; }
-
-.cal-title { font-size: 15px; font-weight: 700; color: var(--t1); margin-left: 4px; }
-.view-btns { display: flex; gap: 2px; }
-
-/* ===== FullCalendar 다크모드 ===== */
-.cal-wrap :deep(.fc) { font-family: inherit; }
-.cal-wrap :deep(.fc-theme-standard td),
-.cal-wrap :deep(.fc-theme-standard th),
-.cal-wrap :deep(.fc-theme-standard .fc-scrollgrid),
-.cal-wrap :deep(.fc-theme-standard .fc-scrollgrid-section > td) {
+/* ===== FullCalendar 기본 스타일 ===== */
+.cal-card :deep(.fc) { font-family: inherit; }
+.cal-card :deep(.fc-theme-standard td),
+.cal-card :deep(.fc-theme-standard th),
+.cal-card :deep(.fc-theme-standard .fc-scrollgrid),
+.cal-card :deep(.fc-theme-standard .fc-scrollgrid-section > td) {
   border-color: var(--border) !important;
 }
-.cal-wrap :deep(.fc-daygrid-day) { background: var(--surface) !important; }
-.cal-wrap :deep(.fc-day-other) { background: var(--surface2) !important; }
-.cal-wrap :deep(.fc-day-today) { background: var(--accent-bg) !important; }
-.cal-wrap :deep(.fc-col-header-cell) {
-  background: var(--surface2) !important;
-  font-size: 13px; font-weight: 500; color: var(--t2); padding: 8px 0;
+/* 카드 테두리와 겹치는 scrollgrid 외곽 border 제거 */
+.cal-card :deep(.fc-scrollgrid) {
+  border-left: none !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
 }
-.cal-wrap :deep(.fc-timegrid-slot-label-cushion) {
+.cal-card :deep(.fc-daygrid-day) { background: var(--surface) !important; }
+.cal-card :deep(.fc-day-other) { background: var(--surface2) !important; }
+.cal-card :deep(.fc-day-today) { background: var(--accent-bg) !important; }
+.cal-card :deep(.fc-col-header-cell) {
+  background: var(--surface) !important;
+  font-size: 12px; font-weight: 700; color: var(--t2); padding: 11px 0;
+  border-bottom: 1px solid var(--border) !important;
+}
+/* 일 헤더: 빨강 */
+.cal-card :deep(.fc-day-sun.fc-col-header-cell) { color: var(--danger, #dc2626) !important; }
+.cal-card :deep(.fc-day-sun.fc-col-header-cell a) { color: var(--danger, #dc2626) !important; }
+.cal-card :deep(.fc-timegrid-slot-label-cushion) {
   font-size: 13px;
   color: var(--t3);
 }
-.cal-wrap :deep(.fc-col-header-cell a) { color: var(--t2) !important; }
+.cal-card :deep(.fc-col-header-cell a) { color: var(--t2) !important; }
 /* 토/일 컬럼 헤더 색상 (주/일 뷰) */
-.cal-wrap :deep(.fc-day-sat.fc-col-header-cell a) { color: #2563eb !important; }
-.cal-wrap :deep(.fc-day-sun.fc-col-header-cell a) { color: #dc2626 !important; }
+.cal-card :deep(.fc-day-sat.fc-col-header-cell a) { color: #2563eb !important; }
+.cal-card :deep(.fc-day-sun.fc-col-header-cell a) { color: #dc2626 !important; }
 
 /* FullCalendar 날짜 셀 헤더: float 제거 후 flex로 전체 너비 활용 */
-.cal-wrap :deep(.fc-daygrid-day-top) {
+.cal-card :deep(.fc-daygrid-day-top) {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   width: 100% !important;
 }
-.cal-wrap :deep(.fc-daygrid-day-number) {
+.cal-card :deep(.fc-daygrid-day-number) {
   float: none !important;
   display: flex !important;
   flex: 1 !important;
@@ -1007,21 +1207,21 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 
 /* 커스텀 날짜 셀 내부 */
-.cal-wrap :deep(.fc-day-custom) {
+.cal-card :deep(.fc-day-custom) {
   display: flex;
   align-items: center;
   width: 100%;
 }
-.cal-wrap :deep(.fc-day-num) {
+.cal-card :deep(.fc-day-num) {
   font-size: 13px;
   color: var(--t2);
   line-height: 1.4;
   flex-shrink: 0;
   margin-left: auto;
 }
-.cal-wrap :deep(.fc-day-num.sat) { color: #2563eb; }
-.cal-wrap :deep(.fc-day-num.red) { color: #dc2626; }
-.cal-wrap :deep(.fc-day-hol) {
+.cal-card :deep(.fc-day-num.sat) { color: #2563eb; }
+.cal-card :deep(.fc-day-num.red) { color: #dc2626; }
+.cal-card :deep(.fc-day-hol) {
   font-size: 12px;
   color: rgba(100, 100, 100, 0.63);
   font-weight: 500;
@@ -1032,16 +1232,16 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   flex: 1;
   text-align: left;
 }
-.cal-wrap :deep(.fc-day-hol.sat) { color: rgba(37, 99, 235, 0.63); }
-.cal-wrap :deep(.fc-day-hol.red) { color: rgba(220, 38, 38, 0.63); font-weight: 600; }
-.cal-wrap :deep(.fc-daygrid-day-number:hover) { color: var(--accent); }
-.cal-wrap :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
-.cal-wrap :deep(.fc-toolbar) { display: none; }
-.cal-wrap :deep(.fc-more-link) { color: var(--accent-t) !important; }
+.cal-card :deep(.fc-day-hol.sat) { color: rgba(37, 99, 235, 0.63); }
+.cal-card :deep(.fc-day-hol.red) { color: rgba(220, 38, 38, 0.63); font-weight: 600; }
+.cal-card :deep(.fc-daygrid-day-number:hover) { color: var(--accent); }
+.cal-card :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
+.cal-card :deep(.fc-toolbar) { display: none; }
+.cal-card :deep(.fc-more-link) { color: var(--accent-t) !important; }
 
 /* ===== 커스텀 이벤트 카드 ===== */
 /* 월 뷰(daygrid)만 투명 배경 처리 */
-.cal-wrap :deep(.fc-daygrid-event) {
+.cal-card :deep(.fc-daygrid-event) {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
@@ -1051,7 +1251,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 
 /* 종일 / 모바일 폴백 스타일 */
-.cal-wrap :deep(.fc-ev-custom) {
+.cal-card :deep(.fc-ev-custom) {
   display: flex;
   flex-direction: column;
   border-left: 3px solid var(--ev-color, var(--accent));
@@ -1063,14 +1263,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   gap: 1px;
   cursor: pointer;
 }
-.cal-wrap :deep(.fc-ev-time) {
+.cal-card :deep(.fc-ev-time) {
   font-size: 11px;
   color: var(--ev-color, var(--accent));
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
-.cal-wrap :deep(.fc-ev-title) {
+.cal-card :deep(.fc-ev-title) {
   font-size: 13px;
   color: var(--t1);
   font-weight: 500;
@@ -1081,7 +1281,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 
 /* 데스크탑 월뷰 구글 캘린더 스타일 */
-.cal-wrap :deep(.fc-ev-goog) {
+.cal-card :deep(.fc-ev-goog) {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -1092,17 +1292,17 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   cursor: pointer;
   min-width: 0;
 }
-.cal-wrap :deep(.fc-ev-goog:hover) {
+.cal-card :deep(.fc-ev-goog:hover) {
   background: color-mix(in srgb, var(--ev-color, var(--accent)) 10%, var(--surface));
 }
-.cal-wrap :deep(.fc-ev-goog-dot) {
+.cal-card :deep(.fc-ev-goog-dot) {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--ev-color, var(--accent));
   flex-shrink: 0;
 }
-.cal-wrap :deep(.fc-ev-goog-label) {
+.cal-card :deep(.fc-ev-goog-label) {
   font-size: 13px;
   color: var(--t1);
   font-weight: 400;
@@ -1113,7 +1313,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 
 /* 주/일 뷰 블록 스타일 */
-.cal-wrap :deep(.fc-ev-block) {
+.cal-card :deep(.fc-ev-block) {
   padding: 3px 6px;
   width: 100%;
   height: 100%;
@@ -1124,7 +1324,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   cursor: pointer;
   overflow: hidden;
 }
-.cal-wrap :deep(.fc-ev-block-title) {
+.cal-card :deep(.fc-ev-block-title) {
   font-size: 13px;
   font-weight: 600;
   color: #fff;
@@ -1133,7 +1333,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cal-wrap :deep(.fc-ev-block-loc) {
+.cal-card :deep(.fc-ev-block-loc) {
   font-size: 11px;
   color: rgba(255,255,255,0.85);
   white-space: nowrap;
@@ -1141,7 +1341,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   text-overflow: ellipsis;
 }
 /* 주/일뷰 이벤트는 backgroundColor가 적용되므로 배경 제거 불필요 */
-.cal-wrap :deep(.fc-timegrid-event) {
+.cal-card :deep(.fc-timegrid-event) {
   border-radius: 4px !important;
   border-left: 3px solid rgba(255,255,255,0.4) !important;
 }
@@ -1184,9 +1384,12 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .rec-end-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 @media (max-width: 768px) {
-  .cal-layout { padding: 12px 0 20px; }
+  /* 모바일: 사이드바 숨기고 단일 컬럼 */
+  .cal-layout {
+    grid-template-columns: 1fr;
+  }
+  .cal-sidebar { display: none; }
   .cal-main { gap: 8px; }
-  .cal-toolbar { padding: 0 12px; }
   .form-row { grid-template-columns: 1fr; }
 
   /* 툴바: 2줄 구조 */
@@ -1196,22 +1399,16 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
     gap: 8px;
   }
 
-  /* 1줄: 이전/다음 + 제목 + 오늘 */
+  /* 1줄: 제목 + nav + 오늘 */
   .cal-left {
     display: flex;
     align-items: center;
-    gap: 0;
+    gap: 8px;
     width: 100%;
-  }
-  .cal-left .cal-btn:first-child,
-  .cal-left .cal-btn:last-of-type {
-    padding: 6px 10px;
   }
   .cal-title {
     flex: 1;
-    text-align: center;
-    font-size: 16px !important;
-    font-weight: 700;
+    font-size: 18px !important;
   }
 
   /* 2줄: 뷰탭 왼쪽 + 필터/추가 오른쪽 */
@@ -1222,24 +1419,17 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
     width: 100%;
     gap: 6px;
   }
-  .view-btns {
+  .view-tabs {
     flex: 1;
-    display: flex;
-    gap: 0;
-    order: -1;
   }
-  .view-btns .cal-btn {
+  .view-tab-btn {
     flex: 1;
-    justify-content: center;
-    border-radius: 0;
+    padding: 6px 10px;
   }
-  .view-btns .cal-btn:first-child { border-radius: var(--radius-xs) 0 0 var(--radius-xs); }
-  .view-btns .cal-btn:last-child  { border-radius: 0 var(--radius-xs) var(--radius-xs) 0; }
-  .view-btns .cal-btn + .cal-btn  { border-left: none; }
-  .view-btns .cal-btn.active { border-left: 1px solid var(--accent) !important; }
 
-  /* + 일정 추가: 아이콘+텍스트 유지하되 글자 숨김 */
-  .cal-btn.primary span.btn-text { display: none; }
+  /* 일정 추가: 텍스트 숨김 */
+  .cal-add-btn .btn-text { display: none; }
+  .cal-add-btn { padding: 9px 12px; }
 
   /* 모바일 입력 폼 줌 방지 */
   :deep(.el-input__inner),
@@ -1249,37 +1439,21 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   /* 모바일 다이얼로그 스크롤 */
   :deep(.el-dialog__body) { max-height: calc(80dvh - 120px); overflow-y: auto; }
 
-  /* 모바일 캘린더: 날짜 숫자 */
-  .cal-wrap :deep(.fc-day-num) { font-size: 11px; }
-  .cal-wrap :deep(.fc-day-hol) { font-size: 10px; max-width: 50px; }
-  /* 헤더 요일 */
-  .cal-wrap :deep(.fc-col-header-cell) { font-size: 10px; padding: 4px 0; }
+  /* 모바일 캘린더 */
+  .cal-card :deep(.fc-day-num) { font-size: 11px; }
+  .cal-card :deep(.fc-day-hol) { font-size: 10px; max-width: 50px; }
+  .cal-card :deep(.fc-col-header-cell) { font-size: 10px; padding: 6px 0; }
+  .cal-card :deep(.fc-more-link) { font-size: 9px !important; }
+  .cal-card :deep(.fc-daygrid-day-frame) { min-height: 50px; }
+  .cal-card :deep(.fc-daygrid-day-events) { margin-top: 0; }
 
-  /* +N more 링크 */
-  .cal-wrap :deep(.fc-more-link) { font-size: 9px !important; }
-
-  /* 셀 높이: 자동으로 늘어남 */
-  .cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 50px; }
-  .cal-wrap :deep(.fc-daygrid-day-events) { margin-top: 0; }
-
-  /* 모바일 이벤트: 여백 최소화, border-left 제거, 클립 처리 */
-  .cal-wrap :deep(.fc-ev-custom) {
+  .cal-card :deep(.fc-ev-custom) {
     border-left: none !important;
     padding: 1px 3px !important;
     gap: 0 !important;
     border-radius: 2px !important;
   }
-  .cal-wrap :deep(.fc-ev-time) {
-    font-size: 9px;
-    overflow: hidden;
-    text-overflow: clip;
-    white-space: nowrap;
-  }
-  .cal-wrap :deep(.fc-ev-title) {
-    font-size: 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: clip;
-  }
+  .cal-card :deep(.fc-ev-time) { font-size: 9px; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+  .cal-card :deep(.fc-ev-title) { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: clip; }
 }
 </style>
