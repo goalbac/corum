@@ -1,8 +1,15 @@
 <template>
   <div class="board-write">
 
-    <!-- 페이지 헤더 -->
+    <!-- 페이지 헤더 (로컬 브래드크럼 + 제목) -->
     <div class="pg-header">
+      <nav v-if="writeBreadcrumbs.length" class="write-breadcrumb">
+        <span v-for="(item, i) in writeBreadcrumbs" :key="item.id" class="wbc-wrap">
+          <span class="wbc-item">{{ item.name }}</span>
+          <span class="wbc-sep">/</span>
+        </span>
+        <span class="wbc-item wbc-current">{{ isEdit ? '수정' : '글쓰기' }}</span>
+      </nav>
       <h1 class="pg-title">{{ isEdit ? '게시글 수정' : '게시글 작성' }}</h1>
     </div>
 
@@ -20,7 +27,7 @@
 
         <div class="option-spacer"></div>
 
-        <!-- 관리자 전용 날짜/좋아요 수 -->
+        <!-- 관리자 전용 날짜 -->
         <template v-if="isAdmin && isEdit">
           <div class="option-group">
             <label class="option-label">게시일</label>
@@ -61,37 +68,53 @@
         <RichEditor v-model="form.content" placeholder="내용을 입력하세요." min-height="360px" style="width:100%" />
       </div>
 
-      <!-- 파일 첨부 -->
-      <div class="attach-section">
-        <div class="attach-header">
-          <span class="attach-label">
-            파일 첨부
-            <span v-if="board?.boardType === 'DOCUMENT'" class="attach-required">*필수</span>
-          </span>
-          <span class="attach-tip">
-            최대 {{ board?.fileMaxSizeMb || 10 }}MB · {{ board?.fileMaxCount || 10 }}개
-            <template v-if="board?.fileAllowedExtensions"> · 허용: {{ board.fileAllowedExtensions }}</template>
-          </span>
+      <!-- 파일 첨부 드롭존 -->
+      <div
+        class="drop-zone"
+        :class="{ 'drag-over': isDragOver }"
+        @click="fileInputRef?.click()"
+        @dragover.prevent="isDragOver = true"
+        @dragleave.prevent="isDragOver = false"
+        @drop.prevent="handleDrop"
+      >
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="drop-text">
+          파일을 끌어다 놓거나 클릭하여 업로드
+          <span v-if="board?.boardType === 'DOCUMENT'" class="drop-required">*필수</span>
         </div>
-        <el-upload
-          v-model:file-list="fileList"
-          :auto-upload="false"
-          multiple
-          :on-change="handleFileChange"
-          class="file-uploader"
-        >
-          <button type="button" class="attach-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            파일 선택
-          </button>
-        </el-upload>
+        <div class="drop-sub">
+          최대 {{ board?.fileMaxSizeMb || 10 }}MB ·
+          {{ board?.fileMaxCount || 10 }}개<template v-if="board?.fileAllowedExtensions"> · {{ board.fileAllowedExtensions }}</template>
+        </div>
       </div>
 
-      <!-- 액션 버튼 -->
-      <div class="write-actions">
-        <button type="button" class="cancel-btn" @click="router.push(basePath)">취소</button>
+      <!-- 첨부 파일 칩 -->
+      <div v-if="files.length" class="file-chips">
+        <span v-for="(f, i) in files" :key="i" class="file-chip">
+          <span class="chip-ext" :style="extStyle(f.name)">{{ extLabel(f.name) }}</span>
+          <span class="chip-name">{{ f.name }}</span>
+          <button type="button" class="chip-remove" @click.stop="removeFile(i)" aria-label="삭제">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </span>
+      </div>
+
+      <input
+        ref="fileInputRef"
+        type="file"
+        multiple
+        style="display:none"
+        @change="handleFileInput"
+      />
+    </div>
+
+    <!-- 액션 버튼 (카드 밖) -->
+    <div class="write-actions">
+      <button type="button" class="cancel-btn" @click="router.push(basePath)">취소</button>
+      <div class="action-right">
+        <button type="button" class="draft-btn">임시저장</button>
         <button type="button" class="submit-btn" :disabled="loading" @click="handleSubmit">
-          <span v-if="loading" class="loading-dots">처리 중...</span>
+          <span v-if="loading">처리 중...</span>
           <span v-else>{{ isEdit ? '수정하기' : '등록하기' }}</span>
         </button>
       </div>
@@ -121,9 +144,22 @@ const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menu
 const isEdit = computed(() => !!postId.value)
 const isAdmin = computed(() => authStore.member?.isAdmin)
 
+// 로컬 breadcrumb: 메뉴 트리를 상위부터 순서대로
+const writeBreadcrumbs = computed(() => {
+  if (!activeMenu.value) return []
+  const items = []
+  let current = activeMenu.value
+  while (current) {
+    items.unshift(current)
+    current = current.parent || null
+  }
+  return items
+})
+
 const loading = ref(false)
-const fileList = ref([])
 const files = ref([])
+const isDragOver = ref(false)
+const fileInputRef = ref(null)
 const board = ref(null)
 
 const form = ref({ title: '', content: '', isNotice: false, createdAt: null, likeCount: 0, categoryId: null })
@@ -168,14 +204,24 @@ function validateFiles(newFiles) {
   return true
 }
 
-function handleFileChange(file) {
-  if (file.raw) {
-    if (!validateFiles([file.raw])) {
-      fileList.value = fileList.value.filter(f => f.uid !== file.uid)
-      return
-    }
-    files.value.push(file.raw)
-  }
+function addFiles(newFiles) {
+  const arr = Array.from(newFiles)
+  if (!validateFiles(arr)) return
+  files.value.push(...arr)
+}
+
+function handleDrop(e) {
+  isDragOver.value = false
+  addFiles(e.dataTransfer.files)
+}
+
+function handleFileInput(e) {
+  addFiles(e.target.files)
+  e.target.value = ''
+}
+
+function removeFile(index) {
+  files.value.splice(index, 1)
 }
 
 async function handleSubmit() {
@@ -222,6 +268,28 @@ async function fetchPost() {
   }
 }
 
+const EXT_MAP = {
+  pdf:  { bg: 'rgba(214,69,63,0.13)', color: '#d6453f', label: 'PDF' },
+  doc:  { bg: '#e9f0fe', color: '#2f5fd6', label: 'DOC' },
+  docx: { bg: '#e9f0fe', color: '#2f5fd6', label: 'DOC' },
+  xls:  { bg: '#e3f5ec', color: '#1f9d6b', label: 'XLS' },
+  xlsx: { bg: '#e3f5ec', color: '#1f9d6b', label: 'XLS' },
+  ppt:  { bg: 'rgba(217,119,6,0.1)', color: '#d97706', label: 'PPT' },
+  pptx: { bg: 'rgba(217,119,6,0.1)', color: '#d97706', label: 'PPT' },
+  zip:  { bg: '#eef1f6', color: '#929aab', label: 'ZIP' },
+  rar:  { bg: '#eef1f6', color: '#929aab', label: 'ZIP' },
+  hwp:  { bg: 'rgba(14,138,128,0.1)', color: '#0e8a80', label: 'HWP' },
+  hwpx: { bg: 'rgba(14,138,128,0.1)', color: '#0e8a80', label: 'HWP' },
+}
+function getExt(name) { return (name?.split('.').pop() || '').toLowerCase() }
+function extStyle(name) {
+  const m = EXT_MAP[getExt(name)]
+  return m ? { background: m.bg, color: m.color } : { background: '#eef1f6', color: '#929aab' }
+}
+function extLabel(name) {
+  return EXT_MAP[getExt(name)]?.label || getExt(name).toUpperCase().slice(0, 4) || 'FILE'
+}
+
 watch([boardId, postId], async () => { await fetchBoard(); fetchPost() })
 
 onMounted(async () => {
@@ -236,6 +304,38 @@ onMounted(async () => {
 
 /* ===== 페이지 헤더 ===== */
 .pg-header { margin-bottom: 18px; }
+
+.write-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.wbc-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.wbc-item {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.wbc-sep {
+  font-size: 12.5px;
+  color: var(--t3);
+  opacity: 0.5;
+  margin: 0 5px;
+}
+
+.wbc-current {
+  color: var(--t2);
+}
+
 .pg-title {
   margin: 0;
   font-size: 25px;
@@ -289,8 +389,6 @@ onMounted(async () => {
 .cat-select:focus { border-color: var(--primary); }
 
 /* ===== 토글 ===== */
-.toggle-group { flex-direction: row; align-items: center; gap: 9px; }
-
 .toggle-btn {
   width: 42px;
   height: 24px;
@@ -318,7 +416,7 @@ onMounted(async () => {
 }
 .toggle-btn.on .toggle-knob { left: 20px; }
 
-/* ===== 제목 행 (제목 + 공지 고정 토글) ===== */
+/* ===== 제목 행 ===== */
 .title-row {
   display: flex;
   align-items: center;
@@ -358,67 +456,116 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-/* ===== 파일 첨부 ===== */
-.attach-section {
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
+/* ===== 드롭존 ===== */
+.drop-zone {
+  border: 2px dashed var(--border-strong);
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.attach-header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 7px;
+}
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--primary);
+  background: var(--primary-weak);
+}
+.drop-zone.drag-over .drop-icon { color: var(--primary); }
+
+.drop-icon {
+  color: var(--t3);
+  transition: color 0.15s;
 }
 
-.attach-label {
-  font-size: 13px;
-  font-weight: 700;
+.drop-text {
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--t2);
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.attach-required {
+.drop-required {
   font-size: 11px;
   font-weight: 700;
   color: var(--warn);
 }
 
-.attach-tip {
+.drop-sub {
   font-size: 12px;
   color: var(--t3);
 }
 
-.attach-btn {
+/* ===== 파일 칩 ===== */
+.file-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.file-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--t2);
-  font-family: inherit;
-  font-weight: 600;
+  gap: 8px;
   font-size: 13px;
-  padding: 8px 14px;
-  border-radius: 9px;
-  cursor: pointer;
-  transition: all 0.15s;
+  font-weight: 600;
+  color: var(--t2);
+  background: var(--surface-2);
+  padding: 6px 10px;
+  border-radius: 8px;
+  max-width: 320px;
 }
-.attach-btn:hover { border-color: var(--primary); color: var(--primary); }
 
-/* ===== 액션 버튼 ===== */
+.chip-ext {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--t3);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.chip-remove:hover { color: var(--danger); }
+
+/* ===== 액션 버튼 (카드 밖) ===== */
 .write-actions {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.action-right {
+  display: flex;
   gap: 8px;
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
 }
 
 .cancel-btn {
@@ -433,7 +580,21 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.15s;
 }
-.cancel-btn:hover { border-color: var(--primary); color: var(--primary); }
+.cancel-btn:hover { background: var(--surface-2); }
+
+.draft-btn {
+  padding: 10px 18px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--t1);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.draft-btn:hover { background: var(--surface-2); }
 
 .submit-btn {
   padding: 10px 24px;
@@ -450,27 +611,11 @@ onMounted(async () => {
 .submit-btn:hover:not(:disabled) { background: var(--primary-strong); }
 .submit-btn:disabled { opacity: 0.6; cursor: default; }
 
-/* el-upload 내부 버튼 숨기고 우리 버튼 사용 */
-:deep(.el-upload) { display: inline-block; }
-:deep(.el-upload-list) {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-:deep(.el-upload-list__item) {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  color: var(--t2);
-}
-:deep(.el-upload-list__item .el-upload-list__item-name) { color: var(--t2); }
-
 @media (max-width: 640px) {
   .write-card { padding: 16px; }
   .title-input { font-size: 16px; }
   .options-row { gap: 14px; }
+  .write-actions { flex-direction: column; align-items: stretch; gap: 8px; }
+  .action-right { justify-content: flex-end; }
 }
 </style>

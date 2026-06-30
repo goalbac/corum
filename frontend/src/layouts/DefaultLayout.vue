@@ -137,7 +137,7 @@
       <div class="main-col">
         <main class="main-content">
           <!-- 브레드크럼 + 페이지 제목 -->
-          <div v-if="routeMenu && showSidebar && !isDetailPage" class="page-header">
+          <div v-if="routeMenu && showSidebar && !isDetailPage && !isWritePage" class="page-header">
             <nav v-if="breadcrumbs.length > 1" class="breadcrumb" aria-label="breadcrumb">
               <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
                 <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">{{ item.name }}</span>
@@ -182,6 +182,7 @@ const drawerRightRef = ref(null)
 const routeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
 const isDetailPage = computed(() => !!route.params.postId)
+const isWritePage = computed(() => route.path.endsWith('/write'))
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 const showSidebar = computed(() => !!activeTopMenu.value && sideMenus.value.length > 0)
 
