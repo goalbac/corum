@@ -229,9 +229,7 @@ async function submitInquiry() {
 }
 
 .footer-inner {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 32px 22px 24px;
+  padding: 22px 42px 24px;
 }
 
 .footer-default {

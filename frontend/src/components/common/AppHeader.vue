@@ -6,8 +6,14 @@
       </button>
 
       <router-link to="/" class="logo" @click="menuStore.setActiveTopMenu(null)">
-        <img v-if="logoUrl" :src="logoUrl" :alt="siteName || 'Corum'" class="logo-img" />
-        <span v-else>{{ siteName || 'Corum' }}</span>
+        <div class="logo-mark">
+          <img v-if="logoUrl" :src="logoUrl" :alt="siteName || 'Corum'" class="logo-img" />
+          <span v-else class="logo-letter">C</span>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">{{ siteName || '코럼' }}</span>
+          <span class="logo-sub">한국공익협회</span>
+        </div>
       </router-link>
 
       <nav class="top-nav" aria-label="주 메뉴">
@@ -27,6 +33,11 @@
       <div class="header-right">
 
         <template v-if="authStore.isLoggedIn">
+          <!-- 검색 버튼 -->
+          <button class="icon-btn" aria-label="검색">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+
           <!-- 알림: 데스크톱 드롭다운 / 모바일 전체화면 -->
           <div v-if="!isMobile" class="notif-wrapper">
             <button type="button" class="notif-btn" aria-label="알림" @click.stop="toggleDesktopNotif">
@@ -145,6 +156,17 @@
             </Transition>
           </Teleport>
 
+          <!-- 구분선 + 테마 토글 -->
+          <div class="hdr-divider"></div>
+          <button
+            class="icon-btn"
+            @click="themeStore.toggle()"
+            :aria-label="themeStore.isDark ? '라이트 모드' : '다크 모드'"
+          >
+            <svg v-if="themeStore.isDark" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>
+            <svg v-else width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+          </button>
+
           <!-- 사용자 드롭다운 -->
           <div class="user-wrapper">
             <button type="button" class="user-btn" @click.stop="userMenuOpen = !userMenuOpen">
@@ -225,26 +247,15 @@
         </template>
         <template v-else>
           <!-- 비로그인: 테마 토글 + 로그인 버튼 -->
-          <div class="theme-pill">
-            <button
-              class="tp-btn"
-              :class="{ active: !themeStore.isDark }"
-              @click="themeStore.isDark && themeStore.toggle()"
-              aria-label="라이트 모드"
-            >
-              <i class="ti ti-sun"></i>
-              <span class="tp-label">라이트</span>
-            </button>
-            <button
-              class="tp-btn"
-              :class="{ active: themeStore.isDark }"
-              @click="!themeStore.isDark && themeStore.toggle()"
-              aria-label="다크 모드"
-            >
-              <i class="ti ti-moon"></i>
-              <span class="tp-label">다크</span>
-            </button>
-          </div>
+          <div class="hdr-divider"></div>
+          <button
+            class="icon-btn"
+            @click="themeStore.toggle()"
+            :aria-label="themeStore.isDark ? '라이트 모드' : '다크 모드'"
+          >
+            <svg v-if="themeStore.isDark" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>
+            <svg v-else width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+          </button>
           <button class="login-btn" @click="$router.push('/login')">로그인</button>
         </template>
       </div>
@@ -408,14 +419,12 @@ async function handleLogout() {
 
 <style scoped>
 .app-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
+  z-index: 100;
   height: var(--header-height);
   background: var(--surface);
-  box-shadow: var(--shadow-hdr);
-  z-index: 100;
+  border-bottom: 1px solid var(--border);
   transition: background 0.25s;
 }
 
@@ -423,9 +432,8 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 20px;
-  max-width: 1280px;
-  margin: 0 auto;
+  padding: 0 26px;
+  gap: 30px;
 }
 
 .hamburger {
@@ -448,25 +456,62 @@ async function handleLogout() {
 .logo {
   display: flex;
   align-items: center;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--accent);
-  margin-right: 34px;
+  gap: 11px;
   flex-shrink: 0;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.logo-letter {
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.04em;
 }
 
 .logo-img {
-  height: 32px;
-  max-width: 140px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.12;
+}
+
+.logo-name {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  color: var(--t1);
+}
+
+.logo-sub {
+  font-size: 10.5px;
+  color: var(--t3);
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 .top-nav {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
+  align-items: stretch;
+  gap: 2px;
+  height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -475,64 +520,68 @@ async function handleLogout() {
 
 .nav-item {
   position: relative;
-  padding: 8px 15px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 17px;
   border: none;
-  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--t2);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.3;
   white-space: nowrap;
-  transition: var(--transition);
+  cursor: pointer;
+  transition: color 0.15s;
 }
 
-.nav-item:hover { color: var(--t1); background: var(--surface2); }
-.nav-item.active { color: var(--accent); background: var(--accent-bg); }
+.nav-item:hover { color: var(--t1); }
+.nav-item.active { color: var(--t1); font-weight: 700; }
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent);
+}
 
 .nav-dot {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  width: 5px;
-  height: 5px;
-  background: var(--new);
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  background: var(--new);
+  flex-shrink: 0;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   margin-left: auto;
   flex-shrink: 0;
 }
 
-.theme-pill {
-  display: flex;
-  align-items: center;
-  background: var(--surface2);
-  border: 0.5px solid var(--border);
-  border-radius: 20px;
-  padding: 2px;
-  gap: 1px;
-}
 
-.tp-btn {
+/* 헤더 아이콘 버튼 공통 */
+.icon-btn {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
   border: none;
   background: transparent;
-  color: var(--t3);
-  font-size: 13px;
-  border-radius: 16px;
-  transition: var(--transition);
+  border-radius: 10px;
+  font-size: 19px;
+  color: var(--t2);
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
 }
-
-.tp-btn.active { background: var(--accent); color: #fff; }
-.tp-btn:not(.active):hover { color: var(--t1); }
+.icon-btn:hover { background: var(--surface2); color: var(--t1); }
 
 /* 알림 버튼 */
 .notif-btn {
@@ -540,14 +589,14 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: none;
   background: transparent;
-  border-radius: 50%;
+  border-radius: 10px;
   font-size: 19px;
   color: var(--t2);
-  transition: var(--transition);
+  transition: background 0.15s, color 0.15s;
   cursor: pointer;
 }
 
@@ -584,15 +633,15 @@ async function handleLogout() {
 /* 알림 드롭다운 */
 .notif-dropdown {
   position: fixed;
-  top: var(--header-height, 56px);
-  right: max(20px, calc((100vw - 1280px) / 2 + 20px));
+  top: var(--header-height, 64px);
+  right: 20px;
   z-index: 9000;
   width: 380px;
   background: var(--surface);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 12px 36px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.06);
-  border: 0.5px solid var(--border2);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--border);
 }
 
 /* 드롭 트랜지션 */
@@ -741,24 +790,30 @@ async function handleLogout() {
 .notif-item:hover .notif-del-btn { display: flex; }
 .notif-item:hover .notif-dot { display: none; }
 
+/* 구분선 */
+.hdr-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
 /* 사용자 버튼 */
 .user-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
+  padding: 5px 9px 5px 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 24px;
   cursor: pointer;
-  min-height: 38px;
-  padding: 4px 9px 4px 5px;
-  border-radius: 999px;
-  border: 0;
-  background: transparent;
-  transition: var(--transition);
+  margin-left: 4px;
+  transition: background 0.15s;
 }
 
-.user-btn:hover {
-  background: var(--surface2);
-  box-shadow: inset 0 0 0 1px var(--border2);
-}
+.user-btn:hover { background: var(--surface2); }
 
 .user-btn:focus-visible {
   outline: none;
@@ -846,15 +901,15 @@ async function handleLogout() {
 /* 사용자 드롭다운 패널 */
 .user-dropdown {
   position: fixed;
-  top: var(--header-height, 56px);
-  right: max(20px, calc((100vw - 1280px) / 2 + 20px));
+  top: var(--header-height, 64px);
+  right: 20px;
   z-index: 9000;
   width: 248px;
   background: var(--surface);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 12px 36px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.06);
-  border: 0.5px solid var(--border2);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--border);
   padding: 8px;
 }
 
@@ -1002,21 +1057,21 @@ async function handleLogout() {
 .login-btn:hover { background: var(--accent-t); }
 
 @media (max-width: 1100px) {
-  .tp-label { display: none; }
-  .tp-btn { padding: 5px 8px; }
-  .nav-item { padding: 7px 10px; font-size: 14px; }
+  .nav-item { padding: 0 12px; font-size: 14px; }
+  .logo-sub { display: none; }
   .user-name { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
 @media (max-width: 768px) {
   .hamburger { display: flex; }
   .top-nav { display: none; }
-  .tp-btn { padding: 6px 8px; }
   .user-name { display: none; }
   .user-arrow { display: none; }
-  .logo { margin-right: auto; }
-  .header-right { gap: 6px; }
-  .header-inner { padding: 0 10px; }
+  .logo-sub { display: none; }
+  .header-right { gap: 2px; }
+  .header-inner { padding: 0 14px; gap: 10px; }
+  .icon-btn { width: 36px; height: 36px; }
+  .hdr-divider { margin: 0 2px; }
 }
 
 /* ===== 모바일 전체화면 알림 패널 ===== */
