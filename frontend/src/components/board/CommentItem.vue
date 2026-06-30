@@ -1,9 +1,6 @@
 <template>
   <div class="comment-item" :class="{ 'is-reply': comment.depth > 0 }">
     <div class="comment-inner" :style="{ paddingLeft: `${comment.depth > 0 ? comment.depth * 28 : 28}px` }">
-      <!-- 답글 화살표: flex 흐름에 포함하여 아바타 바로 앞에 위치 -->
-      <i v-if="comment.depth > 0" class="ti ti-corner-down-right reply-arrow"></i>
-
       <div class="comment-avatar">
         <img
           v-if="comment.writerProfileImageUrl && !avatarError"
@@ -247,15 +244,6 @@ function formatDate(dateStr) {
   padding-bottom: 14px;
   padding-right: 28px;
   position: relative;
-}
-
-/* 답글 화살표: flex 흐름 내 아바타 바로 앞 */
-.reply-arrow {
-  flex-shrink: 0;
-  font-size: 15px;
-  color: var(--t4);
-  margin-top: 10px;
-  margin-right: 2px;
 }
 
 /* 아바타 */

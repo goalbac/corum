@@ -27,16 +27,15 @@
             {{ authStore.member?.name?.charAt(0) || 'U' }}
           </span>
         </div>
-        <div class="cs-textarea-wrap">
+        <div class="cs-write-col">
           <textarea
             v-model="newComment"
             class="cs-textarea"
-            :placeholder="authStore.isLoggedIn ? '댓글을 입력하세요...' : '로그인이 필요합니다.'"
+            :placeholder="authStore.isLoggedIn ? '댓글을 입력하세요. 회원 간 예의를 지켜 주세요.' : '로그인이 필요합니다.'"
             rows="3"
             @keydown.ctrl.enter="submitComment(null)"
           />
           <div class="cs-write-footer">
-            <span class="cs-hint">Ctrl+Enter로 등록</span>
             <button
               class="cs-submit-btn"
               :disabled="submitting || !newComment.trim()"
@@ -168,14 +167,14 @@ onMounted(fetchComments)
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 11px;
-  background: var(--accent);
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 12px;
+  background: var(--primary);
   color: #fff;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 /* ===== 관리자 알림 ===== */
@@ -240,41 +239,42 @@ onMounted(fetchComments)
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f6ef7, #7c4ff7);
-  color: #fff;
+  background: var(--surface-2, #e5e7ef);
+  color: var(--t2);
   font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1.5px solid var(--border);
 }
 
-.cs-textarea-wrap {
+.cs-write-col {
   flex: 1;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  background: var(--surface);
-  transition: border-color 0.15s, box-shadow 0.15s;
-  overflow: hidden;
-}
-
-.cs-textarea-wrap:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .cs-textarea {
   width: 100%;
-  padding: 12px 14px 8px;
-  border: none;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   outline: none;
-  background: transparent;
+  background: var(--surface);
   font-size: 14px;
   line-height: 1.6;
   color: var(--t1);
-  resize: none;
+  resize: vertical;
+  min-height: 80px;
   font-family: inherit;
   box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.cs-textarea:focus {
+  border-color: var(--primary);
 }
 
 .cs-textarea::placeholder { color: var(--t4); }
@@ -283,7 +283,6 @@ onMounted(fetchComments)
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 8px 10px 10px;
 }
 
 .cs-submit-btn {
