@@ -1,14 +1,16 @@
 <template>
-  <article class="content-page" v-loading="loading">
+  <div class="content-page" v-loading="loading">
     <template v-if="page">
-      <h1>{{ page.title }}</h1>
-      <div class="content-body" v-html="page.content || ''" />
+      <div class="content-card">
+        <h1>{{ page.title }}</h1>
+        <div class="content-body" v-html="page.content || ''" />
+      </div>
     </template>
-    <div v-else-if="!loading" class="empty-content">
+    <div v-else-if="!loading" class="content-card empty-content">
       <h1>{{ activeMenu?.name || '안내 페이지' }}</h1>
       <p>등록된 안내 페이지가 없습니다.</p>
     </div>
-  </article>
+  </div>
 </template>
 
 <script setup>
@@ -46,12 +48,18 @@ onMounted(async () => {
 
 <style scoped>
 .content-page {
-  min-height: 360px;
-  padding: 30px 30px 40px;
   color: var(--t1);
 }
 
-.content-page h1,
+.content-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px 44px;
+  min-height: 360px;
+}
+
+.content-card h1,
 .empty-content h1 {
   font-size: 30px;
   font-weight: 800;
@@ -125,17 +133,14 @@ onMounted(async () => {
   padding: 8px 10px;
 }
 
-.empty-content {
-  min-height: 320px;
-}
-
 .empty-content p {
   font-size: 16px;
   color: var(--t2);
 }
 
 @media (max-width: 768px) {
-  .content-page h1,
+  .content-card { padding: 24px 20px 32px; border-radius: 12px; }
+  .content-card h1,
   .empty-content h1 { font-size: 24px; }
   .content-body { font-size: 16px; }
 }

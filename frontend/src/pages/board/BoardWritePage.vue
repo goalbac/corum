@@ -1,14 +1,15 @@
 <template>
   <div class="board-write">
+    <div class="write-inner">
 
-    <!-- 페이지 헤더 (로컬 브래드크럼 + 제목) -->
+    <!-- 페이지 헤더 (브래드크럼 + 제목) -->
     <div class="pg-header">
-      <nav v-if="writeBreadcrumbs.length" class="write-breadcrumb">
-        <span v-for="(item, i) in writeBreadcrumbs" :key="item.id" class="wbc-wrap">
-          <span class="wbc-item">{{ item.name }}</span>
-          <span class="wbc-sep">/</span>
+      <nav v-if="writeBreadcrumbs.length" class="breadcrumb" aria-label="breadcrumb">
+        <span v-for="(item, i) in writeBreadcrumbs" :key="item.id" class="bc-wrap">
+          <span class="bc-item">{{ item.name }}</span>
+          <span class="bc-sep">/</span>
         </span>
-        <span class="wbc-item wbc-current">{{ isEdit ? '수정' : '글쓰기' }}</span>
+        <span class="bc-item last">{{ isEdit ? '수정' : '글쓰기' }}</span>
       </nav>
       <h1 class="pg-title">{{ isEdit ? '게시글 수정' : '게시글 작성' }}</h1>
     </div>
@@ -120,6 +121,7 @@
       </div>
     </div>
 
+    </div><!-- /write-inner -->
   </div>
 </template>
 
@@ -302,38 +304,45 @@ onMounted(async () => {
 <style scoped>
 .board-write { color: var(--t1); }
 
+.write-inner {
+  max-width: 864px;
+  margin: 0 auto;
+}
+
 /* ===== 페이지 헤더 ===== */
 .pg-header { margin-bottom: 18px; }
 
-.write-breadcrumb {
+.breadcrumb {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 2px;
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
 
-.wbc-wrap {
-  display: inline-flex;
+.bc-wrap {
+  display: flex;
   align-items: center;
-  gap: 0;
+  gap: 2px;
 }
 
-.wbc-item {
-  font-size: 12.5px;
+.bc-item {
+  font-size: 13px;
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.bc-item.last {
+  color: var(--t2);
+  font-weight: 600;
+}
+
+.bc-sep {
+  font-size: 13px;
   font-weight: 600;
   color: var(--t3);
-}
-
-.wbc-sep {
-  font-size: 12.5px;
-  color: var(--t3);
   opacity: 0.5;
-  margin: 0 5px;
-}
-
-.wbc-current {
-  color: #566072;
+  margin: 0 4px;
 }
 
 .pg-title {
