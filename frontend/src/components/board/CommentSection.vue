@@ -1,7 +1,7 @@
 <template>
   <div v-if="showSection" class="comment-section">
 
-    <!-- 헤더 -->
+    <!-- 헤더: 댓글 + 숫자(primary 색상, 배지 아님) -->
     <div class="cs-header">
       <span class="cs-title">댓글</span>
       <span class="cs-count">{{ totalCommentCount }}</span>
@@ -31,7 +31,7 @@
           <textarea
             v-model="newComment"
             class="cs-textarea"
-            :placeholder="authStore.isLoggedIn ? '댓글을 입력하세요. 회원 간 예의를 지켜 주세요.' : '로그인이 필요합니다.'"
+            placeholder="댓글을 입력하세요. 회원 간 예의를 지켜 주세요."
             rows="3"
             @keydown.ctrl.enter="submitComment(null)"
           />
@@ -146,43 +146,30 @@ onMounted(fetchComments)
 <style scoped>
 .comment-section {
   border-top: 1px solid var(--border2);
+  padding: 0 28px;
 }
 
-/* ===== 헤더 ===== */
+/* ===== 헤더: 배지 아님, 숫자만 primary 색 ===== */
 .cs-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 20px 28px 16px;
-  border-bottom: 0.5px solid var(--border2);
-}
-
-.cs-title {
-  font-size: 15px;
-  font-weight: 800;
+  gap: 7px;
+  padding: 20px 0 16px;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--t1);
 }
 
-.cs-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 7px;
-  border-radius: 12px;
-  background: var(--primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-}
+.cs-title { color: var(--t1); }
+
+.cs-count { color: var(--primary); }
 
 /* ===== 관리자 알림 ===== */
 .cs-notice {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin: 14px 28px;
+  margin-bottom: 14px;
   padding: 10px 14px;
   background: #fffbeb;
   border: 0.5px solid #fde68a;
@@ -205,25 +192,25 @@ onMounted(fetchComments)
   padding: 36px 0;
   color: var(--t4);
   font-size: 13px;
+  border-top: 1px solid var(--border);
 }
 
 .cs-empty i { font-size: 28px; }
 
 /* ===== 댓글 작성 ===== */
 .cs-write {
-  padding: 18px 28px 22px;
-  border-bottom: 0.5px solid var(--border2);
+  margin-bottom: 10px;
 }
 
 .cs-write-inner {
   display: flex;
-  gap: 12px;
+  gap: 11px;
   align-items: flex-start;
 }
 
 .cs-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
   overflow: hidden;
@@ -236,66 +223,60 @@ onMounted(fetchComments)
 }
 
 .cs-avatar-fallback {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--surface-2, #e5e7ef);
-  color: var(--t2);
+  background: var(--primary-weak);
+  color: var(--primary);
   font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--border);
 }
 
 .cs-write-col {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  min-width: 0;
 }
 
 .cs-textarea {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
+  min-height: 72px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-strong, var(--border));
   border-radius: 10px;
   outline: none;
-  background: var(--surface);
+  background: var(--bg, var(--surface));
   font-size: 14px;
   line-height: 1.6;
   color: var(--t1);
   resize: vertical;
-  min-height: 80px;
   font-family: inherit;
   box-sizing: border-box;
   transition: border-color 0.15s;
 }
 
-.cs-textarea:focus {
-  border-color: var(--primary);
-}
-
+.cs-textarea:focus { border-color: var(--primary); }
 .cs-textarea::placeholder { color: var(--t4); }
 
 .cs-write-footer {
   display: flex;
-  align-items: center;
   justify-content: flex-end;
+  margin-top: 8px;
 }
 
 .cs-submit-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 9px 22px;
+  padding: 9px 20px;
   border-radius: 9px;
   border: none;
   background: var(--primary);
   color: #fff;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.15s;
@@ -310,11 +291,11 @@ onMounted(fetchComments)
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 20px 28px;
+  padding: 20px 0;
   font-size: 14px;
   color: var(--t3);
-  border-bottom: 0.5px solid var(--border2);
-  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  margin-bottom: 0;
 }
 
 .cs-login-notice a { color: var(--accent); text-decoration: none; }
@@ -326,11 +307,7 @@ onMounted(fetchComments)
 
 /* ===== 반응형 ===== */
 @media (max-width: 768px) {
-  .cs-header, .cs-write { padding-left: 18px; padding-right: 18px; }
+  .comment-section { padding: 0 18px; }
   .cs-textarea { font-size: 16px !important; }
-}
-
-@media (max-width: 1024px) {
-  .cs-hint { display: none; }
 }
 </style>

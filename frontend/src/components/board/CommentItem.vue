@@ -1,6 +1,10 @@
 <template>
-  <div class="comment-item" :class="{ 'is-reply': comment.depth > 0 }">
-    <div class="comment-inner" :style="{ paddingLeft: `${comment.depth > 0 ? comment.depth * 28 : 28}px` }">
+  <!-- depth에 따라 margin-left로 들여쓰기 -->
+  <div
+    class="comment-item"
+    :style="{ marginLeft: `${comment.depth * 40}px` }"
+  >
+    <div class="comment-inner">
       <div class="comment-avatar">
         <img
           v-if="comment.writerProfileImageUrl && !avatarError"
@@ -9,7 +13,9 @@
           alt=""
           @error="avatarError = true"
         />
-        <span v-else class="c-avatar-placeholder">{{ comment.writerName?.charAt(0) || 'U' }}</span>
+        <span v-else class="c-avatar-placeholder" :style="avatarStyle(comment.memberId)">
+          {{ comment.writerName?.charAt(0) || 'U' }}
+        </span>
       </div>
 
       <div class="comment-body">
@@ -19,11 +25,13 @@
             :class="{ clickable: authStore.isLoggedIn && comment.memberId }"
             @click="openProfile(comment.memberId)"
           >{{ comment.writerName }}</button>
-          <span v-if="comment.writerGroupName" class="writer-group-badge">{{ comment.writerGroupName }}</span>
           <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
         </div>
 
-        <div v-if="comment.isDeleted" class="deleted-comment">삭제된 댓글입니다.</div>
+        <div v-if="comment.isDeleted" class="deleted-comment">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+          삭제된 댓글입니다.
+        </div>
 
         <template v-else-if="editMode">
           <div class="inline-write-box">
@@ -34,7 +42,6 @@
               @keydown.ctrl.enter="submitEdit"
             />
             <div class="inline-write-footer">
-              <span class="inline-hint">Ctrl+Enter로 저장</span>
               <div class="inline-btns">
                 <button class="inline-btn" @click="editMode = false">취소</button>
                 <button class="inline-btn accent" @click="submitEdit">저장</button>
@@ -46,19 +53,22 @@
         <template v-else>
           <p class="comment-content">{{ comment.content }}</p>
           <div class="comment-footer">
+            <!-- 리액션 -->
             <EmojiReactionBar
               :reactions="localReactions"
               :my-reactions="localMyReactions"
               :disabled="!authStore.isLoggedIn"
               @toggle="handleReaction"
             />
+            <!-- 액션 버튼 -->
             <div class="comment-actions">
               <button
                 v-if="authStore.isLoggedIn && comment.depth < 2 && canComment"
                 class="action-btn"
                 @click="replyMode = !replyMode"
               >
-                ← 답글
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                답글
               </button>
               <button v-if="isOwner || hasManage" class="action-btn" @click="startEdit">
                 <i class="ti ti-edit"></i> 수정
@@ -73,19 +83,9 @@
     </div>
 
     <!-- 답글 입력 -->
-    <div
-      v-if="replyMode"
-      class="reply-write-area"
-      :style="{ paddingLeft: `${28 + (comment.depth + 1) * 28}px` }"
-    >
+    <div v-if="replyMode" class="reply-write-area">
       <div class="reply-avatar">
-        <img
-          v-if="authStore.member?.profileImageUrl && !myAvatarError"
-          :src="authStore.member.profileImageUrl"
-          alt=""
-          @error="myAvatarError = true"
-        />
-        <span v-else class="c-avatar-placeholder sm">
+        <span class="c-avatar-placeholder sm" :style="avatarStyle(authStore.member?.id)">
           {{ authStore.member?.name?.charAt(0) || 'U' }}
         </span>
       </div>
@@ -99,7 +99,6 @@
             @keydown.ctrl.enter="submitReply"
           />
           <div class="inline-write-footer">
-            <span class="inline-hint">Ctrl+Enter로 등록</span>
             <div class="inline-btns">
               <button class="inline-btn" @click="replyMode = false">취소</button>
               <button
@@ -107,9 +106,7 @@
                 :class="{ accent: replyContent.trim() }"
                 :disabled="!replyContent.trim()"
                 @click="submitReply"
-              >
-                <i class="ti ti-send"></i> 등록
-              </button>
+              >등록</button>
             </div>
           </div>
         </div>
@@ -125,6 +122,7 @@
       :post-id="postId"
       :can-comment="canComment"
       :is-admin="isAdmin"
+      :has-manage="hasManage"
       @refresh="$emit('refresh')"
     />
   </div>
@@ -155,13 +153,11 @@ const emit = defineEmits(['refresh'])
 
 const authStore   = useAuthStore()
 const avatarError   = ref(false)
-const myAvatarError = ref(false)
 const editMode    = ref(false)
 const replyMode   = ref(false)
 const editContent = ref('')
 const replyContent = ref('')
 
-// 리액션은 로컬 상태로 즉시 반영 (refresh 없이)
 const localReactions   = ref({ ...(props.comment.reactions   ?? {}) })
 const localMyReactions = ref([...(props.comment.myReactions  ?? [])])
 
@@ -228,47 +224,56 @@ function formatDate(dateStr) {
   const dd = String(d.getDate()).padStart(2, '0')
   return `${mm}.${dd} ${d.toTimeString().slice(0, 5)}`
 }
+
+// 멤버 ID 기반으로 아바타 색상 고정 (일관성 유지)
+const AVATAR_COLORS = [
+  { bg: '#e9f0fe', fg: '#2f5fd6' },
+  { bg: '#e3f5ec', fg: '#1f9d6b' },
+  { bg: 'rgba(214,69,63,0.1)', fg: '#d6453f' },
+  { bg: 'rgba(217,119,6,0.1)', fg: '#d97706' },
+  { bg: '#f0ebfe', fg: '#7c4ff7' },
+  { bg: 'rgba(14,138,128,0.1)', fg: '#0e8a80' },
+]
+function avatarStyle(id) {
+  if (!id) return { background: 'var(--primary-weak)', color: 'var(--primary)' }
+  const c = AVATAR_COLORS[Number(id) % AVATAR_COLORS.length]
+  return { background: c.bg, color: c.fg }
+}
 </script>
 
 <style scoped>
+/* ===== 댓글 아이템: border-top으로 위 구분선 ===== */
 .comment-item {
-  border-bottom: 0.5px solid var(--border2);
+  border-top: 1px solid var(--border);
 }
-.comment-item:last-child { border-bottom: none; }
 
 /* ===== 댓글 본체 ===== */
 .comment-inner {
   display: flex;
-  gap: 10px;
-  padding-top: 14px;
-  padding-bottom: 14px;
-  padding-right: 28px;
-  position: relative;
+  gap: 11px;
+  padding: 15px 0;
 }
 
 /* 아바타 */
-.comment-avatar { flex-shrink: 0; margin-top: 1px; }
+.comment-avatar { flex-shrink: 0; }
 
 .c-avatar-img {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid var(--border);
 }
 
 .c-avatar-placeholder {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--surface-2, #e5e7ef);
-  color: var(--t2);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--border);
+  flex-shrink: 0;
 }
 
 .c-avatar-placeholder.sm {
@@ -288,7 +293,7 @@ function formatDate(dateStr) {
 }
 
 .comment-writer {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--t1);
   background: none;
@@ -297,35 +302,26 @@ function formatDate(dateStr) {
   font-family: inherit;
   cursor: default;
 }
-.comment-writer.clickable {
-  cursor: pointer;
-}
+.comment-writer.clickable { cursor: pointer; }
 .comment-writer.clickable:hover { color: var(--accent); }
 
-.writer-group-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 7px;
-  border-radius: 20px;
-  background: var(--surface-2, #eef1f6);
-  color: var(--t2);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.comment-date   { font-size: 12px; color: var(--t3); }
+.comment-date { font-size: 12px; color: var(--t3); }
 
 .comment-content {
   font-size: 14px;
-  line-height: 1.7;
-  color: var(--t1);
+  line-height: 1.65;
+  color: var(--t2);
   white-space: pre-wrap;
   word-break: break-word;
+  margin: 0;
 }
 
 .deleted-comment {
-  font-size: 14px;
-  color: var(--t4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--t3);
   font-style: italic;
 }
 
@@ -334,51 +330,45 @@ function formatDate(dateStr) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 9px;
 }
 
 /* 액션 버튼 */
-.comment-actions {
-  display: flex;
-  gap: 2px;
-}
+.comment-actions { display: flex; gap: 2px; }
 
 .action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
+  gap: 4px;
+  padding: 0;
   border: none;
   background: none;
   font-size: 12px;
-  color: var(--t4);
+  font-weight: 600;
+  color: var(--t3);
   cursor: pointer;
-  border-radius: var(--radius-xs);
-  transition: var(--transition);
+  transition: color 0.12s;
+  font-family: inherit;
 }
 
-.action-btn:hover { background: var(--surface2); color: var(--t2); }
-.action-btn.danger:hover { color: #e03e52; background: #fff1f2; }
+.action-btn:hover { color: var(--primary); }
+.action-btn.danger:hover { color: #e03e52; }
 
 /* ===== 인라인 글쓰기 박스 (수정/답글 공통) ===== */
 .inline-write-box {
   border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
+  border-radius: 10px;
   background: var(--surface);
-  transition: border-color 0.15s, box-shadow 0.15s;
   overflow: hidden;
   margin-top: 8px;
+  transition: border-color 0.15s;
 }
-
-.inline-write-box:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
-}
+.inline-write-box:focus-within { border-color: var(--primary); }
 
 .inline-textarea {
   width: 100%;
-  padding: 10px 12px 6px;
+  padding: 10px 12px;
   border: none;
   outline: none;
   background: transparent;
@@ -389,38 +379,30 @@ function formatDate(dateStr) {
   font-family: inherit;
   box-sizing: border-box;
 }
-
 .inline-textarea::placeholder { color: var(--t4); }
 
 .inline-write-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px 7px;
-}
-
-.inline-hint { font-size: 11px; color: var(--t4); }
-
-@media (max-width: 1024px) {
-  .inline-hint { display: none; }
+  justify-content: flex-end;
+  padding: 4px 8px 8px;
 }
 
 .inline-btns { display: flex; gap: 5px; }
 
 .inline-btn {
   padding: 4px 11px;
-  border-radius: var(--radius-xs);
+  border-radius: 7px;
   border: 0.5px solid var(--border);
   background: var(--surface2);
   color: var(--t2);
   font-size: 12px;
   font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
-  transition: var(--transition);
+  transition: background 0.12s;
 }
-
-.inline-btn:hover { background: var(--surface); color: var(--t1); }
-.inline-btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.inline-btn:hover { background: var(--surface); }
+.inline-btn.accent { background: var(--primary); color: #fff; border-color: var(--primary); }
 .inline-btn.accent:hover { opacity: 0.88; }
 .inline-btn:disabled { opacity: 0.45; cursor: default; }
 
@@ -429,30 +411,14 @@ function formatDate(dateStr) {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  padding-right: 28px;
   padding-bottom: 12px;
-  background: var(--surface2);
-  border-bottom: 0.5px solid var(--border2);
 }
 
-.reply-avatar {
-  flex-shrink: 0;
-  padding-top: 10px;
-}
-
-.reply-avatar img {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid var(--border);
-}
+.reply-avatar { flex-shrink: 0; padding-top: 8px; }
 
 .inline-write-wrap { flex: 1; min-width: 0; }
 
-
 @media (max-width: 768px) {
-  .comment-inner { padding-right: 16px; }
-  .reply-write-area { padding-right: 16px; }
+  .comment-inner { padding: 12px 0; }
 }
 </style>
