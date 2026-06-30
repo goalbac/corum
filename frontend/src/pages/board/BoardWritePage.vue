@@ -333,7 +333,7 @@ onMounted(async () => {
 }
 
 .wbc-current {
-  color: var(--t2);
+  color: #566072;
 }
 
 .pg-title {

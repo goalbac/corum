@@ -485,7 +485,7 @@ onMounted(async () => {
 }
 
 .bc-item.last {
-  color: var(--primary);
+  color: var(--t2);
   font-weight: 600;
 }
 

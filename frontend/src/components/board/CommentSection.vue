@@ -152,7 +152,7 @@ onMounted(fetchComments)
 
 <style scoped>
 .comment-section {
-  padding: 0 28px;
+  padding-top: 20px;
 }
 
 /* ===== 헤더: 배지 아님, 숫자만 primary 색 ===== */
