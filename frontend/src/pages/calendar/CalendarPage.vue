@@ -1262,7 +1262,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 
 /* 공휴일명 (오른쪽) */
 .cal-card :deep(.fc-day-hol) {
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--t3);
   white-space: nowrap;
