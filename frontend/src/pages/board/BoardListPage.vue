@@ -674,6 +674,8 @@ onMounted(async () => {
   padding: 60px 0;
   color: var(--t3);
   font-size: 14px;
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 /* ===== POST 테이블 ===== */
