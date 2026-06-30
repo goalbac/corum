@@ -101,9 +101,9 @@ const avatarError = ref(false)
 
 function myAvatarStyle() {
   const id = authStore.member?.id
-  if (!id) return { background: 'var(--primary-weak)', color: 'var(--primary)' }
+  if (!id) return {}
   const hue = Math.round((Number(id) * 137.508) % 360)
-  return { background: `hsl(${hue}, 55%, 91%)`, color: `hsl(${hue}, 55%, 32%)` }
+  return { '--avatar-hue': hue }
 }
 
 function countComments(list) {
@@ -237,6 +237,8 @@ onMounted(fetchComments)
   display: flex;
   align-items: center;
   justify-content: center;
+  background: hsl(var(--avatar-hue, 215), 55%, 91%);
+  color: hsl(var(--avatar-hue, 215), 55%, 32%);
 }
 
 .cs-write-col {

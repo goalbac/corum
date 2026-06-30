@@ -104,18 +104,18 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside, true
   padding: 3px 10px 3px 8px;
   border: 1px solid var(--border2);
   border-radius: 99px;
-  background: var(--bg2);
+  background: var(--surface2);
   cursor: pointer;
   font-size: 13px;
   transition: border-color .15s, background .15s;
 }
 .reaction-pill:hover {
   border-color: var(--primary);
-  background: var(--primary-bg, #e8f4ff);
+  background: var(--primary-weak);
 }
 .reaction-pill.reacted {
   border-color: var(--primary);
-  background: var(--primary-bg, #e8f4ff);
+  background: var(--primary-weak);
   color: var(--primary);
   font-weight: 600;
 }
@@ -143,7 +143,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside, true
 .reaction-add-btn.active {
   border-color: var(--primary);
   color: var(--primary);
-  background: var(--primary-bg, #e8f4ff);
+  background: var(--primary-weak);
 }
 
 /* ===== 이모지 피커 ===== */
@@ -154,10 +154,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside, true
   display: flex;
   gap: 4px;
   padding: 8px;
-  background: var(--bg1);
+  background: var(--surface);
   border: 1px solid var(--border2);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.12);
+  box-shadow: var(--shadow);
   z-index: 200;
   white-space: nowrap;
 }
@@ -171,9 +171,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside, true
   line-height: 1;
   transition: background .12s, border-color .12s, transform .1s;
 }
-.picker-emoji:hover { background: var(--bg2); transform: scale(1.2); }
+.picker-emoji:hover { background: var(--surface2); transform: scale(1.2); }
 .picker-emoji.reacted {
-  background: var(--primary-bg, #e8f4ff);
+  background: var(--primary-weak);
   border-color: var(--primary);
 }
 

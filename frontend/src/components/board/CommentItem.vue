@@ -225,14 +225,11 @@ function formatDate(dateStr) {
   return `${mm}.${dd} ${d.toTimeString().slice(0, 5)}`
 }
 
-// 멤버 ID 기반 황금각(137.508°) HSL 고유 색상 — ID마다 일관되게 다른 색
+// 멤버 ID 기반 황금각(137.508°) HSL hue — CSS 변수로 넘겨 다크모드 자동 대응
 function avatarStyle(id) {
-  if (!id) return { background: 'var(--primary-weak)', color: 'var(--primary)' }
+  if (!id) return {}
   const hue = Math.round((Number(id) * 137.508) % 360)
-  return {
-    background: `hsl(${hue}, 55%, 91%)`,
-    color: `hsl(${hue}, 55%, 32%)`,
-  }
+  return { '--avatar-hue': hue }
 }
 </script>
 
@@ -269,6 +266,8 @@ function avatarStyle(id) {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: hsl(var(--avatar-hue, 215), 55%, 91%);
+  color: hsl(var(--avatar-hue, 215), 55%, 32%);
 }
 
 .c-avatar-placeholder.sm {
@@ -330,7 +329,7 @@ function avatarStyle(id) {
 }
 
 /* 액션 버튼 */
-.comment-actions { display: flex; gap: 2px; }
+.comment-actions { display: flex; gap: 10px; }
 
 .action-btn {
   display: inline-flex;
