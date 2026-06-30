@@ -23,6 +23,7 @@ out/
 
 ### 환경변수 ###
 *.env
+application-local.yml
 application-production.yml
 
 ### 로그 ###
