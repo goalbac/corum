@@ -474,19 +474,19 @@ const calOptions = computed(() => {
       const wrap = document.createElement('div')
       wrap.className = 'fc-day-custom'
 
-      // 공휴일명 왼쪽
+      // 날짜 숫자 왼쪽 ('일' 제거)
+      const num = document.createElement('span')
+      num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
+      num.textContent = arg.dayNumberText.replace('일', '')
+      wrap.appendChild(num)
+
+      // 공휴일명 오른쪽
       if (holiday?.name) {
         const hol = document.createElement('span')
-        hol.className = 'fc-day-hol' + (isSat ? ' sat' : isRed ? ' red' : '')
+        hol.className = 'fc-day-hol' + (isRed ? ' red' : isSat ? ' sat' : '')
         hol.textContent = holiday.name
         wrap.appendChild(hol)
       }
-
-      // 날짜 오른쪽
-      const num = document.createElement('span')
-      num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
-      num.textContent = arg.dayNumberText
-      wrap.appendChild(num)
 
       return { domNodes: [wrap] }
     },
@@ -1152,6 +1152,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 
 /* ===== 캘린더 카드 ===== */
 .cal-card {
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -1169,13 +1170,11 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 /* 카드 테두리와 겹치는 scrollgrid 외곽 border 제거 */
 .cal-card :deep(.fc-scrollgrid) {
-  border-left: none !important;
-  border-top: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
+  border: none !important;
+  width: 100% !important;
 }
 .cal-card :deep(.fc-daygrid-day) { background: var(--surface) !important; }
-.cal-card :deep(.fc-day-other) { background: var(--surface2) !important; }
+.cal-card :deep(.fc-day-other) { background: var(--surface) !important; }
 .cal-card :deep(.fc-day-today) { background: var(--accent-bg) !important; }
 .cal-card :deep(.fc-col-header-cell) {
   background: var(--surface) !important;
@@ -1194,50 +1193,65 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-card :deep(.fc-day-sat.fc-col-header-cell a) { color: #2563eb !important; }
 .cal-card :deep(.fc-day-sun.fc-col-header-cell a) { color: #dc2626 !important; }
 
-/* FullCalendar 날짜 셀 헤더: float 제거 후 flex로 전체 너비 활용 */
+/* FullCalendar 날짜 셀: min-height, padding */
+.cal-card :deep(.fc-daygrid-day-frame) {
+  min-height: 114px !important;
+  padding: 6px 7px !important;
+  box-sizing: border-box !important;
+}
+
+/* day-top, day-number: 패딩 제거 후 full-width flex */
 .cal-card :deep(.fc-daygrid-day-top) {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   width: 100% !important;
+  padding: 0 !important;
 }
 .cal-card :deep(.fc-daygrid-day-number) {
   float: none !important;
   display: flex !important;
   flex: 1 !important;
   width: 100% !important;
-  padding: 5px 7px !important;
+  padding: 0 !important;
   box-sizing: border-box !important;
 }
 
-/* 커스텀 날짜 셀 내부 */
+/* 커스텀 날짜 셀 내부: 숫자(왼) + 공휴일(오른) */
 .cal-card :deep(.fc-day-custom) {
   display: flex;
   align-items: center;
   width: 100%;
+  gap: 4px;
 }
+
+/* 날짜 숫자 */
 .cal-card :deep(.fc-day-num) {
-  font-size: 13px;
-  color: var(--t2);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--t1);
   line-height: 1.4;
   flex-shrink: 0;
-  margin-left: auto;
 }
-.cal-card :deep(.fc-day-num.sat) { color: #2563eb; }
-.cal-card :deep(.fc-day-num.red) { color: #dc2626; }
+.cal-card :deep(.fc-day-num.sat) { color: var(--primary); }
+.cal-card :deep(.fc-day-num.red) { color: var(--danger, #dc2626); }
+/* 지난달/다음달: t3 색상으로 덮어쓰기 */
+.cal-card :deep(.fc-day-other .fc-day-num) { color: var(--t3) !important; }
+
+/* 공휴일명 (오른쪽) */
 .cal-card :deep(.fc-day-hol) {
-  font-size: 12px;
-  color: rgba(100, 100, 100, 0.63);
-  font-weight: 500;
-  letter-spacing: -0.6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
-  text-align: left;
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 1;
 }
-.cal-card :deep(.fc-day-hol.sat) { color: rgba(37, 99, 235, 0.63); }
-.cal-card :deep(.fc-day-hol.red) { color: rgba(220, 38, 38, 0.63); font-weight: 600; }
+.cal-card :deep(.fc-day-hol.red) { color: var(--danger, #dc2626); }
+.cal-card :deep(.fc-day-hol.sat) { color: var(--primary); }
 .cal-card :deep(.fc-daygrid-day-number:hover) { color: var(--accent); }
 .cal-card :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
 .cal-card :deep(.fc-toolbar) { display: none; }
