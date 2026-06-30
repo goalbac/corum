@@ -1306,14 +1306,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   cursor: pointer;
 }
 .cal-card :deep(.fc-ev-line-time) {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--t3);
   flex-shrink: 0;
   white-space: nowrap;
 }
 .cal-card :deep(.fc-ev-line-title) {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--t1);
   white-space: nowrap;
