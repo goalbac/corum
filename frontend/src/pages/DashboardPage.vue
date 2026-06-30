@@ -485,25 +485,19 @@ function dbEventContent(arg) {
   const color = event.backgroundColor || '#2563EB'
   const el = document.createElement('div')
   el.style.setProperty('--ev-color', color)
-  if (event.allDay) {
-    el.className = 'fc-ev-custom'
-    const n = document.createElement('div')
-    n.className = 'fc-ev-title'
-    n.textContent = event.title
-    el.appendChild(n)
-  } else {
-    el.className = 'fc-ev-goog'
-    const dot = document.createElement('span')
-    dot.className = 'fc-ev-goog-dot'
-    el.appendChild(dot)
-    const label = document.createElement('span')
-    label.className = 'fc-ev-goog-label'
+  // LINE 스타일 통일 (종일/시간 공통)
+  el.className = 'fc-ev-line'
+  if (!event.allDay && event.start) {
+    const timeEl = document.createElement('span')
+    timeEl.className = 'fc-ev-line-time'
     const h = event.start.getHours(), m = event.start.getMinutes()
-    const ap = h < 12 ? '오전' : '오후'
-    const hr = h % 12 || 12
-    label.textContent = `${ap} ${hr}${m ? ':' + String(m).padStart(2,'0') : '시'} ${event.title}`
-    el.appendChild(label)
+    timeEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+    el.appendChild(timeEl)
   }
+  const titleEl = document.createElement('span')
+  titleEl.className = 'fc-ev-line-title'
+  titleEl.textContent = event.title
+  el.appendChild(titleEl)
   return { domNodes: [el] }
 }
 
@@ -517,16 +511,23 @@ function dbDayCellContent(wid, arg) {
   const isRed = dow === 0 || !!holiday?.isHoliday
   const wrap = document.createElement('div')
   wrap.className = 'fc-day-custom'
+  // 날짜 숫자 왼쪽 ('일' 제거, 오늘은 배지)
+  const num = document.createElement('span')
+  const label = arg.dayNumberText.replace('일', '')
+  if (arg.isToday) {
+    num.className = 'fc-day-num today-badge'
+  } else {
+    num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
+  }
+  num.textContent = label
+  wrap.appendChild(num)
+  // 공휴일명 오른쪽
   if (holiday?.name) {
     const hol = document.createElement('span')
-    hol.className = 'fc-day-hol' + (isSat ? ' sat' : isRed ? ' red' : '')
+    hol.className = 'fc-day-hol' + (isRed ? ' red' : isSat ? ' sat' : '')
     hol.textContent = holiday.name
     wrap.appendChild(hol)
   }
-  const num = document.createElement('span')
-  num.className = 'fc-day-num' + (isSat ? ' sat' : isRed ? ' red' : '')
-  num.textContent = arg.dayNumberText
-  wrap.appendChild(num)
   return { domNodes: [wrap] }
 }
 
@@ -1078,51 +1079,88 @@ onMounted(async () => {
 .db-cal-wrap :deep(.fc-toolbar) { display: none; }
 .db-cal-wrap :deep(.fc-more-link) { color: var(--accent-t) !important; font-size: 11px; }
 
+/* 날짜 셀: min-height, padding */
+.db-cal-wrap :deep(.fc-daygrid-day-frame) {
+  min-height: 114px !important;
+  padding: 6px 7px !important;
+  box-sizing: border-box !important;
+}
+
 /* 날짜 셀 헤더: flex 전체 너비 */
 .db-cal-wrap :deep(.fc-daygrid-day-top) {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   width: 100% !important;
+  padding: 0 !important;
 }
 .db-cal-wrap :deep(.fc-daygrid-day-number) {
   float: none !important;
   display: flex !important;
   flex: 1 !important;
   width: 100% !important;
-  padding: 4px 6px !important;
+  padding: 0 !important;
   box-sizing: border-box !important;
 }
 
-/* 커스텀 날짜 셀 내부 */
+/* 커스텀 날짜 셀 내부: 숫자(왼) + 공휴일(오른) */
 .db-cal-wrap :deep(.fc-day-custom) {
   display: flex;
   align-items: center;
   width: 100%;
+  gap: 4px;
 }
+
+/* 날짜 숫자 */
 .db-cal-wrap :deep(.fc-day-num) {
-  font-size: 12px;
-  color: var(--t2);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--t1);
   line-height: 1.4;
   flex-shrink: 0;
-  margin-left: auto;
+  padding: 2px 4px;
 }
-.db-cal-wrap :deep(.fc-day-num.sat) { color: #2563eb; }
-.db-cal-wrap :deep(.fc-day-num.red) { color: #dc2626; }
+.db-cal-wrap :deep(.fc-day-num.sat) { color: var(--primary); }
+.db-cal-wrap :deep(.fc-day-num.red) { color: var(--danger, #dc2626); }
+.db-cal-wrap :deep(.fc-day-other .fc-day-num) { color: var(--t3) !important; }
+
+/* 오늘 배지 */
+.db-cal-wrap :deep(.fc-day-num.today-badge) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* 공휴일명 (오른쪽) */
 .db-cal-wrap :deep(.fc-day-hol) {
-  font-size: 11px;
-  color: rgba(100, 100, 100, 0.63);
-  font-weight: 500;
-  letter-spacing: -0.5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
-  text-align: left;
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 1;
+  padding: 2px 4px;
 }
-.db-cal-wrap :deep(.fc-day-hol.sat) { color: rgba(37, 99, 235, 0.63); }
-.db-cal-wrap :deep(.fc-day-hol.red) { color: rgba(220, 38, 38, 0.63); font-weight: 600; }
-.db-cal-wrap :deep(.fc-event) { border-radius: 4px; border: none; font-size: 12px; cursor: pointer; }
+.db-cal-wrap :deep(.fc-day-hol.red) { color: var(--danger, #dc2626); }
+.db-cal-wrap :deep(.fc-day-hol.sat) { color: var(--primary); }
+
+/* 오늘/이전달/다음달 배경 통일 */
+.db-cal-wrap :deep(.fc-daygrid-day) { background: var(--surface) !important; }
+.db-cal-wrap :deep(.fc-day-other)   { background: var(--surface) !important; }
+.db-cal-wrap :deep(.fc-day-today)   { background: var(--surface) !important; }
+
+.db-cal-wrap :deep(.fc-event) { border-radius: 4px; border: none; cursor: pointer; }
 
 /* 이벤트 컨테이너 투명화 */
 .db-cal-wrap :deep(.fc-daygrid-event) {
@@ -1134,59 +1172,34 @@ onMounted(async () => {
   overflow: visible;
 }
 
-/* 종일 이벤트 스타일 */
-.db-cal-wrap :deep(.fc-ev-custom) {
-  display: flex;
-  flex-direction: column;
-  border-left: 3px solid var(--ev-color, var(--accent));
-  background: color-mix(in srgb, var(--ev-color, var(--accent)) 12%, var(--surface));
-  border-radius: 3px;
-  padding: 2px 4px;
-  width: 100%;
-  box-sizing: border-box;
-  gap: 1px;
-  cursor: pointer;
-}
-.db-cal-wrap :deep(.fc-ev-title) {
-  font-size: 12px;
-  color: var(--t1);
-  font-weight: 500;
-  line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 시간 이벤트 구글 스타일 */
-.db-cal-wrap :deep(.fc-ev-goog) {
+/* LINE 스타일 이벤트 (종일/시간 공통) */
+.db-cal-wrap :deep(.fc-ev-line) {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 1px 4px;
-  border-radius: 3px;
+  gap: 5px;
+  background: color-mix(in srgb, var(--ev-color, var(--accent)) 13%, transparent);
+  border-left: 2.5px solid var(--ev-color, var(--accent));
+  border-radius: 4px;
+  padding: 2px 5px;
+  overflow: hidden;
   width: 100%;
   box-sizing: border-box;
   cursor: pointer;
-  min-width: 0;
 }
-.db-cal-wrap :deep(.fc-ev-goog:hover) {
-  background: color-mix(in srgb, var(--ev-color, var(--accent)) 10%, var(--surface));
-}
-.db-cal-wrap :deep(.fc-ev-goog-dot) {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--ev-color, var(--accent));
-  flex-shrink: 0;
-}
-.db-cal-wrap :deep(.fc-ev-goog-label) {
+.db-cal-wrap :deep(.fc-ev-line-time) {
   font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.db-cal-wrap :deep(.fc-ev-line-title) {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--t1);
-  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.6;
 }
 
 /* ===== 링크 모음 ===== */
@@ -1511,8 +1524,8 @@ onMounted(async () => {
   .db-cal-wrap :deep(.fc-col-header-cell) { font-size: 10px; padding: 4px 0; }
   .db-cal-wrap :deep(.fc-day-num) { font-size: 10px; }
   .db-cal-wrap :deep(.fc-day-hol) { font-size: 9px; }
-  .db-cal-wrap :deep(.fc-ev-title) { font-size: 10px; }
-  .db-cal-wrap :deep(.fc-ev-goog-label) { font-size: 10px; }
+  .db-cal-wrap :deep(.fc-ev-line-time) { font-size: 10px; }
+  .db-cal-wrap :deep(.fc-ev-line-title) { font-size: 10px; }
 
 .link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .link-chip { padding: 10px 12px; font-size: 13px; border-radius: 12px; }
