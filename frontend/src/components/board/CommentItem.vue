@@ -2,7 +2,7 @@
   <!-- depth에 따라 margin-left로 들여쓰기 -->
   <div
     class="comment-item"
-    :style="{ marginLeft: `${comment.depth * 40}px` }"
+    :style="{ marginLeft: `${comment.depth * 24}px` }"
   >
     <div class="comment-inner">
       <div class="comment-avatar">
@@ -225,19 +225,14 @@ function formatDate(dateStr) {
   return `${mm}.${dd} ${d.toTimeString().slice(0, 5)}`
 }
 
-// 멤버 ID 기반으로 아바타 색상 고정 (일관성 유지)
-const AVATAR_COLORS = [
-  { bg: '#e9f0fe', fg: '#2f5fd6' },
-  { bg: '#e3f5ec', fg: '#1f9d6b' },
-  { bg: 'rgba(214,69,63,0.1)', fg: '#d6453f' },
-  { bg: 'rgba(217,119,6,0.1)', fg: '#d97706' },
-  { bg: '#f0ebfe', fg: '#7c4ff7' },
-  { bg: 'rgba(14,138,128,0.1)', fg: '#0e8a80' },
-]
+// 멤버 ID 기반 황금각(137.508°) HSL 고유 색상 — ID마다 일관되게 다른 색
 function avatarStyle(id) {
   if (!id) return { background: 'var(--primary-weak)', color: 'var(--primary)' }
-  const c = AVATAR_COLORS[Number(id) % AVATAR_COLORS.length]
-  return { background: c.bg, color: c.fg }
+  const hue = Math.round((Number(id) * 137.508) % 360)
+  return {
+    background: `hsl(${hue}, 55%, 91%)`,
+    color: `hsl(${hue}, 55%, 32%)`,
+  }
 }
 </script>
 

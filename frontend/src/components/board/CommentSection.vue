@@ -23,7 +23,7 @@
             alt=""
             @error="avatarError = true"
           />
-          <span v-else class="cs-avatar-fallback">
+          <span v-else class="cs-avatar-fallback" :style="myAvatarStyle()">
             {{ authStore.member?.name?.charAt(0) || 'U' }}
           </span>
         </div>
@@ -99,6 +99,13 @@ const newComment = ref('')
 const submitting = ref(false)
 const avatarError = ref(false)
 
+function myAvatarStyle() {
+  const id = authStore.member?.id
+  if (!id) return { background: 'var(--primary-weak)', color: 'var(--primary)' }
+  const hue = Math.round((Number(id) * 137.508) % 360)
+  return { background: `hsl(${hue}, 55%, 91%)`, color: `hsl(${hue}, 55%, 32%)` }
+}
+
 function countComments(list) {
   return list.reduce((sum, c) => sum + 1 + countComments(c.children || []), 0)
 }
@@ -145,7 +152,6 @@ onMounted(fetchComments)
 
 <style scoped>
 .comment-section {
-  border-top: 1px solid var(--border2);
   padding: 0 28px;
 }
 
@@ -154,7 +160,7 @@ onMounted(fetchComments)
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 20px 0 16px;
+  padding: 8px 0 16px;
   font-size: 17px;
   font-weight: 700;
   color: var(--t1);
@@ -226,8 +232,6 @@ onMounted(fetchComments)
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--primary-weak);
-  color: var(--primary);
   font-size: 14px;
   font-weight: 700;
   display: flex;
