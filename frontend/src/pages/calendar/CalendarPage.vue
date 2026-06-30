@@ -817,6 +817,20 @@ watch(showHolidayCalendar, val => {
   localStorage.setItem('cal_show_holiday', String(val))
 })
 
+// 종일 체크 토글 시 날짜 형식 변환
+watch(() => eventForm.value.isAllDay, (isAllDay, wasAllDay) => {
+  if (isAllDay && !wasAllDay) {
+    // datetime → date-only
+    if (eventForm.value.startAt) eventForm.value.startAt = eventForm.value.startAt.slice(0, 10)
+    if (eventForm.value.endAt)   eventForm.value.endAt   = eventForm.value.endAt.slice(0, 10)
+  } else if (!isAllDay && wasAllDay) {
+    // date-only → datetime (현재 시각 기준 다음 정시 ~ +1시간)
+    const { startAt, endAt } = defaultEventTimes(eventForm.value.startAt || undefined)
+    eventForm.value.startAt = startAt
+    eventForm.value.endAt   = endAt
+  }
+})
+
 // 시작시간 변경 시 종료시간이 시작시간보다 같거나 이르면 종료시간 = 시작시간 + 1시간
 watch(() => eventForm.value.startAt, (newStart) => {
   if (!newStart || eventForm.value.isAllDay) return
