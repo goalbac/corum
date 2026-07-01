@@ -1,6 +1,10 @@
 # 환경변수
 .env
 .env.prod
+.env.prod.local
+
+# 레거시 게시판 이관 (실제 DB/FTP 접속정보 포함, 로컬 전용)
+backend/src/main/resources/application-migration.yml
 
 # Java
 backend/build/
