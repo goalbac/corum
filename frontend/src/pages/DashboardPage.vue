@@ -61,7 +61,7 @@
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || widget.targetBoardName || '최신글' }}</span>
+              <span class="wcard-title"><i class="ti ti-news wcard-icon"></i>{{ widget.title || widget.targetBoardName || '최신글' }}</span>
               <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="wcard-more">
                 더보기 <i class="ti ti-arrow-right"></i>
               </router-link>
@@ -90,7 +90,7 @@
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || widget.targetBoardName || '갤러리' }}</span>
+              <span class="wcard-title"><i class="ti ti-photo wcard-icon"></i>{{ widget.title || widget.targetBoardName || '갤러리' }}</span>
               <router-link v-if="widget.targetBoardId" :to="boardListPath(widget)" class="wcard-more">
                 더보기 <i class="ti ti-arrow-right"></i>
               </router-link>
@@ -129,7 +129,7 @@
           <div class="wcard">
             <div class="wcard-head">
               <div class="wcard-head-left">
-                <span class="wcard-title">{{ widget.title || '이번 주 일정' }}</span>
+                <span class="wcard-title"><i class="ti ti-calendar wcard-icon"></i>{{ widget.title || '이번 주 일정' }}</span>
                 <span v-if="widget.description" class="wcard-desc-inline">{{ widget.description }}</span>
               </div>
               <div class="cal-week-nav">
@@ -161,7 +161,7 @@
           <div class="wcard">
             <div class="wcard-head">
               <div class="wcard-head-left">
-                <span class="wcard-title">{{ widget.title || '이번 달 일정' }}</span>
+                <span class="wcard-title"><i class="ti ti-calendar wcard-icon"></i>{{ widget.title || '이번 달 일정' }}</span>
                 <span v-if="widget.description" class="wcard-desc-inline">{{ widget.description }}</span>
               </div>
               <div class="cal-week-nav">
@@ -192,7 +192,7 @@
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '링크 모음' }}</span>
+              <span class="wcard-title"><i class="ti ti-link wcard-icon"></i>{{ widget.title || '링크 모음' }}</span>
             </div>
             <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="parseConfig(widget).links?.length" class="link-grid">
@@ -216,7 +216,7 @@
              :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
           <div class="wcard">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '바로가기' }}</span>
+              <span class="wcard-title"><i class="ti ti-bolt wcard-icon"></i>{{ widget.title || '바로가기' }}</span>
             </div>
             <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="parseConfig(widget).links?.length" class="quick-links-grid">
@@ -241,7 +241,7 @@
         <div v-else-if="widget.widgetType === 'IMAGE_GRID'" class="widget-full">
           <div class="wcard">
             <div v-if="widget.title || widget.description" class="wcard-head">
-              <span class="wcard-title">{{ widget.title }}</span>
+              <span class="wcard-title"><i class="ti ti-layout-grid wcard-icon"></i>{{ widget.title }}</span>
             </div>
             <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div v-if="parseConfig(widget).images?.length" class="img-grid">
@@ -269,7 +269,7 @@
              :class="parseConfig(widget).size === 'half' ? 'widget-half' : 'widget-full'">
           <div class="wcard">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '' }}</span>
+              <span class="wcard-title"><i class="ti ti-file-text wcard-icon"></i>{{ widget.title || '' }}</span>
               <a v-if="parseConfig(widget).moreUrl" :href="parseConfig(widget).moreUrl" class="wcard-more">
                 더보기 <i class="ti ti-arrow-right"></i>
               </a>
@@ -283,7 +283,7 @@
         <div v-else-if="widget.widgetType === 'MEMBER_STATS'" class="widget-half">
           <div class="wcard member-stats-card">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '회원 현황' }}</span>
+              <span class="wcard-title"><i class="ti ti-users wcard-icon"></i>{{ widget.title || '회원 현황' }}</span>
             </div>
             <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
             <div class="mstats-grid">
@@ -316,7 +316,7 @@
         <div v-else-if="widget.widgetType === 'VISIT_STATS'" class="widget-half">
           <div class="wcard visit-stats-card">
             <div class="wcard-head">
-              <span class="wcard-title">{{ widget.title || '오늘의 접속' }}</span>
+              <span class="wcard-title"><i class="ti ti-chart-bar wcard-icon"></i>{{ widget.title || '오늘의 접속' }}</span>
               <span class="wcard-sub-date">{{ todayDateShort }}</span>
             </div>
             <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
@@ -737,7 +737,7 @@ onMounted(async () => {
 .welcome-card {
   position: relative;
   background: linear-gradient(135deg, #4f6ef7 0%, #7c4ff7 45%, #e05fc4 80%, #f97040 100%);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 28px 32px;
   overflow: hidden;
   cursor: default;
@@ -805,7 +805,7 @@ onMounted(async () => {
 .widget-area {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 18px;
 }
 .widget-full  { grid-column: 1 / -1; min-width: 0; }
 .widget-half  { grid-column: span 1; min-width: 0; }
@@ -813,9 +813,9 @@ onMounted(async () => {
 /* ===== 공통 위젯 카드 ===== */
 .wcard {
   background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 0.5px solid var(--border2);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   padding: 20px 22px;
   height: 100%;
   box-sizing: border-box;
@@ -824,8 +824,8 @@ onMounted(async () => {
 }
 .wcard:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-  border-color: var(--border);
+  box-shadow: var(--shadow);
+  border-color: var(--border-strong);
 }
 .wcard-head {
   display: flex;
@@ -834,11 +834,15 @@ onMounted(async () => {
   margin-bottom: 14px;
 }
 .wcard-title {
-  font-size: 20px;
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 19px;
+  font-weight: 700;
   color: var(--t1);
   letter-spacing: -0.2px;
 }
+.wcard-icon { color: var(--accent); font-size: 17px; }
 .wcard-more {
   display: inline-flex;
   align-items: center;
