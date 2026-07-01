@@ -137,7 +137,11 @@
       <div class="main-col">
         <main class="main-content">
           <!-- 브레드크럼 + 페이지 제목 -->
-          <div v-if="routeMenu && showSidebar && !isDetailPage && !isWritePage" class="page-header">
+          <div
+            v-if="routeMenu && showSidebar && !isDetailPage && !isWritePage"
+            class="page-header"
+            :class="{ 'page-header--narrow': isNarrowContentPage }"
+          >
             <nav v-if="breadcrumbs.length > 1" class="breadcrumb" aria-label="breadcrumb">
               <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
                 <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">{{ item.name }}</span>
@@ -183,6 +187,8 @@ const routeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
 const isDetailPage = computed(() => !!route.params.postId)
 const isWritePage = computed(() => route.path.endsWith('/write'))
+// 안내 페이지·캘린더는 본문 max-width에 맞춰 헤더(브레드크럼/제목)도 좁게 정렬
+const isNarrowContentPage = computed(() => ['CONTENT', 'CALENDAR'].includes(routeMenu.value?.pageType))
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 const showSidebar = computed(() => !!activeTopMenu.value && sideMenus.value.length > 0)
 
@@ -462,6 +468,12 @@ onMounted(async () => {
 /* ===== 페이지 헤더 (브레드크럼 + 제목) ===== */
 .page-header {
   margin-bottom: 20px;
+}
+
+.page-header--narrow {
+  max-width: 864px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .breadcrumb {

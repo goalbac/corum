@@ -48,14 +48,12 @@ onMounted(async () => {
 
 <style scoped>
 .content-page {
+  max-width: 864px;
+  margin: 0 auto;
   color: var(--t1);
 }
 
 .content-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
   min-height: 360px;
 }
 
@@ -139,7 +137,6 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .content-card { padding: 24px 20px 32px; border-radius: 12px; }
   .content-card h1,
   .empty-content h1 { font-size: 24px; }
   .content-body { font-size: 16px; }

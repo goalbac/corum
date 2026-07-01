@@ -893,6 +893,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   grid-template-columns: 1fr;
   gap: 20px;
   align-items: start;
+  max-width: 864px;
+  margin: 0 auto;
 }
 .cal-layout.has-sidebar {
   grid-template-columns: 220px 1fr;
