@@ -35,12 +35,12 @@
             </div>
           </div>
 
-          <!-- 하위 메뉴 드래그 영역 -->
+          <!-- 하위 메뉴 드래그 영역 (하위 메뉴가 없어도 드롭 대상이 되도록 항상 렌더링) -->
           <div
-            v-if="menu.children?.length"
             :ref="el => setChildRef(el, menu.id)"
             :data-parent-id="menu.id"
             class="child-sortable"
+            :class="{ 'has-children': menu.children?.length }"
           >
             <div
               v-for="child in menu.children"
@@ -65,12 +65,12 @@
                 </div>
               </div>
 
-              <!-- 3depth 하위 -->
+              <!-- 3depth 하위 (하위 메뉴가 없어도 드롭 대상이 되도록 항상 렌더링) -->
               <div
-                v-if="child.children?.length"
                 :ref="el => setChildRef(el, child.id)"
                 :data-parent-id="child.id"
                 class="child-sortable"
+                :class="{ 'has-children': child.children?.length }"
               >
                 <div
                   v-for="sub in child.children"
@@ -103,23 +103,21 @@
     <el-dialog v-model="showForm" :title="editing ? '메뉴 수정' : '메뉴 추가'" width="520px" destroy-on-close>
       <el-form :model="form" label-position="top">
 
-        <!-- 1. 상위 메뉴: 추가 시만 선택 가능, 수정 시 비활성 -->
+        <!-- 1. 상위 메뉴 -->
         <el-form-item label="상위 메뉴">
           <el-select
             v-model="parentId"
             clearable
             placeholder="없음 (최상위 메뉴)"
             style="width:100%"
-            :disabled="!!editing"
           >
             <el-option
-              v-for="m in flatMenus"
+              v-for="m in parentOptions"
               :key="m.id"
               :value="m.id"
               :label="'　'.repeat(m.depth) + m.name"
             />
           </el-select>
-          <div v-if="editing" class="form-hint">상위 메뉴는 생성 후 변경할 수 없습니다.</div>
         </el-form-item>
 
         <!-- 2. 메뉴명 -->
@@ -135,7 +133,7 @@
         <!-- 4. 유형: 최상위(parentId 없음)이면 GROUP(폴더) 고정 -->
         <div class="form-row">
           <el-form-item label="유형">
-            <template v-if="!parentId">
+            <template v-if="!parentId && !editing">
               <el-input model-value="그룹(폴더)" disabled style="width:100%" />
               <div class="form-hint">최상위 메뉴는 폴더로 고정됩니다.</div>
             </template>
@@ -524,6 +522,18 @@ const flatMenus = computed(() => {
   return result
 })
 
+// 상위 메뉴 선택 옵션: 수정 중인 메뉴 자신과 그 하위 메뉴는 제외 (순환 참조 방지)
+const parentOptions = computed(() => {
+  if (!editing.value) return flatMenus.value
+  const excludedIds = new Set()
+  const collectDescendants = (id) => {
+    excludedIds.add(id)
+    flatMenus.value.filter(m => m.parentId === id).forEach(child => collectDescendants(child.id))
+  }
+  collectDescendants(editing.value.id)
+  return flatMenus.value.filter(m => !excludedIds.has(m.id))
+})
+
 const flatGroups = computed(() => {
   const result = []
   const walk = (nodes = []) => nodes.forEach(g => {
@@ -867,7 +877,8 @@ onBeforeUnmount(() => {
 .child-item { background: var(--surface2); padding-left: 40px !important; }
 .sub-item { background: var(--bg); padding-left: 64px !important; }
 
-.child-sortable { border-left: 3px solid var(--accent); margin-left: 20px; }
+.child-sortable { min-height: 6px; margin-left: 20px; border-left: 3px solid transparent; }
+.child-sortable.has-children { border-left-color: var(--accent); }
 
 .drag-handle {
   font-size: 15px;

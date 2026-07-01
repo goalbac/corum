@@ -13,6 +13,8 @@ public class MenuUpdateRequest {
 
     private String description;
 
+    private Long parentId;
+
     private String menuType;
 
     private String pageType;

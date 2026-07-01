@@ -175,13 +175,33 @@ public class MenuService {
         Menu menu = menuRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("메뉴를 찾을 수 없습니다."));
 
+        Long newParentId = request.getParentId();
+        if (newParentId != null && newParentId.equals(id)) {
+            throw new BusinessException("메뉴를 자기 자신의 하위로 지정할 수 없습니다.");
+        }
+
+        List<Menu> all = menuRepository.findAllByOrderBySortOrderAsc();
+        if (newParentId != null && isDescendant(all, id, newParentId)) {
+            throw new BusinessException("하위 메뉴를 상위 메뉴로 지정할 수 없습니다.");
+        }
+
+        boolean parentChanged = !Objects.equals(menu.getParentId(), newParentId);
+        int sortOrder = request.getSortOrder();
+        if (parentChanged) {
+            Long finalNewParentId = newParentId;
+            sortOrder = (int) all.stream()
+                    .filter(m -> Objects.equals(m.getParentId(), finalNewParentId))
+                    .count();
+        }
+
         menu.update(
                 request.getName(), request.getDescription(), menu.getMenuType(),
                 menu.getPageType(), request.getTargetId(), request.getUrl(),
-                request.getUrlAuto(), request.getNewWindow(), request.getSortOrder(),
+                request.getUrlAuto(), request.getNewWindow(), sortOrder,
                 request.getIsHidden(), request.getHideIfNoPermission(),
                 request.getAccessType(), request.getIsActive(), request.getShowHoliday()
         );
+        menu.move(newParentId, sortOrder);
 
         // 그룹 권한 재설정
         menuGroupPermissionRepository.deleteByMenuId(id);
@@ -253,6 +273,19 @@ public class MenuService {
     }
 
     // ===== 내부 메서드 =====
+
+    // targetId(신규 상위 메뉴 후보)가 ancestorId(수정 중인 메뉴)의 하위 트리에 속하는지 확인 (순환 참조 방지)
+    private boolean isDescendant(List<Menu> all, Long ancestorId, Long targetId) {
+        Map<Long, Menu> byId = all.stream().collect(Collectors.toMap(Menu::getId, m -> m));
+        Long current = targetId;
+        while (current != null) {
+            if (current.equals(ancestorId)) return true;
+            Menu m = byId.get(current);
+            current = (m != null) ? m.getParentId() : null;
+        }
+        return false;
+    }
+
     private List<MenuResponse> buildTree(List<Menu> menus) {
         // 메뉴별 그룹 권한 일괄 조회
         List<Long> menuIds = menus.stream().map(Menu::getId).collect(Collectors.toList());
