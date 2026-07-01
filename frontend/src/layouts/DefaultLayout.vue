@@ -192,15 +192,7 @@ const isNarrowContentPage = computed(() => ['CONTENT', 'CALENDAR'].includes(rout
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 const showSidebar = computed(() => !!activeTopMenu.value && sideMenus.value.length > 0)
 
-const activeSideMenuIds = computed(() => {
-  const ids = new Set()
-  let current = routeMenu.value
-  while (current) {
-    ids.add(Number(current.id))
-    current = current.parent || null
-  }
-  return ids
-})
+const activeSideMenuId = computed(() => routeMenu.value ? Number(routeMenu.value.id) : null)
 
 const breadcrumbs = computed(() => {
   const items = []
@@ -248,7 +240,7 @@ function toggleOpen(id) {
 }
 
 function isActiveSideMenu(menu) {
-  return activeSideMenuIds.value.has(Number(menu.id))
+  return activeSideMenuId.value === Number(menu.id)
 }
 
 function hasNewBoardPost(menu) {
@@ -481,7 +473,7 @@ onMounted(async () => {
   align-items: center;
   gap: 2px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .bc-wrap {
@@ -510,17 +502,17 @@ onMounted(async () => {
 }
 
 .page-title {
-  font-size: 25px;
+  font-size: 30px;
   font-weight: 800;
   color: var(--t1);
   line-height: 1.3;
   letter-spacing: -0.02em;
-  margin: 0 0 4px;
+  margin: 0 0 8px;
 }
 
 .page-desc {
-  font-size: 14px;
-  color: var(--t3);
+  font-size: 16px;
+  color: var(--t2);
   line-height: 1.6;
   margin: 0;
 }
