@@ -125,7 +125,7 @@ function getDefaultSidebar() {
 
 <style scoped>
 .admin-layout { min-height: 100vh; background: var(--bg); transition: background .25s; }
-.admin-body { display: flex; margin-top: var(--header-height); min-height: calc(100vh - var(--header-height)); }
+.admin-body { display: flex; min-height: calc(100vh - var(--header-height)); }
 .admin-sidebar {
   width: 220px;
   flex-shrink: 0;

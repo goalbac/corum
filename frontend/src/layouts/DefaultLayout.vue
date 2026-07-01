@@ -94,12 +94,24 @@
       <!-- 사이드바 -->
       <aside v-if="showSidebar" class="sidebar">
         <div class="sidebar-header">
-          <span class="sidebar-section-text">{{ activeTopMenu?.name?.toUpperCase() }}</span>
+          <span class="sidebar-section-text">{{ isDashboard ? '홈' : activeTopMenu?.name?.toUpperCase() }}</span>
           <span class="sidebar-section-line"></span>
         </div>
 
         <nav class="sidebar-tree">
-          <template v-for="node in sidebarFlatNodes" :key="node.id">
+          <button
+            v-if="isDashboard"
+            type="button"
+            class="tree-node is-active"
+            style="padding-left: 10px"
+          >
+            <span class="tree-chevron-spacer"></span>
+            <span class="tree-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
+            </span>
+            <span class="tree-label">홈</span>
+          </button>
+          <template v-else v-for="node in sidebarFlatNodes" :key="node.id">
             <button
               type="button"
               class="tree-node"
@@ -190,7 +202,9 @@ const isWritePage = computed(() => route.path.endsWith('/write'))
 // 안내 페이지·캘린더는 본문 max-width에 맞춰 헤더(브레드크럼/제목)도 좁게 정렬
 const isNarrowContentPage = computed(() => ['CONTENT', 'CALENDAR'].includes(routeMenu.value?.pageType))
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
-const showSidebar = computed(() => !!activeTopMenu.value && sideMenus.value.length > 0)
+// 홈 대시보드: 연결된 상위 메뉴가 없어도 사이드바에 "홈"을 표시
+const isDashboard = computed(() => route.name === 'Dashboard')
+const showSidebar = computed(() => isDashboard.value || (!!activeTopMenu.value && sideMenus.value.length > 0))
 
 const activeSideMenuId = computed(() => routeMenu.value ? Number(routeMenu.value.id) : null)
 
@@ -459,7 +473,7 @@ onMounted(async () => {
 
 /* ===== 페이지 헤더 (브레드크럼 + 제목) ===== */
 .page-header {
-  margin-bottom: 20px;
+  margin-bottom: 28px;
 }
 
 .page-header--narrow {
