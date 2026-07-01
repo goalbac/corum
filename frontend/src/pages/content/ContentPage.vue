@@ -59,10 +59,7 @@ onMounted(async () => {
 
 .content-card h1,
 .empty-content h1 {
-  font-size: 30px;
-  font-weight: 800;
-  line-height: 1.35;
-  margin-bottom: 24px;
+  display: none;
 }
 
 .content-body {
@@ -137,8 +134,6 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .content-card h1,
-  .empty-content h1 { font-size: 24px; }
   .content-body { font-size: 16px; }
 }
 </style>
