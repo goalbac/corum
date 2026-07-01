@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  ::selection { background: rgba(47,95,214,0.18); }
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-thumb { background: rgba(120,130,150,0.32); border-radius: 8px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(120,130,150,0.5); background-clip: padding-box; border: 3px solid transparent; }
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" style="--bg:#f5f7fa; --surface:#ffffff; --surface-2:#eef1f6; --surface-3:#e5eaf1; --border:#e4e8ee; --border-strong:#d3d9e2; --text:#1a1e27; --text-2:#566072; --text-3:#929aab; --primary:#2f5fd6; --primary-strong:#244cb0; --primary-weak:#e9f0fe; --accent:#1f9d6b; --accent-weak:#e3f5ec; --danger:#d6453f; --warn:#c47f1c; --new:#e8573f; --shadow-sm:0 1px 2px rgba(20,30,55,0.06); --shadow:0 1px 2px rgba(20,30,55,0.05),0 4px 14px rgba(20,30,55,0.06); min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--text); font-size:15px; line-height:1.5; transition:background .25s ease, color .25s ease;">
+
+  <!-- ===================== HEADER ===================== -->
+  <header style="position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:30px; height:64px; padding:0 26px; background:var(--surface); border-bottom:1px solid var(--border);">
+    <div onClick="{{ goHome }}" style="display:flex; align-items:center; gap:11px; flex-shrink:0; cursor:pointer;">
+      <div style="width:34px; height:34px; border-radius:10px; background:var(--primary); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:18px; letter-spacing:-0.04em; box-shadow:var(--shadow-sm);">C</div>
+      <div style="display:flex; flex-direction:column; line-height:1.12;">
+        <span style="font-weight:800; font-size:17px; letter-spacing:-0.02em;">코럼</span>
+        <span style="font-size:10.5px; color:var(--text-3); font-weight:700; letter-spacing:0.08em;">한국공익협회</span>
+      </div>
+    </div>
+
+    <nav style="display:flex; align-items:stretch; gap:2px; height:100%;">
+      <sc-for list="{{ topMenus }}" as="m" hint-placeholder-count="4">
+        <div onClick="{{ m.onClick }}" style="position:relative; display:flex; align-items:center; gap:7px; padding:0 17px; cursor:pointer; font-size:15px; font-weight:600; white-space:nowrap; color:{{ m.color }}; transition:color .15s;" style-hover="color:var(--text)">
+          <span>{{ m.label }}</span>
+          <sc-if value="{{ m.isNew }}" hint-placeholder-val="{{ true }}"><span style="width:6px; height:6px; border-radius:50%; background:var(--new);"></span></sc-if>
+          <sc-if value="{{ m.active }}" hint-placeholder-val="{{ true }}"><span style="position:absolute; left:14px; right:14px; bottom:0; height:3px; border-radius:3px 3px 0 0; background:var(--primary);"></span></sc-if>
+        </div>
+      </sc-for>
+    </nav>
+
+    <div style="flex:1;"></div>
+
+    <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+      <button style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border:none; background:transparent; border-radius:10px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-2); color:var(--text)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
+      <button style="position:relative; display:flex; align-items:center; justify-content:center; width:38px; height:38px; border:none; background:transparent; border-radius:10px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-2); color:var(--text)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+        <span style="position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--new); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; border:2px solid var(--surface);">5</span>
+      </button>
+      <button style="position:relative; display:flex; align-items:center; justify-content:center; width:38px; height:38px; border:none; background:transparent; border-radius:10px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-2); color:var(--text)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2.5"></rect><path d="m2.5 6.5 9.5 6 9.5-6"></path></svg>
+        <span style="position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--new); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; border:2px solid var(--surface);">3</span>
+      </button>
+
+      <div style="width:1px; height:24px; background:var(--border); margin:0 6px;"></div>
+
+      <button onClick="{{ toggleTheme }}" style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border:none; background:transparent; border-radius:10px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-2); color:var(--text)">
+        <sc-if value="{{ dark }}" hint-placeholder-val="{{ false }}">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"></circle><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"></path></svg>
+        </sc-if>
+        <sc-if value="{{ light }}" hint-placeholder-val="{{ true }}">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"></path></svg>
+        </sc-if>
+      </button>
+
+      <button style="display:flex; align-items:center; gap:9px; padding:5px 9px 5px 5px; border:1px solid var(--border); background:var(--surface); border-radius:24px; cursor:pointer; margin-left:4px;" style-hover="background:var(--surface-2)">
+        <span style="width:30px; height:30px; border-radius:50%; background:var(--primary-weak); color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">김운</span>
+        <span style="display:flex; flex-direction:column; line-height:1.1; align-items:flex-start; padding-right:2px;">
+          <span style="font-size:13px; font-weight:700; color:var(--text);">김운영</span>
+          <span style="font-size:10.5px; color:var(--text-3); font-weight:600;">운영그룹</span>
+        </span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================== BODY ROW ===================== -->
+  <div style="display:flex; flex:1; min-height:0;">
+
+    <!-- SIDEBAR -->
+    <aside style="width:268px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); padding:18px 14px; overflow-y:auto;">
+      <div style="display:flex; align-items:center; gap:8px; padding:2px 8px 14px;">
+        <span style="font-size:11.5px; font-weight:800; letter-spacing:0.1em; color:var(--text-3);">{{ sidebarTitleUpper }}</span>
+        <span style="flex:1; height:1px; background:var(--border);"></span>
+      </div>
+
+      <sc-for list="{{ treeNodes }}" as="node" hint-placeholder-count="7">
+        <div onClick="{{ node.onClick }}" style="display:flex; align-items:center; gap:8px; padding:8px 10px; padding-left:{{ node.pad }}px; border-radius:9px; cursor:pointer; font-size:14px; background:{{ node.bg }}; color:{{ node.fg }}; font-weight:{{ node.weight }}; margin-bottom:1px; transition:background .12s;" style-hover="background:var(--surface-2)">
+          <sc-if value="{{ node.isExpandedFolder }}" hint-placeholder-val="{{ false }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; opacity:.65;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </sc-if>
+          <sc-if value="{{ node.isCollapsedFolder }}" hint-placeholder-val="{{ false }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; opacity:.65;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </sc-if>
+          <sc-if value="{{ node.notFolder }}" hint-placeholder-val="{{ true }}"><span style="width:13px; flex-shrink:0;"></span></sc-if>
+
+          <sc-if value="{{ node.isFolder }}" hint-placeholder-val="{{ false }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; opacity:.8;"><path d="M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2z"></path></svg>
+          </sc-if>
+          <sc-if value="{{ node.isExternal }}" hint-placeholder-val="{{ false }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; opacity:.7;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          </sc-if>
+          <sc-if value="{{ node.isPage }}" hint-placeholder-val="{{ true }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; opacity:.65;"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="14 3 14 9 20 9"></polyline></svg>
+          </sc-if>
+
+          <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ node.label }}</span>
+
+          <sc-if value="{{ node.isNew }}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0; font-size:9.5px; font-weight:800; letter-spacing:0.04em; color:var(--new); background:var(--surface); border:1px solid var(--new); padding:1px 5px; border-radius:5px;">NEW</span></sc-if>
+          <sc-if value="{{ node.locked }}" hint-placeholder-val="{{ false }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+      <main style="flex:1; padding:30px 42px 48px; overflow-y:auto;">
+
+        <!-- ============ DASHBOARD (HOME) ============ -->
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="대시보드">
+
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:22px;">
+            <div>
+              <div style="font-size:13px; color:var(--text-3); font-weight:600; margin-bottom:5px;">2026년 6월 30일 화요일</div>
+              <h1 style="margin:0; font-size:26px; font-weight:800; letter-spacing:-0.03em;">안녕하세요, 김운영님 👋</h1>
+            </div>
+            <button style="display:inline-flex; align-items:center; gap:7px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:9px 14px; border-radius:9px; cursor:pointer;" style-hover="background:var(--surface-2); color:var(--text)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="9" cy="7" r="2" fill="var(--surface)"></circle><circle cx="15" cy="12" r="2" fill="var(--surface)"></circle><circle cx="8" cy="17" r="2" fill="var(--surface)"></circle></svg>
+              위젯 맞춤
+            </button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px;">
+            <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+              <div style="padding:16px 18px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+                <div style="font-size:12.5px; color:var(--text-3); font-weight:600; margin-bottom:9px;">{{ s.label }}</div>
+                <div style="display:flex; align-items:baseline; gap:8px;">
+                  <span style="font-size:26px; font-weight:800; letter-spacing:-0.02em; color:{{ s.valColor }};">{{ s.value }}</span>
+                  <span style="font-size:12px; font-weight:700; color:{{ s.subColor }};">{{ s.sub }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1.7fr 1fr; gap:18px; align-items:start;">
+
+            <!-- LEFT COLUMN -->
+            <div style="display:flex; flex-direction:column; gap:18px; min-width:0;">
+
+              <!-- image slider widget -->
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-sm); padding:18px 20px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><circle cx="8.5" cy="9.5" r="1.6"></circle><path d="m21 16-5-5L5 20"></path></svg>
+                    주요 소식
+                  </div>
+                  <span style="font-size:12px; color:var(--text-3); font-weight:600;">{{ slideCounter }}</span>
+                </div>
+                <div style="position:relative; height:220px; border-radius:12px; overflow:hidden; background:repeating-linear-gradient(135deg, var(--surface-2), var(--surface-2) 11px, var(--surface-3) 11px, var(--surface-3) 22px);">
+                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+                    <span style="font-family:'SFMono-Regular',Menlo,monospace; font-size:11px; color:var(--text-3); letter-spacing:0.1em; background:var(--surface); padding:5px 12px; border-radius:6px; border:1px solid var(--border);">BANNER IMAGE · {{ slide.ph }}</span>
+                  </div>
+                  <div style="position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(to top, rgba(10,15,25,0.62), rgba(10,15,25,0.0));">
+                    <span style="display:inline-block; font-size:11px; font-weight:800; color:#fff; background:var(--primary); padding:3px 9px; border-radius:6px; margin-bottom:9px;">{{ slide.tag }}</span>
+                    <div style="font-size:20px; font-weight:800; color:#fff; letter-spacing:-0.02em;">{{ slide.title }}</div>
+                    <div style="font-size:12.5px; color:rgba(255,255,255,0.82); margin-top:4px;">{{ slide.date }}</div>
+                  </div>
+                  <button onClick="{{ prevSlide }}" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:50%; background:rgba(255,255,255,0.85); color:#1a1e27; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                  <button onClick="{{ nextSlide }}" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:50%; background:rgba(255,255,255,0.85); color:#1a1e27; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                  <div style="position:absolute; right:14px; bottom:16px; display:flex; gap:6px;">
+                    <sc-for list="{{ slideDots }}" as="d" hint-placeholder-count="3">
+                      <button onClick="{{ d.onClick }}" style="width:8px; height:8px; padding:0; border:none; border-radius:50%; cursor:pointer; background:{{ d.bg }};"></button>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+
+              <!-- latest posts widget -->
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-sm); padding:18px 20px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                    최신 글
+                  </div>
+                  <span style="display:inline-flex; align-items:center; gap:2px; font-size:12.5px; font-weight:600; color:var(--text-3); cursor:pointer;" style-hover="color:var(--primary)">더보기 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+                </div>
+                <div style="display:flex; gap:5px; margin-bottom:4px;">
+                  <sc-for list="{{ feedTabs }}" as="t" hint-placeholder-count="3">
+                    <button onClick="{{ t.onClick }}" style="border:none; background:{{ t.bg }}; color:{{ t.fg }}; font-weight:600; font-size:13px; padding:6px 13px; border-radius:8px; cursor:pointer;">{{ t.label }}</button>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ feedPosts }}" as="p" hint-placeholder-count="5">
+                  <div style="display:flex; align-items:center; gap:9px; padding:11px 2px; border-top:1px solid var(--border);">
+                    <sc-if value="{{ p.pinned }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; font-weight:800; color:var(--primary); background:var(--primary-weak); padding:2px 7px; border-radius:5px; flex-shrink:0;">공지</span></sc-if>
+                    <span style="flex:1; min-width:0; font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" style-hover="color:var(--primary)">{{ p.title }}</span>
+                    <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="width:5px; height:5px; border-radius:50%; background:var(--new); flex-shrink:0;"></span></sc-if>
+                    <sc-if value="{{ p.hasComments }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:12px; color:var(--primary); font-weight:700; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1l-4 1 1-3.5A8.4 8.4 0 1 1 21 11.5z"></path></svg>{{ p.comments }}</span></sc-if>
+                    <span style="font-size:12px; color:var(--text-3); width:36px; text-align:right; flex-shrink:0;">{{ p.date }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div style="display:flex; flex-direction:column; gap:18px; min-width:0;">
+
+              <!-- calendar preview -->
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-sm); padding:18px 20px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6"></line><line x1="16" y1="2.5" x2="16" y2="6"></line></svg>
+                    이번 달 일정
+                  </div>
+                  <span style="font-size:12.5px; font-weight:700; color:var(--text-2);">2026. 06</span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:3px;">
+                  <span style="text-align:center; font-size:11px; font-weight:700; color:var(--danger); padding:3px 0;">일</span>
+                  <span style="text-align:center; font-size:11px; font-weight:700; color:var(--text-3); padding:3px 0;">월</span>
+                  <span style="text-align:center; font-size:11px; font-weight:700; color:var(--text-3); padding:3px 0;">화</span>
+                  <span style="text-align:center; font-size:11px; font-weight:700; color:var(--text-3); padding:3px 0;">수</span>
+                  <span style="text-align:center; font-size:11px; font-weight:700; color:var(--text-3); padding:3px 0;">목</span>
+                  <span style="text-align:center; font-size:11px; font-weight:700; color:var(--text-3); padding:3px 0;">금</span>
+                  <span style="text-align:center; font-size:11px; font-weight:700; color:var(--primary); padding:3px 0;">토</span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;">
+                  <sc-for list="{{ calCells }}" as="c" hint-placeholder-count="35">
+                    <sc-if value="{{ c.blank }}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+                    <sc-if value="{{ c.show }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:{{ c.weight }}; color:{{ c.color }}; background:{{ c.bg }}; border-radius:8px; cursor:pointer;" style-hover="background:var(--surface-2)">
+                        <span>{{ c.day }}</span>
+                        <sc-if value="{{ c.hasDot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; bottom:4px; width:4px; height:4px; border-radius:50%; background:{{ c.dot }};"></span></sc-if>
+                      </div>
+                    </sc-if>
+                  </sc-for>
+                </div>
+                <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:10px;">
+                  <sc-for list="{{ upcoming }}" as="u" hint-placeholder-count="3">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="width:3px; height:24px; border-radius:3px; background:{{ u.color }}; flex-shrink:0;"></span>
+                      <span style="font-size:12px; font-weight:700; color:var(--text-2); width:38px; flex-shrink:0;">{{ u.date }}</span>
+                      <span style="flex:1; font-size:13px; font-weight:500;">{{ u.title }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- member stats -->
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-sm); padding:18px 20px;">
+                <div style="display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:12px;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="3.5"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.5a4 4 0 0 1 0 7"></path></svg>
+                  회원 현황
+                </div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:15px;"><span style="font-size:29px; font-weight:800; letter-spacing:-0.02em;">1,284</span><span style="font-size:13px; color:var(--text-3); font-weight:600;">명</span></div>
+                <div style="display:flex; flex-direction:column; gap:13px;">
+                  <sc-for list="{{ memberBars }}" as="b" hint-placeholder-count="3">
+                    <div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px;"><span style="color:var(--text-2); font-weight:600;">{{ b.label }}</span><span style="color:var(--text-3); font-weight:700;">{{ b.count }}명</span></div>
+                      <div style="height:7px; border-radius:4px; background:var(--surface-2); overflow:hidden;"><div style="height:100%; width:{{ b.width }}; background:{{ b.color }}; border-radius:4px;"></div></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- quick links -->
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-sm); padding:18px 20px;">
+                <div style="display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:13px;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"></path></svg>
+                  바로가기
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <sc-for list="{{ links }}" as="l" hint-placeholder-count="6">
+                    <button style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:11px 13px; border:1px solid var(--border); background:var(--surface); border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-2);" style-hover="background:var(--surface-2); color:var(--text)">
+                      <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ l.label }}</span>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5; flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ POST BOARD ============ -->
+        <sc-if value="{{ isPost }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="게시판 POST">
+          <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-3); font-weight:600; margin-bottom:8px;"><span>{{ curTop }}</span><span style="opacity:.5;">/</span><span style="color:var(--text-2);">{{ curLabel }}</span></div>
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:18px;">
+            <div>
+              <h1 style="margin:0 0 5px; font-size:25px; font-weight:800; letter-spacing:-0.03em;">{{ curLabel }}</h1>
+              <p style="margin:0; font-size:13.5px; color:var(--text-2);">총 <strong style="color:var(--text); font-weight:700;">{{ postCount }}</strong>건의 게시글이 등록되어 있습니다.</p>
+            </div>
+            <button onClick="{{ goWrite }}" style="display:inline-flex; align-items:center; gap:6px; border:none; background:var(--primary); color:#fff; font-weight:600; font-size:14px; padding:10px 18px; border-radius:9px; cursor:pointer;" style-hover="background:var(--primary-strong)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>글쓰기</button>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; flex-wrap:wrap;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <sc-for list="{{ postCats }}" as="c" hint-placeholder-count="6">
+                <button style="border:1px solid {{ c.border }}; background:{{ c.bg }}; color:{{ c.fg }}; font-weight:600; font-size:13px; padding:6px 14px; border-radius:18px; cursor:pointer;">{{ c.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="display:flex; align-items:center; gap:7px; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:7px 12px; width:218px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input placeholder="제목·작성자 검색" style="border:none; background:transparent; outline:none; font-family:inherit; font-size:13px; color:var(--text); width:100%;">
+              </div>
+              <button style="display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:8px 13px; border-radius:9px; cursor:pointer; white-space:nowrap;">최신순 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+            </div>
+          </div>
+
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-sm);">
+            <div style="display:grid; grid-template-columns:70px 1fr 100px 76px 64px; gap:10px; padding:12px 18px; font-size:12.5px; font-weight:700; color:var(--text-3); border-bottom:1px solid var(--border-strong);">
+              <span style="text-align:center;">번호</span><span>제목</span><span style="text-align:center;">작성자</span><span style="text-align:center;">작성일</span><span style="text-align:center;">조회</span>
+            </div>
+            <sc-for list="{{ postRows }}" as="p" hint-placeholder-count="8">
+              <div onClick="{{ p.onClick }}" style="display:grid; grid-template-columns:70px 1fr 100px 76px 64px; gap:10px; align-items:center; padding:13px 18px; border-bottom:1px solid var(--border); background:{{ p.rowBg }}; cursor:pointer;" style-hover="background:var(--surface-2)">
+                <span style="display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--text-3); font-weight:600;">
+                  <sc-if value="{{ p.isPinned }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; font-weight:800; color:var(--primary); background:var(--primary-weak); padding:2px 8px; border-radius:5px;">공지</span></sc-if>
+                  <sc-if value="{{ p.regular }}" hint-placeholder-val="{{ true }}"><span>{{ p.num }}</span></sc-if>
+                </span>
+                <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                  <span style="font-size:11px; font-weight:700; color:{{ p.catFg }}; background:{{ p.catBg }}; padding:2px 8px; border-radius:6px; flex-shrink:0;">{{ p.category }}</span>
+                  <span style="font-size:14px; font-weight:{{ p.titleWeight }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ p.title }}</span>
+                  <sc-if value="{{ p.hasComments }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:var(--primary); font-weight:700; flex-shrink:0;">[{{ p.comments }}]</span></sc-if>
+                  <sc-if value="{{ p.hasFile }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"></path></svg></sc-if>
+                  <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px; font-weight:800; color:var(--new); border:1px solid var(--new); padding:1px 5px; border-radius:5px; flex-shrink:0;">N</span></sc-if>
+                </div>
+                <span style="text-align:center; font-size:13px; color:var(--text-2);">{{ p.author }}</span>
+                <span style="text-align:center; font-size:13px; color:var(--text-3);">{{ p.date }}</span>
+                <span style="text-align:center; font-size:13px; color:var(--text-3);">{{ p.views }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:center; gap:5px; margin-top:24px;">
+            <button style="width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+            <button style="min-width:34px; height:34px; border:none; background:var(--primary); border-radius:9px; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">1</button>
+            <button style="min-width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-2); font-weight:600; font-size:13px; cursor:pointer;" style-hover="background:var(--surface-2)">2</button>
+            <button style="min-width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-2); font-weight:600; font-size:13px; cursor:pointer;" style-hover="background:var(--surface-2)">3</button>
+            <button style="min-width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-2); font-weight:600; font-size:13px; cursor:pointer;" style-hover="background:var(--surface-2)">4</button>
+            <button style="min-width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-2); font-weight:600; font-size:13px; cursor:pointer;" style-hover="background:var(--surface-2)">5</button>
+            <button style="width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ GALLERY BOARD ============ -->
+        <sc-if value="{{ isGallery }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="게시판 GALLERY">
+          <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-3); font-weight:600; margin-bottom:8px;"><span>공지·자료</span><span style="opacity:.5;">/</span><span style="color:var(--text-2);">갤러리</span></div>
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:18px;">
+            <div>
+              <h1 style="margin:0 0 5px; font-size:25px; font-weight:800; letter-spacing:-0.03em;">갤러리</h1>
+              <p style="margin:0; font-size:13.5px; color:var(--text-2);">총 <strong style="color:var(--text); font-weight:700;">{{ galleryCount }}</strong>건의 사진 게시물</p>
+            </div>
+            <button style="display:inline-flex; align-items:center; gap:6px; border:none; background:var(--primary); color:#fff; font-weight:600; font-size:14px; padding:10px 18px; border-radius:9px; cursor:pointer;" style-hover="background:var(--primary-strong)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>사진 올리기</button>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button style="border:1px solid var(--primary); background:var(--primary); color:#fff; font-weight:600; font-size:13px; padding:6px 14px; border-radius:18px; cursor:pointer;">전체</button>
+              <button style="border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:6px 14px; border-radius:18px; cursor:pointer;">행사</button>
+              <button style="border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:6px 14px; border-radius:18px; cursor:pointer;">봉사활동</button>
+              <button style="border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:6px 14px; border-radius:18px; cursor:pointer;">캠페인</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:7px; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:7px 12px; width:218px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input placeholder="제목 검색" style="border:none; background:transparent; outline:none; font-family:inherit; font-size:13px; color:var(--text); width:100%;">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+            <sc-for list="{{ galleryItems }}" as="g" hint-placeholder-count="6">
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-sm); cursor:pointer;" style-hover="border-color:var(--border-strong)">
+                <div style="position:relative; aspect-ratio:4/3; background:repeating-linear-gradient(135deg, var(--surface-2), var(--surface-2) 11px, var(--surface-3) 11px, var(--surface-3) 22px); display:flex; align-items:center; justify-content:center;">
+                  <span style="font-family:'SFMono-Regular',Menlo,monospace; font-size:11px; color:var(--text-3); letter-spacing:0.08em; background:var(--surface); padding:4px 10px; border-radius:6px; border:1px solid var(--border);">{{ g.ph }}</span>
+                  <sc-if value="{{ g.isNew }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; top:10px; left:10px; font-size:9.5px; font-weight:800; color:#fff; background:var(--new); padding:3px 8px; border-radius:6px;">NEW</span></sc-if>
+                </div>
+                <div style="padding:13px 15px;">
+                  <div style="font-size:14.5px; font-weight:700; letter-spacing:-0.01em; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">{{ g.title }}</div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-top:9px;">
+                    <span style="font-size:12px; color:var(--text-3);">{{ g.author }} · {{ g.date }}</span>
+                    <div style="display:flex; align-items:center; gap:11px; font-size:12px; color:var(--text-3); font-weight:600;">
+                      <span style="display:inline-flex; align-items:center; gap:3px;">❤️ {{ g.reactions }}</span>
+                      <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1l-4 1 1-3.5A8.4 8.4 0 1 1 21 11.5z"></path></svg>{{ g.comments }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:center; gap:5px; margin-top:24px;">
+            <button style="min-width:34px; height:34px; border:none; background:var(--primary); border-radius:9px; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">1</button>
+            <button style="min-width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-2); font-weight:600; font-size:13px; cursor:pointer;" style-hover="background:var(--surface-2)">2</button>
+            <button style="min-width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-2); font-weight:600; font-size:13px; cursor:pointer;" style-hover="background:var(--surface-2)">3</button>
+            <button style="width:34px; height:34px; border:1px solid var(--border); background:var(--surface); border-radius:9px; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ DOCUMENT BOARD ============ -->
+        <sc-if value="{{ isDocument }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="게시판 DOCUMENT">
+          <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-3); font-weight:600; margin-bottom:8px;"><span>공지·자료</span><span style="opacity:.5;">/</span><span style="color:var(--text-2);">자료실</span></div>
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:18px;">
+            <div>
+              <h1 style="margin:0 0 5px; font-size:25px; font-weight:800; letter-spacing:-0.03em;">자료실</h1>
+              <p style="margin:0; font-size:13.5px; color:var(--text-2);">총 <strong style="color:var(--text); font-weight:700;">{{ docCount }}</strong>개 파일 · 폴더별 분류 및 버전 관리</p>
+            </div>
+            <button style="display:inline-flex; align-items:center; gap:6px; border:none; background:var(--primary); color:#fff; font-weight:600; font-size:14px; padding:10px 18px; border-radius:9px; cursor:pointer;" style-hover="background:var(--primary-strong)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>파일 업로드</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px;">
+            <sc-for list="{{ docFolders }}" as="f" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border:1px solid {{ f.border }}; background:{{ f.bg }}; border-radius:12px; cursor:pointer;" style-hover="border-color:var(--border-strong)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ f.icon }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2z"></path></svg>
+                <div style="min-width:0;"><div style="font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ f.name }}</div><div style="font-size:12px; color:var(--text-3); margin-top:2px;">{{ f.count }}개 파일</div></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2z"></path></svg>
+              정관·규정 <span style="font-size:12px; font-weight:700; color:var(--text-3); background:var(--surface-2); padding:2px 8px; border-radius:10px;">12</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:7px; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:7px 12px; width:218px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input placeholder="파일명 검색" style="border:none; background:transparent; outline:none; font-family:inherit; font-size:13px; color:var(--text); width:100%;">
+            </div>
+          </div>
+
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-sm);">
+            <div style="display:grid; grid-template-columns:1fr 96px 80px 100px 80px 70px; gap:10px; padding:12px 18px; font-size:12.5px; font-weight:700; color:var(--text-3); border-bottom:1px solid var(--border-strong);">
+              <span>파일명</span><span style="text-align:center;">버전</span><span style="text-align:center;">크기</span><span style="text-align:center;">등록자</span><span style="text-align:center;">등록일</span><span style="text-align:center;">받기</span>
+            </div>
+            <sc-for list="{{ docFiles }}" as="d" hint-placeholder-count="6">
+              <div style="display:grid; grid-template-columns:1fr 96px 80px 100px 80px 70px; gap:10px; align-items:center; padding:12px 18px; border-bottom:1px solid var(--border);" style-hover="background:var(--surface-2)">
+                <div style="display:flex; align-items:center; gap:11px; min-width:0;">
+                  <span style="width:36px; height:36px; border-radius:8px; background:{{ d.extBg }}; color:{{ d.extColor }}; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; flex-shrink:0;">{{ d.ext }}</span>
+                  <div style="min-width:0;">
+                    <div style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" style-hover="color:var(--primary)">{{ d.name }}</div>
+                    <div style="font-size:11.5px; color:var(--text-3); margin-top:2px;"># {{ d.cat }}</div>
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:center;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700; color:var(--text-2); background:var(--surface-2); padding:4px 9px; border-radius:6px; cursor:pointer;" style-hover="color:var(--primary)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><polyline points="3 3 3 8 8 8"></polyline><polyline points="12 7 12 12 15 14"></polyline></svg>{{ d.version }}</span></div>
+                <span style="text-align:center; font-size:12.5px; color:var(--text-3);">{{ d.size }}</span>
+                <span style="text-align:center; font-size:13px; color:var(--text-2);">{{ d.author }}</span>
+                <span style="text-align:center; font-size:13px; color:var(--text-3);">{{ d.date }}</span>
+                <div style="display:flex; justify-content:center;">
+                  <sc-if value="{{ d.unlocked }}" hint-placeholder-val="{{ true }}"><button style="width:32px; height:32px; border:none; border-radius:8px; background:var(--primary-weak); color:var(--primary); cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:var(--primary); color:#fff"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button></sc-if>
+                  <sc-if value="{{ d.locked }}" hint-placeholder-val="{{ false }}"><span title="다운로드 권한 필요" style="width:32px; height:32px; border-radius:8px; background:var(--surface-2); color:var(--text-3); display:flex; align-items:center; justify-content:center; cursor:not-allowed;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ POST DETAIL ============ -->
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="게시글 상세">
+          <div style="max-width:864px; margin:0 auto;">
+            <button onClick="{{ goPostList }}" style="display:inline-flex; align-items:center; gap:5px; border:none; background:transparent; color:var(--text-3); font-weight:600; font-size:13px; cursor:pointer; padding:0; margin-bottom:16px;" style-hover="color:var(--primary)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>공지사항 목록</button>
+
+            <div style="display:flex; align-items:center; gap:9px; margin-bottom:11px;">
+              <span style="font-size:12px; font-weight:700; color:var(--primary); background:var(--primary-weak); padding:3px 10px; border-radius:6px;">공지</span>
+              <span style="font-size:9.5px; font-weight:800; color:var(--new); border:1px solid var(--new); padding:1px 6px; border-radius:5px;">NEW</span>
+            </div>
+            <h1 style="margin:0 0 18px; font-size:27px; font-weight:800; letter-spacing:-0.03em; line-height:1.36;">제24차 정기총회 개최 및 안건 사전 공고</h1>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:18px; border-bottom:1px solid var(--border); margin-bottom:24px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:11px;">
+                <span style="width:40px; height:40px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;">사</span>
+                <div>
+                  <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:14.5px; font-weight:700;">사무국</span><span style="font-size:10.5px; font-weight:700; color:var(--primary); background:var(--primary-weak); padding:1px 7px; border-radius:5px;">운영</span></div>
+                  <div style="font-size:12.5px; color:var(--text-3); margin-top:3px;">2026.06.20 09:30 · 조회 388 · 댓글 6</div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <button style="display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:7px 12px; border-radius:8px; cursor:pointer;" style-hover="background:var(--surface-2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line></svg>공유</button>
+                <button onClick="{{ goWrite }}" style="display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:7px 12px; border-radius:8px; cursor:pointer;" style-hover="background:var(--surface-2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>수정</button>
+                <button style="display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border-strong); background:var(--surface); color:var(--danger); font-weight:600; font-size:13px; padding:7px 12px; border-radius:8px; cursor:pointer;" style-hover="background:rgba(214,69,63,0.08)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>삭제</button>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--border); border-radius:12px; padding:15px 17px; margin-bottom:28px; background:var(--surface);">
+              <div style="display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; color:var(--text-2); margin-bottom:12px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"></path></svg>
+                첨부파일 <span style="color:var(--text-3); font-weight:600;">2</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <sc-for list="{{ attachments }}" as="a" hint-placeholder-count="2">
+                  <div style="display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:9px; background:var(--bg);" style-hover="background:var(--surface-2)">
+                    <span style="width:32px; height:32px; border-radius:7px; background:{{ a.extBg }}; color:{{ a.extColor }}; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:800; flex-shrink:0;">{{ a.ext }}</span>
+                    <span style="flex:1; min-width:0; font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ a.name }}</span>
+                    <span style="font-size:12px; color:var(--text-3); flex-shrink:0;">{{ a.size }}</span>
+                    <button style="width:30px; height:30px; border:none; border-radius:7px; background:var(--primary-weak); color:var(--primary); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;" style-hover="background:var(--primary); color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="font-size:15.5px; line-height:1.9; color:var(--text); letter-spacing:-0.01em;">
+              <p style="margin:0 0 20px;">우리 협회 회원 여러분께, 2026년도 정기총회 개최를 아래와 같이 공고합니다. 본 총회는 한 해 사업 성과를 공유하고 차기 사업계획과 예산을 의결하는 중요한 자리입니다. 회원 여러분의 많은 참석을 부탁드립니다.</p>
+              <div style="display:grid; grid-template-columns:88px 1fr; gap:10px 16px; padding:16px 18px; background:var(--surface-2); border-radius:12px; margin:0 0 22px; font-size:14.5px;">
+                <span style="font-weight:700; color:var(--text-2);">일시</span><span>2026년 7월 15일 (수) 오후 2시</span>
+                <span style="font-weight:700; color:var(--text-2);">장소</span><span>협회 본관 8층 대회의실</span>
+                <span style="font-weight:700; color:var(--text-2);">대상</span><span>전 정회원 (위임 참석 가능)</span>
+              </div>
+              <h3 style="margin:0 0 12px; font-size:18px; font-weight:700; letter-spacing:-0.02em;">주요 안건</h3>
+              <ul style="margin:0 0 22px; padding-left:22px; display:flex; flex-direction:column; gap:8px;">
+                <li>제1호 의안 — 2025년도 사업보고 및 결산 승인</li>
+                <li>제2호 의안 — 2026년도 사업계획 및 예산(안) 의결</li>
+                <li>제3호 의안 — 정관 일부 개정(안) 심의</li>
+                <li>제4호 의안 — 임원 선임의 건</li>
+              </ul>
+              <blockquote style="margin:0 0 22px; padding:14px 18px; border-left:3px solid var(--primary); background:var(--primary-weak); border-radius:0 10px 10px 0; font-size:14.5px; color:var(--text-2);">현장 참석이 어려운 회원께서는 위임장을 작성해 7월 12일까지 제출해 주시기 바랍니다. 화상 참석 링크는 총회 전날 별도 안내됩니다.</blockquote>
+              <div style="height:240px; border-radius:12px; background:repeating-linear-gradient(135deg, var(--surface-2), var(--surface-2) 11px, var(--surface-3) 11px, var(--surface-3) 22px); display:flex; align-items:center; justify-content:center; margin:0 0 22px;">
+                <span style="font-family:'SFMono-Regular',Menlo,monospace; font-size:11px; color:var(--text-3); letter-spacing:0.08em; background:var(--surface); padding:5px 12px; border-radius:6px; border:1px solid var(--border);">행사장 약도 이미지 · 1200×600</span>
+              </div>
+              <p style="margin:0;">문의 사항은 사무국(02-1234-5678) 또는 본 게시글 댓글로 남겨 주시면 신속히 안내드리겠습니다. 감사합니다.</p>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:32px 0; padding:18px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+              <span style="font-size:13.5px; font-weight:600; color:var(--text-3); margin-right:4px;">이 글에 공감해 주세요</span>
+              <sc-for list="{{ reactionPills }}" as="r" hint-placeholder-count="3">
+                <button onClick="{{ r.onClick }}" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px 5px 10px; border-radius:16px; cursor:pointer; font-size:13px; font-weight:700; background:{{ r.bg }}; border:1px solid {{ r.border }}; color:{{ r.fg }};">
+                  <span style="font-size:15px;">{{ r.emoji }}</span><span>{{ r.count }}</span>
+                </button>
+              </sc-for>
+              <div style="position:relative;">
+                <button onClick="{{ togglePicker }}" style="display:inline-flex; align-items:center; gap:4px; padding:6px 13px; border-radius:16px; cursor:pointer; font-size:13px; font-weight:600; background:var(--surface); border:1px dashed var(--border-strong); color:var(--text-3);" style-hover="border-color:var(--primary); color:var(--primary)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"></path></svg>
+                  공감 추가
+                </button>
+                <sc-if value="{{ showPicker }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; bottom:46px; left:0; z-index:20; display:flex; gap:4px; padding:7px; background:var(--surface); border:1px solid var(--border-strong); border-radius:14px; box-shadow:var(--shadow);">
+                    <sc-for list="{{ pickerEmojis }}" as="pe" hint-placeholder-count="6">
+                      <button onClick="{{ pe.onClick }}" style="width:40px; height:40px; border:none; border-radius:10px; background:{{ pe.bg }}; font-size:20px; cursor:pointer; line-height:1;" style-hover="background:var(--surface-2)">{{ pe.emoji }}</button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+
+            <div style="margin-top:8px;">
+              <div style="display:flex; align-items:center; gap:7px; font-size:17px; font-weight:700; margin-bottom:16px;">댓글 <span style="color:var(--primary);">{{ commentCount }}</span></div>
+
+              <div style="display:flex; gap:11px; margin-bottom:10px;">
+                <span style="width:40px; height:40px; border-radius:50%; background:var(--primary-weak); color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;">김</span>
+                <div style="flex:1;">
+                  <textarea placeholder="댓글을 입력하세요. 회원 간 예의를 지켜 주세요." style="width:100%; min-height:72px; resize:vertical; box-sizing:border-box; font-family:inherit; font-size:14px; line-height:1.6; color:var(--text); background:var(--bg); border:1px solid var(--border-strong); border-radius:10px; padding:11px 13px; outline:none;" style-focus="border-color:var(--primary)"></textarea>
+                  <div style="display:flex; justify-content:flex-end; margin-top:8px;"><button style="border:none; background:var(--primary); color:#fff; font-weight:600; font-size:13.5px; padding:9px 20px; border-radius:9px; cursor:pointer;" style-hover="background:var(--primary-strong)">등록</button></div>
+                </div>
+              </div>
+
+              <sc-for list="{{ commentList }}" as="c" hint-placeholder-count="5">
+                <div style="margin-left:{{ c.indent }}px; padding:15px 0; border-top:1px solid var(--border);">
+                  <sc-if value="{{ c.notDeleted }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex; gap:11px;">
+                      <span style="width:36px; height:36px; border-radius:50%; background:{{ c.avatarBg }}; color:{{ c.avatarFg }}; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;">{{ c.avatar }}</span>
+                      <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+                          <span style="font-size:13.5px; font-weight:700;">{{ c.author }}</span>
+                          <span style="font-size:10.5px; font-weight:700; color:{{ c.roleFg }}; background:{{ c.roleBg }}; padding:1px 7px; border-radius:5px;">{{ c.role }}</span>
+                          <span style="font-size:12px; color:var(--text-3);">{{ c.date }}</span>
+                        </div>
+                        <div style="font-size:14px; line-height:1.65; color:var(--text-2);">{{ c.body }}</div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-top:9px;">
+                          <sc-if value="{{ c.hasReactions }}" hint-placeholder-val="{{ false }}">
+                            <div style="display:flex; gap:5px;">
+                              <sc-for list="{{ c.reactions }}" as="cr" hint-placeholder-count="1">
+                                <span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700; color:var(--text-2); background:var(--surface-2); padding:2px 9px; border-radius:13px; cursor:pointer;">{{ cr.emoji }} {{ cr.count }}</span>
+                              </sc-for>
+                            </div>
+                          </sc-if>
+                          <button style="display:inline-flex; align-items:center; gap:4px; border:none; background:transparent; color:var(--text-3); font-size:12px; font-weight:600; cursor:pointer; padding:0;" style-hover="color:var(--primary)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>답글</button>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.deleted }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; align-items:center; gap:11px; color:var(--text-3); font-size:13px; font-style:italic;">
+                      <span style="width:36px; height:36px; border-radius:50%; background:var(--surface-2); display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></span>
+                      삭제된 댓글입니다.
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ POST WRITE (TipTap) ============ -->
+        <sc-if value="{{ isWrite }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="게시글 작성">
+          <div style="max-width:920px; margin:0 auto;">
+            <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-3); font-weight:600; margin-bottom:8px;"><span>공지·자료</span><span style="opacity:.5;">/</span><span>공지사항</span><span style="opacity:.5;">/</span><span style="color:var(--text-2);">글쓰기</span></div>
+            <h1 style="margin:0 0 18px; font-size:25px; font-weight:800; letter-spacing:-0.03em;">게시글 작성</h1>
+
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
+
+              <div style="display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:18px;">
+                <div style="display:flex; flex-direction:column; gap:7px;">
+                  <label style="font-size:12.5px; font-weight:700; color:var(--text-2);">카테고리</label>
+                  <select style="font-family:inherit; font-size:14px; font-weight:500; color:var(--text); background:var(--bg); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; outline:none; cursor:pointer; min-width:160px;">
+                    <option>공지</option><option>필독</option><option>행사</option><option>모집</option><option>안내</option>
+                  </select>
+                </div>
+                <div style="flex:1;"></div>
+                <div style="display:flex; align-items:center; gap:9px;">
+                  <span style="font-size:13.5px; font-weight:600; color:var(--text-2);">공지 고정</span>
+                  <button onClick="{{ toggleNotice }}" style="width:42px; height:24px; border-radius:12px; border:none; background:{{ noticeBg }}; position:relative; cursor:pointer; padding:0; transition:background .15s;"><span style="position:absolute; top:2px; left:{{ noticeX }}; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,0.25);"></span></button>
+                </div>
+                <div style="display:flex; align-items:center; gap:9px;">
+                  <span style="font-size:13.5px; font-weight:600; color:var(--text-2);">댓글 허용</span>
+                  <button onClick="{{ toggleComment }}" style="width:42px; height:24px; border-radius:12px; border:none; background:{{ commentBg }}; position:relative; cursor:pointer; padding:0; transition:background .15s;"><span style="position:absolute; top:2px; left:{{ commentX }}; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,0.25);"></span></button>
+                </div>
+              </div>
+
+              <input placeholder="제목을 입력하세요" style="width:100%; box-sizing:border-box; font-family:inherit; font-size:19px; font-weight:600; color:var(--text); background:transparent; border:none; border-bottom:1px solid var(--border-strong); padding:11px 2px; outline:none; margin-bottom:18px;" style-focus="border-color:var(--primary)">
+
+              <div style="border:1px solid var(--border-strong); border-radius:12px; overflow:hidden;">
+                <div style="display:flex; align-items:center; gap:1px; flex-wrap:wrap; padding:7px 9px; border-bottom:1px solid var(--border); background:var(--surface-2);">
+                  <button onMouseDown="{{ cmdUndo }}" title="실행취소" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg></button>
+                  <button onMouseDown="{{ cmdRedo }}" title="다시실행" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg></button>
+                  <span style="width:1px; height:20px; background:var(--border); margin:0 6px;"></span>
+                  <button onMouseDown="{{ cmdP }}" title="본문" style="height:32px; padding:0 9px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:12px; font-weight:700;" style-hover="background:var(--surface-3); color:var(--text)">본문</button>
+                  <button onMouseDown="{{ cmdH1 }}" title="제목 1" style="height:32px; padding:0 8px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:12.5px; font-weight:800;" style-hover="background:var(--surface-3); color:var(--text)">H1</button>
+                  <button onMouseDown="{{ cmdH2 }}" title="제목 2" style="height:32px; padding:0 8px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:12.5px; font-weight:800;" style-hover="background:var(--surface-3); color:var(--text)">H2</button>
+                  <button onMouseDown="{{ cmdH3 }}" title="제목 3" style="height:32px; padding:0 8px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:12.5px; font-weight:800;" style-hover="background:var(--surface-3); color:var(--text)">H3</button>
+                  <span style="width:1px; height:20px; background:var(--border); margin:0 6px;"></span>
+                  <button onMouseDown="{{ cmdBold }}" title="굵게" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:15px; font-weight:800;" style-hover="background:var(--surface-3); color:var(--text)">B</button>
+                  <button onMouseDown="{{ cmdItalic }}" title="기울임" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:15px; font-weight:600; font-style:italic; font-family:Georgia,serif;" style-hover="background:var(--surface-3); color:var(--text)">I</button>
+                  <button onMouseDown="{{ cmdUnderline }}" title="밑줄" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:14px; font-weight:700; text-decoration:underline;" style-hover="background:var(--surface-3); color:var(--text)">U</button>
+                  <button onMouseDown="{{ cmdStrike }}" title="취소선" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer; font-size:14px; font-weight:700; text-decoration:line-through;" style-hover="background:var(--surface-3); color:var(--text)">S</button>
+                  <span style="width:1px; height:20px; background:var(--border); margin:0 6px;"></span>
+                  <button onMouseDown="{{ cmdUL }}" title="글머리 기호" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor"></circle></svg></button>
+                  <button onMouseDown="{{ cmdOL }}" title="번호 매기기" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="20" y2="6"></line><line x1="10" y1="12" x2="20" y2="12"></line><line x1="10" y1="18" x2="20" y2="18"></line><path d="M4 6h1v4M4 10h2" stroke-width="1.5"></path><path d="M4.5 15.5h1.5l-1.5 2.5h1.5" stroke-width="1.5"></path></svg></button>
+                  <button onMouseDown="{{ cmdQuote }}" title="인용구" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 7H4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2v1a2 2 0 0 1-2 2H3.5a.5.5 0 0 0 0 1H4a3 3 0 0 0 3-3zM18 7h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2v1a2 2 0 0 1-2 2h-.5a.5.5 0 0 0 0 1h.5a3 3 0 0 0 3-3z"></path></svg></button>
+                  <span style="width:1px; height:20px; background:var(--border); margin:0 6px;"></span>
+                  <button title="링크" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"></path></svg></button>
+                  <button title="이미지" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><circle cx="8.5" cy="9.5" r="1.6"></circle><path d="m21 16-5-5L5 20"></path></svg></button>
+                  <button title="표" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:7px; color:var(--text-2); cursor:pointer;" style-hover="background:var(--surface-3); color:var(--text)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="4" x2="9" y2="20"></line></svg></button>
+                </div>
+                <div contenteditable="true" style="min-height:340px; padding:18px 20px; font-size:15.5px; line-height:1.85; color:var(--text); outline:none; background:var(--surface);">
+                  <h2 style="font-size:19px; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em;">행사 개요</h2>
+                  <p style="margin:0 0 14px;">여기에 본문을 작성하세요. 상단 도구막대로 제목·굵게·기울임·목록·인용 등 서식을 적용할 수 있습니다. 텍스트를 선택한 뒤 버튼을 눌러 보세요.</p>
+                  <ul style="margin:0; padding-left:22px; display:flex; flex-direction:column; gap:6px;"><li>일시 — 2026년 7월 15일 (수) 오후 2시</li><li>장소 — 본관 8층 대회의실</li></ul>
+                </div>
+              </div>
+
+              <div style="border:2px dashed var(--border-strong); border-radius:12px; padding:22px; text-align:center; margin-top:18px; cursor:pointer;" style-hover="border-color:var(--primary)">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:7px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <div style="font-size:13.5px; font-weight:600; color:var(--text-2);">파일을 끌어다 놓거나 클릭하여 업로드</div>
+                <div style="font-size:12px; color:var(--text-3); margin-top:4px;">최대 20MB · pdf, hwp, docx, jpg, png, zip</div>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+                <span style="display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-2); background:var(--surface-2); padding:6px 10px; border-radius:8px;"><span style="width:24px; height:24px; border-radius:6px; background:rgba(214,69,63,0.13); color:#d6453f; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800;">PDF</span>2026_정기총회_안건.pdf <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2.2" stroke-linecap="round" style="cursor:pointer;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+              </div>
+
+              <div style="margin-top:18px;">
+                <label style="display:block; font-size:12.5px; font-weight:700; color:var(--text-2); margin-bottom:7px;">태그</label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--border-strong); border-radius:10px; padding:8px 10px;">
+                  <span style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:var(--primary); background:var(--primary-weak); padding:3px 9px; border-radius:14px;">#총회 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="cursor:pointer;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+                  <span style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:var(--primary); background:var(--primary-weak); padding:3px 9px; border-radius:14px;">#공지 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="cursor:pointer;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+                  <input placeholder="태그 입력 후 Enter" style="flex:1; min-width:140px; border:none; background:transparent; outline:none; font-family:inherit; font-size:13px; color:var(--text);">
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:20px;">
+              <button onClick="{{ goPostList }}" style="border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:14px; padding:10px 20px; border-radius:9px; cursor:pointer;" style-hover="background:var(--surface-2)">취소</button>
+              <div style="display:flex; gap:8px;">
+                <button style="border:1px solid var(--border-strong); background:var(--surface); color:var(--text); font-weight:600; font-size:14px; padding:10px 18px; border-radius:9px; cursor:pointer;" style-hover="background:var(--surface-2)">임시저장</button>
+                <button style="border:none; background:var(--primary); color:#fff; font-weight:600; font-size:14px; padding:10px 24px; border-radius:9px; cursor:pointer;" style-hover="background:var(--primary-strong)">등록</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ CALENDAR ============ -->
+        <sc-if value="{{ isCalendar }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="캘린더">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <h1 style="margin:0; font-size:25px; font-weight:800; letter-spacing:-0.03em;">2026년 6월</h1>
+              <div style="display:flex; align-items:center; gap:2px;">
+                <button style="width:32px; height:32px; border:1px solid var(--border-strong); background:var(--surface); border-radius:8px 0 0 8px; color:var(--text-2); cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:var(--surface-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                <button style="width:32px; height:32px; border:1px solid var(--border-strong); border-left:none; background:var(--surface); border-radius:0 8px 8px 0; color:var(--text-2); cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:var(--surface-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+              </div>
+              <button style="border:1px solid var(--border-strong); background:var(--surface); color:var(--text-2); font-weight:600; font-size:13px; padding:7px 14px; border-radius:8px; cursor:pointer;" style-hover="background:var(--surface-2)">오늘</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="display:flex; gap:2px; background:var(--surface-2); border-radius:9px; padding:3px;">
+                <sc-for list="{{ calViews }}" as="v" hint-placeholder-count="3">
+                  <button onClick="{{ v.onClick }}" style="border:none; background:{{ v.bg }}; color:{{ v.fg }}; box-shadow:{{ v.shadow }}; font-weight:600; font-size:13px; padding:6px 17px; border-radius:7px; cursor:pointer;">{{ v.label }}</button>
+                </sc-for>
+              </div>
+              <button style="display:inline-flex; align-items:center; gap:6px; border:none; background:var(--primary); color:#fff; font-weight:600; font-size:14px; padding:9px 16px; border-radius:9px; cursor:pointer;" style-hover="background:var(--primary-strong)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>일정 등록</button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:236px 1fr; gap:20px; align-items:start;">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; box-shadow:var(--shadow-sm);">
+              <div style="font-size:12.5px; font-weight:800; letter-spacing:0.04em; color:var(--text-3); margin-bottom:12px;">내 캘린더</div>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <sc-for list="{{ calendars }}" as="c" hint-placeholder-count="5">
+                  <div onClick="{{ c.onClick }}" style="display:flex; align-items:center; gap:10px; padding:7px 4px; cursor:pointer; font-size:13.5px; font-weight:500; color:{{ c.nameColor }};" style-hover="color:var(--text)">
+                    <span style="width:18px; height:18px; border-radius:5px; background:{{ c.checkBg }}; border:2px solid {{ c.color }}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                      <sc-if value="{{ c.on }}" hint-placeholder-val="{{ true }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></sc-if>
+                    </span>
+                    {{ c.name }}
+                  </div>
+                </sc-for>
+              </div>
+              <button style="display:inline-flex; align-items:center; gap:5px; margin-top:12px; border:none; background:transparent; color:var(--text-3); font-weight:600; font-size:12.5px; cursor:pointer; padding:4px;" style-hover="color:var(--primary)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>캘린더 추가</button>
+            </div>
+
+            <!-- MONTH VIEW -->
+            <sc-if value="{{ isMonth }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-sm);">
+              <div style="display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border-strong);">
+                <span style="text-align:center; padding:11px 0; font-size:12px; font-weight:700; color:var(--danger);">일</span>
+                <span style="text-align:center; padding:11px 0; font-size:12px; font-weight:700; color:var(--text-3);">월</span>
+                <span style="text-align:center; padding:11px 0; font-size:12px; font-weight:700; color:var(--text-3);">화</span>
+                <span style="text-align:center; padding:11px 0; font-size:12px; font-weight:700; color:var(--text-3);">수</span>
+                <span style="text-align:center; padding:11px 0; font-size:12px; font-weight:700; color:var(--text-3);">목</span>
+                <span style="text-align:center; padding:11px 0; font-size:12px; font-weight:700; color:var(--text-3);">금</span>
+                <span style="text-align:center; padding:11px 0; font-size:12px; font-weight:700; color:var(--primary);">토</span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(7,1fr);">
+                <sc-for list="{{ monthGrid }}" as="c" hint-placeholder-count="42">
+                  <div style="min-height:114px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:6px 7px; display:flex; flex-direction:column; gap:3px;">
+                    <div style="display:flex; margin-bottom:1px;">
+                      <sc-if value="{{ c.isToday }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--primary); color:#fff; font-size:12.5px; font-weight:700;">{{ c.label }}</span></sc-if>
+                      <sc-if value="{{ c.notToday }}" hint-placeholder-val="{{ true }}"><span style="font-size:12.5px; font-weight:700; color:{{ c.numColor }}; padding:2px 4px;">{{ c.label }}</span></sc-if>
+                    </div>
+                    <sc-if value="{{ c.isHoliday }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; font-weight:700; color:var(--danger); background:rgba(214,69,63,0.1); border-radius:4px; padding:1px 6px; align-self:flex-start;">{{ c.holiday }}</span></sc-if>
+                    <sc-for list="{{ c.events }}" as="e" hint-placeholder-count="2">
+                      <div style="display:flex; align-items:center; gap:5px; background:{{ e.bg }}; border-left:2.5px solid {{ e.color }}; border-radius:4px; padding:2px 5px; overflow:hidden;">
+                        <span style="font-size:10px; font-weight:700; color:var(--text-3); flex-shrink:0;">{{ e.time }}</span>
+                        <span style="font-size:11px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ e.title }}</span>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ c.hasMore }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; color:var(--text-3); font-weight:600; padding-left:4px;">+{{ c.more }}개 더보기</span></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            </sc-if>
+
+            <!-- WEEK VIEW -->
+            <sc-if value="{{ isWeek }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-sm);">
+              <div style="display:grid; grid-template-columns:56px repeat(7,1fr); border-bottom:1px solid var(--border-strong);">
+                <span></span>
+                <sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+                  <div style="text-align:center; padding:9px 0;">
+                    <div style="font-size:11.5px; font-weight:700; color:var(--text-3); margin-bottom:4px;">{{ d.dow }}</div>
+                    <sc-if value="{{ d.today }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:var(--primary); color:#fff; font-size:13px; font-weight:700;">{{ d.date }}</span></sc-if>
+                    <sc-if value="{{ d.notToday }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px; font-weight:700; color:{{ d.num }};">{{ d.date }}</span></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; max-height:520px; overflow-y:auto;">
+                <div style="width:56px; position:relative; height:{{ gridHeight }}px; flex-shrink:0;">
+                  <sc-for list="{{ hourRail }}" as="h" hint-placeholder-count="12">
+                    <span style="position:absolute; top:{{ h.top }}px; right:8px; transform:translateY(-50%); font-size:10.5px; color:var(--text-3);">{{ h.label }}</span>
+                  </sc-for>
+                </div>
+                <div style="flex:1; display:grid; grid-template-columns:repeat(7,1fr);">
+                  <sc-for list="{{ weekColumns }}" as="col" hint-placeholder-count="7">
+                    <div style="position:relative; border-left:1px solid var(--border); height:{{ gridHeight }}px; background:repeating-linear-gradient(var(--surface), var(--surface) 51px, var(--border) 51px, var(--border) 52px);">
+                      <sc-for list="{{ col.events }}" as="e" hint-placeholder-count="0">
+                        <div style="position:absolute; left:3px; right:3px; top:{{ e.top }}px; height:{{ e.height }}px; background:{{ e.bg }}; border-left:3px solid {{ e.color }}; border-radius:5px; padding:4px 7px; overflow:hidden;">
+                          <div style="font-size:11.5px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ e.title }}</div>
+                          <div style="font-size:10px; color:var(--text-2);">{{ e.time }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            </sc-if>
+
+            <!-- DAY VIEW -->
+            <sc-if value="{{ isDay }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-sm);">
+              <div style="padding:13px 20px; border-bottom:1px solid var(--border-strong); font-size:15px; font-weight:700;">{{ dayLabel }}</div>
+              <div style="display:flex; max-height:520px; overflow-y:auto;">
+                <div style="width:56px; position:relative; height:{{ gridHeight }}px; flex-shrink:0;">
+                  <sc-for list="{{ hourRail }}" as="h" hint-placeholder-count="12">
+                    <span style="position:absolute; top:{{ h.top }}px; right:8px; transform:translateY(-50%); font-size:10.5px; color:var(--text-3);">{{ h.label }}</span>
+                  </sc-for>
+                </div>
+                <div style="flex:1; position:relative; border-left:1px solid var(--border); height:{{ gridHeight }}px; background:repeating-linear-gradient(var(--surface), var(--surface) 51px, var(--border) 51px, var(--border) 52px);">
+                  <sc-for list="{{ dayBlocks }}" as="e" hint-placeholder-count="2">
+                    <div style="position:absolute; left:10px; right:10px; top:{{ e.top }}px; height:{{ e.height }}px; background:{{ e.bg }}; border-left:3px solid {{ e.color }}; border-radius:6px; padding:6px 12px; overflow:hidden;">
+                      <div style="font-size:13px; font-weight:700; color:var(--text);">{{ e.title }}</div>
+                      <div style="font-size:11.5px; color:var(--text-2); margin-top:2px;">{{ e.time }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ STYLE GUIDE ============ -->
+        <sc-if value="{{ isGuide }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="디자인 방향성">
+        <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-3); font-weight:600; margin-bottom:8px;">
+          <span>디자인 시스템</span>
+          <span style="opacity:.5;">/</span>
+          <span style="color:var(--text-2);">방향성 제안</span>
+        </div>
+        <h1 style="margin:0 0 6px; font-size:29px; font-weight:800; letter-spacing:-0.03em;">코럼 디자인 방향성</h1>
+        <p style="margin:0 0 26px; font-size:15px; color:var(--text-2); max-width:680px; line-height:1.65;">사단법인의 <strong style="color:var(--text); font-weight:700;">신뢰감</strong>과 내부 협업 도구로서의 <strong style="color:var(--text); font-weight:700;">실용성</strong>을 동시에 만족하는 시스템입니다. 차분한 잉크 톤 위에 절제된 신뢰 블루를 포인트로 사용하고, 한글 가독성이 뛰어난 Pretendard를 기반으로 합니다.</p>
+
+        <!-- MOOD BANNER -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:34px;">
+          <div style="padding:20px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+            <div style="font-size:13px; font-weight:800; color:var(--primary); letter-spacing:0.04em; margin-bottom:8px;">신뢰 TRUST</div>
+            <div style="font-size:13.5px; color:var(--text-2); line-height:1.6;">과장 없는 색과 여백. 공공기관·협회 사용자가 안심하고 정보를 신뢰할 수 있는 절제된 톤.</div>
+          </div>
+          <div style="padding:20px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+            <div style="font-size:13px; font-weight:800; color:var(--accent); letter-spacing:0.04em; margin-bottom:8px;">명료 CLARITY</div>
+            <div style="font-size:13.5px; color:var(--text-2); line-height:1.6;">게시판·권한·메뉴가 복잡해도 위계가 분명한 타이포와 트리 구조로 길을 잃지 않게.</div>
+          </div>
+          <div style="padding:20px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+            <div style="font-size:13px; font-weight:800; color:var(--warn); letter-spacing:0.04em; margin-bottom:8px;">지속 CARE</div>
+            <div style="font-size:13.5px; color:var(--text-2); line-height:1.6;">매일 쓰는 업무 도구. 라이트·다크 모두 눈이 편안하고, 오래 봐도 피로하지 않게.</div>
+          </div>
+        </div>
+
+        <!-- COLOR PALETTE -->
+        <section style="margin-bottom:34px;">
+          <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:14px;">
+            <h2 style="margin:0; font-size:18px; font-weight:700; letter-spacing:-0.02em;">컬러 팔레트</h2>
+            <span style="font-size:12.5px; color:var(--text-3);">우측 상단 토글로 라이트·다크 전환 — 모든 토큰이 함께 반응합니다</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(124px,1fr)); gap:14px;">
+            <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="9">
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="height:60px; border-radius:12px; background:{{ s.value }}; border:1px solid var(--border); box-shadow:var(--shadow-sm);"></div>
+                <div>
+                  <div style="font-size:13px; font-weight:600;">{{ s.name }}</div>
+                  <div style="font-size:11px; color:var(--text-3); font-family:'SFMono-Regular',Menlo,monospace;">{{ s.token }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- TYPOGRAPHY -->
+        <section style="margin-bottom:34px;">
+          <h2 style="margin:0 0 14px; font-size:18px; font-weight:700; letter-spacing:-0.02em;">타이포그래피 · Pretendard</h2>
+          <div style="display:flex; flex-direction:column; gap:2px; padding:22px 24px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+            <div style="display:flex; align-items:baseline; gap:16px; padding:9px 0; border-bottom:1px solid var(--border);"><span style="width:88px; flex-shrink:0; font-size:11px; color:var(--text-3); font-family:monospace;">Display 40</span><span style="font-size:40px; font-weight:800; letter-spacing:-0.035em;">신뢰를 잇는 공간</span></div>
+            <div style="display:flex; align-items:baseline; gap:16px; padding:9px 0; border-bottom:1px solid var(--border);"><span style="width:88px; flex-shrink:0; font-size:11px; color:var(--text-3); font-family:monospace;">Heading 28</span><span style="font-size:28px; font-weight:700; letter-spacing:-0.025em;">함께 만드는 우리의 기록</span></div>
+            <div style="display:flex; align-items:baseline; gap:16px; padding:9px 0; border-bottom:1px solid var(--border);"><span style="width:88px; flex-shrink:0; font-size:11px; color:var(--text-3); font-family:monospace;">Title 20</span><span style="font-size:20px; font-weight:700; letter-spacing:-0.02em;">제24차 정기총회 안내</span></div>
+            <div style="display:flex; align-items:baseline; gap:16px; padding:9px 0; border-bottom:1px solid var(--border);"><span style="width:88px; flex-shrink:0; font-size:11px; color:var(--text-3); font-family:monospace;">Body 15</span><span style="font-size:15px; font-weight:400; color:var(--text-2);">본문 기본 크기입니다. 한글과 영문(Aa), 숫자 0123이 균형 있게 읽힙니다.</span></div>
+            <div style="display:flex; align-items:baseline; gap:16px; padding:9px 0;"><span style="width:88px; flex-shrink:0; font-size:11px; color:var(--text-3); font-family:monospace;">Caption 13</span><span style="font-size:13px; font-weight:500; color:var(--text-3);">작성자 · 2026.06.28 · 조회 142 — 보조 정보용</span></div>
+          </div>
+        </section>
+
+        <!-- COMPONENTS -->
+        <section>
+          <h2 style="margin:0 0 14px; font-size:18px; font-weight:700; letter-spacing:-0.02em;">핵심 컴포넌트</h2>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+            <div style="padding:20px 22px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+              <div style="font-size:12px; font-weight:700; color:var(--text-3); letter-spacing:0.05em; margin-bottom:14px;">버튼</div>
+              <div style="display:flex; flex-wrap:wrap; gap:9px; align-items:center;">
+                <button style="border:none; background:var(--primary); color:#fff; font-weight:600; font-size:14px; padding:9px 17px; border-radius:9px; cursor:pointer;" style-hover="background:var(--primary-strong)">글쓰기</button>
+                <button style="border:1px solid var(--border-strong); background:var(--surface); color:var(--text); font-weight:600; font-size:14px; padding:9px 17px; border-radius:9px; cursor:pointer;" style-hover="background:var(--surface-2)">목록</button>
+                <button style="border:none; background:transparent; color:var(--text-2); font-weight:600; font-size:14px; padding:9px 13px; border-radius:9px; cursor:pointer;" style-hover="background:var(--surface-2)">취소</button>
+                <button style="border:1px solid var(--danger); background:transparent; color:var(--danger); font-weight:600; font-size:14px; padding:9px 15px; border-radius:9px; cursor:pointer;">삭제</button>
+              </div>
+            </div>
+
+            <div style="padding:20px 22px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+              <div style="font-size:12px; font-weight:700; color:var(--text-3); letter-spacing:0.05em; margin-bottom:14px;">뱃지 · 태그</div>
+              <div style="display:flex; flex-wrap:wrap; gap:9px; align-items:center;">
+                <span style="font-size:11px; font-weight:800; color:var(--new); border:1px solid var(--new); padding:3px 8px; border-radius:6px;">NEW</span>
+                <span style="font-size:12px; font-weight:700; color:var(--primary); background:var(--primary-weak); padding:4px 10px; border-radius:6px;">📌 공지</span>
+                <span style="font-size:12px; font-weight:600; color:var(--text-2); background:var(--surface-2); padding:4px 10px; border-radius:14px;"># 총회</span>
+                <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:var(--text-3); background:var(--surface-2); padding:4px 10px; border-radius:6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>권한필요</span>
+              </div>
+            </div>
+
+            <div style="padding:20px 22px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm); grid-column:1 / -1;">
+              <div style="font-size:12px; font-weight:700; color:var(--text-3); letter-spacing:0.05em; margin-bottom:14px;">이모지 리액션 — 6종 pill (Mattermost 스타일)</div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                <sc-for list="{{ reactions }}" as="r" hint-placeholder-count="6">
+                  <button style="display:inline-flex; align-items:center; gap:6px; padding:4px 11px 4px 9px; border-radius:16px; cursor:pointer; font-size:13px; font-weight:700; background:{{ r.bg }}; border:1px solid {{ r.border }}; color:{{ r.fg }};">
+                    <span style="font-size:15px;">{{ r.emoji }}</span><span>{{ r.count }}</span>
+                  </button>
+                </sc-for>
+                <button style="display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:16px; cursor:pointer; font-size:13px; font-weight:600; background:var(--surface); border:1px dashed var(--border-strong); color:var(--text-3);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"></path></svg>
+                  추가
+                </button>
+              </div>
+            </div>
+
+            <div style="padding:20px 22px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+              <div style="font-size:12px; font-weight:700; color:var(--text-3); letter-spacing:0.05em; margin-bottom:14px;">입력 필드</div>
+              <label style="display:block; font-size:13px; font-weight:600; color:var(--text-2); margin-bottom:6px;">제목</label>
+              <input value="제24차 정기총회 개최 안내" style="width:100%; font-family:inherit; font-size:14px; color:var(--text); background:var(--bg); border:1px solid var(--border-strong); border-radius:9px; padding:10px 13px; outline:none;" style-focus="border-color:var(--primary)">
+              <div style="font-size:11.5px; color:var(--text-3); margin-top:6px;">최대 120자 · 등록 후 수정 가능</div>
+            </div>
+
+            <div style="padding:20px 22px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+              <div style="font-size:12px; font-weight:700; color:var(--text-3); letter-spacing:0.05em; margin-bottom:14px;">탭</div>
+              <div style="display:flex; gap:4px; border-bottom:1px solid var(--border);">
+                <div style="padding:9px 14px; font-size:14px; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); margin-bottom:-1px;">전체</div>
+                <div style="padding:9px 14px; font-size:14px; font-weight:600; color:var(--text-3); cursor:pointer;">공지</div>
+                <div style="padding:9px 14px; font-size:14px; font-weight:600; color:var(--text-3); cursor:pointer;">자료</div>
+                <div style="padding:9px 14px; font-size:14px; font-weight:600; color:var(--text-3); cursor:pointer;">갤러리</div>
+              </div>
+              <div style="padding-top:14px; font-size:13.5px; color:var(--text-2);">탭으로 게시판 내 분류를 빠르게 전환합니다.</div>
+            </div>
+
+          </div>
+        </section>
+        </div>
+        </sc-if>
+
+      </main>
+
+      <!-- FOOTER -->
+      <footer style="flex-shrink:0; background:var(--surface); border-top:1px solid var(--border); padding:22px 42px; display:flex; align-items:center; justify-content:space-between; gap:24px;">
+        <div style="display:flex; flex-direction:column; gap:3px;">
+          <div style="font-size:13px; font-weight:700; color:var(--text-2);">사단법인 한국공익협회</div>
+          <div style="font-size:12px; color:var(--text-3); line-height:1.6;">서울특별시 중구 세종대로 110, 8층 · 대표전화 02-1234-5678 · 고유번호 123-82-45678</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:18px; font-size:12.5px; font-weight:600; color:var(--text-3);">
+          <span style="cursor:pointer;" style-hover="color:var(--text)">이용약관</span>
+          <span style="cursor:pointer; color:var(--text-2);" style-hover="color:var(--text)">개인정보처리방침</span>
+          <span style="cursor:pointer;" style-hover="color:var(--text)">문의하기</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- demo screen switcher -->
+  <div style="position:fixed; right:18px; bottom:18px; z-index:100; display:flex; align-items:center; gap:4px; padding:5px; background:var(--surface); border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow); flex-wrap:wrap; max-width:72vw; justify-content:flex-end;">
+    <span style="font-size:10.5px; font-weight:700; color:var(--text-3); letter-spacing:0.06em; padding:0 7px 0 6px;">화면</span>
+    <sc-for list="{{ screenNav }}" as="sc" hint-placeholder-count="2">
+      <button onClick="{{ sc.onClick }}" style="border:none; background:{{ sc.bg }}; color:{{ sc.fg }}; font-weight:700; font-size:12.5px; padding:7px 13px; border-radius:9px; cursor:pointer;">{{ sc.label }}</button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860},&quot;primary&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#2f5fd6&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#2f5fd6&quot;,&quot;#1f6f5b&quot;,&quot;#7a4ad6&quot;,&quot;#b3541e&quot;],&quot;section&quot;:&quot;브랜드&quot;},&quot;defaultDark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;테마&quot;}}">
+class Component extends DCLogic {
+  state = {
+    dark: false,
+    activeMenu: 1,
+    expanded: { 'n-archive': true },
+    current: 'n-notice',
+    screen: 'home',
+    slide: 0,
+    feedTab: 0,
+    reactions: { '❤️': { count: 14, mine: false }, '👍': { count: 9, mine: true }, '😄': { count: 3, mine: false }, '😂': { count: 1, mine: false }, '😢': { count: 0, mine: false }, '😠': { count: 0, mine: false } },
+    showPicker: false,
+    optNotice: false,
+    optComment: true,
+    calView: 'month',
+    calOn: { assoc: true, edu: true, board: true, vol: true, holiday: true },
+  };
+  rootRef = React.createRef();
+
+  componentDidMount() {
+    const wantDark = this.props.defaultDark ?? false;
+    if (wantDark) this.setState({ dark: true }, () => this.applyTheme(true));
+    else this.applyPrimary(this.props.primary);
+  }
+  componentDidUpdate(prev) {
+    if (prev.primary !== this.props.primary && !this.state.dark) this.applyPrimary(this.props.primary);
+  }
+
+  darkVars() {
+    return {
+      '--bg': '#0e1117', '--surface': '#161b22', '--surface-2': '#1d242e', '--surface-3': '#26303b',
+      '--border': '#28313d', '--border-strong': '#36414f',
+      '--text': '#e7eaf0', '--text-2': '#9aa4b3', '--text-3': '#6c7686',
+      '--primary': '#5e87ee', '--primary-strong': '#7ba0f2', '--primary-weak': '#1a2540',
+      '--accent': '#37b585', '--accent-weak': '#14302a',
+      '--danger': '#e2615b', '--warn': '#d59a3a', '--new': '#f06a52',
+      '--shadow-sm': '0 1px 2px rgba(0,0,0,0.4)', '--shadow': '0 1px 2px rgba(0,0,0,0.4),0 4px 14px rgba(0,0,0,0.35)',
+    };
+  }
+  applyTheme(dark) {
+    const el = this.rootRef.current;
+    if (!el) return;
+    const D = this.darkVars();
+    Object.keys(D).forEach(k => { if (dark) el.style.setProperty(k, D[k]); else el.style.removeProperty(k); });
+    // Root both defines --text and consumes it via color:var(--text); its self-reference
+    // does not re-resolve on token override, so set the inherited color literally.
+    el.style.color = dark ? '#e7eaf0' : '#1a1e27';
+    if (!dark) this.applyPrimary(this.props.primary);
+  }
+  applyPrimary(hex) {
+    const el = this.rootRef.current;
+    if (!el || !hex) return;
+    el.style.setProperty('--primary', hex);
+    el.style.setProperty('--primary-strong', 'color-mix(in srgb, ' + hex + ' 82%, black)');
+    el.style.setProperty('--primary-weak', 'color-mix(in srgb, ' + hex + ' 11%, white)');
+  }
+
+  toggleTheme() { this.setState(s => ({ dark: !s.dark }), () => this.applyTheme(this.state.dark)); }
+  selectMenu(i) { this.setState({ activeMenu: i }); }
+  toggleNode(id) { this.setState(s => ({ expanded: { ...s.expanded, [id]: !s.expanded[id] } })); }
+  selectPage(id, screen) { this.setState(s => ({ current: id, screen: screen || s.screen })); }
+  screenForBoard(bt) { return bt === 'POST' ? 'post' : bt === 'GALLERY' ? 'gallery' : bt === 'DOCUMENT' ? 'document' : bt === 'CAL' ? 'calendar' : null; }
+  goScreen(s) { this.setState({ screen: s }); }
+  prevSlide() { const n = this.slides().length; this.setState(s => ({ slide: (s.slide + n - 1) % n })); }
+  nextSlide() { const n = this.slides().length; this.setState(s => ({ slide: (s.slide + 1) % n })); }
+  setSlide(i) { this.setState({ slide: i }); }
+  setFeedTab(i) { this.setState({ feedTab: i }); }
+
+  slides() {
+    return [
+      { tag: '행사', title: '제24차 정기총회 개최 안내', date: '2026.07.15 · 본관 대회의실', ph: '1600×600' },
+      { tag: '모집', title: '2026 하반기 자원봉사자 모집', date: '신청 ~ 07.31', ph: '1600×600' },
+      { tag: '공모', title: '공익활동 우수사례 공모전', date: '2026.08 진행 예정', ph: '1600×600' },
+    ];
+  }
+  feeds() {
+    return {
+      0: [
+        { title: '제2차 운영위원회 회의록 공개', date: '06.30', isNew: true, pinned: true, comments: 0 },
+        { title: '개인정보 처리방침 개정 안내 (7/1 시행)', date: '06.28', pinned: true, comments: 0 },
+        { title: '여름철 사무국 단축근무 시행 안내', date: '06.27', isNew: true, comments: 2 },
+        { title: '홈페이지 정기 점검 안내 (7/3 새벽)', date: '06.25', comments: 1 },
+        { title: '제24차 정기총회 개최 및 안건 공고', date: '06.20', comments: 5 },
+      ],
+      1: [
+        { title: '본회, 공익활동 유공 단체 표창 수상', date: '06.29', isNew: true, comments: 3 },
+        { title: '지역 복지 사각지대 해소 협약 체결', date: '06.24', comments: 0 },
+        { title: '2026 상반기 사업성과 언론 보도 모음', date: '06.18', comments: 1 },
+      ],
+      2: [
+        { title: '총회 참석 주차 관련 문의드립니다', date: '06.30', isNew: true, comments: 4 },
+        { title: '자원봉사 활동 후기 공유합니다 :)', date: '06.29', comments: 7 },
+        { title: '사무국에 감사 인사 전합니다', date: '06.27', comments: 2 },
+        { title: '회원 게시판 글쓰기 권한 건의', date: '06.26', comments: 1 },
+      ],
+    };
+  }
+  calCells() {
+    const cells = [];
+    const first = new Date(2026, 5, 1).getDay();
+    const events = { 12: 'var(--primary)', 15: 'var(--accent)', 22: 'var(--warn)', 30: 'var(--primary)' };
+    for (let i = 0; i < first; i++) cells.push({ blank: true, show: false });
+    for (let d = 1; d <= 30; d++) {
+      const today = d === 30;
+      const dot = events[d];
+      cells.push({
+        blank: false, show: true, day: d, hasDot: !!dot, dot: dot || 'transparent',
+        bg: today ? 'var(--primary)' : 'transparent',
+        color: today ? '#fff' : 'var(--text)',
+        weight: today ? '800' : '500',
+      });
+    }
+    return cells;
+  }
+  nodeById(id) {
+    const scan = (nodes, top) => {
+      for (const n of nodes) {
+        if (n.id === id) return { label: n.label, top };
+        if (n.children) { const f = scan(n.children, top); if (f) return f; }
+      }
+      return null;
+    };
+    for (const m of this.getMenus()) { const f = scan(m.children, m.label); if (f) return f; }
+    return null;
+  }
+  emojiOrder() { return ['❤️', '👍', '😄', '😂', '😢', '😠']; }
+  toggleReaction(e) {
+    this.setState(s => {
+      const r = { ...s.reactions };
+      const cur = { ...r[e] };
+      if (cur.mine) { cur.count--; cur.mine = false; } else { cur.count++; cur.mine = true; }
+      r[e] = cur;
+      return { reactions: r, showPicker: false };
+    });
+  }
+  togglePicker() { this.setState(s => ({ showPicker: !s.showPicker })); }
+  roleStyle(role) {
+    if (role === '운영') return { bg: 'var(--primary-weak)', fg: 'var(--primary)' };
+    if (role === '정회원') return { bg: 'var(--accent-weak)', fg: 'var(--accent)' };
+    return { bg: 'var(--surface-2)', fg: 'var(--text-3)' };
+  }
+  commentTree() {
+    return [
+      { id: 1, depth: 0, author: '이정민', role: '정회원', date: '06.28 14:22', body: '총회 안건 미리 공유해 주셔서 감사합니다. 위임장 양식도 함께 받을 수 있을까요?', reactions: [{ e: '👍', c: 4 }], replies: [
+        { id: 2, depth: 1, author: '사무국', role: '운영', date: '06.28 15:01', body: '네, 위임장 양식은 자료실 > 각종 서식에 업로드해 두었습니다. 확인 부탁드립니다.', reactions: [{ e: '❤️', c: 2 }], replies: [
+          { id: 3, depth: 2, author: '이정민', role: '정회원', date: '06.28 15:10', body: '확인했습니다. 빠른 답변 감사합니다!', reactions: [] },
+        ] },
+        { id: 4, depth: 1, deleted: true },
+      ] },
+      { id: 5, depth: 0, author: '박서연', role: '일반회원', date: '06.29 09:40', body: '온라인 참석도 가능한가요? 지방에 있어 현장 참석이 어려울 것 같습니다.', reactions: [{ e: '👍', c: 1 }], replies: [
+        { id: 6, depth: 1, author: '사무국', role: '운영', date: '06.29 10:15', body: '화상 참석 링크를 총회 전날 쪽지와 이메일로 안내드릴 예정입니다.', reactions: [] },
+      ] },
+      { id: 7, depth: 0, author: '최도윤', role: '정회원', date: '06.29 18:30', body: '좋은 안건 감사합니다. 적극 참여하겠습니다.', reactions: [{ e: '❤️', c: 3 }, { e: '😄', c: 1 }] },
+    ];
+  }
+  flattenComments(nodes, out) { nodes.forEach(n => { out.push(n); if (n.replies) this.flattenComments(n.replies, out); }); }
+  exec(cmd, val) { return (e) => { e.preventDefault(); try { document.execCommand(cmd, false, val); } catch (err) {} }; }
+  toggleOpt(k) { this.setState(s => ({ [k]: !s[k] })); }
+  setCalView(v) { this.setState({ calView: v }); }
+  toggleCal(id) { this.setState(s => ({ calOn: { ...s.calOn, [id]: !s.calOn[id] } })); }
+  calMap() { return { assoc: '#2f5fd6', edu: '#1f9d6b', board: '#c47f1c', vol: '#7a4ad6', holiday: '#d6453f' }; }
+  fmtHour(h) { const hh = Math.floor(h); const mm = (h - hh) === 0.5 ? '30' : '00'; return (hh < 10 ? '0' + hh : hh) + ':' + mm; }
+  calEvents() {
+    return [
+      { day: 3, cal: 'assoc', title: '운영위 회의', time: '14:00' },
+      { day: 6, cal: 'holiday', title: '현충일', allDay: true },
+      { day: 10, cal: 'edu', title: '신입회원 OT', time: '10:00' },
+      { day: 12, cal: 'vol', title: '복지관 봉사', time: '09:00' },
+      { day: 15, cal: 'board', title: '정기 이사회', time: '15:00' },
+      { day: 15, cal: 'assoc', title: '예산 점검', time: '17:00' },
+      { day: 18, cal: 'edu', title: '직무 역량 교육', time: '13:00' },
+      { day: 22, cal: 'assoc', title: '사업 중간 점검', time: '11:00' },
+      { day: 24, cal: 'vol', title: '환경 정화 캠페인', time: '10:00' },
+      { day: 25, cal: 'edu', title: '우수사례 발표회', time: '14:00' },
+      { day: 25, cal: 'vol', title: '후원처 미팅', time: '16:00' },
+      { day: 25, cal: 'assoc', title: '뉴스레터 발송', time: '18:00' },
+      { day: 25, cal: 'board', title: '임원 간담회', time: '19:00' },
+      { day: 30, cal: 'board', title: '총회 준비 회의', time: '16:00' },
+    ];
+  }
+  weekEventsRaw() {
+    return [
+      { col: 1, cal: 'assoc', title: '주간 업무회의', sh: 9, eh: 10 },
+      { col: 2, cal: 'edu', title: '교육 자료 준비', sh: 11, eh: 12.5 },
+      { col: 2, cal: 'board', title: '총회 리허설', sh: 15, eh: 16 },
+      { col: 3, cal: 'vol', title: '봉사 사전답사', sh: 10, eh: 12 },
+      { col: 4, cal: 'assoc', title: '예산 점검', sh: 14, eh: 15 },
+      { col: 5, cal: 'edu', title: '직무 역량 교육', sh: 13, eh: 15 },
+    ];
+  }
+  monthGrid() {
+    const y = 2026, m = 5;
+    const first = new Date(y, m, 1).getDay();
+    const daysIn = new Date(y, m + 1, 0).getDate();
+    const prevDays = new Date(y, m, 0).getDate();
+    const holidays = { 6: '현충일' };
+    const cals = this.calMap();
+    const evMap = {};
+    this.calEvents().forEach(e => { if (!this.state.calOn[e.cal]) return; (evMap[e.day] = evMap[e.day] || []).push(e); });
+    const cells = [];
+    for (let i = 0; i < 42; i++) {
+      const dayNum = i - first + 1;
+      let inMonth = true, label;
+      if (dayNum < 1) { inMonth = false; label = prevDays + dayNum; }
+      else if (dayNum > daysIn) { inMonth = false; label = dayNum - daysIn; }
+      else { label = dayNum; }
+      const dow = i % 7;
+      const isToday = inMonth && dayNum === 30;
+      const evs = inMonth ? (evMap[dayNum] || []) : [];
+      const holiday = inMonth ? holidays[dayNum] : null;
+      cells.push({
+        label, inMonth, isToday, notToday: !isToday, dow,
+        holiday: holiday || '', isHoliday: !!holiday,
+        events: evs.slice(0, 3).map(e => ({ title: e.title, time: e.allDay ? '' : e.time, color: cals[e.cal], bg: cals[e.cal] + '22' })),
+        more: evs.length > 3 ? evs.length - 3 : 0, hasMore: evs.length > 3,
+        numColor: !inMonth ? 'var(--text-3)' : (holiday || dow === 0 ? 'var(--danger)' : (dow === 6 ? 'var(--primary)' : 'var(--text)')),
+      });
+    }
+    return cells;
+  }
+
+  getMenus() {
+    return [
+      { id: 'about', label: '협회소개', children: [
+        { id: 'a-greet', label: '인사말', type: 'page' },
+        { id: 'a-history', label: '연혁', type: 'page' },
+        { id: 'a-org', label: '조직 안내', type: 'folder', children: [
+          { id: 'a-chart', label: '조직도', type: 'page' },
+          { id: 'a-exec', label: '임원진', type: 'page' },
+          { id: 'a-office', label: '사무국', type: 'page', locked: true },
+        ] },
+        { id: 'a-map', label: '오시는 길', type: 'page' },
+        { id: 'a-parent', label: '상급기관 바로가기', type: 'external' },
+      ] },
+      { id: 'notice', label: '공지·자료', isNew: true, children: [
+        { id: 'n-notice', label: '공지사항', type: 'page', boardType: 'POST', isNew: true },
+        { id: 'n-press', label: '보도자료', type: 'page', boardType: 'POST' },
+        { id: 'n-archive', label: '자료실', type: 'folder', children: [
+          { id: 'n-rule', label: '정관·규정', type: 'page', boardType: 'DOCUMENT' },
+          { id: 'n-report', label: '사업보고서', type: 'page', boardType: 'DOCUMENT', isNew: true },
+          { id: 'n-form', label: '서식 다운로드', type: 'page', boardType: 'DOCUMENT', locked: true },
+        ] },
+        { id: 'n-gallery', label: '갤러리', type: 'page', boardType: 'GALLERY' },
+      ] },
+      { id: 'act', label: '활동·일정', isNew: true, children: [
+        { id: 'c-cal', label: '캘린더', type: 'page', boardType: 'CAL' },
+        { id: 'c-event', label: '행사 안내', type: 'page', isNew: true },
+        { id: 'c-biz', label: '사업 소개', type: 'folder', children: [
+          { id: 'c-ongoing', label: '진행 사업', type: 'page' },
+          { id: 'c-done', label: '종료 사업', type: 'page' },
+        ] },
+      ] },
+      { id: 'comm', label: '소통공간', children: [
+        { id: 't-free', label: '자유게시판', type: 'page', boardType: 'POST' },
+        { id: 't-news', label: '회원 동정', type: 'page', boardType: 'POST' },
+        { id: 't-suggest', label: '건의함', type: 'page', locked: true },
+        { id: 't-vol', label: '자원봉사 모집', type: 'external' },
+      ] },
+    ];
+  }
+
+  flatten(nodes, depth, out) {
+    nodes.forEach(n => {
+      const isFolder = n.type === 'folder';
+      const isExternal = n.type === 'external';
+      const isPage = !isFolder && !isExternal;
+      const expanded = !!this.state.expanded[n.id];
+      const active = isPage && n.id === this.state.current;
+      out.push({
+        id: n.id, label: n.label,
+        pad: 12 + depth * 16,
+        isFolder, isExternal, isPage, notFolder: !isFolder,
+        isExpandedFolder: isFolder && expanded,
+        isCollapsedFolder: isFolder && !expanded,
+        isNew: !!n.isNew, locked: !!n.locked,
+        active,
+        bg: active ? 'var(--primary-weak)' : 'transparent',
+        fg: active ? 'var(--primary)' : (n.locked ? 'var(--text-3)' : 'var(--text-2)'),
+        weight: active ? '700' : '500',
+        onClick: isFolder ? (() => this.toggleNode(n.id)) : (isExternal ? (() => {}) : (() => this.selectPage(n.id, this.screenForBoard(n.boardType)))),
+      });
+      if (isFolder && expanded && n.children) this.flatten(n.children, depth + 1, out);
+    });
+  }
+
+  renderVals() {
+    const menus = this.getMenus();
+    const active = menus[this.state.activeMenu] || menus[0];
+    const nodes = [];
+    this.flatten(active.children, 0, nodes);
+    return {
+      rootRef: this.rootRef,
+      dark: this.state.dark,
+      light: !this.state.dark,
+      toggleTheme: () => this.toggleTheme(),
+      topMenus: menus.map((m, i) => ({
+        label: m.label, isNew: !!m.isNew, active: i === this.state.activeMenu,
+        color: i === this.state.activeMenu ? 'var(--text)' : 'var(--text-2)',
+        onClick: () => this.selectMenu(i),
+      })),
+      sidebarTitleUpper: active.label,
+      treeNodes: nodes,
+      swatches: [
+        { name: 'Primary', token: '--primary', value: 'var(--primary)' },
+        { name: 'Primary Weak', token: '--primary-weak', value: 'var(--primary-weak)' },
+        { name: 'Accent', token: '--accent', value: 'var(--accent)' },
+        { name: 'Background', token: '--bg', value: 'var(--bg)' },
+        { name: 'Surface', token: '--surface', value: 'var(--surface)' },
+        { name: 'Surface 2', token: '--surface-2', value: 'var(--surface-2)' },
+        { name: 'Border', token: '--border', value: 'var(--border)' },
+        { name: 'Text', token: '--text', value: 'var(--text)' },
+        { name: 'Danger', token: '--danger', value: 'var(--danger)' },
+      ],
+      reactions: [
+        { emoji: '❤️', count: 12, active: true },
+        { emoji: '👍', count: 8, active: false },
+        { emoji: '😄', count: 3, active: false },
+        { emoji: '😂', count: 2, active: false },
+        { emoji: '😢', count: 0, active: false },
+        { emoji: '😠', count: 0, active: false },
+      ].filter(r => r.count > 0).map(r => ({
+        emoji: r.emoji, count: r.count,
+        bg: r.active ? 'var(--primary-weak)' : 'var(--surface-2)',
+        border: r.active ? 'var(--primary)' : 'transparent',
+        fg: r.active ? 'var(--primary)' : 'var(--text-2)',
+      })),
+      isHome: this.state.screen === 'home',
+      isGuide: this.state.screen === 'guide',
+      goHome: () => this.goScreen('home'),
+      screenNav: [
+        { key: 'home', label: '대시보드' },
+        { key: 'post', label: '게시판' },
+        { key: 'gallery', label: '갤러리' },
+        { key: 'document', label: '자료실' },
+        { key: 'detail', label: '글 상세' },
+        { key: 'write', label: '글쓰기' },
+        { key: 'calendar', label: '캘린더' },
+        { key: 'guide', label: '가이드' },
+      ].map(s => ({
+        label: s.label,
+        bg: this.state.screen === s.key ? 'var(--primary)' : 'transparent',
+        fg: this.state.screen === s.key ? '#fff' : 'var(--text-2)',
+        onClick: () => this.goScreen(s.key),
+      })),
+      stats: [
+        { label: '전체 회원', value: '1,284', sub: '+12', valColor: 'var(--text)', subColor: 'var(--accent)' },
+        { label: '오늘 방문', value: '327', sub: '+8%', valColor: 'var(--text)', subColor: 'var(--accent)' },
+        { label: '최근 새 글', value: '18', sub: '3일 내', valColor: 'var(--text)', subColor: 'var(--text-3)' },
+        { label: '안 읽은 쪽지', value: '3', sub: '확인 필요', valColor: 'var(--primary)', subColor: 'var(--primary)' },
+      ],
+      slide: this.slides()[this.state.slide],
+      slideCounter: (this.state.slide + 1) + ' / ' + this.slides().length,
+      slideDots: this.slides().map((_, i) => ({ active: i === this.state.slide, bg: i === this.state.slide ? '#fff' : 'rgba(255,255,255,0.45)', onClick: () => this.setSlide(i) })),
+      prevSlide: () => this.prevSlide(),
+      nextSlide: () => this.nextSlide(),
+      feedTabs: ['공지사항', '보도자료', '자유게시판'].map((label, i) => ({
+        label, active: i === this.state.feedTab,
+        bg: i === this.state.feedTab ? 'var(--primary-weak)' : 'transparent',
+        fg: i === this.state.feedTab ? 'var(--primary)' : 'var(--text-3)',
+        onClick: () => this.setFeedTab(i),
+      })),
+      feedPosts: (this.feeds()[this.state.feedTab] || []).map(p => ({
+        title: p.title, date: p.date, isNew: !!p.isNew, pinned: !!p.pinned,
+        comments: p.comments, hasComments: p.comments > 0,
+      })),
+      calCells: this.calCells(),
+      upcoming: [
+        { date: '07.15', title: '제24차 정기총회', color: 'var(--primary)' },
+        { date: '07.20', title: '7월 정기 이사회', color: 'var(--accent)' },
+        { date: '07.31', title: '봉사자 모집 마감', color: 'var(--warn)' },
+      ],
+      memberBars: [
+        { label: '정회원', count: '642', width: '50%', color: 'var(--primary)' },
+        { label: '일반회원', count: '531', width: '41%', color: 'var(--accent)' },
+        { label: '가입 대기', count: '111', width: '9%', color: 'var(--warn)' },
+      ],
+      links: ['보건복지부', '자원봉사포털', '국세청 홈택스', '협회 유튜브', '후원 안내', '뉴스레터 구독'].map(label => ({ label })),
+      isPost: this.state.screen === 'post',
+      isGallery: this.state.screen === 'gallery',
+      isDocument: this.state.screen === 'document',
+      curLabel: (this.nodeById(this.state.current) || {}).label || '공지사항',
+      curTop: (this.nodeById(this.state.current) || {}).top || '공지·자료',
+      postCount: '148',
+      postCats: ['전체', '필독', '공지', '행사', '모집', '안내'].map((c, i) => ({ label: c, bg: i === 0 ? 'var(--primary)' : 'var(--surface)', fg: i === 0 ? '#fff' : 'var(--text-2)', border: i === 0 ? 'var(--primary)' : 'var(--border-strong)' })),
+      postRows: [
+        { pinned: true, category: '필독', title: '2026년도 회비 납부 안내 및 입금 계좌 변경', author: '사무국', date: '06.28', views: 412, comments: 0, hasFile: true },
+        { pinned: true, category: '공지', title: '제24차 정기총회 개최 및 안건 사전 공고', author: '사무국', date: '06.20', views: 388, comments: 5, hasFile: true },
+        { num: 148, category: '행사', title: '여름 정기 워크숍 참가 신청을 받습니다', author: '김운영', date: '06.30', views: 96, comments: 3, isNew: true },
+        { num: 147, category: '안내', title: '홈페이지 개편 및 신규 기능 안내', author: '관리자', date: '06.29', views: 142, comments: 2, isNew: true },
+        { num: 146, category: '모집', title: '2026 하반기 자원봉사자 모집 공고', author: '사무국', date: '06.27', views: 203, comments: 8, hasFile: true },
+        { num: 145, category: '안내', title: '여름철 사무국 단축근무 시행 안내', author: '사무국', date: '06.27', views: 88, comments: 0 },
+        { num: 144, category: '행사', title: '공익활동 우수사례 발표회 참가 후기', author: '이정민', date: '06.25', views: 175, comments: 4, hasFile: true },
+        { num: 143, category: '안내', title: '개인정보 처리방침 개정 안내 (7/1 시행)', author: '관리자', date: '06.24', views: 121, comments: 1 },
+        { num: 142, category: '행사', title: '상반기 결산 보고회 발표 자료 공유', author: '사무국', date: '06.20', views: 264, comments: 6, hasFile: true },
+        { num: 141, category: '안내', title: '회원 등급 및 권한 안내 (개정판)', author: '관리자', date: '06.18', views: 198, comments: 2 },
+      ].map(p => {
+        const hot = p.category === '필독' || p.category === '공지';
+        return { isPinned: !!p.pinned, regular: !p.pinned, num: p.num || '', category: p.category, title: p.title, titleWeight: p.pinned ? '700' : '500', author: p.author, date: p.date, views: p.views, hasComments: p.comments > 0, comments: p.comments, hasFile: !!p.hasFile, isNew: !!p.isNew, rowBg: p.pinned ? 'var(--primary-weak)' : 'transparent', catBg: hot ? 'var(--primary-weak)' : 'var(--surface-2)', catFg: hot ? 'var(--primary)' : 'var(--text-3)', onClick: () => this.goScreen('detail') };
+      }),
+      galleryCount: '64',
+      galleryItems: [
+        { title: '2026 신년 후원의 밤 행사', author: '사무국', date: '06.28', reactions: 24, comments: 5, isNew: true, ph: '800×600' },
+        { title: '상반기 자원봉사 활동 현장', author: '김운영', date: '06.26', reactions: 18, comments: 3, ph: '800×600' },
+        { title: '공익활동 우수사례 발표회', author: '이정민', date: '06.24', reactions: 31, comments: 8, isNew: true, ph: '800×600' },
+        { title: '지역 복지시설 방문 봉사', author: '박서연', date: '06.20', reactions: 12, comments: 2, ph: '800×600' },
+        { title: '2026 정기총회 현장 스케치', author: '사무국', date: '06.15', reactions: 27, comments: 6, ph: '800×600' },
+        { title: '환경 정화 캠페인 단체 사진', author: '최도윤', date: '06.10', reactions: 15, comments: 4, ph: '800×600' },
+      ].map(g => ({ title: g.title, author: g.author, date: g.date, reactions: g.reactions, comments: g.comments, isNew: !!g.isNew, ph: g.ph })),
+      docCount: '93',
+      docFolders: [
+        { name: '정관·규정', count: 12, active: true },
+        { name: '사업보고서', count: 28 },
+        { name: '회계·예산', count: 19 },
+        { name: '각종 서식', count: 34 },
+      ].map(f => ({ name: f.name, count: f.count, bg: f.active ? 'var(--primary-weak)' : 'var(--surface)', border: f.active ? 'var(--primary)' : 'var(--border)', icon: f.active ? 'var(--primary)' : 'var(--text-3)' })),
+      docFiles: [
+        { ext: 'PDF', name: '사단법인 정관 (2026 개정).pdf', cat: '정관', version: 'v4.2', size: '2.4 MB', author: '사무국', date: '06.28', locked: false },
+        { ext: 'PDF', name: '2026년도 사업계획서.pdf', cat: '사업', version: 'v2.0', size: '1.8 MB', author: '사무국', date: '06.25', locked: false },
+        { ext: 'XLSX', name: '2026 상반기 회계 결산서.xlsx', cat: '회계', version: 'v1.3', size: '640 KB', author: '재무팀', date: '06.22', locked: true },
+        { ext: 'DOCX', name: '자원봉사 활동확인서 양식.docx', cat: '서식', version: 'v1.0', size: '48 KB', author: '관리자', date: '06.20', locked: false },
+        { ext: 'ZIP', name: '정기총회 회의자료 일괄.zip', cat: '총회', version: 'v1.1', size: '12.6 MB', author: '사무국', date: '06.18', locked: true },
+        { ext: 'PDF', name: '운영위원회 회의록 (제2차).pdf', cat: '회의', version: 'v1.0', size: '320 KB', author: '사무국', date: '06.15', locked: false },
+      ].map(d => {
+        const C = { PDF: ['#d6453f', 'rgba(214,69,63,0.13)'], DOCX: ['#2f5fd6', 'rgba(47,95,214,0.13)'], XLSX: ['#1f9d6b', 'rgba(31,157,107,0.13)'], ZIP: ['#8a7f72', 'rgba(138,127,114,0.16)'], IMG: ['#7a4ad6', 'rgba(122,74,214,0.13)'] };
+        const c = C[d.ext] || ['var(--text-3)', 'var(--surface-2)'];
+        return { ext: d.ext, name: d.name, cat: d.cat, version: d.version, size: d.size, author: d.author, date: d.date, locked: d.locked, unlocked: !d.locked, extColor: c[0], extBg: c[1] };
+      }),
+      isDetail: this.state.screen === 'detail',
+      goPostList: () => this.goScreen('post'),
+      showPicker: this.state.showPicker,
+      togglePicker: () => this.togglePicker(),
+      commentCount: '6',
+      reactionPills: this.emojiOrder().filter(e => this.state.reactions[e].count > 0).map(e => {
+        const r = this.state.reactions[e];
+        return { emoji: e, count: r.count, bg: r.mine ? 'var(--primary-weak)' : 'var(--surface-2)', border: r.mine ? 'var(--primary)' : 'transparent', fg: r.mine ? 'var(--primary)' : 'var(--text-2)', onClick: () => this.toggleReaction(e) };
+      }),
+      pickerEmojis: this.emojiOrder().map(e => ({ emoji: e, bg: this.state.reactions[e].mine ? 'var(--primary-weak)' : 'transparent', onClick: () => this.toggleReaction(e) })),
+      attachments: [
+        { ext: 'PDF', name: '2026_정기총회_안건.pdf', size: '1.2 MB' },
+        { ext: 'HWP', name: '총회_위임장_양식.hwp', size: '56 KB' },
+      ].map(a => {
+        const C = { PDF: ['#d6453f', 'rgba(214,69,63,0.13)'], HWP: ['#0e8a8a', 'rgba(14,138,138,0.14)'], DOCX: ['#2f5fd6', 'rgba(47,95,214,0.13)'] };
+        const c = C[a.ext] || ['var(--text-3)', 'var(--surface-2)'];
+        return { ext: a.ext, name: a.name, size: a.size, extColor: c[0], extBg: c[1] };
+      }),
+      commentList: (() => {
+        const flat = [];
+        this.flattenComments(this.commentTree(), flat);
+        return flat.map(c => {
+          const rs = this.roleStyle(c.role);
+          return {
+            indent: (c.depth || 0) * 36,
+            deleted: !!c.deleted, notDeleted: !c.deleted,
+            author: c.author, role: c.role, roleBg: rs.bg, roleFg: rs.fg,
+            avatar: c.author ? c.author.charAt(0) : '',
+            avatarBg: c.role === '운영' ? 'var(--primary)' : 'var(--surface-2)',
+            avatarFg: c.role === '운영' ? '#fff' : 'var(--text-2)',
+            date: c.date, body: c.body,
+            reactions: (c.reactions || []).map(r => ({ emoji: r.e, count: r.c })),
+            hasReactions: (c.reactions || []).length > 0,
+          };
+        });
+      })(),
+      isWrite: this.state.screen === 'write',
+      goWrite: () => this.goScreen('write'),
+      toggleNotice: () => this.toggleOpt('optNotice'),
+      toggleComment: () => this.toggleOpt('optComment'),
+      noticeBg: this.state.optNotice ? 'var(--primary)' : 'var(--border-strong)',
+      noticeX: this.state.optNotice ? '19px' : '2px',
+      commentBg: this.state.optComment ? 'var(--primary)' : 'var(--border-strong)',
+      commentX: this.state.optComment ? '19px' : '2px',
+      cmdUndo: this.exec('undo'), cmdRedo: this.exec('redo'),
+      cmdBold: this.exec('bold'), cmdItalic: this.exec('italic'), cmdUnderline: this.exec('underline'), cmdStrike: this.exec('strikeThrough'),
+      cmdP: this.exec('formatBlock', 'p'), cmdH1: this.exec('formatBlock', 'h1'), cmdH2: this.exec('formatBlock', 'h2'), cmdH3: this.exec('formatBlock', 'h3'),
+      cmdUL: this.exec('insertUnorderedList'), cmdOL: this.exec('insertOrderedList'), cmdQuote: this.exec('formatBlock', 'blockquote'),
+      isCalendar: this.state.screen === 'calendar',
+      isMonth: this.state.calView === 'month',
+      isWeek: this.state.calView === 'week',
+      isDay: this.state.calView === 'day',
+      calViews: [['month', '월'], ['week', '주'], ['day', '일']].map(([k, l]) => ({
+        label: l, onClick: () => this.setCalView(k),
+        bg: this.state.calView === k ? 'var(--surface)' : 'transparent',
+        fg: this.state.calView === k ? 'var(--text)' : 'var(--text-3)',
+        shadow: this.state.calView === k ? 'var(--shadow-sm)' : 'none',
+      })),
+      calendars: [
+        { id: 'assoc', name: '협회 일정' }, { id: 'edu', name: '교육·행사' }, { id: 'board', name: '이사회·총회' }, { id: 'vol', name: '봉사활동' }, { id: 'holiday', name: '공휴일' },
+      ].map(c => {
+        const color = this.calMap()[c.id]; const on = this.state.calOn[c.id];
+        return { name: c.name, color, on, checkBg: on ? color : 'transparent', nameColor: on ? 'var(--text)' : 'var(--text-3)', onClick: () => this.toggleCal(c.id) };
+      }),
+      monthGrid: this.monthGrid(),
+      weekRange: '6월 28일 – 7월 4일',
+      dayLabel: '2026년 6월 30일 화요일',
+      gridHeight: 624,
+      hourRail: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].map(h => ({ label: this.fmtHour(h), top: (h - 8) * 52 })),
+      weekDays: [
+        { dow: '일', date: '28', num: 'var(--danger)', notToday: true }, { dow: '월', date: '29', num: 'var(--text-2)', notToday: true }, { dow: '화', date: '30', num: '#fff', today: true, notToday: false }, { dow: '수', date: '01', num: 'var(--text-2)', notToday: true }, { dow: '목', date: '02', num: 'var(--text-2)', notToday: true }, { dow: '금', date: '03', num: 'var(--text-2)', notToday: true }, { dow: '토', date: '04', num: 'var(--primary)', notToday: true },
+      ],
+      weekColumns: (() => {
+        const HH = 52;
+        const blocks = this.weekEventsRaw().filter(e => this.state.calOn[e.cal]).map(e => { const c = this.calMap()[e.cal]; return { col: e.col, top: (e.sh - 8) * HH, height: (e.eh - e.sh) * HH - 4, color: c, bg: c + '22', title: e.title, time: this.fmtHour(e.sh) + '–' + this.fmtHour(e.eh) }; });
+        return [0, 1, 2, 3, 4, 5, 6].map(ci => ({ events: blocks.filter(b => b.col === ci) }));
+      })(),
+      dayBlocks: (() => {
+        const HH = 52;
+        return this.weekEventsRaw().filter(e => e.col === 2 && this.state.calOn[e.cal]).map(e => { const c = this.calMap()[e.cal]; return { top: (e.sh - 8) * HH, height: (e.eh - e.sh) * HH - 4, color: c, bg: c + '22', title: e.title, time: this.fmtHour(e.sh) + '–' + this.fmtHour(e.eh) }; });
+      })(),
+    };
+  }
+}
+</script>
+</body>
+</html>
