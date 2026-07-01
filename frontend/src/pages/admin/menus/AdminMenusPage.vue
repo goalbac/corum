@@ -10,92 +10,14 @@
     <div v-loading="loading" class="menu-tree">
       <div v-if="!menus.length" class="empty-state">등록된 메뉴가 없습니다.</div>
 
-      <!-- 최상위 메뉴 드래그 영역 -->
+      <!-- 최상위 메뉴 드래그 영역 (깊이 제한 없이 재귀 렌더링) -->
       <div ref="rootSortable">
-        <div
+        <AdminMenuTreeNode
           v-for="menu in menus"
           :key="menu.id"
-          :data-id="menu.id"
-          class="sortable-node"
-        >
-          <div class="tree-item root-item">
-            <i class="ti ti-grip-vertical drag-handle" title="드래그하여 순서 변경"></i>
-            <span class="tree-type">{{ typeIcon(menu.menuType) }}</span>
-            <span class="tree-name">{{ menu.name }}</span>
-            <span class="tree-url">{{ menu.url || '' }}</span>
-            <span v-if="!menu.isActive" class="tree-tag inactive">비활성</span>
-            <span v-if="menu.isHidden" class="tree-tag hidden">숨김</span>
-            <div class="tree-actions">
-              <button class="tree-btn" @click="openCreate(menu)" title="하위 추가"><i class="ti ti-plus"></i></button>
-              <button v-if="resourceButtonLabel(menu)" class="tree-btn resource" @click="openResourceManager(menu)">
-                {{ resourceButtonLabel(menu) }}
-              </button>
-              <button class="tree-btn" @click="openEdit(menu)" title="수정"><i class="ti ti-edit"></i></button>
-              <button class="tree-btn danger" @click="deleteMenu(menu.id)" title="삭제"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>
-
-          <!-- 하위 메뉴 드래그 영역 (하위 메뉴가 없어도 드롭 대상이 되도록 항상 렌더링) -->
-          <div
-            :ref="el => setChildRef(el, menu.id)"
-            :data-parent-id="menu.id"
-            class="child-sortable"
-            :class="{ 'has-children': menu.children?.length }"
-          >
-            <div
-              v-for="child in menu.children"
-              :key="child.id"
-              :data-id="child.id"
-              class="sortable-node"
-            >
-              <div class="tree-item child-item">
-                <i class="ti ti-grip-vertical drag-handle"></i>
-                <span class="tree-type">{{ typeIcon(child.menuType) }}</span>
-                <span class="tree-name">{{ child.name }}</span>
-                <span class="tree-url">{{ child.url || '' }}</span>
-                <span v-if="!child.isActive" class="tree-tag inactive">비활성</span>
-                <span v-if="child.isHidden" class="tree-tag hidden">숨김</span>
-                <div class="tree-actions">
-                  <button class="tree-btn" @click="openCreate(child)" title="하위 추가"><i class="ti ti-plus"></i></button>
-                  <button v-if="resourceButtonLabel(child)" class="tree-btn resource" @click="openResourceManager(child)">
-                    {{ resourceButtonLabel(child) }}
-                  </button>
-                  <button class="tree-btn" @click="openEdit(child)" title="수정"><i class="ti ti-edit"></i></button>
-                  <button class="tree-btn danger" @click="deleteMenu(child.id)" title="삭제"><i class="ti ti-trash"></i></button>
-                </div>
-              </div>
-
-              <!-- 3depth 하위 (하위 메뉴가 없어도 드롭 대상이 되도록 항상 렌더링) -->
-              <div
-                :ref="el => setChildRef(el, child.id)"
-                :data-parent-id="child.id"
-                class="child-sortable"
-                :class="{ 'has-children': child.children?.length }"
-              >
-                <div
-                  v-for="sub in child.children"
-                  :key="sub.id"
-                  :data-id="sub.id"
-                  class="sortable-node"
-                >
-                  <div class="tree-item sub-item">
-                    <i class="ti ti-grip-vertical drag-handle"></i>
-                    <span class="tree-type">{{ typeIcon(sub.menuType) }}</span>
-                    <span class="tree-name">{{ sub.name }}</span>
-                    <span class="tree-url">{{ sub.url || '' }}</span>
-                    <div class="tree-actions">
-                      <button v-if="resourceButtonLabel(sub)" class="tree-btn resource" @click="openResourceManager(sub)">
-                        {{ resourceButtonLabel(sub) }}
-                      </button>
-                      <button class="tree-btn" @click="openEdit(sub)" title="수정"><i class="ti ti-edit"></i></button>
-                      <button class="tree-btn danger" @click="deleteMenu(sub.id)" title="삭제"><i class="ti ti-trash"></i></button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          :menu="menu"
+          :depth="0"
+        />
       </div>
     </div>
 
@@ -422,10 +344,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, provide } from 'vue'
 import Sortable from 'sortablejs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import AdminMenuTreeNode from '@/components/admin/AdminMenuTreeNode.vue'
 import RichEditor from '@/components/common/RichEditor.vue'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
@@ -567,9 +490,6 @@ watch(parentId, (val) => {
   }
 })
 
-function typeIcon(t) {
-  return { PAGE: '📄', LINK: '🔗', GROUP: '📁' }[t] || '📄'
-}
 function boardTypeLabel(t) {
   return { POST: '글', GALLERY: '갤러리', WEBZINE: '웹진', DOCUMENT: '자료실' }[t] || t
 }
@@ -845,6 +765,16 @@ async function deleteMenu(id) {
   menuStore.fetchMenus(true)
 }
 
+// 재귀 트리 노드(AdminMenuTreeNode)에 전달할 액션 모음
+provide('menuTreeActions', {
+  onCreate: openCreate,
+  onEdit: openEdit,
+  onDelete: deleteMenu,
+  onOpenResource: openResourceManager,
+  onSetChildRef: setChildRef,
+  resourceButtonLabel,
+})
+
 onMounted(() => { fetchMenus(); fetchBoards(); fetchCalendars(); fetchGroups() })
 onBeforeUnmount(() => {
   sortableInstances.forEach(s => s.destroy())
@@ -863,60 +793,6 @@ onBeforeUnmount(() => {
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .check-row { display: flex; gap: 16px; flex-wrap: wrap; }
 
-.tree-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 0.5px solid var(--border2);
-  transition: var(--transition);
-}
-.tree-item:hover { background: var(--surface2); }
-
-.root-item { background: var(--surface); }
-.child-item { background: var(--surface2); padding-left: 40px !important; }
-.sub-item { background: var(--bg); padding-left: 64px !important; }
-
-.child-sortable { min-height: 6px; margin-left: 20px; border-left: 3px solid transparent; }
-.child-sortable.has-children { border-left-color: var(--accent); }
-
-.drag-handle {
-  font-size: 15px;
-  color: var(--t3);
-  cursor: grab;
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
-.drag-handle:active { cursor: grabbing; }
-.tree-item:hover .drag-handle { color: var(--t2); }
-
-.tree-type { font-size: 14px; flex-shrink: 0; }
-.tree-name { font-size: 13.5px; color: var(--t1); font-weight: 500; flex-shrink: 0; }
-.tree-url { font-size: 12px; color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tree-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; }
-.tree-tag.inactive { background: var(--surface2); color: var(--t3); border: 0.5px solid var(--border); }
-.tree-tag.hidden { background: var(--new-bg); color: var(--new); }
-
-.tree-actions { display: flex; gap: 4px; flex-shrink: 0; }
-.tree-btn {
-  background: none;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-xs);
-  padding: 4px 7px;
-  color: var(--t2);
-  cursor: pointer;
-  font-size: 13px;
-  transition: var(--transition);
-}
-.tree-btn:hover { background: var(--surface2); color: var(--t1); }
-.tree-btn.resource {
-  color: var(--accent);
-  border-color: rgba(37,99,235,0.25);
-  background: var(--accent-bg);
-  font-weight: 700;
-}
-.tree-btn.resource:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
-.tree-btn.danger:hover { background: var(--new-bg); color: var(--new); border-color: var(--new); }
 .resource-form { display: flex; flex-direction: column; gap: 12px; }
 .perm-block {
   display: flex;
