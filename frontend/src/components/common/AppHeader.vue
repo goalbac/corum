@@ -6,14 +6,15 @@
       </button>
 
       <router-link to="/" class="logo" @click="menuStore.setActiveTopMenu(null)">
-        <div class="logo-mark">
-          <img v-if="logoUrl" :src="logoUrl" :alt="siteName || 'Corum'" class="logo-img" />
-          <span v-else class="logo-letter">C</span>
-        </div>
-        <div class="logo-text">
-          <span class="logo-name">{{ siteName || '코럼' }}</span>
-          <span class="logo-sub">한국공익협회</span>
-        </div>
+        <img v-if="logoUrl" :src="logoUrl" :alt="siteName || 'Corum'" class="logo-full-img" />
+        <template v-else>
+          <div class="logo-mark">
+            <span class="logo-letter">C</span>
+          </div>
+          <div class="logo-text">
+            <span class="logo-name">{{ siteName || '코럼' }}</span>
+          </div>
+        </template>
       </router-link>
 
       <nav class="top-nav" aria-label="주 메뉴">
@@ -458,7 +459,17 @@ async function handleLogout() {
   align-items: center;
   gap: 11px;
   flex-shrink: 0;
+  width: var(--sidebar-width);
+  box-sizing: border-box;
   text-decoration: none;
+  overflow: hidden;
+}
+
+.logo-full-img {
+  height: calc(var(--header-height) - 18px);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 .logo-mark {
@@ -481,16 +492,11 @@ async function handleLogout() {
   letter-spacing: -0.04em;
 }
 
-.logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .logo-text {
   display: flex;
   flex-direction: column;
   line-height: 1.12;
+  min-width: 0;
 }
 
 .logo-name {
@@ -498,13 +504,9 @@ async function handleLogout() {
   font-size: 17px;
   letter-spacing: -0.02em;
   color: var(--t1);
-}
-
-.logo-sub {
-  font-size: 10.5px;
-  color: var(--t3);
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .top-nav {
@@ -1058,7 +1060,7 @@ async function handleLogout() {
 
 @media (max-width: 1100px) {
   .nav-item { padding: 0 12px; font-size: 14px; }
-  .logo-sub { display: none; }
+  .logo { width: auto; }
   .user-name { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
@@ -1067,7 +1069,7 @@ async function handleLogout() {
   .top-nav { display: none; }
   .user-name { display: none; }
   .user-arrow { display: none; }
-  .logo-sub { display: none; }
+  .logo { width: auto; }
   .header-right { gap: 2px; }
   .header-inner { padding: 0 14px; gap: 10px; }
   .icon-btn { width: 36px; height: 36px; }
