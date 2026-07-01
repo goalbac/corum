@@ -67,13 +67,30 @@ public class BoardMigrationRunner implements CommandLineRunner {
     @Value("${migration.dry-run:true}")
     private boolean dryRun;
 
-    // 1차: 좌제도 지도 하위 3개 게시판. 검증 끝나면 목록만 추가하면 됨.
+    // 이관된 게시판 목록. 새 게시판은 이 목록에 한 줄만 추가하면 됨.
+    // 전체 이력/결과는 docs/migration/게시판_이관_가이드.md 참고.
     private static final List<BoardMigrationSpec> SPECS = List.of(
             new BoardMigrationSpec("JwaNotice", "JwaNoticeC", 29L),
             new BoardMigrationSpec("JwaCondition", "JwaConditionc", 30L),
             new BoardMigrationSpec("JwaNanoom", "JwaNanoomC", 31L),
-            // 한울인 나눔방 > 알려드려요 (게시글 2768건 규모 검증용)
-            new BoardMigrationSpec("notice", "noticec", 13L)
+            // 한울인 나눔방 > 알려드려요
+            new BoardMigrationSpec("notice", "noticec", 13L),
+            // 한울인 나눔방 > 나눔마당 > 러브레터 (게시글 4835건)
+            new BoardMigrationSpec("NanoomLove", "NanoomLoveC", 14L),
+            // 한울인 나눔방 > 나눔마당 > 제안과 추천
+            new BoardMigrationSpec("NanoomProposal", "NanoomProposalC", 15L),
+            // 수련과 수도 > 일상 수련기 > 일상 수련기 (사용자는 한울인 나눔방으로 언급했으나 DB엔 이 경로만 존재)
+            new BoardMigrationSpec("Ilsang", "IlsangC", 44L),
+            // 수련과 수도 > 법문 속으로
+            new BoardMigrationSpec("InBubmoon", "InBubmoonC", 28L),
+            // 수련과 수도 > 통지되는 수련 > 공지사항/조건/나눔 및 수련
+            new BoardMigrationSpec("TongjiNotice", "TongjiNoticeC", 32L),
+            new BoardMigrationSpec("TongjiCondition", "TongjiConditionC", 33L),
+            new BoardMigrationSpec("TongjiNanoom", "TongjiNanoomC", 34L),
+            // 수련과 수도 > 계시록 수련 > 공지사항/조건/나눔 및 수련
+            new BoardMigrationSpec("GyesiNotice", "GyesiNoticeC", 35L),
+            new BoardMigrationSpec("GyesiCondition", "GyesiConditionC", 36L),
+            new BoardMigrationSpec("GyesiNanoom", "GyesiNanoomC", 37L)
     );
 
     private static final Pattern INLINE_IMG = Pattern.compile(
