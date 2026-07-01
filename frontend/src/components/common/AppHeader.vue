@@ -434,7 +434,7 @@ async function handleLogout() {
   align-items: center;
   height: 100%;
   padding: 0 26px;
-  gap: 30px;
+  gap: 0;
 }
 
 .hamburger {
@@ -459,7 +459,8 @@ async function handleLogout() {
   align-items: center;
   gap: 11px;
   flex-shrink: 0;
-  width: var(--sidebar-width);
+  /* 헤더 좌측 padding(26px)을 포함해 사이드바 폭과 정확히 맞춤 -> 메뉴가 사이드바 끝 지점부터 시작 */
+  width: calc(var(--sidebar-width) - 26px);
   box-sizing: border-box;
   text-decoration: none;
   overflow: hidden;
@@ -1061,6 +1062,7 @@ async function handleLogout() {
 @media (max-width: 1100px) {
   .nav-item { padding: 0 12px; font-size: 14px; }
   .logo { width: auto; }
+  .header-inner { gap: 20px; }
   .user-name { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
