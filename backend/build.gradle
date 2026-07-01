@@ -61,6 +61,10 @@ dependencies {
     implementation 'nl.martijndwars:web-push:5.1.1'
     implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
 
+    // 레거시 게시판 이관 (MS SQL Server 접속 + FTP 첨부파일 이전, migration 프로파일 전용)
+    runtimeOnly    'com.microsoft.sqlserver:mssql-jdbc:12.8.1.jre11'
+    implementation 'commons-net:commons-net:3.11.1'
+
     // Dev Tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
