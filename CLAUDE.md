@@ -222,7 +222,7 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 2. ~~Admin 컨트롤러 전체(13개)에 서버 사이드 권한 체크 없음~~ **[해결됨 2026-07-02, `45ee800`]** JWT 인증 시 그룹 소속(ADMIN/SUPER_ADMIN)을 `GrantedAuthority`로 부여, `SecurityConfig`에 `/api/admin/**` → `hasRole("ADMIN")` 전역 게이트 추가. 동일한 갭이 있던 그룹 CUD·회원 그룹 부여(SUPER_ADMIN), 메뉴 CUD·게시판 구조 CUD(ADMIN)에도 `@PreAuthorize` 적용. `AccessDeniedException`은 `ApiResponse` 형식 403으로 응답
 3. ~~파일 다운로드가 `fileId`만으로 접근 가능한 IDOR~~ **[해결됨 2026-07-02, `a2dd282`]** `FileStorageService.canAccessFile()` 추가 — target_type=POST면 게시판 권한(READ/DOWNLOAD), MESSAGE면 발신·수신자 여부를 확인. `download`/`view`/`thumbnail`/`small-thumb` 4개 엔드포인트에 적용. 이 과정에서 `BoardService.hasPermission()`이 애초에 어디서도 호출되지 않아 게시판 read/write/comment/download 권한이 **전혀 강제되지 않고 있던 것**을 추가로 발견 — 그룹 미설정 게시판은 공개, 설정된 게시판은 그룹별 권한을 실제로 따르도록 로직을 재작성함. (단, `getPost`/댓글/게시글 목록 등 파일이 아닌 경로에서의 board READ 권한 강제는 이번 수정 범위 밖 — 별도 후속 조치 필요, 아래 11번 참고)
 4. ~~파일 업로드 확장자 검증 로직 없음~~ **[해결됨 2026-07-02, `a2dd282`]** `FileStorageService.validateUpload()` 추가 — jsp/php/exe/svg/html 등은 항상 차단, 게시판별/전역 `file_allowed_extensions`·`file_max_size_mb` 실제 적용. 파일 서빙 응답에 `X-Content-Type-Options: nosniff` 추가
-5. TipTap 콘텐츠(게시글/안내페이지/팝업/약관)에 XSS sanitize 없음 — 프론트 `v-html`(14곳)·백엔드 저장 시점 모두 미처리, stored XSS 가능
+5. ~~TipTap 콘텐츠(게시글/안내페이지/팝업/약관)에 XSS sanitize 없음~~ **[해결됨 2026-07-02, `b1c6ecd`]** 백엔드에 Jsoup 기반 `HtmlSanitizer` 추가해 저장 시점에 정제(post/content_page/popup/banner/terms/footerHtml), 프론트엔드는 DOMPurify로 `v-html` 렌더링 지점 11곳에 방어선 추가. 대시보드 CUSTOM 위젯(extra_config JSON 내 HTML)은 백엔드 저장 시점 sanitize는 아직 미적용(JSON 필드 파싱 필요) — 프론트 DOMPurify로만 방어 중, ADMIN 전용 입력이라 낮은 우선순위로 남김
 
 **🟠 High**
 6. JWT 블랙리스트가 인메모리 — 재배포/재시작마다 강제로그아웃·계정잠금 상태 유실
@@ -230,7 +230,7 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 8. 로그인/회원가입/문의하기/비밀번호 재설정에 IP 기반 rate limiting 전무
 9. 로컬 `docker-compose.yml`(DB/MinIO 기본 비밀번호 + 포트 오픈)을 운영에 절대 재사용 금지 — 운영은 반드시 `docker-compose.prod.yml` + `.env.prod` 사용
 10. `/api/inquiries` permitAll 범위에 GET(목록 조회)도 포함될 가능성 — 컨트롤러 매핑 재확인 필요
-11. **[신규 발견 2026-07-02]** `getPost`(게시글 상세)·게시글 목록·댓글 조회 등 파일이 아닌 일반 API 경로에서는 여전히 board READ 권한이 강제되지 않음 — postId만 알면 비공개 게시판 글도 열람 가능. 파일 접근(#3)과 같은 근본 원인이지만 범위가 훨씬 넓어 별도 작업으로 분리함
+11. ~~`getPost`(게시글 상세)·게시글 목록·댓글 조회 등 파일이 아닌 일반 API 경로의 board READ 권한 미강제~~ **[해결됨 2026-07-02, `4eee876`]** `PostService.getPosts/getPost/getAdjacentPosts`, `CommentService.getComments`에 `boardService.hasPermission(READ)` 체크 추가. 권한 미설정 게시판은 기존과 동일하게 공개 유지. (대시보드 "최신글" 위젯의 `getLatestPosts`는 admin이 board를 직접 지정하는 경로라 이번 범위에서 제외)
 
 **🟡 Medium**: 비밀번호 재설정/이메일 인증 토큰 재사용 가능(1회성 미보장) · 관리자 발급 임시 비밀번호 이메일 평문 전송 · `docker-compose.prod.yml`의 MinIO 자격증명 약한 fallback(`:-minioadmin123`) · CORS 허용 목록에 개발용 `trycloudflare.com` 잔존
 
@@ -501,6 +501,6 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 - [x] 통계/감사로그 구현 (`AuditLog`, `VisitStats`, `AdminStatsController`)
 - [x] SMTP 연동 (`SmtpSendLog`, `application-prod.yml` mail 설정, `MailService`)
 - [x] 레거시 게시판(hanwoolin.com) 이관 도구 구축, 순차 이관 진행 중
-- [ ] 보안 하드닝 (Admin API 권한 체크, 파일 다운로드 IDOR, 업로드 확장자 검증, XSS sanitize, JWT_SECRET 로테이션 등 — [보안 상태](#보안-상태-2026-07-02-점검) 참고) — **운영 배포 전 필수**
+- [x] 보안 하드닝 — Critical 5건(JWT_SECRET 노출/Admin API 권한/파일 IDOR/업로드 확장자/XSS) 전부 해결. High/Medium 잔여 항목은 [보안 상태](#보안-상태-2026-07-02-점검) 참고 — 운영 배포 전 재확인 권장
 - [ ] 백엔드/프론트엔드 테스트 코드 작성 (현재 0%)
 - [ ] 운영 환경 배포
