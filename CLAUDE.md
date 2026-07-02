@@ -225,11 +225,11 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 5. ~~TipTap 콘텐츠(게시글/안내페이지/팝업/약관)에 XSS sanitize 없음~~ **[해결됨 2026-07-02, `b1c6ecd`]** 백엔드에 Jsoup 기반 `HtmlSanitizer` 추가해 저장 시점에 정제(post/content_page/popup/banner/terms/footerHtml), 프론트엔드는 DOMPurify로 `v-html` 렌더링 지점 11곳에 방어선 추가. 대시보드 CUSTOM 위젯(extra_config JSON 내 HTML)은 백엔드 저장 시점 sanitize는 아직 미적용(JSON 필드 파싱 필요) — 프론트 DOMPurify로만 방어 중, ADMIN 전용 입력이라 낮은 우선순위로 남김
 
 **🟠 High**
-6. JWT 블랙리스트가 인메모리 — 재배포/재시작마다 강제로그아웃·계정잠금 상태 유실
+6. ~~JWT 블랙리스트가 인메모리 — 재배포/재시작마다 강제로그아웃·계정잠금 상태 유실~~ **[해결됨 2026-07-02, `00f46ae`]** `invalidated_tokens` 테이블(SHA-256 해시 저장)로 이전, `InvalidatedTokenCleanupScheduler`가 매일 새벽 4시 만료분 정리. 동시 로그인 제한용 `activeTokens`는 인메모리 유지(재시작해도 다음 로그인부터 정상 동작하는 부가 기능이라 영속화 제외). **주의:** 기존 로컬 DB 볼륨에는 `invalidated_tokens` 테이블이 자동 생성되지 않음 — `docker compose down -v` 재생성 또는 수동 DDL 적용 필요
 7. ~~파일 `/view` 인라인 엔드포인트가 Content-Type을 그대로 반영~~ **[완화됨 2026-07-02]** 위험 확장자 업로드 차단(#4) + `nosniff` 헤더로 신규 업로드분은 방어됨. 기존에 이미 업로드된 위험 확장자 파일이 있다면 여전히 남아있을 수 있음 — 재점검 권장
-8. 로그인/회원가입/문의하기/비밀번호 재설정에 IP 기반 rate limiting 전무
-9. 로컬 `docker-compose.yml`(DB/MinIO 기본 비밀번호 + 포트 오픈)을 운영에 절대 재사용 금지 — 운영은 반드시 `docker-compose.prod.yml` + `.env.prod` 사용
-10. `/api/inquiries` permitAll 범위에 GET(목록 조회)도 포함될 가능성 — 컨트롤러 매핑 재확인 필요
+8. ~~로그인/회원가입/문의하기/비밀번호 재설정에 IP 기반 rate limiting 전무~~ **[해결됨 2026-07-02, `00f46ae`]** `RateLimitFilter` 추가(단일 인스턴스 전제 인메모리 구현) — login 10회/5분, register·signup 5회/60분, request-password-reset 5회/30분, POST /api/inquiries 5회/10분(IP 기준)
+9. 로컬 `docker-compose.yml`(DB/MinIO 기본 비밀번호 + 포트 오픈)을 운영에 절대 재사용 금지 — 운영은 반드시 `docker-compose.prod.yml` + `.env.prod` 사용 (코드 수정 대상이 아닌 운영 가이드)
+10. ~~`/api/inquiries` permitAll 범위에 GET(목록 조회)도 포함될 가능성~~ **[해결됨 2026-07-02, `00f46ae`]** 실제로 취약했음 — GET 목록·상세·답변·메모·삭제 등 관리자 전용 기능에 권한 체크가 전혀 없어 비로그인으로도 전체 문의(개인정보 포함) 조회가 가능했음. permitAll을 POST 전용으로 좁히고 관리자 전용 메서드에 `@PreAuthorize("hasRole('ADMIN')")` 적용
 11. ~~`getPost`(게시글 상세)·게시글 목록·댓글 조회 등 파일이 아닌 일반 API 경로의 board READ 권한 미강제~~ **[해결됨 2026-07-02, `4eee876`]** `PostService.getPosts/getPost/getAdjacentPosts`, `CommentService.getComments`에 `boardService.hasPermission(READ)` 체크 추가. 권한 미설정 게시판은 기존과 동일하게 공개 유지. (대시보드 "최신글" 위젯의 `getLatestPosts`는 admin이 board를 직접 지정하는 경로라 이번 범위에서 제외)
 
 **🟡 Medium — 전부 해결됨 (2026-07-02, `8d88007`)**
@@ -505,6 +505,6 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 - [x] 통계/감사로그 구현 (`AuditLog`, `VisitStats`, `AdminStatsController`)
 - [x] SMTP 연동 (`SmtpSendLog`, `application-prod.yml` mail 설정, `MailService`)
 - [x] 레거시 게시판(hanwoolin.com) 이관 도구 구축, 순차 이관 진행 중
-- [x] 보안 하드닝 — Critical 5건(JWT_SECRET 노출/Admin API 권한/파일 IDOR/업로드 확장자/XSS) 전부 해결. High/Medium 잔여 항목은 [보안 상태](#보안-상태-2026-07-02-점검) 참고 — 운영 배포 전 재확인 권장
+- [x] 보안 하드닝 — Critical 5건·High 3건·Medium 4건 전부 해결 (2026-07-02). 잔여: High #7 완화만 됨(기존 업로드 파일 재점검 권장), #9는 운영 가이드 성격이라 코드 수정 대상 아님 — [보안 상태](#보안-상태-2026-07-02-점검) 참고
 - [ ] 백엔드/프론트엔드 테스트 코드 작성 (현재 0%)
 - [ ] 운영 환경 배포
