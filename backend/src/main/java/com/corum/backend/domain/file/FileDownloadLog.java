@@ -26,7 +26,7 @@ public class FileDownloadLog {
     @Column(name = "ip_address", length = 45)
     private String ipAddress;
 
-    @Column(name = "downloaded_at", nullable = false)
+    @Column(name = "created_at", nullable = false)
     @Builder.Default
-    private LocalDateTime downloadedAt = LocalDateTime.now();
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
