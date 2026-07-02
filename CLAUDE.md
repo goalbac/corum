@@ -110,10 +110,10 @@ Controller → Service → Repository (JPA / QueryDSL)
 ### Security / JWT 흐름
 
 1. `POST /api/auth/login` → `JwtProvider`가 accessToken 발급 (refresh token 설정값은 존재하나 실제 재발급 로직 미구현 — 만료 시 재로그인 필요)
-2. 이후 요청: `JwtAuthFilter`(OncePerRequestFilter)가 `Authorization: Bearer <token>` 파싱 → `CustomUserDetailsService`로 사용자 조회 → SecurityContext 설정
+2. 이후 요청: `JwtAuthFilter`(OncePerRequestFilter)가 `Authorization: Bearer <token>` 파싱 → `CustomUserDetailsService`로 사용자 조회(그룹 소속 기반 `ROLE_ADMIN`/`ROLE_SUPER_ADMIN` 부여 포함) → SecurityContext 설정
 3. 로그아웃/강제 만료: `TokenSessionService`가 JWT 블랙리스트 관리 — **인메모리(ConcurrentHashMap)라 서버 재배포/재시작 시 유실됨** (다중 인스턴스 미대응)
 4. 공개 API 경로는 `SecurityConfig`에서 `permitAll()` 명시
-5. **주의:** `/api/admin/**` 전용 인가 matcher가 `SecurityConfig`에 없고, Admin 컨트롤러 어디에도 `@PreAuthorize`/role 체크가 없음 — 로그인 여부만 확인되고 관리자 권한은 검증되지 않음. Admin 관련 기능 작업 시 이 갭을 인지하고 있을 것 (상세: [보안 상태](#보안-상태-2026-07-02-점검))
+5. `/api/admin/**`는 `SecurityConfig`에서 `hasRole("ADMIN")` 전역 게이트, 그룹/메뉴/게시판 구조 CUD는 각 컨트롤러에 `@PreAuthorize`로 개별 적용 (2026-07-02, `45ee800`). `@EnableMethodSecurity` 활성화됨 — 새 관리 기능 추가 시 `@PreAuthorize` 누락하지 않도록 주의 (상세: [보안 상태](#보안-상태-2026-07-02-점검))
 
 ### Frontend 상태 관리
 
@@ -218,8 +218,8 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 운영 배포 전 반드시 확인. Cloudflare를 앞단에 둘 예정이나, 아래는 전부 **애플리케이션 레벨 결함**이라 Cloudflare(WAF/DDoS 방어)로는 막을 수 없음.
 
 **🔴 Critical — 배포 전 필수 수정**
-1. 공개 GitHub 저장소(`goalbac/corum`) 히스토리 커밋 `554c96e`의 `.env.prod`에 실제 JWT_SECRET 값이 남아있음 (`e6d9392`는 추적만 해제, 히스토리는 그대로) → **JWT_SECRET 즉시 로테이션 필요**
-2. Admin 컨트롤러 전체(13개)에 서버 사이드 권한 체크 없음 — 로그인한 일반 회원이 관리자 API를 직접 호출 가능 (`/api/admin/**` matcher·`@PreAuthorize` 부재)
+1. ~~공개 GitHub 저장소(`goalbac/corum`) 히스토리에 실제 JWT_SECRET 값 노출~~ **[해결됨 2026-07-02]** JWT_SECRET 로테이션 + `git filter-branch`로 전체 히스토리(405커밋)에서 `.env.prod`/`.env.prod.local` 제거 후 `origin/main` force-push 완료
+2. ~~Admin 컨트롤러 전체(13개)에 서버 사이드 권한 체크 없음~~ **[해결됨 2026-07-02, `45ee800`]** JWT 인증 시 그룹 소속(ADMIN/SUPER_ADMIN)을 `GrantedAuthority`로 부여, `SecurityConfig`에 `/api/admin/**` → `hasRole("ADMIN")` 전역 게이트 추가. 동일한 갭이 있던 그룹 CUD·회원 그룹 부여(SUPER_ADMIN), 메뉴 CUD·게시판 구조 CUD(ADMIN)에도 `@PreAuthorize` 적용. `AccessDeniedException`은 `ApiResponse` 형식 403으로 응답
 3. 파일 다운로드가 `fileId`만으로 접근 가능한 IDOR — `board_group_permissions.can_download` 미검증, 로그인도 불필요
 4. 파일 업로드 확장자 검증 로직 없음 (`file_allowed_extensions` 컬럼은 있으나 미사용)
 5. TipTap 콘텐츠(게시글/안내페이지/팝업/약관)에 XSS sanitize 없음 — 프론트 `v-html`(14곳)·백엔드 저장 시점 모두 미처리, stored XSS 가능
