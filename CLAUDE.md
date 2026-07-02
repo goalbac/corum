@@ -220,18 +220,19 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 **🔴 Critical — 배포 전 필수 수정**
 1. ~~공개 GitHub 저장소(`goalbac/corum`) 히스토리에 실제 JWT_SECRET 값 노출~~ **[해결됨 2026-07-02]** JWT_SECRET 로테이션 + `git filter-branch`로 전체 히스토리(405커밋)에서 `.env.prod`/`.env.prod.local` 제거 후 `origin/main` force-push 완료
 2. ~~Admin 컨트롤러 전체(13개)에 서버 사이드 권한 체크 없음~~ **[해결됨 2026-07-02, `45ee800`]** JWT 인증 시 그룹 소속(ADMIN/SUPER_ADMIN)을 `GrantedAuthority`로 부여, `SecurityConfig`에 `/api/admin/**` → `hasRole("ADMIN")` 전역 게이트 추가. 동일한 갭이 있던 그룹 CUD·회원 그룹 부여(SUPER_ADMIN), 메뉴 CUD·게시판 구조 CUD(ADMIN)에도 `@PreAuthorize` 적용. `AccessDeniedException`은 `ApiResponse` 형식 403으로 응답
-3. 파일 다운로드가 `fileId`만으로 접근 가능한 IDOR — `board_group_permissions.can_download` 미검증, 로그인도 불필요
-4. 파일 업로드 확장자 검증 로직 없음 (`file_allowed_extensions` 컬럼은 있으나 미사용)
+3. ~~파일 다운로드가 `fileId`만으로 접근 가능한 IDOR~~ **[해결됨 2026-07-02, `a2dd282`]** `FileStorageService.canAccessFile()` 추가 — target_type=POST면 게시판 권한(READ/DOWNLOAD), MESSAGE면 발신·수신자 여부를 확인. `download`/`view`/`thumbnail`/`small-thumb` 4개 엔드포인트에 적용. 이 과정에서 `BoardService.hasPermission()`이 애초에 어디서도 호출되지 않아 게시판 read/write/comment/download 권한이 **전혀 강제되지 않고 있던 것**을 추가로 발견 — 그룹 미설정 게시판은 공개, 설정된 게시판은 그룹별 권한을 실제로 따르도록 로직을 재작성함. (단, `getPost`/댓글/게시글 목록 등 파일이 아닌 경로에서의 board READ 권한 강제는 이번 수정 범위 밖 — 별도 후속 조치 필요, 아래 11번 참고)
+4. ~~파일 업로드 확장자 검증 로직 없음~~ **[해결됨 2026-07-02, `a2dd282`]** `FileStorageService.validateUpload()` 추가 — jsp/php/exe/svg/html 등은 항상 차단, 게시판별/전역 `file_allowed_extensions`·`file_max_size_mb` 실제 적용. 파일 서빙 응답에 `X-Content-Type-Options: nosniff` 추가
 5. TipTap 콘텐츠(게시글/안내페이지/팝업/약관)에 XSS sanitize 없음 — 프론트 `v-html`(14곳)·백엔드 저장 시점 모두 미처리, stored XSS 가능
 
 **🟠 High**
 6. JWT 블랙리스트가 인메모리 — 재배포/재시작마다 강제로그아웃·계정잠금 상태 유실
-7. 파일 `/view` 인라인 엔드포인트가 Content-Type을 그대로 반영 — 업로드 취약점과 결합 시 XSS 벡터
+7. ~~파일 `/view` 인라인 엔드포인트가 Content-Type을 그대로 반영~~ **[완화됨 2026-07-02]** 위험 확장자 업로드 차단(#4) + `nosniff` 헤더로 신규 업로드분은 방어됨. 기존에 이미 업로드된 위험 확장자 파일이 있다면 여전히 남아있을 수 있음 — 재점검 권장
 8. 로그인/회원가입/문의하기/비밀번호 재설정에 IP 기반 rate limiting 전무
 9. 로컬 `docker-compose.yml`(DB/MinIO 기본 비밀번호 + 포트 오픈)을 운영에 절대 재사용 금지 — 운영은 반드시 `docker-compose.prod.yml` + `.env.prod` 사용
 10. `/api/inquiries` permitAll 범위에 GET(목록 조회)도 포함될 가능성 — 컨트롤러 매핑 재확인 필요
+11. **[신규 발견 2026-07-02]** `getPost`(게시글 상세)·게시글 목록·댓글 조회 등 파일이 아닌 일반 API 경로에서는 여전히 board READ 권한이 강제되지 않음 — postId만 알면 비공개 게시판 글도 열람 가능. 파일 접근(#3)과 같은 근본 원인이지만 범위가 훨씬 넓어 별도 작업으로 분리함
 
-**🟡 Medium**: 비밀번호 재설정/이메일 인증 토큰 재사용 가능(1회성 미보장) · 관리자 발급 임시 비밀번호 이메일 평문 전송 · 게시판별 파일 크기 제한 서버 미검증 · `docker-compose.prod.yml`의 MinIO 자격증명 약한 fallback(`:-minioadmin123`) · CORS 허용 목록에 개발용 `trycloudflare.com` 잔존
+**🟡 Medium**: 비밀번호 재설정/이메일 인증 토큰 재사용 가능(1회성 미보장) · 관리자 발급 임시 비밀번호 이메일 평문 전송 · `docker-compose.prod.yml`의 MinIO 자격증명 약한 fallback(`:-minioadmin123`) · CORS 허용 목록에 개발용 `trycloudflare.com` 잔존
 
 **확인된 안전한 부분**: SQL Injection(파라미터 바인딩 전면 사용) · Path traversal(UUID 파일명) · CSRF(STATELESS+JWT라 해당 없음) · 이관 도구 자격증명 관리 · audit_logs 민감정보 미기록
 
