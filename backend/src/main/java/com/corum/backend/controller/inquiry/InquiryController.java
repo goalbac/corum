@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,6 +38,7 @@ public class InquiryController {
     }
 
     // 문의 목록 (관리자)
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ApiResponse<Page<InquiryResponse>> getList(
             @RequestParam(required = false) String status,
@@ -47,12 +49,14 @@ public class InquiryController {
     }
 
     // 문의 상세 (관리자)
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ApiResponse<InquiryResponse> getDetail(@PathVariable Long id) {
         return ApiResponse.ok(inquiryService.getDetail(id));
     }
 
     // 상태 변경 (관리자)
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/status")
     public ApiResponse<InquiryResponse> updateStatus(
             @PathVariable Long id,
@@ -61,6 +65,7 @@ public class InquiryController {
     }
 
     // 답변 등록/수정 (관리자)
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/reply")
     public ApiResponse<InquiryResponse> reply(
             @PathVariable Long id,
@@ -70,6 +75,7 @@ public class InquiryController {
     }
 
     // 메모 추가 (관리자)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/memos")
     public ApiResponse<Void> addMemo(
             @PathVariable Long id,
@@ -80,6 +86,7 @@ public class InquiryController {
     }
 
     // 메모 삭제 (관리자)
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/memos/{memoId}")
     public ApiResponse<Void> deleteMemo(@PathVariable Long memoId) {
         inquiryService.deleteMemo(memoId);
@@ -87,6 +94,7 @@ public class InquiryController {
     }
 
     // 문의/제보 삭제 (관리자)
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         inquiryService.delete(id);

@@ -668,6 +668,21 @@ CREATE UNIQUE INDEX idx_push_subs_endpoint  ON push_subscriptions(endpoint);
 CREATE INDEX idx_push_subs_member_id        ON push_subscriptions(member_id);
 
 -- =============================================
+-- 7. 인증 (JWT 무효화 토큰)
+-- =============================================
+
+-- 강제 로그아웃/계정 잠금/비밀번호 재설정 등으로 무효화된 JWT 목록.
+-- 서버 재시작에도 유지되도록 DB에 저장(기존 인메모리 방식 대체).
+-- 원문 토큰이 아닌 SHA-256 해시만 저장한다.
+CREATE TABLE invalidated_tokens (
+    token_hash VARCHAR(64) PRIMARY KEY,
+    expires_at TIMESTAMP    NOT NULL,
+    created_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_invalidated_tokens_expires_at ON invalidated_tokens(expires_at);
+
+-- =============================================
 -- 기본 데이터 삽입
 -- =============================================
 

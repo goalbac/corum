@@ -34,6 +34,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final VisitLoggingFilter visitLoggingFilter;
     private final TokenSessionService tokenSessionService;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -74,11 +75,12 @@ public class SecurityConfig {
                                 "/api/calendars/events"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/page-view").permitAll()
+                        // 문의 접수는 비로그인 가능(POST)하지만 목록/상세/처리(GET 등)는 관리자 전용
+                        .requestMatchers(HttpMethod.POST, "/api/inquiries").permitAll()
                         .requestMatchers(
                                 "/api/health",
                                 "/api/terms/active",
                                 "/api/menus",
-                                "/api/inquiries",
                                 "/api/display/popups/active",
                                 "/api/display/banners/active",
                                 "/api/site/public",
@@ -102,6 +104,7 @@ public class SecurityConfig {
                     response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                     response.getWriter().write("{\"success\":false,\"message\":\"접근 권한이 없습니다.\"}");
                 }))
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(visitLoggingFilter, UsernamePasswordAuthenticationFilter.class);
 
