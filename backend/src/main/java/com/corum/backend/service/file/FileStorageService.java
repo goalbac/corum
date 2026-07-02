@@ -1,11 +1,21 @@
 package com.corum.backend.service.file;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.board.Board;
+import com.corum.backend.domain.board.BoardRepository;
 import com.corum.backend.domain.file.FileDownloadLog;
 import com.corum.backend.domain.file.FileDownloadLogRepository;
 import com.corum.backend.domain.file.UploadFile;
 import com.corum.backend.domain.file.UploadFileRepository;
+import com.corum.backend.domain.message.Message;
+import com.corum.backend.domain.message.MessageRecipientRepository;
+import com.corum.backend.domain.message.MessageRepository;
+import com.corum.backend.domain.post.Post;
+import com.corum.backend.domain.post.PostRepository;
+import com.corum.backend.domain.setting.SiteSetting;
+import com.corum.backend.domain.setting.SiteSettingRepository;
 import com.corum.backend.dto.file.FileResponse;
+import com.corum.backend.service.board.BoardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +34,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -38,6 +49,12 @@ public class FileStorageService {
     private final S3Client s3Client;
     private final UploadFileRepository uploadFileRepository;
     private final FileDownloadLogRepository downloadLogRepository;
+    private final PostRepository postRepository;
+    private final BoardRepository boardRepository;
+    private final BoardService boardService;
+    private final MessageRepository messageRepository;
+    private final MessageRecipientRepository messageRecipientRepository;
+    private final SiteSettingRepository siteSettingRepository;
 
     @Value("${storage.s3.bucket}")
     private String bucket;
@@ -48,6 +65,13 @@ public class FileStorageService {
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
     );
+    // 실행/스크립트 계열 확장자는 게시판별 허용 목록 설정과 무관하게 항상 차단한다
+    private static final Set<String> ALWAYS_BLOCKED_EXTENSIONS = Set.of(
+            "jsp", "jspx", "php", "php3", "php4", "php5", "phtml", "asp", "aspx",
+            "exe", "sh", "bat", "cmd", "com", "cgi", "pl", "py", "rb",
+            "html", "htm", "svg", "js", "mjs", "jar", "war", "msi", "dll"
+    );
+    private static final int DEFAULT_MAX_SIZE_MB = 20;
 
     // ===== 파일 업로드 =====
     @Transactional
@@ -62,6 +86,7 @@ public class FileStorageService {
     public FileResponse uploadFile(String targetType, Long targetId,
                                    MultipartFile file, Long uploadedBy) {
         String ext = getExtension(file.getOriginalFilename());
+        validateUpload(targetType, targetId, ext, file.getSize());
         String storedName = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
         String storagePath = targetType.toLowerCase() + "/" + targetId + "/" + storedName;
 
@@ -101,6 +126,69 @@ public class FileStorageService {
                 .build();
 
         return new FileResponse(uploadFileRepository.save(uploadFile));
+    }
+
+    // ===== 업로드 검증 (확장자 화이트리스트 + 용량) =====
+    private void validateUpload(String targetType, Long targetId, String ext, long fileSize) {
+        if (ext.isEmpty() || ALWAYS_BLOCKED_EXTENSIONS.contains(ext.toLowerCase())) {
+            throw new BusinessException("허용되지 않는 파일 형식입니다.", HttpStatus.BAD_REQUEST);
+        }
+
+        SiteSetting siteSetting = siteSettingRepository.findTopByOrderByIdAsc().orElse(null);
+        String allowedCsv = siteSetting != null ? siteSetting.getFileAllowedExtensions() : null;
+        Integer maxSizeMb = siteSetting != null ? siteSetting.getFileMaxSizeMb() : null;
+
+        if ("POST".equals(targetType)) {
+            Post post = postRepository.findById(targetId).orElse(null);
+            if (post != null) {
+                Board board = boardRepository.findById(post.getBoardId()).orElse(null);
+                if (board != null) {
+                    if (board.getFileAllowedExtensions() != null && !board.getFileAllowedExtensions().isBlank()) {
+                        allowedCsv = board.getFileAllowedExtensions();
+                    }
+                    if (board.getFileMaxSizeMb() != null) {
+                        maxSizeMb = board.getFileMaxSizeMb();
+                    }
+                }
+            }
+        }
+
+        if (allowedCsv != null && !allowedCsv.isBlank()) {
+            Set<String> allowed = Arrays.stream(allowedCsv.split(","))
+                    .map(String::trim)
+                    .map(String::toLowerCase)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet());
+            if (!allowed.isEmpty() && !allowed.contains(ext.toLowerCase())) {
+                throw new BusinessException("허용되지 않는 파일 형식입니다.", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        long limitMb = maxSizeMb != null ? maxSizeMb : DEFAULT_MAX_SIZE_MB;
+        if (fileSize > limitMb * 1024L * 1024L) {
+            throw new BusinessException("파일 크기가 허용된 용량(" + limitMb + "MB)을 초과했습니다.", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // ===== 파일 접근 권한 확인 (게시글 첨부 → 게시판 권한, 쪽지 첨부 → 발신/수신자만) =====
+    @Transactional(readOnly = true)
+    public boolean canAccessFile(UploadFile file, Long memberId, String permType) {
+        String targetType = file.getTargetType();
+        Long targetId = file.getTargetId();
+        if ("POST".equals(targetType)) {
+            Post post = postRepository.findById(targetId).orElse(null);
+            if (post == null) return false;
+            return boardService.hasPermission(post.getBoardId(), memberId, permType);
+        }
+        if ("MESSAGE".equals(targetType)) {
+            if (memberId == null) return false;
+            Message message = messageRepository.findById(targetId).orElse(null);
+            if (message == null) return false;
+            if (memberId.equals(message.getSenderId())) return true;
+            return messageRecipientRepository.existsByMessageIdAndRecipientId(targetId, memberId);
+        }
+        // 알 수 없는 target_type은 기본 거부
+        return false;
     }
 
     private String generateAndUploadThumbnail(byte[] imageBytes, String originalPath, String mimeType) {

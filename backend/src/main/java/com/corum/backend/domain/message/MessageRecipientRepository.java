@@ -31,6 +31,9 @@ public interface MessageRecipientRepository extends JpaRepository<MessageRecipie
     // 안 읽은 쪽지 수
     long countByRecipientIdAndIsReadFalseAndIsDeletedByRecipientFalse(Long recipientId);
 
+    // 첨부파일 접근 권한 확인용: 이 회원이 해당 쪽지의 수신자인지
+    boolean existsByMessageIdAndRecipientId(Long messageId, Long recipientId);
+
     // 대화 목록용: 내가 받은 모든 MR (삭제 안 된 것)
     List<MessageRecipient> findAllByRecipientIdAndIsDeletedByRecipientFalse(Long recipientId);
 

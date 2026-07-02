@@ -37,9 +37,12 @@ public class FileController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest request) {
         UploadFile uploadFile = fileStorageService.getUploadFile(fileId);
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        if (!fileStorageService.canAccessFile(uploadFile, memberId, "DOWNLOAD")) {
+            throw BusinessException.forbidden("파일을 다운로드할 권한이 없습니다.");
+        }
         byte[] data = fileStorageService.downloadFile(fileId);
 
-        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
         fileStorageService.logDownload(fileId, memberId, ip);
@@ -50,6 +53,7 @@ public class FileController {
                 .filename(uploadFile.getOriginalName(), StandardCharsets.UTF_8)
                 .build());
         headers.setContentLength(data.length);
+        headers.add("X-Content-Type-Options", "nosniff");
 
         return ResponseEntity.ok().headers(headers).body(data);
     }
@@ -81,8 +85,14 @@ public class FileController {
     }
 
     @GetMapping("/api/files/{fileId}/thumbnail")
-    public ResponseEntity<byte[]> thumbnail(@PathVariable Long fileId) {
+    public ResponseEntity<byte[]> thumbnail(
+            @PathVariable Long fileId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         UploadFile uploadFile = fileStorageService.getUploadFile(fileId);
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        if (!fileStorageService.canAccessFile(uploadFile, memberId, "READ")) {
+            throw BusinessException.forbidden("파일에 접근할 권한이 없습니다.");
+        }
         byte[] data = fileStorageService.readThumbnailBytes(fileId);
 
         String mimeType = uploadFile.getMimeType();
@@ -96,17 +106,26 @@ public class FileController {
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS))
+                .header("X-Content-Type-Options", "nosniff")
                 .contentLength(data.length)
                 .body(data);
     }
 
     /** 대시보드용 소형 썸네일 (300px) */
     @GetMapping("/api/files/{fileId}/small-thumb")
-    public ResponseEntity<byte[]> smallThumbnail(@PathVariable Long fileId) {
+    public ResponseEntity<byte[]> smallThumbnail(
+            @PathVariable Long fileId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        UploadFile uploadFile = fileStorageService.getUploadFile(fileId);
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        if (!fileStorageService.canAccessFile(uploadFile, memberId, "READ")) {
+            throw BusinessException.forbidden("파일에 접근할 권한이 없습니다.");
+        }
         byte[] data = fileStorageService.readSmallThumbnailBytes(fileId);
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG)
                 .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS))
+                .header("X-Content-Type-Options", "nosniff")
                 .contentLength(data.length)
                 .body(data);
     }
@@ -123,8 +142,14 @@ public class FileController {
     }
 
     @GetMapping("/api/files/{fileId}/view")
-    public ResponseEntity<byte[]> viewImage(@PathVariable Long fileId) {
+    public ResponseEntity<byte[]> viewImage(
+            @PathVariable Long fileId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         UploadFile uploadFile = fileStorageService.getUploadFile(fileId);
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        if (!fileStorageService.canAccessFile(uploadFile, memberId, "READ")) {
+            throw BusinessException.forbidden("파일에 접근할 권한이 없습니다.");
+        }
         byte[] data = fileStorageService.readFileBytes(fileId);
 
         String mimeType = uploadFile.getMimeType();
@@ -138,6 +163,7 @@ public class FileController {
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .cacheControl(CacheControl.maxAge(7, TimeUnit.DAYS))
+                .header("X-Content-Type-Options", "nosniff")
                 .contentLength(data.length)
                 .body(data);
     }

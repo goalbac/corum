@@ -7,6 +7,7 @@ import com.corum.backend.domain.board.BoardCategoryRepository;
 import com.corum.backend.domain.board.BoardGroupPermission;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.board.BoardRepository;
+import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.board.BoardCreateRequest;
 import com.corum.backend.dto.board.BoardResponse;
@@ -27,6 +28,7 @@ public class BoardService {
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final BoardCategoryRepository boardCategoryRepository;
     private final PostRepository postRepository;
+    private final MemberGroupRepository memberGroupRepository;
 
     // ===== 게시판 목록 =====
     @Transactional(readOnly = true)
@@ -109,16 +111,28 @@ public class BoardService {
     }
 
     // ===== 권한 확인 =====
+    // 게시판에 board_group_permissions 행이 하나도 없으면 "공개 게시판"으로 간주한다
+    // (calendar_group_permissions와 동일한 관례). WRITE만 로그인을 요구하고
+    // READ/COMMENT/DOWNLOAD는 비로그인도 허용. 행이 존재하면 그 그룹 설정을 그대로 따른다.
     @Transactional(readOnly = true)
-    public boolean hasPermission(Long boardId, List<Long> memberGroupIds, String permType) {
-        if (memberGroupIds.isEmpty()) return false;
+    public boolean hasPermission(Long boardId, Long memberId, String permType) {
+        if (memberId != null && memberGroupRepository.existsSuperAdminGroupByMemberId(memberId)) {
+            return true;
+        }
+        List<BoardGroupPermission> allPerms = boardGroupPermissionRepository.findByBoardId(boardId);
+        if (allPerms.isEmpty()) {
+            return !"WRITE".equals(permType) || memberId != null;
+        }
+        if (memberId == null) return false;
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        if (groupIds.isEmpty()) return false;
         List<BoardGroupPermission> perms = boardGroupPermissionRepository
-                .findByBoardIdAndGroupIds(boardId, memberGroupIds);
+                .findByBoardIdAndGroupIds(boardId, groupIds);
         return perms.stream().anyMatch(p -> switch (permType) {
-            case "READ"     -> p.getCanRead();
-            case "WRITE"    -> p.getCanWrite();
-            case "COMMENT"  -> p.getCanComment();
-            case "DOWNLOAD" -> p.getCanDownload();
+            case "READ"     -> Boolean.TRUE.equals(p.getCanRead());
+            case "WRITE"    -> Boolean.TRUE.equals(p.getCanWrite());
+            case "COMMENT"  -> Boolean.TRUE.equals(p.getCanComment());
+            case "DOWNLOAD" -> Boolean.TRUE.equals(p.getCanDownload());
             default -> false;
         });
     }
