@@ -21,8 +21,13 @@ public final class HtmlSanitizer {
     private HtmlSanitizer() {
     }
 
+    // baseUri 없이 Jsoup.clean(html, safelist)를 쓰면 상대경로 URL의 프로토콜을
+    // 판단할 기준이 없어 preserveRelativeLinks(true)여도 href/src가 통째로 drop된다.
+    // 임의의 http(s) baseUri를 지정해 상대경로가 허용 프로토콜로 해석되게 한다.
+    private static final String BASE_URI = "http://localhost/";
+
     public static String sanitize(String html) {
         if (html == null || html.isBlank()) return html;
-        return Jsoup.clean(html, SAFELIST);
+        return Jsoup.clean(html, BASE_URI, SAFELIST);
     }
 }
