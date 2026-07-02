@@ -232,7 +232,11 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 10. `/api/inquiries` permitAll 범위에 GET(목록 조회)도 포함될 가능성 — 컨트롤러 매핑 재확인 필요
 11. ~~`getPost`(게시글 상세)·게시글 목록·댓글 조회 등 파일이 아닌 일반 API 경로의 board READ 권한 미강제~~ **[해결됨 2026-07-02, `4eee876`]** `PostService.getPosts/getPost/getAdjacentPosts`, `CommentService.getComments`에 `boardService.hasPermission(READ)` 체크 추가. 권한 미설정 게시판은 기존과 동일하게 공개 유지. (대시보드 "최신글" 위젯의 `getLatestPosts`는 admin이 board를 직접 지정하는 경로라 이번 범위에서 제외)
 
-**🟡 Medium**: 비밀번호 재설정/이메일 인증 토큰 재사용 가능(1회성 미보장) · 관리자 발급 임시 비밀번호 이메일 평문 전송 · `docker-compose.prod.yml`의 MinIO 자격증명 약한 fallback(`:-minioadmin123`) · CORS 허용 목록에 개발용 `trycloudflare.com` 잔존
+**🟡 Medium — 전부 해결됨 (2026-07-02, `8d88007`)**
+- ~~비밀번호 재설정/이메일 인증 토큰 재사용 가능~~ `AuthService.validatePurpose()`에서 `TokenSessionService` 블랙리스트로 사용 즉시 무효화(1회성 보장)
+- ~~관리자 발급 임시 비밀번호 이메일 평문 전송~~ `AuthService.adminResetPassword()` 신설 — 평문 임시비밀번호 대신 자가 재설정 링크(30분 유효, 1회성) 발송으로 전환
+- ~~`docker-compose.prod.yml`의 DB/MinIO 자격증명 약한 fallback~~ `${VAR:?message}` 문법으로 변경, `.env.prod` 누락 시 기동 자체가 실패하도록 함
+- ~~CORS 허용 목록에 개발용 `trycloudflare.com` 잔존~~ 제거 완료
 
 **확인된 안전한 부분**: SQL Injection(파라미터 바인딩 전면 사용) · Path traversal(UUID 파일명) · CSRF(STATELESS+JWT라 해당 없음) · 이관 도구 자격증명 관리 · audit_logs 민감정보 미기록
 
