@@ -26,7 +26,7 @@
       <div v-loading="loading" class="terms-list">
         <section v-for="term in filteredTerms" :key="term.id" class="terms-section">
           <h2>{{ labelOf(term.type) }} <span class="version-badge">v{{ term.version }}</span></h2>
-          <div class="terms-content" v-html="term.content || '약관 내용이 등록되지 않았습니다.'" />
+          <div class="terms-content" v-html="sanitizeHtml(term.content) || '약관 내용이 등록되지 않았습니다.'" />
         </section>
         <el-empty v-if="!loading && !filteredTerms.length" description="등록된 활성 약관이 없습니다." />
       </div>
@@ -38,6 +38,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const route = useRoute()
 const terms = ref([])

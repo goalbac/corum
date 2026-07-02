@@ -139,7 +139,7 @@
         </el-form-item>
         <div v-if="form.footerHtml" class="footer-preview">
           <div class="preview-label">미리보기</div>
-          <div class="preview-content" v-html="form.footerHtml" />
+          <div class="preview-content" v-html="sanitizeHtml(form.footerHtml)" />
         </div>
       </section>
 
@@ -244,6 +244,7 @@ import { ElMessage } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 import { useSiteStore } from '@/stores/site'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const siteStore = useSiteStore()
 

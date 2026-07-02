@@ -3,7 +3,7 @@
     <template v-if="page">
       <div class="content-card">
         <h1>{{ page.title }}</h1>
-        <div class="content-body" v-html="page.content || ''" />
+        <div class="content-body" v-html="sanitizeHtml(page.content) || ''" />
       </div>
     </template>
     <div v-else-if="!loading" class="content-card empty-content">
@@ -18,6 +18,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const route = useRoute()
 const menuStore = useMenuStore()

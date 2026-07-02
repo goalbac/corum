@@ -47,6 +47,9 @@ dependencies {
     // 이미지 썸네일 생성
     implementation 'net.coobird:thumbnailator:0.4.19'
 
+    // HTML sanitize (TipTap 위지윅 콘텐츠 XSS 방지)
+    implementation 'org.jsoup:jsoup:1.17.2'
+
     // Lombok
     compileOnly    'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

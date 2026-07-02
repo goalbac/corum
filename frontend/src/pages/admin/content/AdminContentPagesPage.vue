@@ -136,7 +136,7 @@
           <!-- 에디터 영역 -->
           <div class="editor-body" v-loading="pageLoading">
             <!-- 미리보기 모드 -->
-            <div v-if="previewHistoryId" class="history-preview-content" v-html="previewContent" />
+            <div v-if="previewHistoryId" class="history-preview-content" v-html="sanitizeHtml(previewContent)" />
             <!-- 편집 모드 -->
             <RichEditor
               v-else
@@ -157,6 +157,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import RichEditor from '@/components/common/RichEditor.vue'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 

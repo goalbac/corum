@@ -1,6 +1,7 @@
 package com.corum.backend.service.terms;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.common.HtmlSanitizer;
 import com.corum.backend.domain.terms.MemberTermsAgreement;
 import com.corum.backend.domain.terms.MemberTermsAgreementRepository;
 import com.corum.backend.domain.terms.Terms;
@@ -80,7 +81,7 @@ public class TermsService {
         Terms terms = termsRepository.save(Terms.builder()
                 .type(request.getType())
                 .version(nextVersion)
-                .content(request.getContent())
+                .content(HtmlSanitizer.sanitize(request.getContent()))
                 .isActive(Boolean.TRUE.equals(request.getIsActive()))
                 .requireReagree(Boolean.TRUE.equals(request.getRequireReagree()))
                 .build());
@@ -98,7 +99,7 @@ public class TermsService {
                     .filter(active -> !active.getId().equals(id))
                     .forEach(Terms::deactivate);
         }
-        terms.update(request.getContent(), Boolean.TRUE.equals(request.getIsActive()),
+        terms.update(HtmlSanitizer.sanitize(request.getContent()), Boolean.TRUE.equals(request.getIsActive()),
                 Boolean.TRUE.equals(request.getRequireReagree()));
         operationLogService.audit(adminId, "UPDATE", "terms", id, null,
                 terms.getType() + " v" + terms.getVersion(), httpRequest);

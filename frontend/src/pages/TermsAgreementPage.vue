@@ -10,7 +10,7 @@
             <strong>{{ labelOf(term.type) }} v{{ term.version }}</strong>
             <el-checkbox v-model="checked[term.id]">동의</el-checkbox>
           </div>
-          <div class="terms-content" v-html="term.content || '약관 내용이 등록되지 않았습니다.'" />
+          <div class="terms-content" v-html="sanitizeHtml(term.content) || '약관 내용이 등록되지 않았습니다.'" />
         </section>
         <el-empty v-if="!loading && !requiredTerms.length" description="동의가 필요한 약관이 없습니다." />
       </div>
@@ -31,6 +31,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import api from '@/api/axios'
 import { useAuthStore } from '@/stores/auth'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const router = useRouter()
 const authStore = useAuthStore()

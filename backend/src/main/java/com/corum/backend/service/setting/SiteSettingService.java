@@ -1,6 +1,7 @@
 package com.corum.backend.service.setting;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.common.HtmlSanitizer;
 import com.corum.backend.domain.setting.SiteSetting;
 import com.corum.backend.domain.setting.SiteSettingRepository;
 import com.corum.backend.dto.setting.SiteSettingResponse;
@@ -48,7 +49,7 @@ public class SiteSettingService {
                 request.getSmtpUsername(),
                 request.getSmtpPasswordEnc(),
                 request.getSmtpUseTls(),
-                request.getFooterHtml(),
+                HtmlSanitizer.sanitize(request.getFooterHtml()),
                 request.getContactAddress(),
                 request.getContactPhone(),
                 request.getAdminEmail(),

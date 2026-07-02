@@ -275,7 +275,7 @@
               </a>
             </div>
             <p v-if="widget.description" class="wcard-desc">{{ widget.description }}</p>
-            <div class="custom-body ql-editor" v-html="toCustomHtml(parseConfig(widget).content || '')" />
+            <div class="custom-body ql-editor" v-html="sanitizeHtml(toCustomHtml(parseConfig(widget).content || ''))" />
           </div>
         </div>
 
@@ -361,6 +361,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 import ImageSlider from '@/components/common/ImageSlider.vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'

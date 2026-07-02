@@ -1,6 +1,7 @@
 package com.corum.backend.service.post;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.common.HtmlSanitizer;
 import com.corum.backend.domain.board.Board;
 import com.corum.backend.domain.board.BoardCategory;
 import com.corum.backend.domain.board.BoardCategoryRepository;
@@ -210,7 +211,7 @@ public class PostService {
                 .boardId(boardId)
                 .memberId(memberId)
                 .title(request.getTitle())
-                .content(request.getContent())
+                .content(HtmlSanitizer.sanitize(request.getContent()))
                 .writerName(writerName)
                 .isNotice(request.getIsNotice())
                 .categoryId(request.getCategoryId())
@@ -267,7 +268,7 @@ public class PostService {
             throw BusinessException.forbidden("수정 권한이 없습니다.");
         }
 
-        post.update(request.getTitle(), request.getContent(),
+        post.update(request.getTitle(), HtmlSanitizer.sanitize(request.getContent()),
                 request.getIsNotice(), post.getIsHidden(), request.getCategoryId(), memberId);
 
         if (isAdmin && (request.getCreatedAt() != null || request.getLikeCount() != null)) {

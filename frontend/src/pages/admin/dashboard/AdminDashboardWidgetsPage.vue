@@ -183,7 +183,7 @@
 
           <!-- CUSTOM -->
           <template v-else-if="w.widgetType === 'CUSTOM'">
-            <div class="wp-custom" v-html="parseConfig(w).content || ''" />
+            <div class="wp-custom" v-html="sanitizeHtml(parseConfig(w).content) || ''" />
             <div v-if="!parseConfig(w).content" class="wp-empty"><i class="ti ti-pencil"></i> 본문 없음</div>
           </template>
         </div>
@@ -513,6 +513,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import RichEditor from '@/components/common/RichEditor.vue'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const menuStore = useMenuStore()
 

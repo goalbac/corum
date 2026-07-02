@@ -1,6 +1,7 @@
 package com.corum.backend.service.operation;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.common.HtmlSanitizer;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.operation.Banner;
 import com.corum.backend.domain.operation.BannerRepository;
@@ -78,7 +79,7 @@ public class OperationDisplayService {
         Popup popup = popupRepository.save(Popup.builder()
                 .title(request.getTitle())
                 .contentType(request.getContentType())
-                .content(request.getContent())
+                .content(HtmlSanitizer.sanitize(request.getContent()))
                 .imageUrl(request.getImageUrl())
                 .linkUrl(request.getLinkUrl())
                 .linkNewWindow(request.getLinkNewWindow())
@@ -100,7 +101,7 @@ public class OperationDisplayService {
         Popup popup = popupRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("팝업을 찾을 수 없습니다."));
         popup.update(
-                request.getTitle(), request.getContentType(), request.getContent(), request.getImageUrl(),
+                request.getTitle(), request.getContentType(), HtmlSanitizer.sanitize(request.getContent()), request.getImageUrl(),
                 request.getLinkUrl(), request.getLinkNewWindow(), request.getPosition(), request.getPriority(),
                 request.getStartAt(), request.getEndAt(), request.getIsActive()
         );
@@ -133,7 +134,7 @@ public class OperationDisplayService {
     public BannerResponse createBanner(BannerRequest request, Long createdBy) {
         Banner banner = bannerRepository.save(Banner.builder()
                 .title(request.getTitle())
-                .content(request.getContent())
+                .content(HtmlSanitizer.sanitize(request.getContent()))
                 .linkUrl(request.getLinkUrl())
                 .linkNewWindow(request.getLinkNewWindow())
                 .startAt(request.getStartAt())
@@ -153,7 +154,7 @@ public class OperationDisplayService {
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("배너를 찾을 수 없습니다."));
         banner.update(
-                request.getTitle(), request.getContent(), request.getLinkUrl(), request.getLinkNewWindow(),
+                request.getTitle(), HtmlSanitizer.sanitize(request.getContent()), request.getLinkUrl(), request.getLinkNewWindow(),
                 request.getStartAt(), request.getEndAt(), request.getIsActive(), request.getBgColor(), request.getTextAlign()
         );
         String name = banner.getCreatedBy() != null

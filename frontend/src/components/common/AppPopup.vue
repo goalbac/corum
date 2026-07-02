@@ -24,7 +24,7 @@
           </template>
 
           <!-- HTML 타입 -->
-          <div v-else class="popup-html" v-html="popup.content" />
+          <div v-else class="popup-html" v-html="sanitizeHtml(popup.content)" />
 
           <!-- 데스크톱 footer: 체크박스 스타일 -->
           <div class="popup-footer desktop-footer">
@@ -51,6 +51,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const route = useRoute()
 const allPopups = ref([])

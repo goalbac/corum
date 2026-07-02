@@ -146,7 +146,7 @@
             <div class="popup-preview-box">
               <div class="popup-preview-popup">
                 <div class="popup-preview-header">팝업</div>
-                <div class="popup-preview-html" v-html="popupForm.content"></div>
+                <div class="popup-preview-html" v-html="sanitizeHtml(popupForm.content)"></div>
               </div>
             </div>
           </div>
@@ -285,6 +285,7 @@ import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const tab = ref('popups')
 const popups = ref([]); const banners = ref([])

@@ -1,6 +1,7 @@
 package com.corum.backend.service.content;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.common.HtmlSanitizer;
 import com.corum.backend.domain.content.ContentPage;
 import com.corum.backend.domain.content.ContentPageHistory;
 import com.corum.backend.domain.content.ContentPageHistoryRepository;
@@ -41,12 +42,13 @@ public class ContentPageService {
 
     @Transactional
     public ContentPageResponse saveByMenuId(Long menuId, ContentPageRequest request, Long memberId) {
+        String content = HtmlSanitizer.sanitize(request.getContent());
         ContentPage page = contentPageRepository.findByMenuId(menuId).orElse(null);
         if (page == null) {
             page = contentPageRepository.save(ContentPage.builder()
                     .menuId(menuId)
                     .title(request.getTitle())
-                    .content(request.getContent())
+                    .content(content)
                     .createdBy(memberId)
                     .updatedBy(memberId)
                     .build());
@@ -55,7 +57,7 @@ public class ContentPageService {
         }
 
         saveHistory(page.getId(), page.getContent(), memberId);
-        page.update(request.getTitle(), request.getContent(), memberId);
+        page.update(request.getTitle(), content, memberId);
         return new ContentPageResponse(page);
     }
 

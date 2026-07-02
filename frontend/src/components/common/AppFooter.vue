@@ -8,7 +8,7 @@
             <span v-else class="footer-logo-text">{{ siteName || 'Corum' }}</span>
           </div>
           <p v-if="siteDescription" class="footer-desc">{{ siteDescription }}</p>
-          <div v-if="footerHtml" class="footer-custom" v-html="footerHtml" />
+          <div v-if="footerHtml" class="footer-custom" v-html="sanitizeHtml(footerHtml)" />
           <div class="footer-contact">
             <span v-if="contactAddress" class="contact-item">
               <i class="ti ti-map-pin"></i>{{ contactAddress }}
@@ -46,7 +46,7 @@
           v-for="term in filteredTerms"
           :key="term.id"
           class="terms-content"
-          v-html="term.content || '약관 내용이 등록되지 않았습니다.'"
+          v-html="sanitizeHtml(term.content) || '약관 내용이 등록되지 않았습니다.'"
         />
         <el-empty v-if="!termsLoading && !filteredTerms.length" description="등록된 약관이 없습니다." />
       </div>
@@ -121,6 +121,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const authStore = useAuthStore()
 

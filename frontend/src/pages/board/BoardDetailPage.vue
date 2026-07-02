@@ -83,7 +83,7 @@
         </div>
 
         <!-- ===== 본문 ===== -->
-        <div class="post-content" v-html="post.content" />
+        <div class="post-content" v-html="sanitizeHtml(post.content)" />
 
         <!-- ===== 반응 / 공감 ===== -->
         <div v-if="board?.useLike" class="reaction-row">
@@ -220,6 +220,7 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
+import { sanitizeHtml } from '@/utils/sanitize'
 import CommentSection from '@/components/board/CommentSection.vue'
 import UserProfileModal from '@/components/common/UserProfileModal.vue'
 import EmojiReactionBar from '@/components/common/EmojiReactionBar.vue'
