@@ -14,9 +14,9 @@ import com.corum.backend.dto.group.GroupResponse;
 import com.corum.backend.dto.member.AdminMemberCreateRequest;
 import com.corum.backend.dto.member.MemberListResponse;
 import com.corum.backend.security.CustomUserDetails;
+import com.corum.backend.service.auth.AuthService;
 import com.corum.backend.service.auth.TokenSessionService;
 import com.corum.backend.service.log.OperationLogService;
-import com.corum.backend.service.mail.MailService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -60,7 +60,7 @@ public class AdminMemberController {
     private final TokenSessionService tokenSessionService;
     private final OperationLogService operationLogService;
     private final PasswordEncoder passwordEncoder;
-    private final MailService mailService;
+    private final AuthService authService;
 
     @PostMapping
     @Transactional
@@ -196,28 +196,11 @@ public class AdminMemberController {
     }
 
     @PostMapping("/{id}/reset-password")
-    @Transactional
     public ApiResponse<Void> resetPassword(@PathVariable Long id,
                                            @AuthenticationPrincipal CustomUserDetails userDetails,
                                            HttpServletRequest request) {
-        Member member = findMember(id);
-        String tempPassword = generateTempPassword();
-        member.updatePassword(passwordEncoder.encode(tempPassword));
-        member.requirePasswordChange();
-        member.unlock();
-        memberRepository.save(member);
-        tokenSessionService.invalidateMember(id);
-
-        String memberName = member.getName() != null ? member.getName() : member.getUsername();
-        mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 임시 비밀번호 안내",
-                "<p>" + memberName + "님의 비밀번호가 관리자에 의해 초기화되었습니다.</p>" +
-                "<p>임시 비밀번호: <strong>" + tempPassword + "</strong></p>" +
-                "<p>로그인 후 반드시 새 비밀번호로 변경해주세요.</p>",
-                "PASSWORD_RESET");
-
-        operationLogService.audit(userDetails.getMemberId(), "UPDATE", "members", id,
-                null, "password_reset_by_admin", request);
-        return ApiResponse.ok("비밀번호가 초기화되었습니다. 임시 비밀번호를 이메일로 발송했습니다.");
+        authService.adminResetPassword(id, userDetails.getMemberId(), request);
+        return ApiResponse.ok("비밀번호가 초기화되었습니다. 재설정 링크를 이메일로 발송했습니다.");
     }
 
     @PostMapping("/{id}/force-logout")
@@ -335,14 +318,6 @@ public class AdminMemberController {
                 .append(Boolean.TRUE.equals(member.getIsActive()) ? "active" : "inactive")
                 .append("\n"));
         return download(SimplePdf.create(text.toString()), "members.pdf", MediaType.APPLICATION_PDF_VALUE);
-    }
-
-    private String generateTempPassword() {
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        java.security.SecureRandom random = new java.security.SecureRandom();
-        StringBuilder sb = new StringBuilder(12);
-        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
-        return sb.toString();
     }
 
     private Member findMember(Long id) {

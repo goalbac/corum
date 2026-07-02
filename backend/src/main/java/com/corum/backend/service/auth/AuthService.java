@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -137,6 +138,7 @@ public class AuthService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
         member.activate();
+        tokenSessionService.invalidateToken(token);
         operationLogService.audit(memberId, "UPDATE", "members", memberId, "inactive", "active", httpRequest);
     }
 
@@ -151,6 +153,28 @@ public class AuthService {
         });
     }
 
+    // 관리자가 회원 비밀번호를 초기화 — 임시 비밀번호를 평문으로 발급/발송하지 않고
+    // 기존 비밀번호는 즉시 무효화한 뒤 본인만 여는 재설정 링크를 이메일로 보낸다.
+    @Transactional
+    public void adminResetPassword(Long memberId, Long adminId, HttpServletRequest httpRequest) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
+        member.updatePassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        member.unlock();
+        memberRepository.save(member);
+        tokenSessionService.invalidateMember(memberId);
+
+        String token = jwtProvider.createPurposeToken(member.getId(), member.getUsername(), "PASSWORD_RESET", 1000L * 60 * 30);
+        String link = frontendUrl + "/reset-password?token=" + token;
+        String memberName = member.getName() != null ? member.getName() : member.getUsername();
+        mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 비밀번호 재설정 안내",
+                "<p>" + memberName + "님의 비밀번호가 관리자에 의해 초기화되었습니다.</p>" +
+                "<p>아래 링크에서 새 비밀번호를 설정해주세요. (30분간 유효)</p>" +
+                "<p><a href=\"" + link + "\">비밀번호 재설정</a></p>",
+                "PASSWORD_RESET");
+        operationLogService.audit(adminId, "UPDATE", "members", memberId, null, "password_reset_by_admin", httpRequest);
+    }
+
     @Transactional
     public void resetPassword(PasswordResetConfirmRequest request, HttpServletRequest httpRequest) {
         validatePurpose(request.getToken(), "PASSWORD_RESET");
@@ -161,6 +185,7 @@ public class AuthService {
         member.unlock();
         member.clearMustChangePassword();
         tokenSessionService.invalidateMember(memberId);
+        tokenSessionService.invalidateToken(request.getToken());
         operationLogService.audit(memberId, "UPDATE", "members", memberId, "password_reset_requested", "password_reset_done", httpRequest);
     }
 
@@ -245,6 +270,9 @@ public class AuthService {
     private void validatePurpose(String token, String purpose) {
         if (!jwtProvider.validate(token) || !purpose.equals(jwtProvider.getPurpose(token))) {
             throw BusinessException.unauthorized("유효하지 않은 토큰입니다.");
+        }
+        if (tokenSessionService.isInvalidated(token)) {
+            throw BusinessException.unauthorized("이미 사용되었거나 만료된 링크입니다.");
         }
     }
 

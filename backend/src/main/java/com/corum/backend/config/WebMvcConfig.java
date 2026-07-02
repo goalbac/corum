@@ -12,8 +12,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins(
                         "http://localhost:5173",   // Vue dev server
-                        "http://localhost:3000",
-                        "https://hay-measurement-ticket-include.trycloudflare.com"
+                        "http://localhost:3000"
                 )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
