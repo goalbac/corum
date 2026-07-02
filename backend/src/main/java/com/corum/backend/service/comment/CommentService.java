@@ -16,6 +16,7 @@ import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.comment.CommentCreateRequest;
 import com.corum.backend.dto.comment.CommentResponse;
 import com.corum.backend.dto.post.ReactionResult;
+import com.corum.backend.service.board.BoardService;
 import com.corum.backend.service.notification.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class CommentService {
     private final MemberGroupRepository memberGroupRepository;
     private final GroupRepository groupRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
+    private final BoardService boardService;
     private final NotificationService notificationService;
 
     private static final int MAX_DEPTH = 2; // 0-based (0,1,2 = 3뎁스)
@@ -51,6 +53,12 @@ public class CommentService {
     // ===== 댓글 목록 (트리 구조) =====
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(Long postId, Long memberId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
+        if (!boardService.hasPermission(post.getBoardId(), memberId, "READ")) {
+            throw BusinessException.forbidden("댓글을 조회할 권한이 없습니다.");
+        }
+
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
 
         // memberId → profileImageUrl 배치 조회

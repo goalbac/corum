@@ -19,6 +19,7 @@ import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
 import com.corum.backend.dto.post.ReactionResult;
 import com.corum.backend.domain.comment.CommentRepository;
+import com.corum.backend.service.board.BoardService;
 import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.notification.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,6 +54,7 @@ public class PostService {
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final BoardCategoryRepository boardCategoryRepository;
     private final BoardRepository boardRepository;
+    private final BoardService boardService;
     private final NotificationService notificationService;
 
     // 24시간 내 동일 게시글 중복 조회 방지 (key: "postId:u{memberId}" or "postId:i{ip}")
@@ -75,7 +77,11 @@ public class PostService {
     // ===== 게시글 목록 =====
     @Transactional(readOnly = true)
     public Page<PostSummaryResponse> getPosts(Long boardId, String searchType,
-                                              String keyword, Long categoryId, Pageable pageable) {
+                                              String keyword, Long categoryId, Pageable pageable,
+                                              Long memberId) {
+        if (!boardService.hasPermission(boardId, memberId, "READ")) {
+            throw BusinessException.forbidden("게시판을 조회할 권한이 없습니다.");
+        }
         Board board = boardRepository.findById(boardId).orElse(null);
         boolean isDocument = board != null && "DOCUMENT".equals(board.getBoardType());
         Page<Post> posts;
@@ -161,6 +167,10 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
 
+        if (!boardService.hasPermission(post.getBoardId(), memberId, "READ")) {
+            throw BusinessException.forbidden("게시글을 조회할 권한이 없습니다.");
+        }
+
         if (shouldIncrementView(postId, memberId, clientIp)) {
             post.increaseViewCount();
         }
@@ -236,7 +246,10 @@ public class PostService {
 
     // ===== 이전/다음 글 =====
     @Transactional(readOnly = true)
-    public AdjacentPostsResponse getAdjacentPosts(Long boardId, Long postId) {
+    public AdjacentPostsResponse getAdjacentPosts(Long boardId, Long postId, Long memberId) {
+        if (!boardService.hasPermission(boardId, memberId, "READ")) {
+            throw BusinessException.forbidden("게시판을 조회할 권한이 없습니다.");
+        }
         Pageable one = PageRequest.of(0, 1);
         Post prev = postRepository.findPrevPost(boardId, postId, one).stream().findFirst().orElse(null);
         Post next = postRepository.findNextPost(boardId, postId, one).stream().findFirst().orElse(null);

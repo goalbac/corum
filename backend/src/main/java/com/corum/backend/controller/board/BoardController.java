@@ -94,8 +94,8 @@ public class BoardController {
             HttpServletRequest httpRequest) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<PostSummaryResponse> result = postService.getPosts(boardId, searchType, keyword, categoryId, pageable);
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        Page<PostSummaryResponse> result = postService.getPosts(boardId, searchType, keyword, categoryId, pageable, memberId);
         operationLogService.search(memberId, keyword, searchType, (int) result.getTotalElements(), httpRequest);
         return ApiResponse.ok(result);
     }
@@ -157,8 +157,10 @@ public class BoardController {
     @GetMapping("/api/boards/{boardId}/posts/{postId}/adjacent")
     public ApiResponse<AdjacentPostsResponse> getAdjacentPosts(
             @PathVariable Long boardId,
-            @PathVariable Long postId) {
-        return ApiResponse.ok(postService.getAdjacentPosts(boardId, postId));
+            @PathVariable Long postId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        return ApiResponse.ok(postService.getAdjacentPosts(boardId, postId, memberId));
     }
 
     @PutMapping("/api/boards/{boardId}/posts/{postId}")
