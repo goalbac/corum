@@ -3,8 +3,10 @@ package com.corum.backend.security;
 import com.corum.backend.domain.member.Member;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -12,9 +14,13 @@ import java.util.List;
 public class CustomUserDetails implements UserDetails {
 
     private final Member member;
+    private final boolean admin;
+    private final boolean superAdmin;
 
-    public CustomUserDetails(Member member) {
+    public CustomUserDetails(Member member, boolean admin, boolean superAdmin) {
         this.member = member;
+        this.admin = admin;
+        this.superAdmin = superAdmin;
     }
 
     public Long getMemberId() {
@@ -23,8 +29,10 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 그룹 기반 권한은 DB에서 동적으로 처리 — 여기선 빈 목록
-        return List.of();
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        if (admin) authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        if (superAdmin) authorities.add(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"));
+        return authorities;
     }
 
     @Override public String getPassword()  { return member.getPasswordHash(); }

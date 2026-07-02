@@ -26,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -57,12 +58,14 @@ public class BoardController {
         return ApiResponse.ok(boardService.getBoard(boardId));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/api/boards")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<BoardResponse> createBoard(@Valid @RequestBody BoardCreateRequest request) {
         return ApiResponse.ok(boardService.createBoard(request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/api/boards/{boardId}")
     public ApiResponse<BoardResponse> updateBoard(
             @PathVariable Long boardId,
@@ -70,6 +73,7 @@ public class BoardController {
         return ApiResponse.ok(boardService.updateBoard(boardId, request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/api/boards/{boardId}")
     public ApiResponse<Void> deleteBoard(@PathVariable Long boardId) {
         boardService.deleteBoard(boardId);

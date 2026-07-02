@@ -10,6 +10,7 @@ import com.corum.backend.service.group.GroupService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +37,7 @@ public class GroupController {
     }
 
     // 그룹 생성 (SUPER_ADMIN)
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/api/groups")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<GroupResponse> createGroup(
@@ -45,6 +47,7 @@ public class GroupController {
     }
 
     // 그룹 수정 (SUPER_ADMIN)
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PutMapping("/api/groups/{id}")
     public ApiResponse<GroupResponse> updateGroup(
             @PathVariable Long id,
@@ -53,6 +56,7 @@ public class GroupController {
     }
 
     // 그룹 삭제 (SUPER_ADMIN)
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @DeleteMapping("/api/groups/{id}")
     public ApiResponse<Void> deleteGroup(@PathVariable Long id) {
         groupService.deleteGroup(id);
@@ -60,6 +64,7 @@ public class GroupController {
     }
 
     // 그룹 순서 저장: id 배열을 받아 index 순서대로 sortOrder 재배정
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PutMapping("/api/groups/sort")
     public ApiResponse<Void> sortGroups(@RequestBody List<Long> ids) {
         groupService.sortGroups(ids);
@@ -69,6 +74,7 @@ public class GroupController {
     // ===== 회원 그룹 부여/회수 (/api/member-groups 로 분리) =====
 
     // 회원에게 그룹 부여
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/api/member-groups")
     public ApiResponse<Void> assignGroup(
             @Valid @RequestBody MemberGroupAssignRequest request,
@@ -79,6 +85,7 @@ public class GroupController {
     }
 
     // 회원에서 그룹 회수
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @DeleteMapping("/api/member-groups")
     public ApiResponse<Void> revokeGroup(
             @Valid @RequestBody MemberGroupAssignRequest request) {
@@ -87,6 +94,7 @@ public class GroupController {
     }
 
     // 특정 회원의 그룹 목록
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/api/member-groups/members/{memberId}")
     public ApiResponse<List<GroupResponse>> getMemberGroups(@PathVariable Long memberId) {
         return ApiResponse.ok(groupService.getMemberGroups(memberId));

@@ -10,6 +10,7 @@ import com.corum.backend.service.menu.MenuService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,6 +39,7 @@ public class MenuController {
     }
 
     // 관리자용 전체 메뉴 트리 (숨김 포함)
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin")
     public ApiResponse<List<MenuResponse>> getFullMenuTree() {
         return ApiResponse.ok(menuService.getFullMenuTree());
@@ -50,6 +52,7 @@ public class MenuController {
     }
 
     // 메뉴 생성
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<MenuResponse> createMenu(@Valid @RequestBody MenuCreateRequest request) {
@@ -57,6 +60,7 @@ public class MenuController {
     }
 
     // 메뉴 수정
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ApiResponse<MenuResponse> updateMenu(
             @PathVariable Long id,
@@ -65,6 +69,7 @@ public class MenuController {
     }
 
     // 메뉴 삭제
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteMenu(@PathVariable Long id) {
         menuService.deleteMenu(id);
@@ -72,6 +77,7 @@ public class MenuController {
     }
 
     // 메뉴 순서 일괄 변경
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/sort")
     public ApiResponse<Void> updateSortOrder(@RequestBody List<Long> menuIds) {
         menuService.updateSortOrder(menuIds);
@@ -79,6 +85,7 @@ public class MenuController {
     }
 
     // 메뉴 트리 재정렬 (부모 변경 포함)
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/reorder")
     public ApiResponse<Void> reorder(
             @RequestBody List<com.corum.backend.dto.menu.MenuReorderItem> items) {
