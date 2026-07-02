@@ -58,6 +58,7 @@ $env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.1"; .\gradlew bootRun
 ```
 
 > **주의:** JAVA_HOME 없이 실행하면 시스템 기본 JDK로 실행될 수 있음. 항상 명시적으로 지정.
+> **참고:** `backend/src/test` 디렉토리 없음 — 테스트 코드 미작성 상태 (커버리지 0%). Frontend도 lint·test 스크립트 없음.
 
 ### Frontend (PowerShell — D:\workspace\corum\frontend)
 
@@ -108,10 +109,11 @@ Controller → Service → Repository (JPA / QueryDSL)
 
 ### Security / JWT 흐름
 
-1. `POST /api/auth/login` → `JwtProvider`가 accessToken 발급
+1. `POST /api/auth/login` → `JwtProvider`가 accessToken 발급 (refresh token 설정값은 존재하나 실제 재발급 로직 미구현 — 만료 시 재로그인 필요)
 2. 이후 요청: `JwtAuthFilter`(OncePerRequestFilter)가 `Authorization: Bearer <token>` 파싱 → `CustomUserDetailsService`로 사용자 조회 → SecurityContext 설정
-3. 로그아웃/강제 만료: `TokenSessionService`가 JWT 블랙리스트 관리
+3. 로그아웃/강제 만료: `TokenSessionService`가 JWT 블랙리스트 관리 — **인메모리(ConcurrentHashMap)라 서버 재배포/재시작 시 유실됨** (다중 인스턴스 미대응)
 4. 공개 API 경로는 `SecurityConfig`에서 `permitAll()` 명시
+5. **주의:** `/api/admin/**` 전용 인가 matcher가 `SecurityConfig`에 없고, Admin 컨트롤러 어디에도 `@PreAuthorize`/role 체크가 없음 — 로그인 여부만 확인되고 관리자 권한은 검증되지 않음. Admin 관련 기능 작업 시 이 갭을 인지하고 있을 것 (상세: [보안 상태](#보안-상태-2026-07-02-점검))
 
 ### Frontend 상태 관리
 
@@ -196,6 +198,42 @@ docker compose -p corum-prod -f docker-compose.prod.yml down
 # 로그 확인
 docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 ```
+
+---
+
+## 레거시 게시판 이관 (진행 중)
+
+- **위치:** `backend/src/main/java/com/corum/backend/migration/` (`BoardMigrationRunner`, `LegacyFtpClient`, `LegacyDataSourceConfig` 등)
+- **대상:** 구 홈페이지(hanwoolin.com, MS SQL Server + FTP 첨부파일) → Corum(PostgreSQL + MinIO)로 게시판 데이터 1회성 이관
+- **실행 방식:** `migration` Spring 프로파일에서만 동작 (`@Profile("migration")`), 운영(`prod`) 프로파일로 기동 시 관련 빈은 로드되지 않음
+- **설정:** 레거시 DB/FTP 접속 정보는 `application-migration.yml`에 환경변수로 분리, git에 커밋되지 않음 (안전 확인됨)
+- **이관 대상 게시판 목록:** `BoardMigrationRunner`의 `SPECS` 리스트에 하드코딩 (게시판별 레거시 테이블명 매핑)
+- **진행 이력:** 최근 커밋들이 게시판을 순차적으로 추가 이관 중 (예: `b2e5b6e` 러브레터 외 10개 게시판 추가)
+- **참고:** mssql-jdbc/commons-net 의존성이 별도 소스셋 분리 없이 메인 프로덕션 JAR에 함께 빌드됨 (런타임 활성화는 안 되지만 불필요한 공격 표면 — 이관 완료 후 정리 권장)
+
+---
+
+## 보안 상태 (2026-07-02 점검)
+
+운영 배포 전 반드시 확인. Cloudflare를 앞단에 둘 예정이나, 아래는 전부 **애플리케이션 레벨 결함**이라 Cloudflare(WAF/DDoS 방어)로는 막을 수 없음.
+
+**🔴 Critical — 배포 전 필수 수정**
+1. 공개 GitHub 저장소(`goalbac/corum`) 히스토리 커밋 `554c96e`의 `.env.prod`에 실제 JWT_SECRET 값이 남아있음 (`e6d9392`는 추적만 해제, 히스토리는 그대로) → **JWT_SECRET 즉시 로테이션 필요**
+2. Admin 컨트롤러 전체(13개)에 서버 사이드 권한 체크 없음 — 로그인한 일반 회원이 관리자 API를 직접 호출 가능 (`/api/admin/**` matcher·`@PreAuthorize` 부재)
+3. 파일 다운로드가 `fileId`만으로 접근 가능한 IDOR — `board_group_permissions.can_download` 미검증, 로그인도 불필요
+4. 파일 업로드 확장자 검증 로직 없음 (`file_allowed_extensions` 컬럼은 있으나 미사용)
+5. TipTap 콘텐츠(게시글/안내페이지/팝업/약관)에 XSS sanitize 없음 — 프론트 `v-html`(14곳)·백엔드 저장 시점 모두 미처리, stored XSS 가능
+
+**🟠 High**
+6. JWT 블랙리스트가 인메모리 — 재배포/재시작마다 강제로그아웃·계정잠금 상태 유실
+7. 파일 `/view` 인라인 엔드포인트가 Content-Type을 그대로 반영 — 업로드 취약점과 결합 시 XSS 벡터
+8. 로그인/회원가입/문의하기/비밀번호 재설정에 IP 기반 rate limiting 전무
+9. 로컬 `docker-compose.yml`(DB/MinIO 기본 비밀번호 + 포트 오픈)을 운영에 절대 재사용 금지 — 운영은 반드시 `docker-compose.prod.yml` + `.env.prod` 사용
+10. `/api/inquiries` permitAll 범위에 GET(목록 조회)도 포함될 가능성 — 컨트롤러 매핑 재확인 필요
+
+**🟡 Medium**: 비밀번호 재설정/이메일 인증 토큰 재사용 가능(1회성 미보장) · 관리자 발급 임시 비밀번호 이메일 평문 전송 · 게시판별 파일 크기 제한 서버 미검증 · `docker-compose.prod.yml`의 MinIO 자격증명 약한 fallback(`:-minioadmin123`) · CORS 허용 목록에 개발용 `trycloudflare.com` 잔존
+
+**확인된 안전한 부분**: SQL Injection(파라미터 바인딩 전면 사용) · Path traversal(UUID 파일명) · CSRF(STATELESS+JWT라 해당 없음) · 이관 도구 자격증명 관리 · audit_logs 민감정보 미기록
 
 ---
 
@@ -459,6 +497,9 @@ docker compose -p corum-prod -f docker-compose.prod.yml logs -f backend
 - [x] 안내 페이지 구현
 - [x] 대시보드 구현
 - [x] 관리자 패널 구현
-- [ ] 통계/감사로그 구현
-- [ ] SMTP 연동
+- [x] 통계/감사로그 구현 (`AuditLog`, `VisitStats`, `AdminStatsController`)
+- [x] SMTP 연동 (`SmtpSendLog`, `application-prod.yml` mail 설정, `MailService`)
+- [x] 레거시 게시판(hanwoolin.com) 이관 도구 구축, 순차 이관 진행 중
+- [ ] 보안 하드닝 (Admin API 권한 체크, 파일 다운로드 IDOR, 업로드 확장자 검증, XSS sanitize, JWT_SECRET 로테이션 등 — [보안 상태](#보안-상태-2026-07-02-점검) 참고) — **운영 배포 전 필수**
+- [ ] 백엔드/프론트엔드 테스트 코드 작성 (현재 0%)
 - [ ] 운영 환경 배포
