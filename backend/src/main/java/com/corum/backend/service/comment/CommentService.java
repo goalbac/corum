@@ -101,11 +101,23 @@ public class CommentService {
             }
         }
 
+        boolean canSeeReal = boardService.canUseAliasWriter(post.getBoardId(), memberId);
+        Map<Long, String> realNameMap = new HashMap<>();
+        if (canSeeReal) {
+            memberRepository.findAllById(memberIds).forEach(m -> realNameMap.put(m.getId(), m.getName()));
+        }
+
         Map<Long, CommentResponse> map = comments.stream()
                 .collect(Collectors.toMap(Comment::getId,
-                        c -> new CommentResponse(c,
-                                profileImageMap.get(c.getMemberId()),
-                                groupNameMap.get(c.getMemberId()))));
+                        c -> {
+                            String realName = c.getMemberId() != null ? realNameMap.get(c.getMemberId()) : null;
+                            String actualWriterName = (realName != null && !realName.equals(c.getWriterName()))
+                                    ? realName : null;
+                            return new CommentResponse(c,
+                                    profileImageMap.get(c.getMemberId()),
+                                    groupNameMap.get(c.getMemberId()),
+                                    actualWriterName);
+                        }));
 
         // 리액션 정보 주입
         map.values().forEach(cr -> {
@@ -158,6 +170,12 @@ public class CommentService {
     @Transactional
     public CommentResponse createComment(Long postId, CommentCreateRequest request,
                                          Long memberId, HttpServletRequest httpRequest) {
+        Post targetPost = postRepository.findById(postId)
+                .orElseThrow(() -> BusinessException.notFound("게시글을 찾을 수 없습니다."));
+        if (!boardService.hasPermission(targetPost.getBoardId(), memberId, "COMMENT")) {
+            throw BusinessException.forbidden("댓글을 작성할 권한이 없습니다.");
+        }
+
         int depth = 0;
 
         if (request.getParentId() != null) {
@@ -174,9 +192,13 @@ public class CommentService {
             }
         }
 
-        String writerName = memberRepository.findById(memberId)
+        String realName = memberRepository.findById(memberId)
                 .map(m -> m.getName())
                 .orElse("알 수 없음");
+        final String writerName = (request.getAliasName() != null && !request.getAliasName().isBlank()
+                && boardService.isValidAliasName(targetPost.getBoardId(), memberId, request.getAliasName()))
+                ? request.getAliasName().trim()
+                : realName;
 
         String ip = httpRequest.getHeader("X-Forwarded-For");
         if (ip == null || ip.isBlank()) ip = httpRequest.getRemoteAddr();
@@ -193,35 +215,33 @@ public class CommentService {
 
         Comment saved = commentRepository.save(comment);
 
-        postRepository.findById(postId).ifPresent(post -> {
-            String link = "/board/" + post.getBoardId() + "/posts/" + postId;
-            // 내 글에 댓글이 달리면 알림 (본인 댓글 제외)
-            if (post.getMemberId() != null && !post.getMemberId().equals(memberId)) {
-                notificationService.create(
-                        post.getMemberId(),
-                        "COMMENT_ON_MY_POST",
-                        "'" + truncate(post.getTitle(), 30) + "'에 새 댓글",
-                        writerName + ": " + truncate(request.getContent(), 50),
-                        link
-                );
-            }
-            // 내 댓글에 답글이 달리면 알림
-            if (request.getParentId() != null) {
-                commentRepository.findById(request.getParentId()).ifPresent(parent -> {
-                    if (parent.getMemberId() != null
-                            && !parent.getMemberId().equals(memberId)
-                            && !parent.getMemberId().equals(post.getMemberId())) { // 중복 방지
-                        notificationService.create(
-                                parent.getMemberId(),
-                                "REPLY_ON_MY_COMMENT",
-                                "내 댓글에 답글이 달렸습니다",
-                                writerName + ": " + truncate(request.getContent(), 50),
-                                link
-                        );
-                    }
-                });
-            }
-        });
+        String link = "/board/" + targetPost.getBoardId() + "/posts/" + postId;
+        // 내 글에 댓글이 달리면 알림 (본인 댓글 제외)
+        if (targetPost.getMemberId() != null && !targetPost.getMemberId().equals(memberId)) {
+            notificationService.create(
+                    targetPost.getMemberId(),
+                    "COMMENT_ON_MY_POST",
+                    "'" + truncate(targetPost.getTitle(), 30) + "'에 새 댓글",
+                    writerName + ": " + truncate(request.getContent(), 50),
+                    link
+            );
+        }
+        // 내 댓글에 답글이 달리면 알림
+        if (request.getParentId() != null) {
+            commentRepository.findById(request.getParentId()).ifPresent(parent -> {
+                if (parent.getMemberId() != null
+                        && !parent.getMemberId().equals(memberId)
+                        && !parent.getMemberId().equals(targetPost.getMemberId())) { // 중복 방지
+                    notificationService.create(
+                            parent.getMemberId(),
+                            "REPLY_ON_MY_COMMENT",
+                            "내 댓글에 답글이 달렸습니다",
+                            writerName + ": " + truncate(request.getContent(), 50),
+                            link
+                    );
+                }
+            });
+        }
 
         return new CommentResponse(saved);
     }

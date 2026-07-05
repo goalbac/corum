@@ -24,7 +24,7 @@
             class="comment-writer"
             :class="{ clickable: authStore.isLoggedIn && comment.memberId }"
             @click="openProfile(comment.memberId)"
-          >{{ comment.writerName }}</button>
+          >{{ comment.writerName }}<template v-if="comment.actualWriterName">({{ comment.actualWriterName }})</template></button>
           <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
         </div>
 

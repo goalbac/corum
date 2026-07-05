@@ -24,4 +24,11 @@ public interface AdminMenuGroupPermissionRepository extends JpaRepository<AdminM
         WHERE p.groupId IN :groupIds AND p.canView = true
         """)
     List<Long> findViewableMenuIds(List<Long> groupIds);
+
+    /** 해당 관리자 메뉴에 대해 그룹들 중 편집 권한(can_edit=true)이 있는지 */
+    @Query("""
+        SELECT COUNT(p) > 0 FROM AdminMenuGroupPermission p
+        WHERE p.adminMenuId = :adminMenuId AND p.groupId IN :groupIds AND p.canEdit = true
+        """)
+    boolean existsEditPermission(Long adminMenuId, List<Long> groupIds);
 }

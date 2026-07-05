@@ -42,7 +42,7 @@
                   class="writer-name"
                   :class="{ clickable: authStore.isLoggedIn && post.memberId }"
                   @click="openProfile(post.memberId)"
-                >{{ post.writerName }}</button>
+                >{{ post.writerName }}<template v-if="post.actualWriterName">({{ post.actualWriterName }})</template></button>
                 <span v-if="post.writerGroupName" class="writer-group">{{ post.writerGroupName }}</span>
               </div>
               <div class="post-stats">{{ formatDate(post.createdAt) }} · 조회 {{ post.viewCount }}<template v-if="board?.useComment"> · 댓글 {{ post.commentCount ?? 0 }}</template></div>
@@ -114,6 +114,9 @@
           :can-comment="canComment"
           :is-admin="isAdmin"
           :has-manage="hasManage"
+          :use-alias-writer="board?.useAliasWriter ?? false"
+          :can-use-alias-writer="board?.canUseAliasWriter ?? false"
+          :writer-identities="board?.writerIdentities || []"
         />
 
         <!-- ===== 이전/다음 글 ===== -->

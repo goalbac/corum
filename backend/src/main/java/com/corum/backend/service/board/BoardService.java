@@ -1,12 +1,17 @@
 package com.corum.backend.service.board;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.admin.AdminMenu;
+import com.corum.backend.domain.admin.AdminMenuGroupPermissionRepository;
+import com.corum.backend.domain.admin.AdminMenuRepository;
 import com.corum.backend.domain.board.Board;
 import com.corum.backend.domain.board.BoardCategory;
 import com.corum.backend.domain.board.BoardCategoryRepository;
 import com.corum.backend.domain.board.BoardGroupPermission;
 import com.corum.backend.domain.board.BoardGroupPermissionRepository;
 import com.corum.backend.domain.board.BoardRepository;
+import com.corum.backend.domain.board.BoardWriterIdentity;
+import com.corum.backend.domain.board.BoardWriterIdentityRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.board.BoardCreateRequest;
@@ -24,11 +29,16 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BoardService {
 
+    private static final String BOARD_ADMIN_MENU_URL = "/admin/boards";
+
     private final BoardRepository boardRepository;
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final BoardCategoryRepository boardCategoryRepository;
+    private final BoardWriterIdentityRepository boardWriterIdentityRepository;
     private final PostRepository postRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final AdminMenuRepository adminMenuRepository;
+    private final AdminMenuGroupPermissionRepository adminMenuGroupPermissionRepository;
 
     // ===== 게시판 목록 =====
     @Transactional(readOnly = true)
@@ -42,11 +52,13 @@ public class BoardService {
 
     // ===== 게시판 단건 =====
     @Transactional(readOnly = true)
-    public BoardResponse getBoard(Long id) {
+    public BoardResponse getBoard(Long id, Long memberId) {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("게시판을 찾을 수 없습니다."));
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(id);
-        return new BoardResponse(board, permissions, categoriesWithCount(id));
+        List<BoardWriterIdentity> identities = boardWriterIdentityRepository.findByBoardIdOrderBySortOrderAsc(id);
+        return new BoardResponse(board, permissions, categoriesWithCount(id),
+                identities, canUseAliasWriter(id, memberId));
     }
 
     // 카테고리 목록 + 각 카테고리의 게시글 수 채우기
@@ -73,14 +85,17 @@ public class BoardService {
                 .fileMaxCount(request.getFileMaxCount())
                 .isActive(request.getIsActive())
                 .useAllCategory(Boolean.TRUE.equals(request.getUseAllCategory()))
+                .useAliasWriter(Boolean.TRUE.equals(request.getUseAliasWriter()))
                 .build();
 
         Board saved = boardRepository.save(board);
         savePermissions(saved.getId(), request.getPermissions());
         saveCategories(saved.getId(), request.getCategories());
+        saveIdentities(saved.getId(), request.getWriterIdentities());
 
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(saved.getId());
-        return new BoardResponse(saved, permissions, categoriesWithCount(saved.getId()));
+        List<BoardWriterIdentity> identities = boardWriterIdentityRepository.findByBoardIdOrderBySortOrderAsc(saved.getId());
+        return new BoardResponse(saved, permissions, categoriesWithCount(saved.getId()), identities, false);
     }
 
     // ===== 게시판 수정 =====
@@ -92,12 +107,14 @@ public class BoardService {
                 request.getUseLike(), request.getUseAnonymous(), request.getUseNotice(),
                 request.getNoticeCountLimit(), request.getFileMaxSizeMb(),
                 request.getFileAllowedExtensions(), request.getFileMaxCount(),
-                request.getIsActive(), request.getUseAllCategory());
+                request.getIsActive(), request.getUseAllCategory(), request.getUseAliasWriter());
         boardGroupPermissionRepository.deleteByBoardId(id);
         savePermissions(id, request.getPermissions());
         saveCategories(id, request.getCategories());
+        saveIdentities(id, request.getWriterIdentities());
         List<BoardGroupPermission> permissions = boardGroupPermissionRepository.findByBoardId(id);
-        return new BoardResponse(board, permissions, categoriesWithCount(id));
+        List<BoardWriterIdentity> identities = boardWriterIdentityRepository.findByBoardIdOrderBySortOrderAsc(id);
+        return new BoardResponse(board, permissions, categoriesWithCount(id), identities, false);
     }
 
     // ===== 게시판 삭제 =====
@@ -107,6 +124,7 @@ public class BoardService {
                 .orElseThrow(() -> BusinessException.notFound("게시판을 찾을 수 없습니다."));
         boardGroupPermissionRepository.deleteByBoardId(id);
         boardCategoryRepository.deleteByBoardId(id);
+        boardWriterIdentityRepository.deleteByBoardId(id);
         boardRepository.delete(board);
     }
 
@@ -128,6 +146,10 @@ public class BoardService {
         if (groupIds.isEmpty()) return false;
         List<BoardGroupPermission> perms = boardGroupPermissionRepository
                 .findByBoardIdAndGroupIds(boardId, groupIds);
+        // 게시판 관리(can_manage) 권한이 있으면 READ/WRITE/COMMENT/DOWNLOAD 전부 허용
+        if (perms.stream().anyMatch(BoardGroupPermission::getCanManage)) {
+            return true;
+        }
         return perms.stream().anyMatch(p -> switch (permType) {
             case "READ"     -> Boolean.TRUE.equals(p.getCanRead());
             case "WRITE"    -> Boolean.TRUE.equals(p.getCanWrite());
@@ -135,6 +157,35 @@ public class BoardService {
             case "DOWNLOAD" -> Boolean.TRUE.equals(p.getCanDownload());
             default -> false;
         });
+    }
+
+    /**
+     * 대리 작성(다른 이름으로 게시) 사용 및 실제 작성자 열람 권한:
+     * 최고관리자 OR "게시판 관리" 관리자메뉴 편집권한 보유 OR 해당 게시판 can_manage 권한
+     */
+    @Transactional(readOnly = true)
+    public boolean canUseAliasWriter(Long boardId, Long memberId) {
+        if (memberId == null) return false;
+        if (memberGroupRepository.existsSuperAdminGroupByMemberId(memberId)) return true;
+        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
+        if (groupIds.isEmpty()) return false;
+        Long boardAdminMenuId = adminMenuRepository.findByUrl(BOARD_ADMIN_MENU_URL)
+                .map(AdminMenu::getId).orElse(null);
+        if (boardAdminMenuId != null
+                && adminMenuGroupPermissionRepository.existsEditPermission(boardAdminMenuId, groupIds)) {
+            return true;
+        }
+        return boardGroupPermissionRepository.existsManagePermission(boardId, groupIds);
+    }
+
+    /** 대리 작성 요청 이름이 실제로 사용 가능한지: 게시판 설정 on + 사용자 권한 + 등록된 이름 목록에 존재 */
+    @Transactional(readOnly = true)
+    public boolean isValidAliasName(Long boardId, Long memberId, String aliasName) {
+        Board board = boardRepository.findById(boardId).orElse(null);
+        if (board == null || !Boolean.TRUE.equals(board.getUseAliasWriter())) return false;
+        if (!canUseAliasWriter(boardId, memberId)) return false;
+        return boardWriterIdentityRepository.findByBoardIdOrderBySortOrderAsc(boardId).stream()
+                .anyMatch(i -> i.getName().equals(aliasName));
     }
 
     // ===== 내부 메서드 =====
@@ -177,6 +228,22 @@ public class BoardService {
                         .sortOrder(order)
                         .build());
             }
+            order++;
+        }
+    }
+
+    // 대리 작성 이름 목록: id 안정성이 필요 없으므로(게시글은 문자열로 이름만 저장) 단순 전체 교체
+    private void saveIdentities(Long boardId, List<BoardCreateRequest.IdentityRequest> reqs) {
+        boardWriterIdentityRepository.deleteByBoardId(boardId);
+        if (reqs == null || reqs.isEmpty()) return;
+        int order = 0;
+        for (BoardCreateRequest.IdentityRequest r : reqs) {
+            if (r.getName() == null || r.getName().isBlank()) { order++; continue; }
+            boardWriterIdentityRepository.save(BoardWriterIdentity.builder()
+                    .boardId(boardId)
+                    .name(r.getName().trim())
+                    .sortOrder(order)
+                    .build());
             order++;
         }
     }

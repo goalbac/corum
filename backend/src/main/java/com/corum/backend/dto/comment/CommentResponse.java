@@ -17,6 +17,8 @@ public class CommentResponse {
     private final Long parentId;
     private final Long memberId;
     private final String writerName;
+    // 대리 작성 댓글의 실제 작성자 실명 (게시판 관리 권한자에게만 채워짐)
+    private final String actualWriterName;
     private final String writerGroupName;
     private final String writerProfileImageUrl;
     private final String content;
@@ -41,11 +43,17 @@ public class CommentResponse {
     }
 
     public CommentResponse(Comment comment, String writerProfileImageUrl, String writerGroupName) {
+        this(comment, writerProfileImageUrl, writerGroupName, null);
+    }
+
+    public CommentResponse(Comment comment, String writerProfileImageUrl, String writerGroupName,
+                           String actualWriterName) {
         this.id = comment.getId();
         this.postId = comment.getPostId();
         this.parentId = comment.getParentId();
         this.memberId = comment.getMemberId();
         this.writerName = comment.getWriterName();
+        this.actualWriterName = actualWriterName;
         this.writerGroupName = writerGroupName;
         this.writerProfileImageUrl = writerProfileImageUrl;
         this.content = comment.getContent();

@@ -233,6 +233,7 @@ CREATE TABLE boards (
     use_anonymous           BOOLEAN      NOT NULL DEFAULT FALSE,
     use_notice              BOOLEAN      NOT NULL DEFAULT TRUE,
     use_all_category        BOOLEAN      NOT NULL DEFAULT FALSE,
+    use_alias_writer        BOOLEAN      NOT NULL DEFAULT FALSE,
     notice_count_limit      INT          NOT NULL DEFAULT 5,
     file_max_size_mb        INT,
     file_allowed_extensions VARCHAR(500),
@@ -266,6 +267,16 @@ CREATE TABLE board_categories (
     created_at TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_board_categories_board_id ON board_categories(board_id);
+
+-- 게시판별 "다른 이름으로 게시" 기능에서 선택 가능한 표시 이름 목록
+CREATE TABLE board_writer_identities (
+    id         BIGSERIAL PRIMARY KEY,
+    board_id   BIGINT       NOT NULL,
+    name       VARCHAR(100) NOT NULL,
+    sort_order INT          NOT NULL DEFAULT 0,
+    created_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_board_writer_identities_board_id ON board_writer_identities(board_id);
 
 CREATE TABLE posts (
     id          BIGSERIAL PRIMARY KEY,

@@ -133,6 +133,41 @@
         </div>
         <div v-else class="perm-empty-msg">카테고리가 없으면 분류 없이 작성됩니다.</div>
 
+        <!-- 대리 작성 설정 -->
+        <div class="dlg-section-title">대리 작성 설정</div>
+        <div class="perm-hint">
+          <i class="ti ti-info-circle"></i>
+          <span>이 게시판의 <strong>관리</strong> 권한이 있는 사용자만 아래 이름 중 하나로 글/댓글을 대신 작성할 수 있습니다. 조회 시 실제 작성자는 관리 권한자에게만 표시됩니다.</span>
+        </div>
+        <div class="dlg-checks" style="margin-bottom:10px">
+          <label class="chk-item"><el-checkbox v-model="form.useAliasWriter" />다른 이름으로 게시 허용</label>
+        </div>
+        <template v-if="form.useAliasWriter">
+          <div class="cat-add-row">
+            <el-input v-model="newIdentityName" placeholder="이름 입력 (예: 관리자)" size="small" @keyup.enter="addIdentity" style="flex:1" />
+            <button class="adm-btn primary sm" @click="addIdentity" :disabled="!newIdentityName.trim()">
+              <i class="ti ti-plus"></i> 추가
+            </button>
+          </div>
+          <div v-if="form.writerIdentities?.length" class="cat-list">
+            <div v-for="(idn, idx) in form.writerIdentities" :key="idn._uid ?? idx" class="cat-item">
+              <div class="cat-ord-btns">
+                <button class="ord-btn" :disabled="idx === 0" @click="moveIdentity(idx, -1)" title="위로">
+                  <i class="ti ti-chevron-up"></i>
+                </button>
+                <button class="ord-btn" :disabled="idx === form.writerIdentities.length - 1" @click="moveIdentity(idx, 1)" title="아래로">
+                  <i class="ti ti-chevron-down"></i>
+                </button>
+              </div>
+              <el-input v-model="idn.name" size="small" style="flex:1" />
+              <button class="del-btn" @click="removeIdentity(idx)" title="삭제">
+                <i class="ti ti-x"></i>
+              </button>
+            </div>
+          </div>
+          <div v-else class="perm-empty-msg">등록된 이름이 없으면 대리 작성을 선택할 수 없습니다.</div>
+        </template>
+
         <!-- 그룹 권한 -->
         <div class="dlg-section-title">그룹 권한</div>
         <div class="perm-hint">
@@ -270,6 +305,7 @@ const defaultForm = () => ({
   useNotice: true, isActive: true, fileMaxSizeMb: null,
   fileMaxCount: 5, fileAllowedExtensions: '',
   useAllCategory: false, categories: [],
+  useAliasWriter: false, writerIdentities: [],
 })
 const newCatName = ref('')
 function addCategory() {
@@ -295,6 +331,27 @@ function moveCategory(idx, dir) {
   const [item] = arr.splice(idx, 1)
   arr.splice(target, 0, item)
   arr.forEach((c, i) => { c.sortOrder = i })
+}
+
+const newIdentityName = ref('')
+function addIdentity() {
+  const name = newIdentityName.value.trim()
+  if (!name) return
+  if (!form.value.writerIdentities) form.value.writerIdentities = []
+  form.value.writerIdentities.push({ name, sortOrder: form.value.writerIdentities.length, _uid: Date.now() + Math.random() })
+  newIdentityName.value = ''
+}
+function removeIdentity(idx) {
+  form.value.writerIdentities.splice(idx, 1)
+  form.value.writerIdentities.forEach((it, i) => { it.sortOrder = i })
+}
+function moveIdentity(idx, dir) {
+  const arr = form.value.writerIdentities
+  const target = idx + dir
+  if (target < 0 || target >= arr.length) return
+  const [item] = arr.splice(idx, 1)
+  arr.splice(target, 0, item)
+  arr.forEach((it, i) => { it.sortOrder = i })
 }
 const form = ref(defaultForm())
 
@@ -350,6 +407,8 @@ async function fetchGroups() {
 function openCreate() {
   editing.value = null
   form.value = defaultForm()
+  newCatName.value = ''
+  newIdentityName.value = ''
   boardPermRows.value = []
   addGroupId.value = null
   showForm.value = true
@@ -357,8 +416,13 @@ function openCreate() {
 
 async function openEdit(board) {
   editing.value = board
-  form.value = { ...board, categories: (board.categories || []).map(c => ({ ...c })) }
+  form.value = {
+    ...board,
+    categories: (board.categories || []).map(c => ({ ...c })),
+    writerIdentities: (board.writerIdentities || []).map((name, i) => ({ name, sortOrder: i, _uid: Date.now() + Math.random() + i })),
+  }
   newCatName.value = ''
+  newIdentityName.value = ''
   addGroupId.value = null
   boardPermRows.value = []
   permLoading.value = true
@@ -385,7 +449,12 @@ async function saveBoard() {
   if (!form.value.name) return ElMessage.warning('게시판명을 입력해주세요.')
   saving.value = true
   try {
-    const payload = { ...form.value, permissions: boardPermRows.value, categories: form.value.categories || [] }
+    const payload = {
+      ...form.value,
+      permissions: boardPermRows.value,
+      categories: form.value.categories || [],
+      writerIdentities: form.value.writerIdentities || [],
+    }
     editing.value ? await api.put(`/boards/${editing.value.id}`, payload) : await api.post('/boards', payload)
     ElMessage.success('저장되었습니다.')
     showForm.value = false

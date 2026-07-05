@@ -18,6 +18,8 @@ public class PostResponse {
     private final String title;
     private final String content;
     private final String writerName;
+    // 대리 작성 글의 실제 작성자 실명 (게시판 관리 권한자에게만 채워짐)
+    private final String actualWriterName;
     private final String writerProfileImageUrl;
     private final Boolean isNotice;
     private final Integer viewCount;
@@ -44,12 +46,19 @@ public class PostResponse {
     public PostResponse(Post post, List<FileResponse> files, int commentCount,
                         String writerProfileImageUrl, String categoryName,
                         Map<String, Integer> reactions, Set<String> myReactions) {
+        this(post, files, commentCount, writerProfileImageUrl, categoryName, null, reactions, myReactions);
+    }
+
+    public PostResponse(Post post, List<FileResponse> files, int commentCount,
+                        String writerProfileImageUrl, String categoryName, String actualWriterName,
+                        Map<String, Integer> reactions, Set<String> myReactions) {
         this.id = post.getId();
         this.boardId = post.getBoardId();
         this.memberId = post.getMemberId();
         this.title = post.getTitle();
         this.content = post.getContent();
         this.writerName = post.getWriterName();
+        this.actualWriterName = actualWriterName;
         this.writerProfileImageUrl = writerProfileImageUrl;
         this.isNotice = post.getIsNotice();
         this.viewCount = post.getViewCount();

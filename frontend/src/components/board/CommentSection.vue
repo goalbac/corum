@@ -36,6 +36,10 @@
             @keydown.ctrl.enter="submitComment(null)"
           />
           <div class="cs-write-footer">
+            <select v-if="showAliasPicker" v-model="commentAliasName" class="cs-alias-select">
+              <option :value="null">본인 이름</option>
+              <option v-for="name in writerIdentities" :key="name" :value="name">{{ name }}</option>
+            </select>
             <button
               class="cs-submit-btn"
               :disabled="submitting || !newComment.trim()"
@@ -91,13 +95,21 @@ const props = defineProps({
   canComment:  { type: Boolean, default: true },
   isAdmin:     { type: Boolean, default: false },
   hasManage:   { type: Boolean, default: false },
+  useAliasWriter:     { type: Boolean, default: false },
+  canUseAliasWriter:  { type: Boolean, default: false },
+  writerIdentities:   { type: Array, default: () => [] },
 })
 
 const authStore = useAuthStore()
 const comments = ref([])
 const newComment = ref('')
+const commentAliasName = ref(null)
 const submitting = ref(false)
 const avatarError = ref(false)
+
+const showAliasPicker = computed(() =>
+  props.useAliasWriter && props.canUseAliasWriter && props.writerIdentities.length > 0
+)
 
 function myAvatarStyle() {
   const id = authStore.member?.id
@@ -138,7 +150,8 @@ async function submitComment(parentId) {
   try {
     await api.post(`/boards/${props.boardId}/posts/${props.postId}/comments`, {
       content: newComment.value,
-      parentId
+      parentId,
+      aliasName: parentId ? null : commentAliasName.value
     })
     newComment.value = ''
     fetchComments()
@@ -268,8 +281,20 @@ onMounted(fetchComments)
 
 .cs-write-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 8px;
   margin-top: 8px;
+}
+
+.cs-alias-select {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--t1);
+  font-size: 13px;
+  font-family: inherit;
 }
 
 .cs-submit-btn {

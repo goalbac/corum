@@ -66,12 +66,18 @@ public class Board extends BaseEntity {
     @Builder.Default
     private Boolean useAllCategory = false;
 
+    /** 게시판 관리 권한자가 사전 등록된 이름 목록 중 하나로 대리 작성 가능 */
+    @Column(name = "use_alias_writer", nullable = false)
+    @Builder.Default
+    private Boolean useAliasWriter = false;
+
     // ===== 비즈니스 메서드 =====
 
     public void update(String name, String boardType, Boolean useComment, Boolean useLike,
                        Boolean useAnonymous, Boolean useNotice, Integer noticeCountLimit,
                        Integer fileMaxSizeMb, String fileAllowedExtensions,
-                       Integer fileMaxCount, Boolean isActive, Boolean useAllCategory) {
+                       Integer fileMaxCount, Boolean isActive, Boolean useAllCategory,
+                       Boolean useAliasWriter) {
         this.name = name;
         this.boardType = boardType;
         this.useComment = useComment;
@@ -84,5 +90,6 @@ public class Board extends BaseEntity {
         this.fileMaxCount = fileMaxCount;
         this.isActive = isActive;
         this.useAllCategory = Boolean.TRUE.equals(useAllCategory);
+        this.useAliasWriter = Boolean.TRUE.equals(useAliasWriter);
     }
 }

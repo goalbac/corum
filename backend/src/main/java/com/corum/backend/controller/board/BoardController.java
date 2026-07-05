@@ -54,8 +54,11 @@ public class BoardController {
     }
 
     @GetMapping("/api/boards/{boardId}")
-    public ApiResponse<BoardResponse> getBoard(@PathVariable Long boardId) {
-        return ApiResponse.ok(boardService.getBoard(boardId));
+    public ApiResponse<BoardResponse> getBoard(
+            @PathVariable Long boardId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        return ApiResponse.ok(boardService.getBoard(boardId, memberId));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

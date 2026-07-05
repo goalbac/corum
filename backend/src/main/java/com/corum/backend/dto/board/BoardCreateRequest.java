@@ -24,11 +24,20 @@ public class BoardCreateRequest {
     private Integer fileMaxCount = 5;
     private Boolean isActive = true;
     private Boolean useAllCategory = false;
+    private Boolean useAliasWriter = false;
     private List<BoardPermissionRequest> permissions;
     private List<CategoryRequest> categories;
+    private List<IdentityRequest> writerIdentities;
 
     @Getter
     public static class CategoryRequest {
+        private Long id;
+        private String name;
+        private Integer sortOrder;
+    }
+
+    @Getter
+    public static class IdentityRequest {
         private Long id;
         private String name;
         private Integer sortOrder;

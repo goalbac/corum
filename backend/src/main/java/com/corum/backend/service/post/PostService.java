@@ -195,7 +195,19 @@ public class PostService {
         String categoryName = post.getCategoryId() != null
                 ? boardCategoryRepository.findById(post.getCategoryId()).map(BoardCategory::getName).orElse(null)
                 : null;
-        return new PostResponse(post, files, 0, writerProfileImageUrl, categoryName, reactionCounts, myReactions);
+        String actualWriterName = resolveActualWriterName(post.getBoardId(), post.getMemberId(),
+                post.getWriterName(), memberId);
+        return new PostResponse(post, files, 0, writerProfileImageUrl, categoryName, actualWriterName,
+                reactionCounts, myReactions);
+    }
+
+    // 대리 작성 여부와 무관하게, 조회자가 대리 작성 권한자이고 표시 이름이 실명과 다르면 실명을 반환
+    private String resolveActualWriterName(Long boardId, Long authorMemberId, String displayedWriterName,
+                                           Long viewerMemberId) {
+        if (authorMemberId == null || !boardService.canUseAliasWriter(boardId, viewerMemberId)) return null;
+        String realName = memberRepository.findById(authorMemberId).map(m -> m.getName()).orElse(null);
+        if (realName == null || realName.equals(displayedWriterName)) return null;
+        return realName;
     }
 
     // ===== 게시글 작성 =====
@@ -203,9 +215,17 @@ public class PostService {
     public PostResponse createPost(Long boardId, PostCreateRequest request,
                                    Long memberId, List<MultipartFile> files,
                                    HttpServletRequest httpRequest) {
+        if (!boardService.hasPermission(boardId, memberId, "WRITE")) {
+            throw BusinessException.forbidden("게시글을 작성할 권한이 없습니다.");
+        }
+
         String writerName = memberRepository.findById(memberId)
                 .map(m -> m.getName())
                 .orElse("알 수 없음");
+        if (request.getAliasName() != null && !request.getAliasName().isBlank()
+                && boardService.isValidAliasName(boardId, memberId, request.getAliasName())) {
+            writerName = request.getAliasName().trim();
+        }
 
         Post post = Post.builder()
                 .boardId(boardId)

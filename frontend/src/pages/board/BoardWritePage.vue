@@ -17,12 +17,20 @@
     <!-- 작성 카드 -->
     <div class="write-card">
       <!-- 옵션 행 (카테고리 있거나 관리자 수정 시에만 표시) -->
-      <div v-if="boardCategories.length || (isAdmin && isEdit)" class="options-row">
+      <div v-if="boardCategories.length || showAliasPicker || (isAdmin && isEdit)" class="options-row">
         <div v-if="boardCategories.length" class="option-group">
           <label class="option-label">카테고리</label>
           <select v-model="form.categoryId" class="cat-select">
             <option :value="null" disabled>카테고리 선택</option>
             <option v-for="cat in boardCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+          </select>
+        </div>
+
+        <div v-if="showAliasPicker" class="option-group">
+          <label class="option-label">작성자</label>
+          <select v-model="form.aliasName" class="cat-select">
+            <option :value="null">본인 이름</option>
+            <option v-for="name in board.writerIdentities" :key="name" :value="name">{{ name }}</option>
           </select>
         </div>
 
@@ -164,8 +172,13 @@ const isDragOver = ref(false)
 const fileInputRef = ref(null)
 const board = ref(null)
 
-const form = ref({ title: '', content: '', isNotice: false, createdAt: null, likeCount: 0, categoryId: null })
+const form = ref({ title: '', content: '', isNotice: false, createdAt: null, likeCount: 0, categoryId: null, aliasName: null })
 const boardCategories = computed(() => board.value?.categories || [])
+// 대리 작성: 게시판에서 켜져 있고, 등록된 이름이 있고, 현재 사용자가 권한자이고, 새 글 작성일 때만 노출
+const showAliasPicker = computed(() =>
+  !isEdit.value && !!board.value?.useAliasWriter && !!board.value?.canUseAliasWriter
+  && (board.value?.writerIdentities?.length > 0)
+)
 
 async function fetchBoard() {
   if (!boardId.value) return
@@ -267,6 +280,7 @@ async function fetchPost() {
     createdAt: null,
     likeCount: p.likeCount ?? 0,
     categoryId: p.categoryId ?? null,
+    aliasName: null,
   }
 }
 
