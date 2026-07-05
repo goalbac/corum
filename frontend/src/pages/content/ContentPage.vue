@@ -129,6 +129,13 @@ onMounted(async () => {
   padding: 8px 10px;
 }
 
+.content-body :deep(iframe) { max-width: 100%; border-radius: var(--radius-xs); border: none; }
+.content-body :deep(ul[data-type="taskList"]) { list-style: none; padding-left: 0.2em; }
+.content-body :deep(ul[data-type="taskList"] li) { display: flex; align-items: flex-start; gap: 6px; }
+.content-body :deep(ul[data-type="taskList"] li > label) { margin-top: 0.3em; }
+.content-body :deep(ul[data-type="taskList"] li > div) { flex: 1; }
+.content-body :deep(ul[data-type="taskList"] li[data-checked="true"] > div) { color: var(--t3); text-decoration: line-through; }
+
 .empty-content p {
   font-size: 16px;
   color: var(--t2);

@@ -72,6 +72,10 @@
           @click="editor?.chain().focus().toggleCodeBlock().run()">
           <i class="ti ti-code"></i>
         </button>
+        <button type="button" title="체크리스트" :class="{ active: editor?.isActive('taskList') }"
+          @click="editor?.chain().focus().toggleTaskList().run()">
+          <i class="ti ti-checklist"></i>
+        </button>
         <button type="button" title="가로선" @click="editor?.chain().focus().setHorizontalRule().run()">
           <i class="ti ti-separator"></i>
         </button>
@@ -91,6 +95,12 @@
           <i v-else class="ti ti-photo"></i>
         </button>
         <input ref="imageInput" type="file" accept="image/*" multiple style="display:none" @change="handleImageUpload" />
+        <button type="button" title="표 삽입" @click="editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()">
+          <i class="ti ti-table"></i>
+        </button>
+        <button type="button" title="유튜브 삽입" @click="insertYoutube">
+          <i class="ti ti-brand-youtube"></i>
+        </button>
       </div>
       <!-- 글자 크기 -->
       <div class="toolbar-group">
@@ -114,6 +124,13 @@
         <button type="button" title="색상 초기화" @click="editor?.chain().focus().unsetColor().run()">
           <i class="ti ti-color-swatch-off"></i>
         </button>
+        <label class="color-btn" title="형광펜">
+          <i class="ti ti-highlight"></i>
+          <input type="color" class="color-input" @input="setHighlight" />
+        </label>
+        <button type="button" title="형광펜 제거" @click="editor?.chain().focus().unsetHighlight().run()">
+          <i class="ti ti-highlight-off"></i>
+        </button>
       </div>
       <div class="toolbar-sep"></div>
       <!-- undo/redo -->
@@ -127,8 +144,32 @@
       </div>
     </div>
 
+    <!-- 표 안에 커서가 있을 때만 보이는 편집 툴바 -->
+    <div v-if="editor?.isActive('table')" class="editor-toolbar table-toolbar">
+      <div class="toolbar-group">
+        <button type="button" title="위에 행 추가" @click="editor.chain().focus().addRowBefore().run()"><i class="ti ti-row-insert-top"></i></button>
+        <button type="button" title="아래에 행 추가" @click="editor.chain().focus().addRowAfter().run()"><i class="ti ti-row-insert-bottom"></i></button>
+        <button type="button" title="행 삭제" @click="editor.chain().focus().deleteRow().run()"><i class="ti ti-row-remove"></i></button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <button type="button" title="왼쪽에 열 추가" @click="editor.chain().focus().addColumnBefore().run()"><i class="ti ti-column-insert-left"></i></button>
+        <button type="button" title="오른쪽에 열 추가" @click="editor.chain().focus().addColumnAfter().run()"><i class="ti ti-column-insert-right"></i></button>
+        <button type="button" title="열 삭제" @click="editor.chain().focus().deleteColumn().run()"><i class="ti ti-column-remove"></i></button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <button type="button" title="표 삭제" @click="editor.chain().focus().deleteTable().run()"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+
     <!-- 에디터 본문 -->
     <EditorContent class="editor-body" :editor="editor" />
+
+    <!-- 글자수 -->
+    <div class="editor-footer">
+      <span>{{ editor?.storage.characterCount.characters() || 0 }}자 · {{ editor?.storage.characterCount.words() || 0 }}단어</span>
+    </div>
   </div>
 </template>
 
@@ -142,6 +183,15 @@ import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Underline } from '@tiptap/extension-underline'
 import { Placeholder } from '@tiptap/extension-placeholder'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { Youtube } from '@tiptap/extension-youtube'
+import { Highlight } from '@tiptap/extension-highlight'
+import { CharacterCount } from '@tiptap/extension-character-count'
+import { TaskList } from '@tiptap/extension-task-list'
+import { TaskItem } from '@tiptap/extension-task-item'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api/axios'
 import { ResizableImage } from './tiptap/ResizableImage'
@@ -165,6 +215,15 @@ const editor = new Editor({
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: false, autolink: true }),
     ResizableImage.configure({ inline: false }),
+    Table.configure({ resizable: false }),
+    TableRow,
+    TableHeader,
+    TableCell,
+    Youtube.configure({ width: 480, height: 270, nocookie: false }),
+    Highlight.configure({ multicolor: true }),
+    CharacterCount,
+    TaskList,
+    TaskItem.configure({ nested: true }),
     Placeholder.configure({ placeholder: props.placeholder }),
   ],
   content: props.modelValue || '',
@@ -198,6 +257,19 @@ async function insertLink() {
     })
     if (value) {
       editor.chain().focus().setLink({ href: value, target: '_blank' }).run()
+    }
+  } catch {}
+}
+
+async function insertYoutube() {
+  try {
+    const { value } = await ElMessageBox.prompt('유튜브 영상 URL을 입력하세요.', '유튜브 삽입', {
+      inputPlaceholder: 'https://www.youtube.com/watch?v=...',
+      confirmButtonText: '확인',
+      cancelButtonText: '취소',
+    })
+    if (value) {
+      editor.commands.setYoutubeVideo({ src: value })
     }
   } catch {}
 }
@@ -247,6 +319,10 @@ function setFontSize(value) {
 
 function setColor(e) {
   editor.chain().focus().setColor(e.target.value).run()
+}
+
+function setHighlight(e) {
+  editor.chain().focus().setHighlight({ color: e.target.value }).run()
 }
 
 onBeforeUnmount(() => { editor.destroy() })
@@ -400,5 +476,67 @@ onBeforeUnmount(() => { editor.destroy() })
   pointer-events: none;
   float: left;
   height: 0;
+}
+
+/* ===== 표 ===== */
+.editor-body :deep(.ProseMirror table) {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0.6em 0;
+}
+.editor-body :deep(.ProseMirror th),
+.editor-body :deep(.ProseMirror td) {
+  border: 1px solid var(--border-strong, var(--border));
+  padding: 6px 10px;
+  vertical-align: top;
+  position: relative;
+}
+.editor-body :deep(.ProseMirror th) {
+  background: var(--surface2);
+  font-weight: 700;
+  text-align: left;
+}
+.editor-body :deep(.ProseMirror .selectedCell) {
+  background: var(--accent-bg);
+}
+
+/* ===== 체크리스트 ===== */
+.editor-body :deep(.ProseMirror ul[data-type="taskList"]) {
+  list-style: none;
+  padding-left: 0.2em;
+}
+.editor-body :deep(.ProseMirror ul[data-type="taskList"] li) {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.editor-body :deep(.ProseMirror ul[data-type="taskList"] li > label) {
+  margin-top: 0.3em;
+  user-select: none;
+}
+.editor-body :deep(.ProseMirror ul[data-type="taskList"] li > div) { flex: 1; }
+.editor-body :deep(.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div) {
+  color: var(--t3);
+  text-decoration: line-through;
+}
+
+/* ===== 유튜브 ===== */
+.editor-body :deep(.ProseMirror iframe) {
+  max-width: 100%;
+  border-radius: var(--radius-xs);
+  border: none;
+}
+
+/* ===== 표 편집 툴바 ===== */
+.table-toolbar { border-bottom: 1px solid var(--border); }
+
+/* ===== 글자수 ===== */
+.editor-footer {
+  padding: 6px 20px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--t4);
+  border-top: 1px solid var(--border);
 }
 </style>

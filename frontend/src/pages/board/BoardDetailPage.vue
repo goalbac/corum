@@ -800,6 +800,12 @@ onMounted(async () => {
   font-size: 14px;
 }
 .post-content :deep(th) { background: var(--surface-2); font-weight: 700; }
+.post-content :deep(iframe) { max-width: 100%; border-radius: 12px; border: none; }
+.post-content :deep(ul[data-type="taskList"]) { list-style: none; padding-left: 0.2em; }
+.post-content :deep(ul[data-type="taskList"] li) { display: flex; align-items: flex-start; gap: 6px; }
+.post-content :deep(ul[data-type="taskList"] li > label) { margin-top: 0.3em; }
+.post-content :deep(ul[data-type="taskList"] li > div) { flex: 1; }
+.post-content :deep(ul[data-type="taskList"] li[data-checked="true"] > div) { color: var(--t3); text-decoration: line-through; }
 
 /* ===== 반응 행 ===== */
 .reaction-row, .print-row {
