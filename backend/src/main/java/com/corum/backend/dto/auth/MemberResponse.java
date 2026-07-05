@@ -40,6 +40,9 @@ public class MemberResponse {
     @JsonProperty("groupIds")
     private final List<Long> groupIds;
 
+    private final long postCount;
+    private final long commentCount;
+
     public MemberResponse(Member member, boolean isAdmin) {
         this(member, isAdmin, List.of(), List.of());
     }
@@ -49,6 +52,11 @@ public class MemberResponse {
     }
 
     public MemberResponse(Member member, boolean isAdmin, List<TermsResponse> requiredTerms, List<Long> groupIds) {
+        this(member, isAdmin, requiredTerms, groupIds, 0, 0);
+    }
+
+    public MemberResponse(Member member, boolean isAdmin, List<TermsResponse> requiredTerms, List<Long> groupIds,
+                           long postCount, long commentCount) {
         this.id = member.getId();
         this.username = member.getUsername();
         this.email = member.getEmail();
@@ -72,5 +80,7 @@ public class MemberResponse {
         this.requiredTerms = requiredTerms;
         this.requiresTermsAgreement = requiredTerms != null && !requiredTerms.isEmpty();
         this.groupIds = groupIds != null ? groupIds : List.of();
+        this.postCount = postCount;
+        this.commentCount = commentCount;
     }
 }

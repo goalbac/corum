@@ -22,10 +22,6 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
-          <button v-if="!isGalleryBoard && !isDocumentBoard && !isWebzineBoard && !isListBoard" class="sort-btn">
-            최신순
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
         </div>
       </template>
 
@@ -65,10 +61,6 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <button v-if="!isGalleryBoard && !isDocumentBoard && !isWebzineBoard && !isListBoard" class="sort-btn">
-          최신순
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
       </div>
     </div>
 
@@ -244,15 +236,25 @@
         <div v-for="post in noticePosts" :key="`n-${post.id}`" class="pt-row notice-row" @click="goDetail(post)">
           <div class="tc"><span class="notice-tag">공지</span></div>
           <div class="pt-title-cell">
-            <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+            <div class="pt-badges">
+              <span class="notice-tag pt-badges-notice">공지</span>
+              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </div>
             <span class="pt-title notice-title">{{ post.title }}</span>
             <span v-if="post.commentCount > 0" class="comment-count">[{{ post.commentCount }}]</span>
             <svg v-if="post.hasFile" class="file-clip" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
-            <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
           </div>
           <span class="tc pt-meta">{{ post.writerName }}</span>
           <span class="tc pt-meta">{{ formatDate(post.createdAt) }}</span>
           <span v-if="showViewCount" class="tc pt-meta">{{ post.viewCount }}</span>
+          <div class="pt-mobile-meta">
+            <span class="pt-mobile-author">{{ post.writerName }}</span>
+            <span>{{ formatRelativeDate(post.createdAt) }}</span>
+            <span v-if="showViewCount" class="pt-mobile-stat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>{{ post.viewCount }}</span>
+            <span v-if="post.commentCount > 0" class="pt-mobile-stat pt-mobile-comment"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1l-4 1 1-3.5A8.4 8.4 0 1 1 21 11.5z"/></svg>{{ post.commentCount }}</span>
+            <svg v-if="post.hasFile" class="pt-mobile-file" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
+          </div>
         </div>
 
         <div v-if="noticePosts.length && normalPosts.length" class="notice-divider"></div>
@@ -260,15 +262,24 @@
         <div v-for="post in normalPosts" :key="post.id" class="pt-row" @click="goDetail(post)">
           <div class="tc pt-num">{{ post.rowNum }}</div>
           <div class="pt-title-cell">
-            <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+            <div class="pt-badges" v-if="(post.categoryName && selectedCategoryId === null) || isNew(post.createdAt)">
+              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
+              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
+            </div>
             <span class="pt-title">{{ post.title }}</span>
             <span v-if="post.commentCount > 0" class="comment-count">[{{ post.commentCount }}]</span>
             <svg v-if="post.hasFile" class="file-clip" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
-            <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
           </div>
           <span class="tc pt-meta">{{ post.writerName }}</span>
           <span class="tc pt-meta">{{ formatDate(post.createdAt) }}</span>
           <span v-if="showViewCount" class="tc pt-meta">{{ post.viewCount }}</span>
+          <div class="pt-mobile-meta">
+            <span class="pt-mobile-author">{{ post.writerName }}</span>
+            <span>{{ formatRelativeDate(post.createdAt) }}</span>
+            <span v-if="showViewCount" class="pt-mobile-stat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>{{ post.viewCount }}</span>
+            <span v-if="post.commentCount > 0" class="pt-mobile-stat pt-mobile-comment"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1l-4 1 1-3.5A8.4 8.4 0 1 1 21 11.5z"/></svg>{{ post.commentCount }}</span>
+            <svg v-if="post.hasFile" class="pt-mobile-file" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
+          </div>
         </div>
 
         <div v-if="!loading && !posts.length" class="board-empty">
@@ -608,23 +619,6 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.sort-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--t2);
-  font-weight: 600;
-  font-size: 13px;
-  padding: 8px 13px;
-  border-radius: 9px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: border-color 0.15s;
-}
-.sort-btn:hover { border-color: var(--primary); color: var(--primary); }
-
 /* ===== 공통 배지 ===== */
 .notice-tag {
   display: inline-flex;
@@ -719,8 +713,14 @@ onMounted(async () => {
   min-width: 0;
 }
 
+.pt-badges { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+/* 데스크톱은 번호 칸에 이미 "공지" 표시가 있어 제목 셀 안 배지는 숨김 */
+.pt-badges-notice { display: none; }
+
+.pt-mobile-meta { display: none; }
+
 .pt-title {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
@@ -738,7 +738,7 @@ onMounted(async () => {
 
 .file-clip { color: var(--t3); flex-shrink: 0; }
 
-.pt-meta { font-size: 13px; color: var(--t2); }
+.pt-meta { font-size: 14px; color: var(--t2); }
 
 /* ===== 자료실 파일 테이블 ===== */
 .doc-file-table { width: 100%; }
@@ -1120,19 +1120,97 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
-  .pt-head,
-  .pt-row { grid-template-columns: 50px 1fr 64px; }
-  .pt-head > *:nth-child(3),
-  .pt-head > *:nth-child(5),
-  .pt-row > *:nth-child(3),
-  .pt-row > *:nth-child(5) { display: none; }
+  /* ===== 일반 테이블 뷰 → 모바일 리스트 카드로 전환 ===== */
+  .pt-head { display: none; }
+  .pt-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 15px 18px;
+  }
+  .pt-row > .tc,
+  .pt-row > .pt-num,
+  .pt-row > .pt-meta { display: none; }
+  .pt-title-cell { flex-wrap: wrap; width: 100%; }
+  .pt-badges-notice { display: inline-flex; }
+  .pt-title {
+    font-weight: 700;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    flex-basis: 100%;
+  }
+  .comment-count, .file-clip { display: none; }
+  .pt-mobile-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    font-size: 12px;
+    color: var(--t3);
+  }
+  .pt-mobile-author { font-weight: 600; color: var(--t2); }
+  .pt-mobile-stat { display: inline-flex; align-items: center; gap: 3px; }
+  .pt-mobile-comment { color: var(--primary); font-weight: 700; }
+  .pt-mobile-file { color: var(--t3); margin-left: auto; }
 
   .ft-head,
   .ft-row { grid-template-columns: 1fr 70px; }
   .ft-head > *:nth-child(n+3),
   .ft-row > *:nth-child(n+3) { display: none; }
 
-  .search-box { width: 160px; }
-  .list-toolbar { flex-direction: column; align-items: flex-start; }
+  /* ===== 상단 툴바(건수/검색/글쓰기) 정렬 ===== */
+  .list-toolbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+    column-gap: 8px;
+  }
+  .pg-count { flex-basis: 100%; }
+  .toolbar-right { flex: 1; min-width: 0; margin-left: 0; }
+  .action-btn { flex-shrink: 0; margin-left: auto; }
+
+  /* ===== 카테고리 필터 바 정렬 (카테고리 칩은 가로 스크롤) ===== */
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .cat-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  .cat-chips::-webkit-scrollbar { display: none; }
+  .filter-right { width: 100%; }
+
+  .search-box { width: auto; flex: 1; min-width: 0; }
+
+  /* ===== 게시판 목록: 모바일에서 좌우 여백 없이 꽉 차게 (모든 유형 공통) ===== */
+  /* post-table/doc-file-table는 width:100%가 명시돼 있어 음수 마진만으로는
+     폭이 늘어나지 않으므로 width:auto로 함께 재정의한다 */
+  .post-table,
+  .doc-file-table,
+  .webzine-list,
+  .list-view,
+  .gallery-grid {
+    margin: 0 -20px;
+    width: auto;
+  }
+  .post-table,
+  .doc-file-table,
+  .webzine-list,
+  .list-view {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .post-table,
+  .doc-file-table,
+  .webzine-list,
+  .list-view,
+  .gallery-grid {
+    margin: 0 -16px;
+    width: auto;
+  }
 }
 </style>

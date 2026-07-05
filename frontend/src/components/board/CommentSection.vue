@@ -31,7 +31,7 @@
           <textarea
             v-model="newComment"
             class="cs-textarea"
-            placeholder="댓글을 입력하세요. 회원 간 예의를 지켜 주세요."
+            placeholder="댓글을 입력하세요."
             rows="3"
             @keydown.ctrl.enter="submitComment(null)"
           />
@@ -338,7 +338,7 @@ onMounted(fetchComments)
 
 /* ===== 반응형 ===== */
 @media (max-width: 768px) {
-  .comment-section { padding: 0 18px; }
+  .comment-section { padding: 0; }
   .cs-textarea { font-size: 16px !important; }
 }
 </style>

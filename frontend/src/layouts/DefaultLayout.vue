@@ -93,6 +93,37 @@
 
       <!-- 사이드바 -->
       <aside v-if="showSidebar" class="sidebar">
+        <!-- 마이페이지 모드 -->
+        <template v-if="isMypage">
+          <div class="sidebar-mypage-profile">
+            <div class="sidebar-mypage-avatar">
+              <img v-if="authStore.member?.profileImageUrl" :src="authStore.member.profileImageUrl" alt="프로필 사진" />
+              <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
+            </div>
+            <div class="sidebar-mypage-meta">
+              <div class="sidebar-mypage-name">{{ authStore.member?.name || '-' }}</div>
+              <div class="sidebar-mypage-username">@{{ authStore.member?.username }}</div>
+            </div>
+          </div>
+          <nav class="sidebar-tree">
+            <button
+              v-for="item in mypageNavItems"
+              :key="item.key"
+              type="button"
+              class="tree-node"
+              :class="{ 'is-active': mypageActiveTab === item.key }"
+              style="padding-left: 10px"
+              @click="handleMypageNavClick(item)"
+            >
+              <span class="tree-chevron-spacer"></span>
+              <span class="tree-icon" v-html="item.icon"></span>
+              <span class="tree-label">{{ item.label }}</span>
+            </button>
+          </nav>
+        </template>
+
+        <!-- 트리 메뉴 모드 -->
+        <template v-else>
         <div class="sidebar-header">
           <span class="sidebar-section-text">{{ isDashboard ? '홈' : activeTopMenu?.name?.toUpperCase() }}</span>
           <span class="sidebar-section-line"></span>
@@ -143,11 +174,24 @@
             </button>
           </template>
         </nav>
+        </template>
       </aside>
 
       <!-- 메인 컬럼 -->
       <div class="main-col">
         <main class="main-content">
+          <!-- 마이페이지 모바일 탭 바 (가로 스크롤, 사이드바가 숨겨지는 화면에서만 노출) -->
+          <nav v-if="isMypage" class="mypage-mobile-tabs" aria-label="마이페이지 메뉴">
+            <button
+              v-for="item in mypageNavItems"
+              :key="item.key"
+              type="button"
+              class="mp-mobile-tab"
+              :class="{ active: mypageActiveTab === item.key }"
+              @click="handleMypageNavClick(item)"
+            >{{ item.label }}</button>
+          </nav>
+
           <!-- 브레드크럼 + 페이지 제목 -->
           <div
             v-if="routeMenu && showSidebar && !isDetailPage && !isWritePage"
@@ -204,7 +248,31 @@ const isNarrowContentPage = computed(() => ['CONTENT', 'CALENDAR'].includes(rout
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 // 홈 대시보드: 연결된 상위 메뉴가 없어도 사이드바에 "홈"을 표시
 const isDashboard = computed(() => route.name === 'Dashboard')
-const showSidebar = computed(() => isDashboard.value || (!!activeTopMenu.value && sideMenus.value.length > 0))
+const isMypage = computed(() => route.name === 'MyPage')
+const showSidebar = computed(() => isMypage.value || isDashboard.value || (!!activeTopMenu.value && sideMenus.value.length > 0))
+
+// ===== 마이페이지 사이드바 =====
+const ICONS = {
+  user: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+  lock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>',
+  bell: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>',
+  inquiry: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1l-4 1 1-3.5A8.4 8.4 0 1 1 21 11.5z"></path></svg>',
+  report: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.8 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  leave: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>',
+}
+// 쪽지함은 헤더 등 다른 경로로 접근 가능해 마이페이지 목록에서는 제외
+const mypageNavItems = [
+  { key: 'info',      label: '내 정보',      icon: ICONS.user },
+  { key: 'password',  label: '비밀번호 변경', icon: ICONS.lock },
+  { key: 'notif',     label: '알림 설정',     icon: ICONS.bell },
+  { key: 'inquiries', label: '내 문의 내역',  icon: ICONS.inquiry },
+  { key: 'reports',   label: '내 제보 내역',  icon: ICONS.report },
+  { key: 'withdraw',  label: '회원 탈퇴',    icon: ICONS.leave },
+]
+const mypageActiveTab = computed(() => route.query.tab || 'info')
+function handleMypageNavClick(item) {
+  router.push({ name: 'MyPage', query: { tab: item.key } })
+}
 
 const activeSideMenuId = computed(() => routeMenu.value ? Number(routeMenu.value.id) : null)
 
@@ -362,6 +430,49 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 2px 8px 14px;
+}
+
+.sidebar-mypage-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 16px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-mypage-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 17px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sidebar-mypage-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.sidebar-mypage-meta { min-width: 0; }
+
+.sidebar-mypage-name {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-mypage-username { font-size: 11px; color: var(--t3); margin-top: 2px; }
+
+/* 마이페이지 모바일 탭 바 — 데스크톱에서는 사이드바가 대신하므로 숨김 */
+.mypage-mobile-tabs {
+  display: none;
 }
 
 .sidebar-section-text {
@@ -736,6 +847,32 @@ onMounted(async () => {
 @media (max-width: 900px) {
   .sidebar { display: none; }
   .main-content { padding: 20px 20px 40px; }
+
+  .mypage-mobile-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+  }
+  .mypage-mobile-tabs::-webkit-scrollbar { display: none; }
+
+  .mp-mobile-tab {
+    flex-shrink: 0;
+    border: none;
+    background: var(--surface2);
+    color: var(--t2);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 18px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+  }
+  .mp-mobile-tab.active { background: var(--accent); color: #fff; font-weight: 700; }
 }
 
 @media (max-width: 600px) {

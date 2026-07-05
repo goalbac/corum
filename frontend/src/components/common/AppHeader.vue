@@ -34,8 +34,8 @@
       <div class="header-right">
 
         <template v-if="authStore.isLoggedIn">
-          <!-- 검색 버튼 -->
-          <button class="icon-btn" aria-label="검색">
+          <!-- 검색 버튼 (추후 사용 예정, 현재는 숨김) -->
+          <button v-if="false" class="icon-btn" aria-label="검색">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
 
@@ -157,9 +157,10 @@
             </Transition>
           </Teleport>
 
-          <!-- 구분선 + 테마 토글 -->
-          <div class="hdr-divider"></div>
+          <!-- 구분선 + 테마 토글 (PC 전용, 모바일은 헤더 공간 절약을 위해 숨김) -->
+          <div v-if="!isMobile" class="hdr-divider"></div>
           <button
+            v-if="!isMobile"
             class="icon-btn"
             @click="themeStore.toggle()"
             :aria-label="themeStore.isDark ? '라이트 모드' : '다크 모드'"
@@ -247,9 +248,10 @@
           </div>
         </template>
         <template v-else>
-          <!-- 비로그인: 테마 토글 + 로그인 버튼 -->
+          <!-- 비로그인: 테마 토글(추후 사용 예정, 현재는 숨김) + 로그인 버튼 -->
           <div class="hdr-divider"></div>
           <button
+            v-if="false"
             class="icon-btn"
             @click="themeStore.toggle()"
             :aria-label="themeStore.isDark ? '라이트 모드' : '다크 모드'"
@@ -1076,6 +1078,19 @@ async function handleLogout() {
   .header-inner { padding: 0 14px; gap: 10px; }
   .icon-btn { width: 36px; height: 36px; }
   .hdr-divider { margin: 0 2px; }
+
+  /* 아바타 바깥 원형 버튼(테두리+배경) 제거 -> 프로필 원 하나만 보이도록
+     -webkit-appearance 리셋 필요: 네이티브 버튼 배경이 CSS background보다 위에 그려짐 */
+  .user-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin-left: 0;
+    border-radius: 50%;
+  }
+  .user-btn:hover { background: transparent; }
 }
 
 /* ===== 모바일 전체화면 알림 패널 ===== */

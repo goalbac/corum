@@ -22,7 +22,7 @@
         <template v-else v-for="widget in [mergedWidget(layout)]" :key="'d' + widget.id">
 
         <!-- 이미지 슬라이더 -->
-        <div v-if="widget.widgetType === 'IMAGE_SLIDER'" class="widget-full">
+        <div v-if="widget.widgetType === 'IMAGE_SLIDER'" class="widget-full widget-slider-wrap">
           <ImageSlider :slides="parseConfig(widget).slides || []" :title="widget.title" />
         </div>
 
@@ -1486,9 +1486,20 @@ onMounted(async () => {
   .widget-area {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
-    padding: 16px 14px 24px;
+    /* main-content(레이아웃)에서 이미 좌우 패딩을 주고 있어서 여기서 또 주면
+       위젯이 이중으로 좁아짐 - 패딩 제거 */
   }
   .widget-half { grid-column: 1; }
+
+  /* 이미지 슬라이더만 화면 끝까지 꽉 차게 (다른 위젯은 페이지 여백 유지) */
+  .widget-slider-wrap {
+    margin: 0 -20px;
+  }
+  .widget-slider-wrap :deep(.slider-wrap) {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 
   .wcard {
     border-radius: 16px;
@@ -1550,6 +1561,10 @@ onMounted(async () => {
 
   .mstat-item { padding: 10px 12px; }
   .mstat-num { font-size: 20px; }
+}
+
+@media (max-width: 600px) {
+  .widget-slider-wrap { margin: 0 -16px; }
 }
 
 @media (max-width: 480px) {

@@ -16,6 +16,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     int countByPostIdAndIsDeletedFalse(Long postId);
 
+    // 마이페이지 통계: 회원이 작성한 댓글 수
+    long countByMemberIdAndIsDeletedFalse(Long memberId);
+
     // 대댓글 존재 여부 (삭제 시 소프트 삭제 결정용)
     boolean existsByParentIdAndIsDeletedFalse(Long parentId);
 

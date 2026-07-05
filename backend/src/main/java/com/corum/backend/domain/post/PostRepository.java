@@ -12,6 +12,9 @@ import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    // 마이페이지 통계: 회원이 작성한 게시글 수
+    long countByMemberId(Long memberId);
+
     // 게시판 글 목록 (공지 우선, 최신순)
     @Query("""
         SELECT p FROM Post p

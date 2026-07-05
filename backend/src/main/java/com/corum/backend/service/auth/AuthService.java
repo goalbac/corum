@@ -1,11 +1,13 @@
 package com.corum.backend.service.auth;
 
 import com.corum.backend.common.BusinessException;
+import com.corum.backend.domain.comment.CommentRepository;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.Member;
 import com.corum.backend.domain.member.MemberLoginLog;
 import com.corum.backend.domain.member.MemberLoginLogRepository;
 import com.corum.backend.domain.member.MemberRepository;
+import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.domain.setting.SiteSetting;
 import com.corum.backend.domain.setting.SiteSettingRepository;
 import com.corum.backend.dto.auth.LoginRequest;
@@ -56,6 +58,8 @@ public class AuthService {
     private final TokenSessionService tokenSessionService;
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
     @Value("${jwt.login-fail-limit:5}")
     private int loginFailLimit;
@@ -201,7 +205,8 @@ public class AuthService {
         );
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
         List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
-        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds,
+                postRepository.countByMemberId(memberId), commentRepository.countByMemberIdAndIsDeletedFalse(memberId));
     }
 
     @Transactional
@@ -243,7 +248,8 @@ public class AuthService {
                 .orElseThrow(() -> BusinessException.notFound("사용자를 찾을 수 없습니다."));
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
         List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
-        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds,
+                postRepository.countByMemberId(memberId), commentRepository.countByMemberIdAndIsDeletedFalse(memberId));
     }
 
     @Transactional
@@ -256,7 +262,8 @@ public class AuthService {
                 member.getWorkPhone(), member.getNewsletterYn(), imageUrl);
         boolean isAdmin = memberGroupRepository.existsAdminGroupByMemberId(memberId);
         List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
-        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds);
+        return new MemberResponse(member, isAdmin, termsService.getRequiredTerms(memberId), groupIds,
+                postRepository.countByMemberId(memberId), commentRepository.countByMemberIdAndIsDeletedFalse(memberId));
     }
 
     private void sendVerificationEmail(Member member) {

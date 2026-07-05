@@ -1,122 +1,128 @@
 <template>
   <div class="mypage" v-loading="loading">
     <div class="mp-layout">
-      <!-- 왼쪽: 프로필 카드 -->
-      <aside class="mp-profile">
-        <div class="profile-avatar-wrap">
-          <div class="profile-avatar">
-            <img
-              v-if="member?.profileImageUrl && !myAvatarError"
-              :src="member.profileImageUrl"
-              class="avatar-img"
-              alt="프로필 사진"
-              @error="myAvatarError = true"
-            />
-            <div v-else class="avatar-placeholder">{{ member?.name?.charAt(0) || 'U' }}</div>
-          </div>
-          <label class="avatar-change-btn" title="사진 변경">
-            <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="handleFileChange" />
-            <i class="ti ti-camera"></i>
-          </label>
-        </div>
-        <div v-if="selectedFile" class="avatar-upload-row">
-          <span class="file-name-small">{{ selectedFile.name }}</span>
-          <el-button size="small" type="primary" :loading="photoSaving" @click="handleUploadPhoto">업로드</el-button>
-        </div>
-
-        <div class="profile-name">{{ member?.name || '-' }}</div>
-        <div class="profile-username">@{{ member?.username }}</div>
-        <div class="profile-email">{{ member?.email }}</div>
-
-        <div class="profile-badges">
-          <span v-for="g in member?.groups" :key="g.id" class="profile-badge">{{ g.name }}</span>
-        </div>
-
-        <div class="profile-nav">
-          <button
-            v-for="tab in tabs"
-            :key="tab.name"
-            :class="['pnav-item', { active: activeTab === tab.name, disabled: isForcedPasswordChange && tab.name !== 'password' }]"
-            :disabled="isForcedPasswordChange && tab.name !== 'password'"
-            @click="isForcedPasswordChange && tab.name !== 'password' ? null : (tab.name === 'messages' ? router.push('/messages') : (activeTab = tab.name))"
-          >
-            <i :class="`ti ${tab.icon}`"></i>
-            {{ tab.label }}
-          </button>
-        </div>
-      </aside>
-
-      <!-- 오른쪽: 컨텐츠 -->
       <main class="mp-content">
+        <!-- 프로필 통계 카드 -->
+        <div class="mp-stat-card">
+          <div class="mp-stat-avatar-wrap">
+            <div class="mp-stat-avatar">
+              <img
+                v-if="member?.profileImageUrl && !myAvatarError"
+                :src="member.profileImageUrl"
+                class="avatar-img"
+                alt="프로필 사진"
+                @error="myAvatarError = true"
+              />
+              <span v-else>{{ member?.name?.charAt(0) || 'U' }}</span>
+            </div>
+            <label class="avatar-change-btn" title="사진 변경">
+              <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="handleFileChange" />
+              <i class="ti ti-camera"></i>
+            </label>
+          </div>
+
+          <div class="mp-stat-info">
+            <div class="mp-stat-name-row">
+              <span class="mp-stat-name">{{ member?.name || '-' }}</span>
+            </div>
+            <div class="mp-stat-sub">@{{ member?.username }} · {{ member?.email }}</div>
+            <div v-if="selectedFile" class="avatar-upload-row">
+              <span class="file-name-small">{{ selectedFile.name }}</span>
+              <el-button size="small" type="primary" :loading="photoSaving" @click="handleUploadPhoto">업로드</el-button>
+            </div>
+          </div>
+
+          <div class="mp-stat-numbers">
+            <div class="mp-stat-num-item">
+              <div class="mp-stat-num" style="color:var(--accent)">{{ member?.postCount ?? 0 }}</div>
+              <div class="mp-stat-num-label">작성글</div>
+            </div>
+            <div class="mp-stat-num-item">
+              <div class="mp-stat-num">{{ member?.commentCount ?? 0 }}</div>
+              <div class="mp-stat-num-label">댓글</div>
+            </div>
+            <div class="mp-stat-num-item">
+              <div class="mp-stat-num">{{ joinDuration }}</div>
+              <div class="mp-stat-num-label">가입</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mp-title-row">
+          <h1>{{ currentTab?.label }}</h1>
+          <p>{{ currentTabSub }}</p>
+        </div>
+
         <!-- 내 정보 -->
         <section v-if="activeTab === 'info'">
-          <div class="section-head">
-            <h2>내 정보</h2>
-            <p>개인 정보를 수정합니다.</p>
+          <div class="mp-form-grid">
+            <div class="mp-field">
+              <label>아이디</label>
+              <input :value="member?.username" disabled />
+            </div>
+            <div class="mp-field">
+              <label>이름</label>
+              <input v-model="infoForm.name" />
+            </div>
+            <div class="mp-field span-2">
+              <label>이메일</label>
+              <input :value="member?.email" disabled />
+            </div>
+            <div class="mp-field">
+              <label>연락처</label>
+              <input v-model="infoForm.phone" placeholder="010-0000-0000" />
+            </div>
+            <div class="mp-field">
+              <label>성별</label>
+              <select v-model="infoForm.gender">
+                <option value="">선택</option>
+                <option value="M">남성</option>
+                <option value="F">여성</option>
+              </select>
+            </div>
+            <div class="mp-field">
+              <label>생년월일</label>
+              <el-date-picker
+                v-model="infoForm.birthDate"
+                type="date"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+                style="width:100%"
+              />
+            </div>
+            <div class="mp-field">
+              <label>자택전화</label>
+              <input v-model="infoForm.homePhone" />
+            </div>
+            <div class="mp-field span-2">
+              <label>집주소</label>
+              <input v-model="infoForm.address" />
+            </div>
+            <div class="mp-field">
+              <label>하는 일</label>
+              <input v-model="infoForm.occupation" />
+            </div>
+            <div class="mp-field">
+              <label>직장 전화</label>
+              <input v-model="infoForm.workPhone" />
+            </div>
+            <div class="mp-field span-2 mp-newsletter-row">
+              <button
+                type="button"
+                class="mp-toggle"
+                :class="{ on: infoForm.newsletterYn }"
+                @click="infoForm.newsletterYn = !infoForm.newsletterYn"
+              ><span class="mp-toggle-dot"></span></button>
+              <span class="mp-newsletter-label">뉴스레터 수신 동의</span>
+            </div>
           </div>
-          <el-form :model="infoForm" label-position="top">
-            <div class="form-row">
-              <el-form-item label="아이디">
-                <el-input :value="member?.username" disabled />
-              </el-form-item>
-              <el-form-item label="이름">
-                <el-input v-model="infoForm.name" />
-              </el-form-item>
-            </div>
-            <el-form-item label="이메일">
-              <el-input :value="member?.email" disabled />
-            </el-form-item>
-            <div class="form-row">
-              <el-form-item label="연락처">
-                <el-input v-model="infoForm.phone" placeholder="010-0000-0000" />
-              </el-form-item>
-              <el-form-item label="성별">
-                <el-select v-model="infoForm.gender" placeholder="선택" style="width:100%">
-                  <el-option value="M" label="남성" />
-                  <el-option value="F" label="여성" />
-                </el-select>
-              </el-form-item>
-            </div>
-            <div class="form-row">
-              <el-form-item label="생년월일">
-                <el-date-picker
-                  v-model="infoForm.birthDate"
-                  type="date"
-                  format="YYYY-MM-DD"
-                  value-format="YYYY-MM-DD"
-                  style="width:100%"
-                />
-              </el-form-item>
-              <el-form-item label="자택전화">
-                <el-input v-model="infoForm.homePhone" />
-              </el-form-item>
-            </div>
-            <el-form-item label="집주소">
-              <el-input v-model="infoForm.address" />
-            </el-form-item>
-            <div class="form-row">
-              <el-form-item label="하는 일">
-                <el-input v-model="infoForm.occupation" />
-              </el-form-item>
-              <el-form-item label="직장 전화">
-                <el-input v-model="infoForm.workPhone" />
-              </el-form-item>
-            </div>
-            <el-form-item>
-              <el-checkbox v-model="infoForm.newsletterYn">뉴스레터 수신 동의</el-checkbox>
-            </el-form-item>
-            <div class="form-actions">
-              <el-button type="primary" :loading="saving" @click="handleUpdateInfo">저장</el-button>
-            </div>
-          </el-form>
+          <div class="mp-form-actions">
+            <button class="mp-btn-primary" :disabled="saving" @click="handleUpdateInfo">{{ saving ? '저장 중...' : '저장' }}</button>
+          </div>
         </section>
 
         <!-- 비밀번호 변경 -->
         <section v-else-if="activeTab === 'password'">
-          <div class="section-head">
-            <h2>비밀번호 변경</h2>
-            <p>현재 비밀번호를 확인한 후 새 비밀번호로 변경합니다.</p>
-          </div>
           <div v-if="isForcedPasswordChange" class="forced-pw-banner">
             <i class="ti ti-shield-lock"></i>
             관리자에 의해 비밀번호가 초기화되었습니다. 임시 비밀번호로 로그인하셨습니다.
@@ -127,47 +133,47 @@
             :model="pwForm"
             :rules="pwRules"
             label-position="top"
-            style="max-width:420px"
+            class="mp-narrow-form"
           >
-            <el-form-item label="현재 비밀번호" prop="currentPassword">
+            <div class="mp-field">
+              <label>현재 비밀번호</label>
               <el-input v-model="pwForm.currentPassword" type="password" show-password />
-            </el-form-item>
-            <el-form-item label="새 비밀번호" prop="newPassword">
+            </div>
+            <div class="mp-field">
+              <label>새 비밀번호</label>
               <el-input v-model="pwForm.newPassword" type="password" show-password placeholder="8자 이상" />
-            </el-form-item>
-            <el-form-item label="새 비밀번호 확인" prop="newPasswordConfirm">
+              <span class="mp-field-hint">영문·숫자·특수문자 조합 8자 이상</span>
+            </div>
+            <div class="mp-field">
+              <label>새 비밀번호 확인</label>
               <el-input v-model="pwForm.newPasswordConfirm" type="password" show-password />
-            </el-form-item>
-            <div class="form-actions">
-              <el-button type="primary" :loading="pwSaving" @click="handleUpdatePassword">변경</el-button>
+            </div>
+            <div class="mp-form-actions">
+              <button class="mp-btn-primary" :disabled="pwSaving" @click="handleUpdatePassword">{{ pwSaving ? '변경 중...' : '변경' }}</button>
             </div>
           </el-form>
         </section>
 
         <!-- 알림 설정 -->
         <section v-else-if="activeTab === 'notif'">
-          <div class="section-head">
-            <h2>알림 설정</h2>
-            <p>수신할 알림 유형과 채널을 선택합니다.</p>
-          </div>
-          <div class="notif-pref-list">
-            <div class="notif-pref-row notif-pref-header">
-              <div class="notif-pref-label"></div>
-              <div class="notif-pref-channels">
-                <span>시스템 알림</span>
-                <span>이메일 알림</span>
+          <div class="mp-table">
+            <div class="mp-table-row mp-table-header">
+              <div class="mp-table-label"></div>
+              <div class="mp-table-channels">
+                <span>실시간</span>
+                <span>이메일</span>
               </div>
             </div>
-            <div v-for="pref in notifPrefs" :key="pref.notifType" class="notif-pref-row">
-              <div class="notif-pref-label">{{ pref.label }}</div>
-              <div class="notif-pref-channels">
+            <div v-for="pref in notifPrefs" :key="pref.notifType" class="mp-table-row">
+              <div class="mp-table-label">{{ pref.label }}</div>
+              <div class="mp-table-channels">
                 <el-switch v-model="pref.systemEnabled" />
                 <el-switch v-model="pref.emailEnabled" />
               </div>
             </div>
           </div>
-          <div class="form-actions">
-            <el-button type="primary" :loading="notifSaving" @click="saveNotifPrefs">저장</el-button>
+          <div class="mp-form-actions">
+            <button class="mp-btn-primary" :disabled="notifSaving" @click="saveNotifPrefs">{{ notifSaving ? '저장 중...' : '저장' }}</button>
           </div>
 
           <!-- 브라우저 푸시 알림 -->
@@ -190,14 +196,10 @@
 
         <!-- 내 문의 내역 -->
         <section v-else-if="activeTab === 'inquiries'">
-          <div class="section-head-row">
-            <div>
-              <h2>내 문의 내역</h2>
-              <p>내가 접수한 문의 목록입니다.</p>
-            </div>
-            <el-button @click="activeTab = 'new-inquiry'">
-              <i class="ti ti-plus" style="margin-right:4px"></i>문의하기
-            </el-button>
+          <div class="mp-section-actions">
+            <button class="mp-btn-outline" @click="activeTab = 'new-inquiry'">
+              <i class="ti ti-plus"></i>문의하기
+            </button>
           </div>
           <div v-if="myInquiries.length === 0 && !myInquiryLoading" class="my-empty">
             <i class="ti ti-mail"></i>
@@ -206,7 +208,7 @@
           <div v-else class="my-inquiry-list" v-loading="myInquiryLoading">
             <div
               v-for="item in myInquiries" :key="item.id"
-              class="my-inquiry-item clickable"
+              class="my-inquiry-item"
               @click="openInquiryDetail(item)"
             >
               <div class="mi-top">
@@ -228,14 +230,10 @@
 
         <!-- 내 제보 내역 -->
         <section v-else-if="activeTab === 'reports'">
-          <div class="section-head-row">
-            <div>
-              <h2>내 제보 내역</h2>
-              <p>내가 접수한 오류 제보 및 기능 제안 목록입니다.</p>
-            </div>
-            <el-button @click="activeTab = 'new-report'">
-              <i class="ti ti-bug" style="margin-right:4px"></i>오류/기능 제보
-            </el-button>
+          <div class="mp-section-actions">
+            <button class="mp-btn-outline" @click="activeTab = 'new-report'">
+              <i class="ti ti-bug"></i>오류/기능 제보
+            </button>
           </div>
           <div v-if="myReports.length === 0 && !myReportLoading" class="my-empty">
             <i class="ti ti-bug"></i>
@@ -244,7 +242,7 @@
           <div v-else class="my-inquiry-list" v-loading="myReportLoading">
             <div
               v-for="item in myReports" :key="item.id"
-              class="my-inquiry-item clickable"
+              class="my-inquiry-item"
               @click="openInquiryDetail(item)"
             >
               <div class="mi-top">
@@ -270,53 +268,49 @@
 
         <!-- 문의 작성 -->
         <section v-else-if="activeTab === 'new-inquiry'">
-          <div class="section-head-row">
-            <div>
-              <h2>문의하기</h2>
-              <p>로그인 사용자로 문의를 접수합니다.</p>
-            </div>
-            <el-button @click="activeTab = 'inquiries'">
-              <i class="ti ti-arrow-left" style="margin-right:4px"></i>내 문의 목록
-            </el-button>
+          <div class="mp-section-actions">
+            <button class="mp-btn-outline" @click="activeTab = 'inquiries'">
+              <i class="ti ti-arrow-left"></i>내 문의 목록
+            </button>
           </div>
-          <el-form ref="inquiryFormRef" :model="inquiryForm" :rules="inquiryRules" label-position="top" class="write-form">
-            <el-form-item label="제목" prop="title">
+          <el-form ref="inquiryFormRef" :model="inquiryForm" :rules="inquiryRules" label-position="top" class="mp-narrow-form">
+            <div class="mp-field">
+              <label>제목</label>
               <el-input v-model="inquiryForm.title" placeholder="문의 제목을 입력하세요." />
-            </el-form-item>
-            <el-form-item label="내용" prop="content">
-              <el-input v-model="inquiryForm.content" type="textarea" :rows="7" placeholder="문의 내용을 입력하세요." resize="none" />
-            </el-form-item>
-            <div class="write-form-row">
-              <el-form-item label="연락처">
-                <el-input v-model="inquiryForm.contactPhone" placeholder="010-0000-0000" />
-              </el-form-item>
-              <el-form-item label="이메일">
-                <el-input v-model="inquiryForm.contactEmail" placeholder="example@email.com" />
-              </el-form-item>
             </div>
-            <div class="write-form-actions">
-              <el-button @click="activeTab = 'inquiries'">취소</el-button>
-              <el-button type="primary" :loading="inquirySubmitting" @click="submitInquiry">
-                <i class="ti ti-send" style="margin-right:4px"></i>문의 접수
-              </el-button>
+            <div class="mp-field">
+              <label>내용</label>
+              <el-input v-model="inquiryForm.content" type="textarea" :rows="7" placeholder="문의 내용을 입력하세요." resize="none" />
+            </div>
+            <div class="mp-form-grid">
+              <div class="mp-field">
+                <label>연락처</label>
+                <el-input v-model="inquiryForm.contactPhone" placeholder="010-0000-0000" />
+              </div>
+              <div class="mp-field">
+                <label>이메일</label>
+                <el-input v-model="inquiryForm.contactEmail" placeholder="example@email.com" />
+              </div>
+            </div>
+            <div class="mp-form-actions">
+              <button class="mp-btn-outline" type="button" @click="activeTab = 'inquiries'">취소</button>
+              <button class="mp-btn-primary" :disabled="inquirySubmitting" @click="submitInquiry">
+                <i class="ti ti-send"></i>{{ inquirySubmitting ? '접수 중...' : '문의 접수' }}
+              </button>
             </div>
           </el-form>
         </section>
 
         <!-- 제보 작성 -->
         <section v-else-if="activeTab === 'new-report'">
-          <div class="section-head-row">
-            <div>
-              <h2>{{ reportForm.inquiryType === 'BUG_REPORT' ? '오류 제보' : '기능 제안' }}</h2>
-              <p>{{ reportForm.inquiryType === 'BUG_REPORT' ? '시스템 오류를 제보합니다.' : '새로운 기능을 제안합니다.' }}</p>
-            </div>
-            <el-button @click="activeTab = 'reports'">
-              <i class="ti ti-arrow-left" style="margin-right:4px"></i>내 제보 목록
-            </el-button>
+          <div class="mp-section-actions">
+            <button class="mp-btn-outline" @click="activeTab = 'reports'">
+              <i class="ti ti-arrow-left"></i>내 제보 목록
+            </button>
           </div>
 
           <!-- 유형 탭 -->
-          <div class="report-type-tabs" style="margin-bottom:20px">
+          <div class="report-type-tabs">
             <button :class="['rtype-btn', { active: reportForm.inquiryType === 'BUG_REPORT' }]" @click="reportForm.inquiryType = 'BUG_REPORT'">
               <i class="ti ti-bug"></i> 오류 제보
             </button>
@@ -333,56 +327,49 @@
             </ul>
           </div>
 
-          <el-form ref="reportFormRef" :model="reportForm" :rules="reportRules" label-position="top" class="write-form" style="margin-top:16px">
-            <el-form-item label="제목" prop="title">
+          <el-form ref="reportFormRef" :model="reportForm" :rules="reportRules" label-position="top" class="mp-narrow-form" style="margin-top:16px">
+            <div class="mp-field">
+              <label>제목</label>
               <el-input v-model="reportForm.title" :placeholder="currentReportGuide.titlePlaceholder" />
-            </el-form-item>
-            <el-form-item v-if="reportForm.inquiryType === 'BUG_REPORT'" label="오류 발생 페이지 / URL">
+            </div>
+            <div class="mp-field" v-if="reportForm.inquiryType === 'BUG_REPORT'">
+              <label>오류 발생 페이지 / URL</label>
               <el-input v-model="reportForm.pageUrl" placeholder="예: 알려드려요 게시판 (https://...)" />
-            </el-form-item>
-            <el-form-item v-if="reportForm.inquiryType === 'FEATURE_REQUEST'" label="참고 서비스 또는 링크">
+            </div>
+            <div class="mp-field" v-if="reportForm.inquiryType === 'FEATURE_REQUEST'">
+              <label>참고 서비스 또는 링크</label>
               <el-input v-model="reportForm.reference" placeholder="예: 구글 캘린더, https://..." />
-            </el-form-item>
-            <el-form-item label="내용" prop="content">
+            </div>
+            <div class="mp-field">
+              <label>내용</label>
               <el-input v-model="reportForm.content" type="textarea" :rows="8" :placeholder="currentReportGuide.contentPlaceholder" resize="none" />
-            </el-form-item>
-            <div class="write-form-actions">
-              <el-button @click="activeTab = 'reports'">취소</el-button>
-              <el-button type="primary" :loading="reportSubmitting" @click="submitReport">
-                <i class="ti ti-send" style="margin-right:4px"></i>
-                {{ reportForm.inquiryType === 'BUG_REPORT' ? '오류 제보 접수' : '기능 제안 접수' }}
-              </el-button>
+            </div>
+            <div class="mp-form-actions">
+              <button class="mp-btn-outline" type="button" @click="activeTab = 'reports'">취소</button>
+              <button class="mp-btn-primary" :disabled="reportSubmitting" @click="submitReport">
+                <i class="ti ti-send"></i>
+                {{ reportSubmitting ? '접수 중...' : (reportForm.inquiryType === 'BUG_REPORT' ? '오류 제보 접수' : '기능 제안 접수') }}
+              </button>
             </div>
           </el-form>
         </section>
 
         <!-- 회원 탈퇴 -->
         <section v-else-if="activeTab === 'withdraw'">
-          <div class="section-head">
-            <h2>회원 탈퇴</h2>
-            <p>탈퇴 처리 후 복구가 불가합니다.</p>
-          </div>
-          <el-alert
-            title="탈퇴 전 꼭 확인해주세요"
-            type="warning"
-            :closable="false"
-            show-icon
-            style="margin-bottom:24px"
-          >
-            <template #default>
-              <ul class="withdraw-notice">
-                <li>탈퇴 후 작성한 게시글과 댓글은 삭제되지 않습니다.</li>
-                <li>탈퇴 후 동일한 아이디로 재가입이 불가합니다.</li>
-                <li>탈퇴 처리 후 복구가 불가합니다.</li>
-              </ul>
-            </template>
-          </el-alert>
-          <el-form label-position="top" style="max-width:420px">
-            <el-form-item label="비밀번호 확인">
+          <div class="mp-danger-box">
+            <div class="mp-danger-title"><i class="ti ti-alert-triangle"></i>회원 탈퇴 안내</div>
+            <p class="mp-danger-desc">
+              탈퇴 시 작성하신 게시글·댓글은 삭제되지 않으며, 동일 아이디로 재가입이 제한될 수 있습니다.
+              진행하시려면 비밀번호를 입력해 주세요.
+            </p>
+            <div class="mp-field" style="margin-bottom:16px">
+              <label>비밀번호 확인</label>
               <el-input v-model="withdrawPassword" type="password" show-password placeholder="현재 비밀번호를 입력하세요" />
-            </el-form-item>
-            <el-button type="danger" @click="handleWithdraw">회원 탈퇴</el-button>
-          </el-form>
+            </div>
+            <div class="mp-form-actions">
+              <button class="mp-btn-danger" @click="handleWithdraw">회원 탈퇴</button>
+            </div>
+          </div>
         </section>
       </main>
     </div>
@@ -456,14 +443,40 @@ const photoSaving = ref(false)
 const myAvatarError = ref(false)
 
 const tabs = [
-  { name: 'info',      icon: 'ti-user',      label: '내 정보' },
-  { name: 'password',  icon: 'ti-lock',      label: '비밀번호 변경' },
-  { name: 'notif',     icon: 'ti-bell',      label: '알림 설정' },
-  { name: 'messages',  icon: 'ti-messages',  label: '쪽지' },
-  { name: 'inquiries', icon: 'ti-mail',      label: '내 문의 내역' },
-  { name: 'reports',   icon: 'ti-bug',       label: '내 제보 내역' },
-  { name: 'withdraw',  icon: 'ti-door-exit', label: '회원 탈퇴' }
+  { name: 'info',      label: '내 정보',      sub: '개인 정보를 수정합니다.' },
+  { name: 'password',  label: '비밀번호 변경', sub: '보안을 위해 주기적으로 비밀번호를 변경해 주세요.' },
+  { name: 'notif',     label: '알림 설정',     sub: '알림 유형별 수신 채널을 설정합니다.' },
+  { name: 'inquiries', label: '내 문의 내역',  sub: '내가 남긴 문의와 답변 상태입니다.' },
+  { name: 'reports',   label: '내 제보 내역',  sub: '오류 제보·기능 제안 내역입니다.' },
+  { name: 'withdraw',  label: '회원 탈퇴',    sub: '계정을 삭제하면 되돌릴 수 없습니다.' }
 ]
+const currentTab = computed(() => tabs.find(t => t.name === activeTab.value))
+const currentTabSub = computed(() => {
+  if (activeTab.value === 'new-inquiry') return '문의를 새로 작성합니다.'
+  if (activeTab.value === 'new-report')  return '오류·제안 내용을 작성합니다.'
+  return currentTab.value?.sub || ''
+})
+
+// 왼쪽 고정 사이드바(DefaultLayout)에서 탭을 바꾸면 쿼리스트링(route.query.tab)으로 전달됨
+watch(() => route.query.tab, (tab) => {
+  if (!tab) return
+  if (isForcedPasswordChange.value && tab !== 'password') {
+    router.replace({ name: 'MyPage', query: { tab: 'password' } })
+    return
+  }
+  activeTab.value = tab
+})
+
+function formatJoinDuration(joinedAt) {
+  if (!joinedAt) return '-'
+  const days = Math.floor((Date.now() - new Date(joinedAt).getTime()) / 86400000)
+  if (days < 1) return '오늘'
+  if (days < 30) return `${days}일`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months}개월`
+  return `${Math.floor(months / 12)}년`
+}
+const joinDuration = computed(() => formatJoinDuration(member.value?.joinedAt))
 
 // ===== 내 문의 / 제보 =====
 const myInquiries = ref([])
@@ -840,210 +853,249 @@ watch(activeTab, (tab) => {
 .mypage { color: var(--t1); }
 
 .mp-layout {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 0;
-  min-height: 600px;
+  max-width: 920px;
 }
 
-/* ===== 왼쪽 프로필 ===== */
-.mp-profile {
-  padding: 32px 20px 24px;
-  border-right: 1px solid var(--border2);
+/* ===== 프로필 통계 카드 ===== */
+.mp-stat-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 16px;
+  padding: 20px 22px;
+  margin-bottom: 26px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
 }
 
-.profile-avatar-wrap {
-  position: relative;
-  width: 88px;
-  height: 88px;
-  margin-bottom: 10px;
-}
+.mp-stat-avatar-wrap { position: relative; flex-shrink: 0; }
 
-.profile-avatar {
-  width: 88px;
-  height: 88px;
+.mp-stat-avatar {
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.03em;
   overflow: hidden;
-  border: 2.5px solid var(--border);
-  background: var(--surface2);
 }
 
 .avatar-img { width: 100%; height: 100%; object-fit: cover; }
 
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent);
-  color: #fff;
-  font-size: 32px;
-  font-weight: 700;
-}
-
 .avatar-change-btn {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 26px;
-  height: 26px;
+  right: -2px;
+  bottom: -2px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--t2);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  border: 2px solid var(--surface);
+  box-shadow: var(--shadow-sm);
   transition: var(--transition);
 }
+.avatar-change-btn:hover { color: var(--accent); }
 
-.avatar-change-btn:hover { background: var(--accent-t); }
+.mp-stat-info { flex: 1; min-width: 180px; }
+
+.mp-stat-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mp-stat-name { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+
+.mp-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-t);
+  background: var(--accent-bg);
+  padding: 2px 9px;
+  border-radius: 11px;
+}
+
+.mp-stat-sub { font-size: 13px; color: var(--t3); margin-top: 3px; }
 
 .avatar-upload-row {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-top: 8px;
   flex-wrap: wrap;
-  justify-content: center;
 }
 
 .file-name-small {
   font-size: 11px;
   color: var(--t3);
-  max-width: 110px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.profile-name {
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--t1);
-  text-align: center;
-  margin-top: 4px;
+.mp-stat-numbers { display: flex; gap: 22px; padding-right: 4px; }
+.mp-stat-num-item { text-align: center; }
+.mp-stat-num { font-size: 19px; font-weight: 800; }
+.mp-stat-num-label { font-size: 11.5px; color: var(--t3); margin-top: 2px; }
+
+/* ===== 타이틀 ===== */
+.mp-title-row { margin-bottom: 26px; }
+.mp-title-row h1 { margin: 0 0 5px; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+.mp-title-row p { margin: 0; font-size: 14px; color: var(--t3); }
+
+/* ===== 폼 공통 ===== */
+.mp-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 28px;
 }
 
-.profile-username {
-  font-size: 13px;
-  color: var(--t3);
-}
+.mp-narrow-form { max-width: 480px; display: flex; flex-direction: column; gap: 18px; }
 
-.profile-email {
-  font-size: 12px;
-  color: var(--t3);
-  text-align: center;
-  word-break: break-all;
-  margin-bottom: 6px;
-}
+.mp-field { display: flex; flex-direction: column; gap: 7px; }
+.mp-field.span-2 { grid-column: 1 / -1; }
 
-.profile-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px;
-  margin-bottom: 8px;
-}
+.mp-field label { font-size: 13px; font-weight: 700; color: var(--t2); }
+.mp-field-hint { font-size: 12px; color: var(--t3); }
 
-.profile-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 20px;
-  background: var(--accent-bg);
-  color: var(--accent-t);
-  font-weight: 600;
-}
-
-.profile-nav {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 12px;
-}
-
-.pnav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 9px 12px;
-  border: none;
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--t2);
+.mp-field input,
+.mp-field select {
+  font-family: inherit;
   font-size: 14px;
+  color: var(--t1);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 11px 13px;
+  outline: none;
+  transition: var(--transition);
+}
+.mp-field input:focus,
+.mp-field select:focus { border-color: var(--accent); }
+.mp-field input:disabled {
+  color: var(--t3);
+  background: var(--surface2);
+  cursor: not-allowed;
+}
+.mp-field select { cursor: pointer; }
+
+.mp-field :deep(.el-input__wrapper) {
+  border-radius: 9px;
+  box-shadow: 0 0 0 1px var(--border-strong) inset;
+}
+.mp-field :deep(.el-textarea__inner) {
+  border-radius: 9px;
+}
+
+.mp-newsletter-row { flex-direction: row; align-items: center; gap: 9px; margin-top: 2px; }
+.mp-newsletter-label { font-size: 14px; color: var(--t2); font-weight: 500; }
+
+.mp-toggle {
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: var(--border-strong);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.mp-toggle.on { background: var(--accent); }
+.mp-toggle-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.mp-toggle.on .mp-toggle-dot { left: 19px; }
+
+.mp-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+.mp-narrow-form .mp-form-actions,
+.write-form .mp-form-actions { margin-top: 6px; padding-top: 0; border-top: none; }
+
+.mp-btn-primary {
+  border: none;
+  background: var(--accent);
+  color: #fff;
   font-weight: 600;
-  text-align: left;
+  font-size: 14px;
+  padding: 11px 30px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mp-btn-primary:hover:not(:disabled) { background: var(--accent-t); }
+.mp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.mp-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--t2);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 9px;
   cursor: pointer;
   transition: var(--transition);
 }
+.mp-btn-outline:hover { background: var(--surface2); color: var(--t1); }
 
-.pnav-item:hover { background: var(--surface2); color: var(--t1); }
-.pnav-item.active { background: var(--accent-bg); color: var(--accent-t); }
-
-/* ===== 오른쪽 컨텐츠 ===== */
-.mp-content {
-  padding: 32px 30px;
-}
-
-.section-head {
-  margin-bottom: 24px;
-}
-
-.section-head h2 {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--t1);
-  margin-bottom: 4px;
-}
-
-.section-head p {
+.mp-btn-danger {
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
   font-size: 14px;
-  color: var(--t3);
+  padding: 11px 24px;
+  border-radius: 9px;
+  cursor: pointer;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
+.mp-section-actions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
 
 .forced-pw-banner {
   display: flex; align-items: flex-start; gap: 10px;
   background: #fff7ed; border: 1px solid #f97316; border-radius: 8px;
-  padding: 14px 16px; margin-bottom: 20px; max-width: 420px;
+  padding: 14px 16px; margin-bottom: 20px; max-width: 480px;
   font-size: 13px; line-height: 1.6; color: #9a3412;
 }
 .forced-pw-banner i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 .forced-pw-banner strong { display: block; margin-top: 2px; font-weight: 700; }
 
-.pnav-item.disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* 작성 폼 */
-.write-form { display: flex; flex-direction: column; gap: 4px; }
-.write-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.write-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-
 /* 제보 유형 탭 */
-.report-type-tabs { display: flex; gap: 8px; }
+.report-type-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
 .rtype-btn {
   display: flex; align-items: center; gap: 7px;
-  padding: 7px 16px; border-radius: var(--radius-xs);
-  border: 1.5px solid var(--border2); background: var(--surface);
+  padding: 7px 16px; border-radius: 9px;
+  border: 1.5px solid var(--border-strong); background: var(--surface);
   color: var(--t2); font-size: 13px; font-weight: 600; cursor: pointer;
   transition: var(--transition);
 }
@@ -1052,7 +1104,7 @@ watch(activeTab, (tab) => {
 
 /* 제보 가이드 */
 .report-guide {
-  background: var(--surface2); border-radius: var(--radius-xs);
+  background: var(--surface2); border-radius: 9px;
   padding: 14px 16px; font-size: 13px;
 }
 .rg-title {
@@ -1066,36 +1118,34 @@ watch(activeTab, (tab) => {
 .rg-list li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
 .rg-list li :deep(strong) { color: var(--t1); }
 
-/* 섹션 헤더 (제목 + 버튼) */
-.section-head-row {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-  margin-bottom: 16px;
-}
-.section-head-row h2 { font-size: 18px; font-weight: 800; color: var(--t1); margin-bottom: 4px; }
-.section-head-row p  { font-size: 14px; color: var(--t3); }
-
 /* ===== 내 문의/제보 ===== */
 .my-empty {
   display: flex; align-items: center; gap: 10px;
-  padding: 40px 0; color: var(--t4); font-size: 14px;
+  padding: 40px 0; color: var(--t3); font-size: 14px;
   justify-content: center;
 }
 .my-empty i { font-size: 28px; }
-.my-inquiry-list { display: flex; flex-direction: column; gap: 8px; }
+
+.my-inquiry-list {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
 .my-inquiry-item {
-  padding: 12px 16px;
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-xs);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
   background: var(--surface);
   display: flex; flex-direction: column; gap: 6px;
+  cursor: pointer;
   transition: var(--transition);
 }
-.my-inquiry-item.clickable { cursor: pointer; }
-.my-inquiry-item.clickable:hover { border-color: var(--accent); background: var(--surface2); }
+.my-inquiry-item:last-child { border-bottom: none; }
+.my-inquiry-item:hover { background: var(--surface2); }
 .mi-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.mi-title { flex: 1; font-size: 14px; font-weight: 600; color: var(--t1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mi-arrow { font-size: 13px; color: var(--t4); flex-shrink: 0; }
-.mi-meta { font-size: 12px; color: var(--t4); }
+.mi-title { flex: 1; font-size: 14.5px; font-weight: 600; color: var(--t1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-arrow { font-size: 13px; color: var(--t3); flex-shrink: 0; }
+.mi-meta { font-size: 12px; color: var(--t3); }
 .mi-reply-preview {
   display: flex; align-items: flex-start; gap: 6px;
   font-size: 12px; color: #1E40AF;
@@ -1104,42 +1154,22 @@ watch(activeTab, (tab) => {
 }
 .mi-reply-preview i { flex-shrink: 0; margin-top: 1px; }
 .mi-badge {
-  flex-shrink: 0; padding: 2px 8px; border-radius: 20px;
-  font-size: 11px; font-weight: 700;
+  flex-shrink: 0; padding: 4px 11px; border-radius: 12px;
+  font-size: 11.5px; font-weight: 700;
 }
 .badge-received { background: #FEF3C7; color: #92400E; }
 .badge-checking  { background: #DBEAFE; color: #1E40AF; }
 .badge-done      { background: #D1FAE5; color: #065F46; }
-/* 답변 표시 */
-.mi-reply {
-  margin-top: 8px;
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  border-left: 3px solid #3B82F6;
-  border-radius: var(--radius-xs);
-  padding: 10px 12px;
-}
-.mi-reply-head {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 700; color: #1E40AF;
-  margin-bottom: 6px;
-}
-.mi-reply-head i { font-size: 13px; }
-.mi-reply-who { color: #1E40AF; }
-.mi-reply-date { font-weight: 400; color: #60A5FA; font-size: 11px; margin-left: 2px; }
-.mi-reply-content {
-  font-size: 13px; color: #1e3a5f; line-height: 1.6; white-space: pre-wrap;
-}
 .mi-no-reply {
   margin-top: 6px;
   display: flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--t4);
+  font-size: 12px; color: var(--t3);
 }
 .mi-no-reply i { font-size: 13px; }
 
 .mi-type-badge {
   display: inline-flex; align-items: center; gap: 4px;
-  flex-shrink: 0; padding: 2px 8px; border-radius: 20px;
+  flex-shrink: 0; padding: 3px 9px; border-radius: 6px;
   font-size: 11px; font-weight: 700;
 }
 .type-bug     { background: #FEE2E2; color: #991B1B; }
@@ -1152,29 +1182,29 @@ watch(activeTab, (tab) => {
 }
 .idlg-header-left { display: flex; align-items: center; gap: 8px; }
 .idlg-close {
-  background: none; border: none; color: var(--t4);
+  background: none; border: none; color: var(--t3);
   cursor: pointer; font-size: 16px; padding: 4px; line-height: 1;
-  border-radius: var(--radius-xs); transition: var(--transition);
+  border-radius: 6px; transition: var(--transition);
 }
 .idlg-close:hover { background: var(--surface2); color: var(--t1); }
 .idlg-title {
   font-size: 16px; font-weight: 700; color: var(--t1); line-height: 1.4; margin-bottom: 4px;
 }
-.idlg-meta { font-size: 12px; color: var(--t4); }
+.idlg-meta { font-size: 12px; color: var(--t3); }
 
 .idlg-body { display: flex; flex-direction: column; gap: 8px; }
 .idlg-section-label {
   display: flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 700; color: var(--t4); letter-spacing: 0.3px;
+  font-size: 12px; font-weight: 700; color: var(--t3); letter-spacing: 0.3px;
   margin-bottom: 4px;
 }
 .idlg-reply-meta {
-  font-weight: 400; color: var(--t4); font-size: 11px; margin-left: 4px;
+  font-weight: 400; color: var(--t3); font-size: 11px; margin-left: 4px;
 }
 .idlg-content {
   padding: 12px 14px;
-  border: 0.5px solid var(--border2);
-  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  border-radius: 9px;
   font-size: 14px; color: var(--t1); line-height: 1.7;
   white-space: pre-wrap; min-height: 60px; max-height: 300px; overflow-y: auto;
 }
@@ -1182,78 +1212,63 @@ watch(activeTab, (tab) => {
   background: #EFF6FF;
   border: 1px solid #BFDBFE;
   border-left: 4px solid #3B82F6;
-  border-radius: var(--radius-xs);
+  border-radius: 9px;
   padding: 12px 14px;
   font-size: 14px; color: #1e3a5f; line-height: 1.7; white-space: pre-wrap;
 }
 .idlg-no-reply {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 14px; background: var(--surface2);
-  border-radius: var(--radius-xs); color: var(--t3);
+  border-radius: 9px; color: var(--t3);
 }
 .idlg-no-reply i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 .idlg-no-reply-title { font-size: 13px; font-weight: 600; color: var(--t2); }
-.idlg-no-reply-sub { font-size: 12px; color: var(--t4); margin-top: 2px; }
+.idlg-no-reply-sub { font-size: 12px; color: var(--t3); margin-top: 2px; }
 
-.withdraw-notice {
-  margin-top: 4px;
-  padding-left: 16px;
-  font-size: 13px;
-  line-height: 1.8;
+/* ===== 탈퇴 ===== */
+.mp-danger-box {
+  max-width: 560px;
+  border: 1px solid var(--danger);
+  border-radius: 14px;
+  padding: 24px;
+  background: var(--danger-bg);
 }
+.mp-danger-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 16px; font-weight: 800; color: var(--danger);
+  margin-bottom: 10px;
+}
+.mp-danger-desc { margin: 0 0 16px; font-size: 14px; line-height: 1.7; color: var(--t2); }
 
-.notif-pref-list {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-xs);
+/* ===== 알림 설정 ===== */
+.mp-table {
+  border: 1px solid var(--border);
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
   margin-bottom: 24px;
 }
-
-.notif-pref-row {
+.mp-table-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--border2);
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
-
-.notif-pref-row:last-child { border-bottom: none; }
-
-.notif-pref-header {
-  background: var(--surface2);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--t3);
-}
-
-.notif-pref-label {
-  flex: 1;
-  font-size: 14px;
-  color: var(--t1);
-}
-
-.notif-pref-channels {
-  display: flex;
-  gap: 40px;
-  align-items: center;
-  text-align: center;
-}
-
-.notif-pref-channels span {
-  width: 68px;
-  display: inline-block;
-}
+.mp-table-row:last-child { border-bottom: none; }
+.mp-table-header { background: var(--surface2); font-size: 12.5px; font-weight: 700; color: var(--t3); }
+.mp-table-label { flex: 1; font-size: 14px; color: var(--t1); }
+.mp-table-channels { display: flex; gap: 40px; align-items: center; text-align: center; }
+.mp-table-channels span { width: 68px; display: inline-block; }
 
 .push-section {
   margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid var(--border2);
+  border-top: 1px solid var(--border);
 }
 .push-section h3 { margin: 0 0 6px; font-size: 15px; }
-.push-desc { font-size: 13px; color: var(--text-sub); margin: 0 0 14px; }
+.push-desc { font-size: 13px; color: var(--t3); margin: 0 0 14px; }
 .push-toggle-row {
   display: flex;
   align-items: center;
@@ -1267,11 +1282,8 @@ watch(activeTab, (tab) => {
 }
 
 @media (max-width: 768px) {
-  .mp-layout { grid-template-columns: 1fr; }
-  .mp-profile { border-right: none; border-bottom: 1px solid var(--border2); padding: 24px 20px 16px; }
-  .profile-nav { flex-direction: row; flex-wrap: wrap; }
-  .pnav-item { flex: 1; min-width: 100px; justify-content: center; }
-  .mp-content { padding: 24px 18px; }
-  .form-row { grid-template-columns: 1fr; }
+  .mp-stat-card { padding: 16px; }
+  .mp-stat-numbers { width: 100%; justify-content: space-around; padding-right: 0; }
+  .mp-form-grid { grid-template-columns: 1fr; }
 }
 </style>

@@ -634,11 +634,27 @@ onMounted(async () => {
 .submit-btn:hover:not(:disabled) { background: var(--primary-strong); }
 .submit-btn:disabled { opacity: 0.6; cursor: default; }
 
-@media (max-width: 640px) {
-  .write-card { padding: 16px; }
-  .title-input { font-size: 16px; }
+@media (max-width: 768px) {
+  .pg-header { margin-bottom: 14px; }
+  .pg-title { font-size: 20px; }
+  .write-card { padding: 10px 0 0 0; gap: 14px; background: none; border: 0; box-shadow: none; }
+  .title-input { font-size: 17px; padding: 10px 2px; }
   .options-row { gap: 14px; }
-  .write-actions { flex-direction: column; align-items: stretch; gap: 8px; }
-  .action-right { justify-content: flex-end; }
+  .cat-select { flex: 1; min-width: 0; }
+  .drop-zone { padding: 16px; }
+
+  /* 하단 액션바를 화면에 붙여 항상 손 닿는 위치에 유지 */
+  .write-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    padding: 10px 0 6px;
+    margin-top: 14px;
+    gap: 8px;
+  }
+  .cancel-btn { flex-shrink: 0; }
+  .action-right { flex: 1; }
+  .draft-btn { display: none; }
+  .submit-btn { flex: 1; }
 }
 </style>
