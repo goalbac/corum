@@ -1127,7 +1127,7 @@ onMounted(async () => {
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
-    padding: 15px 18px;
+    padding: 16px 18px;
   }
   .pt-row > .tc,
   .pt-row > .pt-num,
@@ -1135,7 +1135,7 @@ onMounted(async () => {
   .pt-title-cell { flex-wrap: wrap; width: 100%; }
   .pt-badges-notice { display: inline-flex; }
   .pt-title {
-    font-weight: 700;
+    font-size: 15.5px;
     white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
