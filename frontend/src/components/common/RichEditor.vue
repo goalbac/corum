@@ -92,6 +92,19 @@
         </button>
         <input ref="imageInput" type="file" accept="image/*" multiple style="display:none" @change="handleImageUpload" />
       </div>
+      <!-- 글자 크기 -->
+      <div class="toolbar-group">
+        <select
+          class="font-size-select"
+          title="글자 크기"
+          :value="editor?.getAttributes('textStyle').fontSize || ''"
+          @change="setFontSize($event.target.value)"
+        >
+          <option value="">기본</option>
+          <option v-for="size in FONT_SIZES" :key="size" :value="`${size}px`">{{ size }}px</option>
+        </select>
+      </div>
+      <div class="toolbar-sep"></div>
       <!-- 글자색 -->
       <div class="toolbar-group">
         <label class="color-btn" title="글자색">
@@ -124,7 +137,6 @@ import { onBeforeUnmount, ref, watch } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import { StarterKit } from '@tiptap/starter-kit'
 import { Link } from '@tiptap/extension-link'
-import { Image } from '@tiptap/extension-image'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -132,6 +144,8 @@ import { Underline } from '@tiptap/extension-underline'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api/axios'
+import { ResizableImage } from './tiptap/ResizableImage'
+import { FontSize } from './tiptap/FontSize'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -147,9 +161,10 @@ const editor = new Editor({
     Underline,
     TextStyle,
     Color,
+    FontSize,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: false, autolink: true }),
-    Image.configure({ inline: false }),
+    ResizableImage.configure({ inline: false }),
     Placeholder.configure({ placeholder: props.placeholder }),
   ],
   content: props.modelValue || '',
@@ -220,6 +235,16 @@ async function handleImageUpload(e) {
   }
 }
 
+const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36]
+
+function setFontSize(value) {
+  if (value) {
+    editor.chain().focus().setFontSize(value).run()
+  } else {
+    editor.chain().focus().unsetFontSize().run()
+  }
+}
+
 function setColor(e) {
   editor.chain().focus().setColor(e.target.value).run()
 }
@@ -280,6 +305,19 @@ onBeforeUnmount(() => { editor.destroy() })
 .editor-toolbar button:hover,
 .color-btn:hover { background: var(--surface); color: var(--t1); }
 .editor-toolbar button.active { background: var(--accent-bg); color: var(--accent); }
+
+.font-size-select {
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--t2);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.font-size-select:hover { background: var(--surface); color: var(--t1); }
 
 .color-btn { cursor: pointer; position: relative; }
 .color-input {
@@ -350,7 +388,6 @@ onBeforeUnmount(() => { editor.destroy() })
 .editor-body :deep(.ProseMirror img) {
   max-width: 100%;
   border-radius: var(--radius-xs);
-  margin: 0.6em 0;
 }
 .editor-body :deep(.ProseMirror hr) {
   border: none;
