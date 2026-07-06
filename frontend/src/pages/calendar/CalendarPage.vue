@@ -1301,11 +1301,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 
 /* 월뷰 LINE 스타일 (종일/시간 공통)
    제목이 칸보다 길면 옆 칸과 겹치지 않도록 자기 칸 폭에서 그대로 잘라낸다.
-   (말줄임표 없이 clip으로 - "..."을 표시하지 않고 그냥 잘리는 효과) */
+   (말줄임표 없이 clip으로 - "..."을 표시하지 않고 그냥 잘리는 효과)
+   시간이 있는 일정은 "10:00" / "일정이름"을 위아래로 줄바꿈해서 보여준다
+   (종일 일정은 title 하나뿐이라 column이어도 모양이 그대로 유지됨) */
 .cal-card :deep(.fc-ev-line) {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
   background: color-mix(in srgb, var(--ev-color, var(--accent)) 13%, transparent);
   border-left: 2.5px solid var(--ev-color, var(--accent));
   border-radius: 4px;
