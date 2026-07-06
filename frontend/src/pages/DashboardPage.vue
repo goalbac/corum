@@ -547,6 +547,9 @@ function getMonthFcOptions(widget) {
     locale: koLocale,
     headerToolbar: false,
     height: 'auto',
+    // 기본값(auto)은 시간이 있는 일정을 좁은 "dot" 스타일로 그려 fc-ev-line의
+    // width:100% 등이 무의미해지므로 전부 block으로 통일 (캘린더 페이지와 동일)
+    eventDisplay: 'block',
     dayMaxEvents: 3,
     initialDate: `${base.getFullYear()}-${pad(base.getMonth()+1)}-01`,
     events: fcEvents,
@@ -573,6 +576,7 @@ function getWeekFcOptions(widget) {
     locale: koLocale,
     headerToolbar: false,
     height: 'auto',
+    eventDisplay: 'block',
     initialDate,
     events: fcEvents,
     eventContent: dbEventContent,
@@ -1177,7 +1181,8 @@ onMounted(async () => {
   overflow: visible;
 }
 
-/* LINE 스타일 이벤트 (종일/시간 공통) */
+/* LINE 스타일 이벤트 (종일/시간 공통)
+   제목이 칸보다 길면 말줄임(...) 없이 clip으로 그냥 잘리게 한다 (캘린더 페이지와 동일) */
 .db-cal-wrap :deep(.fc-ev-line) {
   display: flex;
   align-items: center;
@@ -1185,26 +1190,28 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--ev-color, var(--accent)) 13%, transparent);
   border-left: 2.5px solid var(--ev-color, var(--accent));
   border-radius: 4px;
-  padding: 2px 5px;
+  padding: 4px 5px;
   overflow: hidden;
   width: 100%;
   box-sizing: border-box;
   cursor: pointer;
 }
 .db-cal-wrap :deep(.fc-ev-line-time) {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--t3);
   flex-shrink: 0;
   white-space: nowrap;
 }
 .db-cal-wrap :deep(.fc-ev-line-title) {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
 }
 
 /* ===== 링크 모음 ===== */
@@ -1540,8 +1547,20 @@ onMounted(async () => {
   .db-cal-wrap :deep(.fc-col-header-cell) { font-size: 10px; padding: 4px 0; }
   .db-cal-wrap :deep(.fc-day-num) { font-size: 10px; }
   .db-cal-wrap :deep(.fc-day-hol) { font-size: 9px; }
-  .db-cal-wrap :deep(.fc-ev-line-time) { font-size: 10px; }
-  .db-cal-wrap :deep(.fc-ev-line-title) { font-size: 10px; }
+  /* 이벤트 뭉개짐 방지를 위해 칸을 살짝 더 키우고, 안쪽 여백도 최소화 (캘린더 페이지와 동일) */
+  .db-cal-wrap :deep(.fc-daygrid-day-frame) { min-height: 68px; padding: 2px 0px !important; }
+  .db-cal-wrap :deep(.fc-daygrid-event) { margin-bottom: 1px !important; }
+  /* 시간이 있는 일정은 "10:00" / "일정이름"을 위아래로 줄바꿈해서 보여준다 */
+  .db-cal-wrap :deep(.fc-ev-line) {
+    border-left: none !important;
+    padding: 2px 4px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1px !important;
+    border-radius: 2px !important;
+  }
+  .db-cal-wrap :deep(.fc-ev-line-time) { font-size: 10px; line-height: 1.15; }
+  .db-cal-wrap :deep(.fc-ev-line-title) { font-size: 12px; line-height: 1.2; }
 
 .link-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .link-chip { padding: 10px 12px; font-size: 13px; border-radius: 12px; }
