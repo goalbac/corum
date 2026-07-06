@@ -124,8 +124,8 @@
 
         <!-- 트리 메뉴 모드 -->
         <template v-else>
-        <div class="sidebar-header">
-          <span class="sidebar-section-text">{{ isDashboard ? '홈' : activeTopMenu?.name?.toUpperCase() }}</span>
+        <div v-if="!isDashboard" class="sidebar-header">
+          <span class="sidebar-section-text">{{ activeTopMenu?.name?.toUpperCase() }}</span>
           <span class="sidebar-section-line"></span>
         </div>
 
@@ -140,7 +140,7 @@
             <span class="tree-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
             </span>
-            <span class="tree-label">홈</span>
+            <span class="tree-label">대시보드</span>
           </button>
           <template v-else v-for="node in sidebarFlatNodes" :key="node.id">
             <button
@@ -174,6 +174,44 @@
             </button>
           </template>
         </nav>
+
+        <!-- 홈 사이드바 전용: 즐겨찾는 메뉴 / 오늘 일정 -->
+        <template v-if="isDashboard">
+          <div class="sidebar-header sidebar-header--secondary">
+            <span class="sidebar-section-text">즐겨찾는 메뉴</span>
+            <span class="sidebar-section-line"></span>
+          </div>
+          <nav class="sidebar-tree">
+            <p v-if="!favoriteMenuItems.length" class="sidebar-empty-text">즐겨찾는 메뉴가 없습니다</p>
+            <button
+              v-for="fav in favoriteMenuItems"
+              :key="fav.id"
+              type="button"
+              class="tree-node"
+              style="padding-left: 10px"
+              @click="navigateMenu(fav)"
+            >
+              <span class="tree-chevron-spacer"></span>
+              <span class="tree-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+              <span class="tree-label">{{ fav.name }}</span>
+            </button>
+          </nav>
+
+          <div class="sidebar-header sidebar-header--secondary">
+            <span class="sidebar-section-text">오늘 일정</span>
+            <span class="sidebar-section-line"></span>
+          </div>
+          <ul class="today-events-list">
+            <li v-if="!todayEvents.length" class="sidebar-empty-text">오늘 일정이 없습니다</li>
+            <li v-for="ev in todayEvents" :key="ev.id" class="today-event-item">
+              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
+              <span v-if="!ev.isAllDay" class="today-event-time">{{ formatEventTime(ev.startAt) }}</span>
+              <span class="today-event-title">{{ ev.title }}</span>
+            </li>
+          </ul>
+        </template>
         </template>
       </aside>
 
@@ -198,12 +236,21 @@
             class="page-header"
             :class="{ 'page-header--narrow': isNarrowContentPage }"
           >
-            <nav v-if="breadcrumbs.length > 1" class="breadcrumb" aria-label="breadcrumb">
-              <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
-                <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">{{ item.name }}</span>
-                <span v-if="index < breadcrumbs.length - 1" class="bc-sep">/</span>
-              </span>
-            </nav>
+            <div class="page-header-top">
+              <nav v-if="breadcrumbs.length > 1" class="breadcrumb" aria-label="breadcrumb">
+                <span v-for="(item, index) in breadcrumbs" :key="item.id || item.name" class="bc-wrap">
+                  <span class="bc-item" :class="{ last: index === breadcrumbs.length - 1 }">{{ item.name }}</span>
+                  <span v-if="index < breadcrumbs.length - 1" class="bc-sep">/</span>
+                </span>
+              </nav>
+              <button
+                type="button"
+                class="favorite-star-btn"
+                :class="{ 'is-favorite': favoriteMenuStore.isFavorite(routeMenu.id) }"
+                :title="favoriteMenuStore.isFavorite(routeMenu.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'"
+                @click="favoriteMenuStore.toggleFavorite(routeMenu.id)"
+              >⭐</button>
+            </div>
             <h1 class="page-title">{{ routeMenu.name }}</h1>
             <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
           </div>
@@ -229,11 +276,14 @@ import AppBanner from '@/components/common/AppBanner.vue'
 import AppFooter from '@/components/common/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import { useFavoriteMenuStore } from '@/stores/favoriteMenu'
+import api from '@/api/axios'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
+const favoriteMenuStore = useFavoriteMenuStore()
 const mobileMenuOpen = ref(false)
 const openMenuIds = ref([])
 const mobileSelectedTop = ref(null)
@@ -250,6 +300,33 @@ const sideMenus = computed(() => activeTopMenu.value?.children || [])
 const isDashboard = computed(() => route.name === 'Dashboard')
 const isMypage = computed(() => route.name === 'MyPage')
 const showSidebar = computed(() => isMypage.value || isDashboard.value || (!!activeTopMenu.value && sideMenus.value.length > 0))
+
+// ===== 홈 사이드바: 즐겨찾는 메뉴 / 오늘 일정 =====
+const favoriteMenuItems = computed(() =>
+  favoriteMenuStore.favoriteIds
+    .map(id => menuStore.findMenuById(id))
+    .filter(Boolean)
+)
+
+const todayEvents = ref([])
+
+async function fetchTodayEvents() {
+  try {
+    const res = await api.get('/dashboard/today-events')
+    todayEvents.value = res.data.data || []
+  } catch {
+    todayEvents.value = []
+  }
+}
+
+function formatEventTime(dt) {
+  if (!dt) return ''
+  return new Date(dt).toTimeString().slice(0, 5)
+}
+
+watch(isDashboard, (on) => {
+  if (on) fetchTodayEvents()
+}, { immediate: true })
 
 // ===== 마이페이지 사이드바 =====
 const ICONS = {
@@ -392,6 +469,9 @@ onMounted(async () => {
   if (authStore.isLoggedIn && !authStore.member) {
     await authStore.fetchMe()
   }
+  if (authStore.isLoggedIn) {
+    favoriteMenuStore.fetchFavorites()
+  }
 })
 </script>
 
@@ -430,6 +510,58 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 2px 8px 14px;
+}
+
+.sidebar-header--secondary {
+  margin-top: 18px;
+}
+
+.sidebar-empty-text {
+  padding: 8px 10px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.today-events-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.today-event-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  color: var(--t2);
+  line-height: 1.35;
+}
+
+.today-event-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.today-event-time {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+}
+
+.today-event-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-mypage-profile {
@@ -593,13 +725,36 @@ onMounted(async () => {
   margin-right: auto;
 }
 
+.page-header-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
   gap: 2px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
 }
+
+.favorite-star-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 4px;
+  filter: grayscale(1) opacity(0.55);
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.favorite-star-btn:hover { transform: scale(1.12); }
+
+.favorite-star-btn.is-favorite { filter: none; }
 
 .bc-wrap {
   display: flex;

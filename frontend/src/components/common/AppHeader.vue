@@ -296,6 +296,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useThemeStore } from '@/stores/theme'
 import { useNotificationStore } from '@/stores/notification'
+import { useFavoriteMenuStore } from '@/stores/favoriteMenu'
 import { useSiteStore } from '@/stores/site'
 import { useRouter } from 'vue-router'
 
@@ -306,6 +307,7 @@ watch(() => authStore.member?.profileImageUrl, () => { headerAvatarError.value =
 const menuStore = useMenuStore()
 const themeStore = useThemeStore()
 const notifStore = useNotificationStore()
+const favoriteMenuStore = useFavoriteMenuStore()
 const siteStore = useSiteStore()
 const router = useRouter()
 
@@ -348,11 +350,13 @@ onUnmounted(() => {
 watch(() => authStore.isLoggedIn, async (loggedIn) => {
   if (!loggedIn) {
     notifStore.disconnect()
+    favoriteMenuStore.reset()
     return
   }
   await notifStore.fetchUnreadMsgCount()
   await notifStore.fetchNotifications()
   await notifStore.fetchUnreadCount()
+  favoriteMenuStore.fetchFavorites(true)
   const token = authStore.token
   if (token) notifStore.connect(token)
 }, { immediate: true })

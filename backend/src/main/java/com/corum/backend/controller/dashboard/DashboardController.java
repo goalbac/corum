@@ -1,6 +1,7 @@
 package com.corum.backend.controller.dashboard;
 
 import com.corum.backend.common.ApiResponse;
+import com.corum.backend.dto.dashboard.DashboardCalendarEventResponse;
 import com.corum.backend.dto.dashboard.DashboardStatsResponse;
 import com.corum.backend.dto.dashboard.DashboardWidgetResponse;
 import com.corum.backend.security.CustomUserDetails;
@@ -51,5 +52,13 @@ public class DashboardController {
     @GetMapping("/stats")
     public ApiResponse<DashboardStatsResponse> getStats() {
         return ApiResponse.ok(dashboardWidgetService.getStats());
+    }
+
+    /** 오늘 일정 (홈 사이드바 '오늘 일정' 위젯용, 열람 권한 필터링됨) */
+    @GetMapping("/today-events")
+    public ApiResponse<List<DashboardCalendarEventResponse>> getTodayEvents(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        return ApiResponse.ok(dashboardWidgetService.getTodayEvents(memberId));
     }
 }

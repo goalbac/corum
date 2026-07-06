@@ -420,6 +420,29 @@ public class DashboardWidgetService {
                 .toList();
     }
 
+    /** 오늘 하루 동안의 열람 권한 있는 일정 (홈 사이드바 '오늘 일정' 위젯용) */
+    @Transactional(readOnly = true)
+    public List<DashboardCalendarEventResponse> getTodayEvents(Long memberId) {
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        LocalDateTime todayEnd = todayStart.plusDays(1).minusNanos(1);
+
+        List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
+        List<CalendarEntity> calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
+                .filter(c -> readableIds.contains(c.getId()) || "HOLIDAY".equals(c.getCalendarType()))
+                .collect(Collectors.toList());
+        if (calendarList.isEmpty()) return List.of();
+
+        Map<Long, CalendarEntity> calMap = calendarList.stream()
+                .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
+
+        return calendarService.getEvents(todayStart, todayEnd, memberId, null)
+                .stream()
+                .filter(dto -> calMap.containsKey(dto.getCalendarId()))
+                .map(dto -> new DashboardCalendarEventResponse(dto, calMap.get(dto.getCalendarId())))
+                .sorted(java.util.Comparator.comparing(DashboardCalendarEventResponse::getStartAt))
+                .toList();
+    }
+
     private Long parseCalendarId(String extraConfig) {
         if (extraConfig == null || extraConfig.isBlank()) return null;
         try {

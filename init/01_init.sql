@@ -693,6 +693,15 @@ CREATE TABLE invalidated_tokens (
 );
 CREATE INDEX idx_invalidated_tokens_expires_at ON invalidated_tokens(expires_at);
 
+CREATE TABLE member_favorite_menus (
+    id         BIGSERIAL PRIMARY KEY,
+    member_id  BIGINT    NOT NULL,
+    menu_id    BIGINT    NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX idx_member_favorite_menus_unique   ON member_favorite_menus(member_id, menu_id);
+CREATE INDEX idx_member_favorite_menus_member_id       ON member_favorite_menus(member_id);
+
 -- =============================================
 -- 기본 데이터 삽입
 -- =============================================
