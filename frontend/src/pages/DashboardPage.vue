@@ -1519,9 +1519,9 @@ onMounted(async () => {
   }
   .wcard:hover { transform: none; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
 
-  /* 메뉴 대시보드 모바일 */
+  /* 메뉴 대시보드 모바일: 여백이 너무 커 보여 좌우/상하 패딩 제거 (위젯 간 간격만 유지) */
   .dashboard-menu .widget-area {
-    padding: 12px 14px 16px;
+    padding: 0;
     gap: 10px;
   }
   .dashboard-menu .wcard {
