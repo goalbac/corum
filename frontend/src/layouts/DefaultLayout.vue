@@ -244,7 +244,7 @@ const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
 const isDetailPage = computed(() => !!route.params.postId)
 const isWritePage = computed(() => route.path.endsWith('/write'))
 // 안내 페이지·캘린더는 본문 max-width에 맞춰 헤더(브레드크럼/제목)도 좁게 정렬
-const isNarrowContentPage = computed(() => ['CONTENT', 'CALENDAR'].includes(routeMenu.value?.pageType))
+const isNarrowContentPage = computed(() => ['CONTENT', 'CALENDAR1'].includes(routeMenu.value?.pageType))
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
 // 홈 대시보드: 연결된 상위 메뉴가 없어도 사이드바에 "홈"을 표시
 const isDashboard = computed(() => route.name === 'Dashboard')

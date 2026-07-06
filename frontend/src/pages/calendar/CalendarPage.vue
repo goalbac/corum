@@ -899,7 +899,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   grid-template-columns: 1fr;
   gap: 20px;
   align-items: start;
-  max-width: 864px;
+  /*max-width: 864px;*/
   margin: 0 auto;
 }
 .cal-layout.has-sidebar {
@@ -1306,9 +1306,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
    (종일 일정은 title 하나뿐이라 column이어도 모양이 그대로 유지됨) */
 .cal-card :deep(.fc-ev-line) {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
+  align-items: center;
+  gap: 5px;
   background: color-mix(in srgb, var(--ev-color, var(--accent)) 13%, transparent);
   border-left: 2.5px solid var(--ev-color, var(--accent));
   border-radius: 4px;
@@ -1319,17 +1318,17 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   cursor: pointer;
 }
 .cal-card :deep(.fc-ev-line-time) {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--t3);
   flex-shrink: 0;
   white-space: nowrap;
 }
 .cal-card :deep(.fc-ev-line-title) {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.15;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
@@ -1486,7 +1485,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .cal-card :deep(.fc-col-header-cell) { font-size: 10px; padding: 6px 0; }
   .cal-card :deep(.fc-more-link) { font-size: 9px !important; }
   /* 이벤트 뭉개짐 방지를 위해 칸을 살짝 더 키운다 (50px는 2~3개만 있어도 넘침) */
-  .cal-card :deep(.fc-daygrid-day-frame) { min-height: 68px; padding: 2px 3px !important; }
+  .cal-card :deep(.fc-daygrid-day-frame) { min-height: 68px; padding: 2px 0px !important; }
   .cal-card :deep(.fc-daygrid-day-events) { margin-top: 0; }
   .cal-card :deep(.fc-daygrid-event) { margin-bottom: 1px !important; }
 
@@ -1495,12 +1494,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
      칸 안 여백을 최소화해 일정이 칸에 거의 꽉 차 보이게 한다. */
   .cal-card :deep(.fc-ev-line) {
     border-left: none !important;
-    padding: 1px 2px !important;
-    gap: 0 !important;
+    padding: 2px 4px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1px !important;
     border-radius: 2px !important;
   }
-  .cal-card :deep(.fc-ev-line-time) { font-size: 9px; line-height: 1.15; }
-  .cal-card :deep(.fc-ev-line-title) { font-size: 10px; line-height: 1.15; }
+  .cal-card :deep(.fc-ev-line-time) { font-size: 10px; line-height: 1.15; }
+  .cal-card :deep(.fc-ev-line-title) { font-size: 12px; line-height: 1.2; }
 
   /* 주/일뷰 블록도 모바일에서 살짝 축소 */
   .cal-card :deep(.fc-ev-block-title) { font-size: 11px; }
