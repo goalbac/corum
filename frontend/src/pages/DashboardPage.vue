@@ -717,9 +717,9 @@ onMounted(async () => {
 .dashboard-menu {
   padding: 0;
 }
-/* 메뉴 대시보드: 위젯 그리드 내부 패딩 */
+/* 메뉴 대시보드: 위젯 그리드 여백 없이 꽉 차게 (간격만 유지) */
 .dashboard-menu .widget-area {
-  padding: 16px 20px 20px;
+  padding: 0;
   gap: 12px;
 }
 /* 메뉴 대시보드: 갤러리 카드처럼 테두리 없이 그림자로 구분 */
