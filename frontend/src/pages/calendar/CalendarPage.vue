@@ -1300,11 +1300,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 
 /* 월뷰 LINE 스타일 (종일/시간 공통)
-   제목이 칸보다 길면 말줄임(...) 대신 옆 칸 위로 그대로 흘러넘치게 한다.
-   박스 자체 너비는 칸 폭(100%)에 고정하고, 안의 글자만 flex-shrink:0 +
-   overflow:visible로 넘치게 해서 배경 필 색상은 원래 칸만큼만 칠해지고
-   글자만 옆으로 삐져나온다. z-index로 오른쪽 옆 날짜 칸 배경 위에 그려지고,
-   최종적으로는 .cal-card(overflow:hidden)에서 잘린다. */
+   제목이 칸보다 길면 옆 칸과 겹치지 않도록 자기 칸 폭에서 그대로 잘라낸다.
+   (말줄임표 없이 clip으로 - "..."을 표시하지 않고 그냥 잘리는 효과) */
 .cal-card :deep(.fc-ev-line) {
   display: flex;
   align-items: center;
@@ -1315,11 +1312,9 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   padding: 2px 5px;
   width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
   cursor: pointer;
-  position: relative;
-  z-index: 1;
 }
-.cal-card :deep(.fc-ev-line:hover) { z-index: 2; }
 .cal-card :deep(.fc-ev-line-time) {
   font-size: 12px;
   font-weight: 700;
@@ -1332,7 +1327,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   font-weight: 600;
   color: var(--t1);
   white-space: nowrap;
-  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: clip;
 }
 
 /* 주/일 뷰 블록 스타일 */
@@ -1417,8 +1413,19 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .cal-layout.has-sidebar {
     grid-template-columns: 1fr;
   }
+  /* 캘린더 양옆 공백 제거: 상위 레이아웃(.main-content)의 좌우 패딩을 이 페이지에서만
+     상쇄해 화면 끝까지 채운다 (패딩 값이 브레이크포인트별로 달라 100vw 트릭 사용) */
+  .cal-layout {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
   .cal-sidebar { display: none; }
   .cal-main { gap: 8px; }
+  /* 툴바(버튼 등)는 화면 끝에 딱 붙으면 답답하니 약간의 여백을 두고,
+     달력 카드 자체는 여백 없이 꽉 차게 둔다 */
+  .cal-toolbar { padding: 0 8px; }
   .form-row { grid-template-columns: 1fr; }
 
   /* 툴바: 2줄 구조 */
@@ -1474,14 +1481,16 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .cal-card :deep(.fc-col-header-cell) { font-size: 10px; padding: 6px 0; }
   .cal-card :deep(.fc-more-link) { font-size: 9px !important; }
   /* 이벤트 뭉개짐 방지를 위해 칸을 살짝 더 키운다 (50px는 2~3개만 있어도 넘침) */
-  .cal-card :deep(.fc-daygrid-day-frame) { min-height: 68px; }
+  .cal-card :deep(.fc-daygrid-day-frame) { min-height: 68px; padding: 2px 3px !important; }
   .cal-card :deep(.fc-daygrid-day-events) { margin-top: 0; }
+  .cal-card :deep(.fc-daygrid-event) { margin-bottom: 1px !important; }
 
   /* 월뷰 이벤트 한 줄 (실제 렌더링 클래스는 fc-ev-line* - 이전엔 fc-ev-custom/-time/-title로
-     잘못 지정되어 있어 모바일 축소 규칙이 전혀 적용되지 않고 있었다) */
+     잘못 지정되어 있어 모바일 축소 규칙이 전혀 적용되지 않고 있었다).
+     칸 안 여백을 최소화해 일정이 칸에 거의 꽉 차 보이게 한다. */
   .cal-card :deep(.fc-ev-line) {
     border-left: none !important;
-    padding: 1px 3px !important;
+    padding: 1px 2px !important;
     gap: 2px !important;
     border-radius: 2px !important;
   }
