@@ -1308,11 +1308,11 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
+  gap: 0;
   background: color-mix(in srgb, var(--ev-color, var(--accent)) 13%, transparent);
   border-left: 2.5px solid var(--ev-color, var(--accent));
   border-radius: 4px;
-  padding: 2px 5px;
+  padding: 4px 5px;
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -1321,13 +1321,15 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 .cal-card :deep(.fc-ev-line-time) {
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.15;
   color: var(--t3);
   flex-shrink: 0;
   white-space: nowrap;
 }
 .cal-card :deep(.fc-ev-line-title) {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.15;
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
@@ -1494,11 +1496,11 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
   .cal-card :deep(.fc-ev-line) {
     border-left: none !important;
     padding: 1px 2px !important;
-    gap: 2px !important;
+    gap: 0 !important;
     border-radius: 2px !important;
   }
-  .cal-card :deep(.fc-ev-line-time) { font-size: 9px; }
-  .cal-card :deep(.fc-ev-line-title) { font-size: 10px; }
+  .cal-card :deep(.fc-ev-line-time) { font-size: 9px; line-height: 1.15; }
+  .cal-card :deep(.fc-ev-line-title) { font-size: 10px; line-height: 1.15; }
 
   /* 주/일뷰 블록도 모바일에서 살짝 축소 */
   .cal-card :deep(.fc-ev-block-title) { font-size: 11px; }
