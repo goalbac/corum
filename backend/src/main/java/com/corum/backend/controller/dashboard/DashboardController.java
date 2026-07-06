@@ -61,4 +61,13 @@ public class DashboardController {
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
         return ApiResponse.ok(dashboardWidgetService.getTodayEvents(memberId));
     }
+
+    /** 다가오는 일정 (홈 사이드바 '다가오는 일정' 위젯용, 열람 권한 필터링됨) */
+    @GetMapping("/upcoming-events")
+    public ApiResponse<List<DashboardCalendarEventResponse>> getUpcomingEvents(
+            @RequestParam(defaultValue = "5") int limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        return ApiResponse.ok(dashboardWidgetService.getUpcomingEvents(memberId, limit));
+    }
 }

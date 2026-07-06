@@ -175,9 +175,76 @@
           </template>
         </nav>
 
-        <!-- 홈 사이드바 전용: 즐겨찾는 메뉴 / 오늘 일정 -->
+        <!-- 홈 사이드바 전용: 오늘 날짜 / 오늘 일정 / 다가오는 일정 / 즐겨찾는 메뉴 -->
         <template v-if="isDashboard">
+          <!-- TODAY 날짜 카드 -->
+          <div class="today-card">
+            <div class="today-card-decor-1"></div>
+            <div class="today-card-decor-2"></div>
+            <div class="today-card-body">
+              <div class="today-card-top">
+                <span class="today-card-weekday">{{ todayCard.weekday }}</span>
+                <span class="today-card-badge">TODAY</span>
+              </div>
+              <div class="today-card-main">
+                <span class="today-card-day">{{ todayCard.day }}</span>
+                <div class="today-card-meta">
+                  <span class="today-card-ym">{{ todayCard.ym }}</span>
+                  <span class="today-card-lunar">{{ todayCard.lunar }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 오늘 일정 -->
           <div class="sidebar-header sidebar-header--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+            <span class="sidebar-section-text">오늘 일정</span>
+            <span v-if="todayEvents.length" class="sidebar-section-count">{{ todayEvents.length }}</span>
+            <span class="sidebar-section-line"></span>
+          </div>
+          <ul class="today-events-list">
+            <li v-if="!todayEvents.length" class="sidebar-empty-text">오늘 일정이 없습니다</li>
+            <li
+              v-for="ev in todayEvents"
+              :key="ev.id"
+              class="today-event-item"
+              @click="goToCalendar"
+            >
+              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
+              <div class="today-event-body">
+                <div class="today-event-title">{{ ev.title }}</div>
+                <div class="today-event-time">{{ ev.isAllDay ? '종일' : formatEventTime(ev.startAt) }}</div>
+              </div>
+            </li>
+          </ul>
+
+          <!-- 다가오는 일정 -->
+          <div class="sidebar-header sidebar-header--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>
+            <span class="sidebar-section-text">다가오는 일정</span>
+            <span class="sidebar-section-line"></span>
+            <button type="button" class="sidebar-more-link" @click="goToCalendar">더보기</button>
+          </div>
+          <ul class="upcoming-events-list">
+            <li v-if="!upcomingEvents.length" class="sidebar-empty-text">다가오는 일정이 없습니다</li>
+            <li
+              v-for="ev in upcomingEvents"
+              :key="ev.id"
+              class="upcoming-event-item"
+              @click="goToCalendar"
+            >
+              <span class="upcoming-event-dday" :class="{ 'is-soon': computeDday(ev.startAt) <= 3 }">D-{{ computeDday(ev.startAt) }}</span>
+              <div class="today-event-body">
+                <div class="today-event-title">{{ ev.title }}</div>
+                <div class="today-event-time">{{ formatEventDate(ev.startAt) }}</div>
+              </div>
+            </li>
+          </ul>
+
+          <!-- 즐겨찾는 메뉴 -->
+          <div class="sidebar-header sidebar-header--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"></polygon></svg>
             <span class="sidebar-section-text">즐겨찾는 메뉴</span>
             <span class="sidebar-section-line"></span>
           </div>
@@ -187,30 +254,19 @@
               v-for="fav in favoriteMenuItems"
               :key="fav.id"
               type="button"
-              class="tree-node"
+              class="tree-node fav-node"
               style="padding-left: 10px"
               @click="navigateMenu(fav)"
             >
-              <span class="tree-chevron-spacer"></span>
               <span class="tree-icon">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <svg v-if="fav.menuType === 'GROUP'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2z"/></svg>
+                <svg v-else-if="fav.pageType === 'CALENDAR'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line></svg>
+                <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="14 3 14 9 20 9"/></svg>
               </span>
               <span class="tree-label">{{ fav.name }}</span>
+              <svg class="fav-node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </nav>
-
-          <div class="sidebar-header sidebar-header--secondary">
-            <span class="sidebar-section-text">오늘 일정</span>
-            <span class="sidebar-section-line"></span>
-          </div>
-          <ul class="today-events-list">
-            <li v-if="!todayEvents.length" class="sidebar-empty-text">오늘 일정이 없습니다</li>
-            <li v-for="ev in todayEvents" :key="ev.id" class="today-event-item">
-              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
-              <span v-if="!ev.isAllDay" class="today-event-time">{{ formatEventTime(ev.startAt) }}</span>
-              <span class="today-event-title">{{ ev.title }}</span>
-            </li>
-          </ul>
         </template>
         </template>
       </aside>
@@ -281,6 +337,7 @@ import AppFooter from '@/components/common/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useFavoriteMenuStore } from '@/stores/favoriteMenu'
+import KoreanLunarCalendar from 'korean-lunar-calendar'
 import api from '@/api/axios'
 
 const route = useRoute()
@@ -305,14 +362,29 @@ const isDashboard = computed(() => route.name === 'Dashboard')
 const isMypage = computed(() => route.name === 'MyPage')
 const showSidebar = computed(() => isMypage.value || isDashboard.value || (!!activeTopMenu.value && sideMenus.value.length > 0))
 
-// ===== 홈 사이드바: 즐겨찾는 메뉴 / 오늘 일정 =====
+// ===== 홈 사이드바: 오늘 날짜 / 즐겨찾는 메뉴 / 오늘 일정 / 다가오는 일정 =====
 const favoriteMenuItems = computed(() =>
   favoriteMenuStore.favoriteIds
     .map(id => menuStore.findMenuById(id))
     .filter(Boolean)
 )
 
+const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const todayCard = computed(() => {
+  const now = new Date()
+  const lunarCal = new KoreanLunarCalendar()
+  lunarCal.setSolarDate(now.getFullYear(), now.getMonth() + 1, now.getDate())
+  const lunar = lunarCal.getLunarCalendar()
+  return {
+    weekday: WEEKDAY_LABELS[now.getDay()],
+    day: String(now.getDate()).padStart(2, '0'),
+    ym: `${now.getFullYear()}년 ${now.getMonth() + 1}월`,
+    lunar: `음력 ${lunar.month}월 ${lunar.day}일${lunar.intercalation ? ' (윤달)' : ''}`,
+  }
+})
+
 const todayEvents = ref([])
+const upcomingEvents = ref([])
 
 async function fetchTodayEvents() {
   try {
@@ -323,13 +395,43 @@ async function fetchTodayEvents() {
   }
 }
 
+async function fetchUpcomingEvents() {
+  try {
+    const res = await api.get('/dashboard/upcoming-events', { params: { limit: 5 } })
+    upcomingEvents.value = res.data.data || []
+  } catch {
+    upcomingEvents.value = []
+  }
+}
+
 function formatEventTime(dt) {
   if (!dt) return ''
   return new Date(dt).toTimeString().slice(0, 5)
 }
 
+function formatEventDate(dt) {
+  const weekLabels = ['일', '월', '화', '수', '목', '금', '토']
+  const d = new Date(dt)
+  return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, '0')} (${weekLabels[d.getDay()]})`
+}
+
+function computeDday(dt) {
+  const e = new Date(dt)
+  const t = new Date()
+  const eDay = new Date(e.getFullYear(), e.getMonth(), e.getDate())
+  const tDay = new Date(t.getFullYear(), t.getMonth(), t.getDate())
+  return Math.round((eDay - tDay) / 86400000)
+}
+
+function goToCalendar() {
+  router.push({ name: 'Calendar' })
+}
+
 watch(isDashboard, (on) => {
-  if (on) fetchTodayEvents()
+  if (on) {
+    fetchTodayEvents()
+    fetchUpcomingEvents()
+  }
 }, { immediate: true })
 
 // ===== 마이페이지 사이드바 =====
@@ -520,6 +622,34 @@ onMounted(async () => {
   margin-top: 18px;
 }
 
+.sidebar-section-icon {
+  flex-shrink: 0;
+  color: var(--t3);
+}
+
+.sidebar-section-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 1px 7px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+
+.sidebar-more-link {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.sidebar-more-link:hover { color: var(--accent); }
+
 .sidebar-empty-text {
   padding: 8px 10px;
   margin: 0;
@@ -527,7 +657,91 @@ onMounted(async () => {
   color: var(--t3);
 }
 
-.today-events-list {
+/* ===== 오늘 날짜 카드 ===== */
+.today-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--accent);
+  padding: 16px 17px;
+  margin-bottom: 4px;
+  box-shadow: 0 6px 18px rgba(47, 95, 214, 0.28);
+}
+
+.today-card-decor-1 {
+  position: absolute;
+  right: -18px;
+  top: -18px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.today-card-decor-2 {
+  position: absolute;
+  right: 14px;
+  bottom: -24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.today-card-body { position: relative; }
+
+.today-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.today-card-weekday {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.today-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 2px 8px;
+  border-radius: 11px;
+}
+
+.today-card-main {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.today-card-day {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #fff;
+  line-height: 0.9;
+}
+
+.today-card-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.today-card-ym { font-size: 13px; font-weight: 700; color: #fff; }
+.today-card-lunar { font-size: 11.5px; font-weight: 600; color: rgba(255, 255, 255, 0.78); }
+
+/* ===== 오늘 일정 / 다가오는 일정 ===== */
+.today-events-list,
+.upcoming-events-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -536,36 +750,66 @@ onMounted(async () => {
   gap: 2px;
 }
 
-.today-event-item {
+.today-event-item,
+.upcoming-event-item {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
-  border-radius: 9px;
-  font-size: 13.5px;
-  color: var(--t2);
-  line-height: 1.35;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s;
 }
 
+.today-event-item:hover,
+.upcoming-event-item:hover { background: var(--surface2); }
+
 .today-event-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.today-event-time {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--t3);
-}
+.today-event-body { flex: 1; min-width: 0; }
 
 .today-event-title {
-  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--t1);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.today-event-time {
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-top: 1px;
+}
+
+.upcoming-event-dday {
+  min-width: 36px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--t2);
+  background: var(--surface2);
+  padding: 3px 0;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.upcoming-event-dday.is-soon {
+  color: #fff;
+  background: var(--new);
+}
+
+/* ===== 즐겨찾는 메뉴 ===== */
+.fav-node-chevron {
+  flex-shrink: 0;
+  opacity: 0.5;
 }
 
 .sidebar-mypage-profile {

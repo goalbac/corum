@@ -445,6 +445,32 @@ public class DashboardWidgetService {
                 .toList();
     }
 
+    /** 내일부터 60일 이내의 열람 권한 있는 일정 (홈 사이드바 '다가오는 일정' 위젯용) */
+    @Transactional(readOnly = true)
+    public List<DashboardCalendarEventResponse> getUpcomingEvents(Long memberId, int limit) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime rangeStart = today.plusDays(1).atStartOfDay();
+        // PostgreSQL timestamp는 마이크로초 단위라 minusNanos(1)이 반올림되어 다음날 자정과 같아짐 → minusSeconds(1) 사용
+        LocalDateTime rangeEnd = today.plusDays(61).atStartOfDay().minusSeconds(1);
+
+        List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
+        List<CalendarEntity> calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
+                .filter(c -> readableIds.contains(c.getId()) || "HOLIDAY".equals(c.getCalendarType()))
+                .collect(Collectors.toList());
+        if (calendarList.isEmpty()) return List.of();
+
+        Map<Long, CalendarEntity> calMap = calendarList.stream()
+                .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
+
+        return calendarService.getEvents(rangeStart, rangeEnd, memberId, null)
+                .stream()
+                .filter(dto -> calMap.containsKey(dto.getCalendarId()))
+                .map(dto -> new DashboardCalendarEventResponse(dto, calMap.get(dto.getCalendarId())))
+                .sorted(java.util.Comparator.comparing(DashboardCalendarEventResponse::getStartAt))
+                .limit(Math.max(1, limit))
+                .toList();
+    }
+
     private Long parseCalendarId(String extraConfig) {
         if (extraConfig == null || extraConfig.isBlank()) return null;
         try {
