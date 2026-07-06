@@ -503,6 +503,9 @@ function dbEventContent(arg) {
 }
 
 function dbDayCellContent(wid, arg) {
+  // 주간 위젯(dayGridWeek)은 dayNumberText가 빈 문자열로 오는 보조 렌더링이 있어
+  // 숫자 없는 오늘-배지(빈 원)만 남아 점처럼 보였다. 날짜 숫자가 있을 때만 렌더링한다.
+  if (!arg.dayNumberText) return
   const d = arg.date
   const pad = n => String(n).padStart(2, '0')
   const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`

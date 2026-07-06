@@ -458,6 +458,12 @@ const calOptions = computed(() => {
     // 모바일은 칸이 좁아 5개까지 욱여넣으면 뭉개져 보이므로 더 빨리 "+N개"로 넘긴다
     dayMaxEvents: isMobile.value ? 3 : 5,
     dayCellContent: (arg) => {
+      // 주/일 뷰는 "종일" 행, 타임그리드 컬럼 배경 등 날짜 숫자가 필요 없는
+      // 보조 영역에도 dayCellContent를 호출하는데, 이때 dayNumberText가 빈
+      // 문자열로 와서 숫자 없는 오늘-배지(빈 원)만 덩그러니 남아 점처럼 보였다.
+      // 실제 날짜 숫자가 있을 때만 커스텀 렌더링하고, 없으면 기본 렌더링에 맡긴다.
+      if (!arg.dayNumberText) return
+
       const d = arg.date
       const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
       const dow = d.getDay()
@@ -487,6 +493,20 @@ const calOptions = computed(() => {
         wrap.appendChild(hol)
       }
 
+      return { domNodes: [wrap] }
+    },
+    // 일간 뷰 헤더에 요일 옆으로 "오늘" 뱃지 표시 (월/주 뷰는 기본 렌더링 유지)
+    dayHeaderContent: (arg) => {
+      if (arg.view.type !== 'timeGridDay' || !arg.isToday) return arg.text
+      const wrap = document.createElement('span')
+      wrap.className = 'fc-day-header-inner'
+      const label = document.createElement('span')
+      label.textContent = arg.text
+      wrap.appendChild(label)
+      const badge = document.createElement('span')
+      badge.className = 'fc-today-header-badge'
+      badge.textContent = '오늘'
+      wrap.appendChild(badge)
       return { domNodes: [wrap] }
     },
     eventContent,
@@ -1190,7 +1210,10 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 }
 .cal-card :deep(.fc-daygrid-day) { background: var(--surface) !important; }
 .cal-card :deep(.fc-day-other) { background: var(--surface) !important; }
+/* 월뷰는 오늘 날짜에 이미 원형 배지로 표시하므로 배경은 그대로 둔다 */
 .cal-card :deep(.fc-day-today) { background: var(--surface) !important; }
+/* 주뷰는 오늘 컬럼 전체를 옅은 배경색으로 표시 */
+.cal-card :deep(.fc-timeGridWeek-view .fc-day-today) { background: var(--accent-bg) !important; }
 .cal-card :deep(.fc-col-header-cell) {
   background: var(--surface) !important;
   font-size: 12px; font-weight: 700; color: var(--t2); padding: 11px 0;
@@ -1207,6 +1230,22 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutside) })
 /* 토/일 컬럼 헤더 색상 (주/일 뷰) */
 .cal-card :deep(.fc-day-sat.fc-col-header-cell a) { color: #2563eb !important; }
 .cal-card :deep(.fc-day-sun.fc-col-header-cell a) { color: #dc2626 !important; }
+/* 일뷰: 요일 옆 "오늘" 뱃지 */
+.cal-card :deep(.fc-day-header-inner) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cal-card :deep(.fc-today-header-badge) {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
 
 /* FullCalendar 날짜 셀: min-height, padding */
 .cal-card :deep(.fc-daygrid-day-frame) {
