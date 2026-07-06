@@ -340,7 +340,8 @@ public class DashboardWidgetService {
                 .with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
                 .plusWeeks(weekOffset)
                 .atStartOfDay();
-        LocalDateTime weekEnd   = weekStart.plusDays(7).minusNanos(1);
+        // PostgreSQL timestamp는 마이크로초 단위라 minusNanos(1)이 반올림되어 다음날 자정과 같아짐 → minusSeconds(1) 사용
+        LocalDateTime weekEnd   = weekStart.plusDays(7).minusSeconds(1);
 
         // 열람 권한이 있는 캘린더 ID 목록
         List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
@@ -424,7 +425,8 @@ public class DashboardWidgetService {
     @Transactional(readOnly = true)
     public List<DashboardCalendarEventResponse> getTodayEvents(Long memberId) {
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-        LocalDateTime todayEnd = todayStart.plusDays(1).minusNanos(1);
+        // PostgreSQL timestamp는 마이크로초 단위라 minusNanos(1)이 반올림되어 다음날 자정과 같아짐 → minusSeconds(1) 사용
+        LocalDateTime todayEnd = todayStart.plusDays(1).minusSeconds(1);
 
         List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
         List<CalendarEntity> calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()

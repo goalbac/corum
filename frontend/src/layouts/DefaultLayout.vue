@@ -243,13 +243,17 @@
                   <span v-if="index < breadcrumbs.length - 1" class="bc-sep">/</span>
                 </span>
               </nav>
-              <button
-                type="button"
-                class="favorite-star-btn"
-                :class="{ 'is-favorite': favoriteMenuStore.isFavorite(routeMenu.id) }"
-                :title="favoriteMenuStore.isFavorite(routeMenu.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'"
-                @click="favoriteMenuStore.toggleFavorite(routeMenu.id)"
-              >⭐</button>
+              <el-tooltip
+                :content="favoriteMenuStore.isFavorite(routeMenu.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'"
+                placement="top"
+              >
+                <button
+                  type="button"
+                  class="favorite-star-btn"
+                  :class="{ 'is-favorite': favoriteMenuStore.isFavorite(routeMenu.id) }"
+                  @click="favoriteMenuStore.toggleFavorite(routeMenu.id)"
+                >⭐</button>
+              </el-tooltip>
             </div>
             <h1 class="page-title">{{ routeMenu.name }}</h1>
             <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
