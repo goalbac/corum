@@ -246,11 +246,9 @@
           <ul class="upcoming-events-list">
             <li v-if="!upcomingEvents.length" class="sidebar-empty-text">다가오는 일정이 없습니다</li>
             <li v-for="ev in upcomingEvents" :key="ev.id" class="upcoming-event-item">
-              <span class="upcoming-event-dday" :class="{ 'is-soon': computeDday(ev.startAt) <= 3 }">D-{{ computeDday(ev.startAt) }}</span>
-              <div class="today-event-body">
-                <div class="today-event-title">{{ ev.title }}</div>
-                <div class="today-event-time">{{ formatEventDate(ev.startAt) }}</div>
-              </div>
+              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
+              <span class="upcoming-event-date">{{ formatEventDate(ev.startAt) }}</span>
+              <span class="upcoming-event-title">{{ ev.title }}</span>
             </li>
           </ul>
         </template>
@@ -400,15 +398,7 @@ function formatEventTime(dt) {
 function formatEventDate(dt) {
   const weekLabels = ['일', '월', '화', '수', '목', '금', '토']
   const d = new Date(dt)
-  return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, '0')} (${weekLabels[d.getDay()]})`
-}
-
-function computeDday(dt) {
-  const e = new Date(dt)
-  const t = new Date()
-  const eDay = new Date(e.getFullYear(), e.getMonth(), e.getDate())
-  const tDay = new Date(t.getFullYear(), t.getMonth(), t.getDate())
-  return Math.round((eDay - tDay) / 86400000)
+  return `${d.getMonth() + 1}/${d.getDate()}(${weekLabels[d.getDay()]})`
 }
 
 watch(isDashboard, (on) => {
@@ -723,12 +713,19 @@ onMounted(async () => {
   gap: 2px;
 }
 
-.today-event-item,
-.upcoming-event-item {
+.today-event-item {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
+  border-radius: 10px;
+}
+
+.upcoming-event-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
   border-radius: 10px;
 }
 
@@ -757,21 +754,23 @@ onMounted(async () => {
   margin-top: 1px;
 }
 
-.upcoming-event-dday {
-  min-width: 36px;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--t2);
-  background: var(--surface2);
-  padding: 3px 0;
-  border-radius: 7px;
+.upcoming-event-date {
   flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
 }
 
-.upcoming-event-dday.is-soon {
-  color: #fff;
-  background: var(--new);
+.upcoming-event-title {
+  min-width: 0;
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===== 즐겨찾는 메뉴 ===== */
