@@ -774,6 +774,31 @@ onMounted(async () => {
   color: var(--t2);
   margin: 0 0 22px;
 }
+.post-content :deep(blockquote[data-variant="box"]) {
+  border-left: none;
+  border-radius: 10px;
+}
+.post-content :deep(blockquote[data-variant="accent"]) {
+  border-left: none;
+  border-radius: 10px;
+  padding: 16px 20px 16px 44px;
+  position: relative;
+  color: var(--t1);
+  font-style: italic;
+  font-size: 1.05em;
+}
+.post-content :deep(blockquote[data-variant="accent"])::before {
+  content: '\201C';
+  position: absolute;
+  left: 14px;
+  top: 8px;
+  font-size: 2.2em;
+  font-weight: 800;
+  font-style: normal;
+  color: var(--primary);
+  line-height: 1;
+  opacity: 0.5;
+}
 .post-content :deep(code) {
   background: var(--surface-2);
   border-radius: 4px;

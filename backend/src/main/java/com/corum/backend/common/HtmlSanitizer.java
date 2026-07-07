@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public final class HtmlSanitizer {
 
     private static final Safelist SAFELIST = Safelist.relaxed()
-            .addTags("hr", "s", "mark", "label", "input", "iframe")
+            .addTags("hr", "s", "mark", "label", "input", "iframe", "video", "source")
             .addAttributes(":all", "style", "class")
             .addAttributes("a", "target", "rel")
             .addAttributes("img", "width", "height")
@@ -25,8 +25,16 @@ public final class HtmlSanitizer {
             .addAttributes("li", "data-checked")
             .addAttributes("input", "type", "checked")
             .addAttributes("iframe", "src", "width", "height", "frameborder", "allow", "allowfullscreen")
+            // TipTap Youtube 확장의 parseHTML은 div[data-youtube-video] iframe 형태만 인식하므로
+            // 이 속성이 사라지면 재편집 시 유튜브 임베드를 인식하지 못해 통째로 사라진다.
+            .addAttributes("div", "data-youtube-video")
+            .addAttributes("blockquote", "data-variant")
+            .addAttributes("video", "src", "controls", "width", "height", "preload")
+            .addAttributes("source", "src", "type")
             .addProtocols("img", "src", "http", "https")
             .addProtocols("iframe", "src", "https")
+            .addProtocols("video", "src", "http", "https")
+            .addProtocols("source", "src", "http", "https")
             .preserveRelativeLinks(true);
 
     // 유튜브 임베드 URL만 허용 (그 외 iframe은 전부 제거) - 임의 사이트 삽입/클릭재킹 방지

@@ -3,144 +3,185 @@
     <!-- 툴바 -->
     <div class="editor-toolbar">
       <!-- 텍스트 스타일 -->
-      <div class="toolbar-group">
-        <button type="button" title="굵게 (Ctrl+B)" :class="{ active: editor?.isActive('bold') }"
-          @click="editor?.chain().focus().toggleBold().run()">
-          <i class="ti ti-bold"></i>
-        </button>
-        <button type="button" title="기울임 (Ctrl+I)" :class="{ active: editor?.isActive('italic') }"
-          @click="editor?.chain().focus().toggleItalic().run()">
-          <i class="ti ti-italic"></i>
-        </button>
-        <button type="button" title="밑줄 (Ctrl+U)" :class="{ active: editor?.isActive('underline') }"
-          @click="editor?.chain().focus().toggleUnderline().run()">
-          <i class="ti ti-underline"></i>
-        </button>
-        <button type="button" title="취소선" :class="{ active: editor?.isActive('strike') }"
-          @click="editor?.chain().focus().toggleStrike().run()">
-          <i class="ti ti-strikethrough"></i>
-        </button>
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <button type="button" title="굵게 (Ctrl+B)" :class="{ active: editor?.isActive('bold') }"
+            @click="editor?.chain().focus().toggleBold().run()">
+            <i class="ti ti-bold"></i>
+          </button>
+          <button type="button" title="기울임 (Ctrl+I)" :class="{ active: editor?.isActive('italic') }"
+            @click="editor?.chain().focus().toggleItalic().run()">
+            <i class="ti ti-italic"></i>
+          </button>
+          <button type="button" title="밑줄 (Ctrl+U)" :class="{ active: editor?.isActive('underline') }"
+            @click="editor?.chain().focus().toggleUnderline().run()">
+            <i class="ti ti-underline"></i>
+          </button>
+          <button type="button" title="취소선" :class="{ active: editor?.isActive('strike') }"
+            @click="editor?.chain().focus().toggleStrike().run()">
+            <i class="ti ti-strikethrough"></i>
+          </button>
+        </div>
+        <span class="toolbar-group-label">텍스트</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 제목 -->
-      <div class="toolbar-group">
-        <button type="button" :class="{ active: editor?.isActive('heading', { level: 1 }) }"
-          @click="editor?.chain().focus().toggleHeading({ level: 1 }).run()" title="제목 1">
-          H1
-        </button>
-        <button type="button" :class="{ active: editor?.isActive('heading', { level: 2 }) }"
-          @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()" title="제목 2">
-          H2
-        </button>
-        <button type="button" :class="{ active: editor?.isActive('heading', { level: 3 }) }"
-          @click="editor?.chain().focus().toggleHeading({ level: 3 }).run()" title="제목 3">
-          H3
-        </button>
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <button type="button" :class="{ active: editor?.isActive('heading', { level: 1 }) }"
+            @click="editor?.chain().focus().toggleHeading({ level: 1 }).run()" title="제목 1">
+            H1
+          </button>
+          <button type="button" :class="{ active: editor?.isActive('heading', { level: 2 }) }"
+            @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()" title="제목 2">
+            H2
+          </button>
+          <button type="button" :class="{ active: editor?.isActive('heading', { level: 3 }) }"
+            @click="editor?.chain().focus().toggleHeading({ level: 3 }).run()" title="제목 3">
+            H3
+          </button>
+        </div>
+        <span class="toolbar-group-label">제목</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 정렬 -->
-      <div class="toolbar-group">
-        <button type="button" title="왼쪽 정렬" :class="{ active: editor?.isActive({ textAlign: 'left' }) }"
-          @click="editor?.chain().focus().setTextAlign('left').run()">
-          <i class="ti ti-align-left"></i>
-        </button>
-        <button type="button" title="가운데 정렬" :class="{ active: editor?.isActive({ textAlign: 'center' }) }"
-          @click="editor?.chain().focus().setTextAlign('center').run()">
-          <i class="ti ti-align-center"></i>
-        </button>
-        <button type="button" title="오른쪽 정렬" :class="{ active: editor?.isActive({ textAlign: 'right' }) }"
-          @click="editor?.chain().focus().setTextAlign('right').run()">
-          <i class="ti ti-align-right"></i>
-        </button>
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <button type="button" title="왼쪽 정렬" :class="{ active: editor?.isActive({ textAlign: 'left' }) }"
+            @click="editor?.chain().focus().setTextAlign('left').run()">
+            <i class="ti ti-align-left"></i>
+          </button>
+          <button type="button" title="가운데 정렬" :class="{ active: editor?.isActive({ textAlign: 'center' }) }"
+            @click="editor?.chain().focus().setTextAlign('center').run()">
+            <i class="ti ti-align-center"></i>
+          </button>
+          <button type="button" title="오른쪽 정렬" :class="{ active: editor?.isActive({ textAlign: 'right' }) }"
+            @click="editor?.chain().focus().setTextAlign('right').run()">
+            <i class="ti ti-align-right"></i>
+          </button>
+        </div>
+        <span class="toolbar-group-label">정렬</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 목록/인용/코드 -->
-      <div class="toolbar-group">
-        <button type="button" title="글머리 기호" :class="{ active: editor?.isActive('bulletList') }"
-          @click="editor?.chain().focus().toggleBulletList().run()">
-          <i class="ti ti-list"></i>
-        </button>
-        <button type="button" title="번호 목록" :class="{ active: editor?.isActive('orderedList') }"
-          @click="editor?.chain().focus().toggleOrderedList().run()">
-          <i class="ti ti-list-numbers"></i>
-        </button>
-        <button type="button" title="인용구" :class="{ active: editor?.isActive('blockquote') }"
-          @click="editor?.chain().focus().toggleBlockquote().run()">
-          <i class="ti ti-quote"></i>
-        </button>
-        <button type="button" title="코드 블록" :class="{ active: editor?.isActive('codeBlock') }"
-          @click="editor?.chain().focus().toggleCodeBlock().run()">
-          <i class="ti ti-code"></i>
-        </button>
-        <button type="button" title="체크리스트" :class="{ active: editor?.isActive('taskList') }"
-          @click="editor?.chain().focus().toggleTaskList().run()">
-          <i class="ti ti-checklist"></i>
-        </button>
-        <button type="button" title="가로선" @click="editor?.chain().focus().setHorizontalRule().run()">
-          <i class="ti ti-separator"></i>
-        </button>
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <button type="button" title="글머리 기호" :class="{ active: editor?.isActive('bulletList') }"
+            @click="editor?.chain().focus().toggleBulletList().run()">
+            <i class="ti ti-list"></i>
+          </button>
+          <button type="button" title="번호 목록" :class="{ active: editor?.isActive('orderedList') }"
+            @click="editor?.chain().focus().toggleOrderedList().run()">
+            <i class="ti ti-list-numbers"></i>
+          </button>
+          <button type="button" title="인용구" :class="{ active: editor?.isActive('blockquote') }"
+            @click="editor?.chain().focus().toggleBlockquote().run()">
+            <i class="ti ti-quote"></i>
+          </button>
+          <select
+            v-if="editor?.isActive('blockquote')"
+            class="quote-style-select"
+            title="인용구 스타일"
+            :value="editor?.getAttributes('blockquote').variant || 'default'"
+            @change="setBlockquoteVariant($event.target.value)"
+          >
+            <option value="default">기본</option>
+            <option value="box">박스</option>
+            <option value="accent">강조</option>
+          </select>
+          <button type="button" title="코드 블록" :class="{ active: editor?.isActive('codeBlock') }"
+            @click="editor?.chain().focus().toggleCodeBlock().run()">
+            <i class="ti ti-code"></i>
+          </button>
+          <button type="button" title="체크리스트" :class="{ active: editor?.isActive('taskList') }"
+            @click="editor?.chain().focus().toggleTaskList().run()">
+            <i class="ti ti-checklist"></i>
+          </button>
+          <button type="button" title="가로선" @click="editor?.chain().focus().setHorizontalRule().run()">
+            <i class="ti ti-separator"></i>
+          </button>
+        </div>
+        <span class="toolbar-group-label">목록/서식</span>
       </div>
       <div class="toolbar-sep"></div>
-      <!-- 링크/이미지 -->
-      <div class="toolbar-group">
-        <button type="button" title="링크" :class="{ active: editor?.isActive('link') }"
-          @click="insertLink">
-          <i class="ti ti-link"></i>
-        </button>
-        <button type="button" title="링크 제거" @click="editor?.chain().focus().unsetLink().run()">
-          <i class="ti ti-link-off"></i>
-        </button>
-        <button type="button" title="이미지 업로드" :disabled="imageUploading" @click="triggerImageUpload">
-          <i v-if="imageUploading" class="ti ti-loader-2 spin"></i>
-          <i v-else class="ti ti-photo"></i>
-        </button>
-        <input ref="imageInput" type="file" accept="image/*" multiple style="display:none" @change="handleImageUpload" />
-        <button type="button" title="표 삽입" @click="editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()">
-          <i class="ti ti-table"></i>
-        </button>
-        <button type="button" title="유튜브 삽입" @click="insertYoutube">
-          <i class="ti ti-brand-youtube"></i>
-        </button>
+      <!-- 링크/미디어 -->
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <button type="button" title="링크" :class="{ active: editor?.isActive('link') }"
+            @click="insertLink">
+            <i class="ti ti-link"></i>
+          </button>
+          <button type="button" title="링크 제거" @click="editor?.chain().focus().unsetLink().run()">
+            <i class="ti ti-link-off"></i>
+          </button>
+          <button type="button" title="이미지 업로드" :disabled="imageUploading" @click="triggerImageUpload">
+            <i v-if="imageUploading" class="ti ti-loader-2 spin"></i>
+            <i v-else class="ti ti-photo"></i>
+          </button>
+          <input ref="imageInput" type="file" accept="image/*" multiple style="display:none" @change="handleImageUpload" />
+          <button type="button" title="동영상 업로드" :disabled="videoUploading" @click="triggerVideoUpload">
+            <i v-if="videoUploading" class="ti ti-loader-2 spin"></i>
+            <i v-else class="ti ti-video"></i>
+          </button>
+          <input ref="videoInput" type="file" accept="video/mp4,video/webm,video/ogg" style="display:none" @change="handleVideoUpload" />
+          <button type="button" title="표 삽입" @click="editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()">
+            <i class="ti ti-table"></i>
+          </button>
+          <button type="button" title="유튜브 삽입" @click="insertYoutube">
+            <i class="ti ti-brand-youtube"></i>
+          </button>
+        </div>
+        <span class="toolbar-group-label">링크/미디어</span>
       </div>
+      <div class="toolbar-sep"></div>
       <!-- 글자 크기 -->
-      <div class="toolbar-group">
-        <select
-          class="font-size-select"
-          title="글자 크기"
-          :value="editor?.getAttributes('textStyle').fontSize || ''"
-          @change="setFontSize($event.target.value)"
-        >
-          <option value="">기본</option>
-          <option v-for="size in FONT_SIZES" :key="size" :value="`${size}px`">{{ size }}px</option>
-        </select>
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <select
+            class="font-size-select"
+            title="글자 크기"
+            :value="editor?.getAttributes('textStyle').fontSize || ''"
+            @change="setFontSize($event.target.value)"
+          >
+            <option value="">기본</option>
+            <option v-for="size in FONT_SIZES" :key="size" :value="`${size}px`">{{ size }}px</option>
+          </select>
+        </div>
+        <span class="toolbar-group-label">글자 크기</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 글자색 -->
-      <div class="toolbar-group">
-        <label class="color-btn" title="글자색">
-          <i class="ti ti-palette"></i>
-          <input type="color" class="color-input" @input="setColor" />
-        </label>
-        <button type="button" title="색상 초기화" @click="editor?.chain().focus().unsetColor().run()">
-          <i class="ti ti-color-swatch-off"></i>
-        </button>
-        <label class="color-btn" title="형광펜">
-          <i class="ti ti-highlight"></i>
-          <input type="color" class="color-input" @input="setHighlight" />
-        </label>
-        <button type="button" title="형광펜 제거" @click="editor?.chain().focus().unsetHighlight().run()">
-          <i class="ti ti-highlight-off"></i>
-        </button>
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <label class="color-btn" title="글자색">
+            <i class="ti ti-palette"></i>
+            <input type="color" class="color-input" @input="setColor" />
+          </label>
+          <button type="button" title="색상 초기화" @click="editor?.chain().focus().unsetColor().run()">
+            <i class="ti ti-color-swatch-off"></i>
+          </button>
+          <label class="color-btn" title="형광펜">
+            <i class="ti ti-highlight"></i>
+            <input type="color" class="color-input" @input="setHighlight" />
+          </label>
+          <button type="button" title="형광펜 제거" @click="editor?.chain().focus().unsetHighlight().run()">
+            <i class="ti ti-highlight-off"></i>
+          </button>
+        </div>
+        <span class="toolbar-group-label">색상</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- undo/redo -->
-      <div class="toolbar-group">
-        <button type="button" title="실행 취소" @click="editor?.chain().focus().undo().run()">
-          <i class="ti ti-arrow-back-up"></i>
-        </button>
-        <button type="button" title="다시 실행" @click="editor?.chain().focus().redo().run()">
-          <i class="ti ti-arrow-forward-up"></i>
-        </button>
+      <div class="toolbar-group-wrap">
+        <div class="toolbar-group">
+          <button type="button" title="실행 취소" @click="editor?.chain().focus().undo().run()">
+            <i class="ti ti-arrow-back-up"></i>
+          </button>
+          <button type="button" title="다시 실행" @click="editor?.chain().focus().redo().run()">
+            <i class="ti ti-arrow-forward-up"></i>
+          </button>
+        </div>
+        <span class="toolbar-group-label">실행 취소</span>
       </div>
     </div>
 
@@ -187,14 +228,16 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
-import { Youtube } from '@tiptap/extension-youtube'
 import { Highlight } from '@tiptap/extension-highlight'
 import { CharacterCount } from '@tiptap/extension-character-count'
 import { TaskList } from '@tiptap/extension-task-list'
 import { TaskItem } from '@tiptap/extension-task-item'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api/axios'
-import { ResizableImage } from './tiptap/ResizableImage'
+import { ResizableImage, ResizableImageInline } from './tiptap/ResizableImage'
+import { StyledBlockquote } from './tiptap/Blockquote'
+import { ResizableYoutube } from './tiptap/ResizableYoutube'
+import { Video } from './tiptap/Video'
 import { FontSize } from './tiptap/FontSize'
 
 const props = defineProps({
@@ -202,12 +245,14 @@ const props = defineProps({
   placeholder: { type: String, default: '내용을 입력하세요.' },
   disabled: { type: Boolean, default: false },
   minHeight: { type: String, default: '360px' },
+  maxHeight: { type: String, default: '70vh' },
 })
 const emit = defineEmits(['update:modelValue'])
 
 const editor = new Editor({
   extensions: [
-    StarterKit.configure({ link: false, underline: false }),
+    StarterKit.configure({ link: false, underline: false, blockquote: false }),
+    StyledBlockquote,
     Underline,
     TextStyle,
     Color,
@@ -215,11 +260,13 @@ const editor = new Editor({
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: false, autolink: true }),
     ResizableImage.configure({ inline: false }),
+    ResizableImageInline,
     Table.configure({ resizable: false }),
     TableRow,
     TableHeader,
     TableCell,
-    Youtube.configure({ width: 480, height: 270, nocookie: false }),
+    ResizableYoutube.configure({ width: 480, height: 270, nocookie: false }),
+    Video,
     Highlight.configure({ multicolor: true }),
     CharacterCount,
     TaskList,
@@ -307,6 +354,38 @@ async function handleImageUpload(e) {
   }
 }
 
+const videoInput = ref(null)
+const videoUploading = ref(false)
+
+function triggerVideoUpload() {
+  videoInput.value?.click()
+}
+
+async function handleVideoUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  e.target.value = ''
+
+  videoUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await api.post('/files/inline-video', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    const url = res.data.data.url
+    editor.chain().focus().setVideo({ src: url }).createParagraphNear().focus('end').run()
+  } catch {
+    ElMessage.error('동영상 업로드에 실패했습니다.')
+  } finally {
+    videoUploading.value = false
+  }
+}
+
+function setBlockquoteVariant(variant) {
+  editor.chain().focus().updateAttributes('blockquote', { variant }).run()
+}
+
 const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36]
 
 function setFontSize(value) {
@@ -346,32 +425,47 @@ onBeforeUnmount(() => { editor.destroy() })
 .editor-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 8px;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 10px;
   border-bottom: 0.5px solid var(--border);
   background: var(--surface2);
 }
-.toolbar-group { display: flex; align-items: center; gap: 1px; }
+.toolbar-group-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 3px 0;
+}
+.toolbar-group-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--t3);
+  white-space: nowrap;
+}
+.toolbar-group { display: flex; align-items: center; gap: 2px; }
 .toolbar-sep {
   width: 1px;
-  height: 18px;
+  height: 38px;
   background: var(--border);
-  margin: 0 4px;
+  margin: 2px 2px 0;
+  align-self: flex-start;
 }
 .editor-toolbar button,
 .color-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   background: transparent;
   color: var(--t2);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   font-family: inherit;
   font-weight: 600;
   transition: var(--transition);
@@ -383,10 +477,10 @@ onBeforeUnmount(() => { editor.destroy() })
 .editor-toolbar button.active { background: var(--accent-bg); color: var(--accent); }
 
 .font-size-select {
-  height: 28px;
+  height: 34px;
   padding: 0 6px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   background: transparent;
   color: var(--t2);
   font-size: 13px;
@@ -394,6 +488,19 @@ onBeforeUnmount(() => { editor.destroy() })
   cursor: pointer;
 }
 .font-size-select:hover { background: var(--surface); color: var(--t1); }
+
+.quote-style-select {
+  height: 34px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t2);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.quote-style-select:hover { background: var(--surface); color: var(--t1); }
 
 .color-btn { cursor: pointer; position: relative; }
 .color-input {
@@ -413,6 +520,8 @@ onBeforeUnmount(() => { editor.destroy() })
 .editor-body {
   padding: 16px 20px;
   min-height: v-bind(minHeight);
+  max-height: v-bind(maxHeight);
+  overflow-y: auto;
   cursor: text;
 }
 .editor-body :deep(.ProseMirror) {
@@ -434,6 +543,34 @@ onBeforeUnmount(() => { editor.destroy() })
   padding-left: 16px;
   color: var(--t2);
   margin: 0.8em 0;
+}
+.editor-body :deep(.ProseMirror blockquote[data-variant="box"]) {
+  border-left: none;
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 14px 18px;
+}
+.editor-body :deep(.ProseMirror blockquote[data-variant="accent"]) {
+  border-left: none;
+  background: var(--accent-bg);
+  border-radius: var(--radius-xs);
+  padding: 16px 20px 16px 44px;
+  position: relative;
+  color: var(--t1);
+  font-style: italic;
+  font-size: 1.05em;
+}
+.editor-body :deep(.ProseMirror blockquote[data-variant="accent"])::before {
+  content: '\201C';
+  position: absolute;
+  left: 14px;
+  top: 6px;
+  font-size: 2.2em;
+  font-weight: 800;
+  font-style: normal;
+  color: var(--accent);
+  line-height: 1;
+  opacity: 0.5;
 }
 .editor-body :deep(.ProseMirror code) {
   background: var(--surface2);

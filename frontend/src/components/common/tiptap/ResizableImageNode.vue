@@ -20,6 +20,10 @@
           <button type="button" :class="{ active: node.attrs.align === 'right' }" title="오른쪽 정렬 (왼쪽에 글 배치)" @click="setAlign('right')">
             <i class="ti ti-align-right"></i>
           </button>
+          <span class="img-toolbar-sep"></span>
+          <button type="button" :class="{ active: node.attrs.align === 'inline' }" title="텍스트 줄 안 (글자처럼 배치)" @click="setAlign('inline')">
+            <i class="ti ti-letter-case"></i>
+          </button>
         </div>
         <div class="resize-handle" @mousedown.stop.prevent="startResize"></div>
       </template>
@@ -40,11 +44,33 @@ const wrapperStyle = computed(() => {
   const align = props.node.attrs.align
   if (align === 'left') return { float: 'left', display: 'block', margin: '4px 16px 8px 0' }
   if (align === 'right') return { float: 'right', display: 'block', margin: '4px 0 8px 16px' }
+  if (align === 'inline') return { display: 'inline-block', verticalAlign: 'middle', margin: '0 4px' }
   return { display: 'table', margin: '0.6em auto' }
 })
 
 function setAlign(align) {
-  props.updateAttributes({ align })
+  const isCurrentlyInline = props.node.type.name === 'imageInline'
+  const willBeInline = align === 'inline'
+
+  // 좌/가운데/우 정렬끼리는 같은 block 노드이므로 속성만 바꾸면 되지만,
+  // '텍스트 줄 안'은 별도의 inline 그룹 노드 타입이라 노드 자체를 바꿔치기해야 한다.
+  if (isCurrentlyInline === willBeInline) {
+    props.updateAttributes({ align })
+    return
+  }
+
+  const pos = props.getPos()
+  if (typeof pos !== 'number') return
+  const targetType = willBeInline
+    ? props.editor.schema.nodes.imageInline
+    : props.editor.schema.nodes.image
+  if (!targetType) return
+
+  const attrs = { ...props.node.attrs, align }
+  props.editor.chain().focus().command(({ tr }) => {
+    tr.replaceWith(pos, pos + props.node.nodeSize, targetType.create(attrs))
+    return true
+  }).run()
 }
 
 function startResize(e) {
@@ -123,6 +149,14 @@ function startResize(e) {
 }
 .img-toolbar button:hover { background: var(--surface2); color: var(--t1); }
 .img-toolbar button.active { background: var(--accent-bg); color: var(--accent); }
+
+.img-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+  align-self: center;
+}
 
 .resize-handle {
   position: absolute;

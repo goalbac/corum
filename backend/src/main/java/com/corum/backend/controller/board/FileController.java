@@ -16,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -65,6 +66,22 @@ public class FileController {
         if (userDetails == null) throw BusinessException.unauthorized("로그인이 필요합니다.");
         String url = fileStorageService.uploadInlineImage(file, userDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.ok(Map.of("url", url)));
+    }
+
+    @PostMapping("/api/files/inline-video")
+    public ResponseEntity<ApiResponse<Map<String, String>>> uploadInlineVideo(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (userDetails == null) throw BusinessException.unauthorized("로그인이 필요합니다.");
+        String url = fileStorageService.uploadInlineVideo(file, userDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("url", url)));
+    }
+
+    @GetMapping("/api/files/inline-video/{storedName}")
+    public ResponseEntity<byte[]> inlineVideo(
+            @PathVariable String storedName,
+            @RequestHeader(value = "Range", required = false) String range) {
+        return fileStorageService.streamInlineVideo(storedName, range);
     }
 
     @GetMapping("/api/files/inline/{storedName}")

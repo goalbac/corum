@@ -17,6 +17,6 @@ export function sanitizeHtml(html) {
   if (!html) return html
   return DOMPurify.sanitize(html, {
     ADD_TAGS: ['iframe', 'mark'],
-    ADD_ATTR: ['allowfullscreen', 'frameborder', 'allow', 'data-type', 'data-checked'],
+    ADD_ATTR: ['allowfullscreen', 'frameborder', 'allow', 'data-type', 'data-checked', 'data-youtube-video', 'data-variant'],
   })
 }

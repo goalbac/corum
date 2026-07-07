@@ -9,6 +9,9 @@ export function buildImageStyle({ width, align }) {
     parts.push('float: left', 'margin: 4px 16px 8px 0')
   } else if (align === 'right') {
     parts.push('float: right', 'margin: 4px 0 8px 16px')
+  } else if (align === 'inline') {
+    // 워드의 '텍스트 줄 안'과 동일 — 이미지를 글자처럼 텍스트 흐름 안에 배치한다
+    parts.push('display: inline-block', 'vertical-align: middle', 'margin: 0 4px')
   } else {
     parts.push('display: block', 'margin: 0.6em auto')
   }

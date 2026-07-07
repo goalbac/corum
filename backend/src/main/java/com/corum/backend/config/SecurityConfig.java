@@ -87,6 +87,7 @@ public class SecurityConfig {
                                 "/api/files/profile/**",
                                 "/api/files/inline/**",
                                 "/api/files/inline-thumb/**",
+                                "/api/files/inline-video/**",
                                 "/api/files/site/**",
                                 "/api/files/popup/**",
                                 "/api/files/*/view",

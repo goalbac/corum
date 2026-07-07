@@ -1369,6 +1369,9 @@ onMounted(async () => {
 .custom-body :deep(li) { margin-bottom: 4px; }
 .custom-body :deep(a)  { color: var(--accent-t); text-decoration: underline; }
 .custom-body :deep(blockquote) { border-left: 3px solid var(--accent); padding-left: 12px; margin: 10px 0; color: var(--t2); }
+.custom-body :deep(blockquote[data-variant="box"]) { border-left: none; background: var(--surface2); border-radius: var(--radius-xs); padding: 10px 14px; }
+.custom-body :deep(blockquote[data-variant="accent"]) { border-left: none; background: var(--accent-bg); border-radius: var(--radius-xs); padding: 10px 14px 10px 36px; position: relative; color: var(--t1); font-style: italic; }
+.custom-body :deep(blockquote[data-variant="accent"])::before { content: '\201C'; position: absolute; left: 10px; top: 2px; font-size: 1.8em; font-weight: 800; font-style: normal; color: var(--accent); line-height: 1; opacity: 0.5; }
 .custom-body :deep(code) { background: var(--surface2); border-radius: 3px; padding: 1px 5px; font-size: 13px; }
 .custom-body :deep(strong) { font-weight: 700; }
 .custom-body :deep(em) { font-style: italic; }

@@ -90,6 +90,34 @@ onMounted(async () => {
   color: var(--t2);
   margin: 0.8em 0;
 }
+.content-body :deep(blockquote[data-variant="box"]) {
+  border-left: none;
+  background: var(--surface2);
+  border-radius: var(--radius-xs);
+  padding: 14px 18px;
+}
+.content-body :deep(blockquote[data-variant="accent"]) {
+  border-left: none;
+  background: var(--accent-bg);
+  border-radius: var(--radius-xs);
+  padding: 16px 20px 16px 44px;
+  position: relative;
+  color: var(--t1);
+  font-style: italic;
+  font-size: 1.05em;
+}
+.content-body :deep(blockquote[data-variant="accent"])::before {
+  content: '\201C';
+  position: absolute;
+  left: 14px;
+  top: 6px;
+  font-size: 2.2em;
+  font-weight: 800;
+  font-style: normal;
+  color: var(--accent);
+  line-height: 1;
+  opacity: 0.5;
+}
 .content-body :deep(code) {
   background: var(--surface2);
   border-radius: 4px;

@@ -19,7 +19,10 @@ import com.corum.backend.service.board.BoardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +30,8 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import net.coobird.thumbnailator.Thumbnails;
@@ -64,6 +69,9 @@ public class FileStorageService {
     private static final double SMALL_THUMB_QUALITY = 0.50;
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
+    );
+    private static final Set<String> VIDEO_MIME_TYPES = Set.of(
+            "video/mp4", "video/webm", "video/ogg"
     );
     // 실행/스크립트 계열 확장자는 게시판별 허용 목록 설정과 무관하게 항상 차단한다
     private static final Set<String> ALWAYS_BLOCKED_EXTENSIONS = Set.of(
@@ -418,6 +426,86 @@ public class FileStorageService {
         } catch (Exception e) {
             throw new BusinessException("이미지를 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
         }
+    }
+
+    // ===== 인라인 동영상 (에디터 본문 삽입용) =====
+    public String uploadInlineVideo(MultipartFile file, Long uploadedBy) {
+        String mimeType = file.getContentType();
+        if (mimeType == null || !VIDEO_MIME_TYPES.contains(mimeType.toLowerCase())) {
+            throw new BusinessException("mp4, webm, ogg 형식의 동영상만 업로드할 수 있습니다.", HttpStatus.BAD_REQUEST);
+        }
+        String ext = getExtension(file.getOriginalFilename());
+        String storedName = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
+        String storagePath = "inline/video/" + storedName;
+        try {
+            byte[] bytes = file.getBytes();
+            s3Client.putObject(
+                PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storagePath)
+                    .contentType(mimeType)
+                    .contentLength((long) bytes.length)
+                    .build(),
+                RequestBody.fromBytes(bytes)
+            );
+        } catch (IOException e) {
+            throw new BusinessException("동영상 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return "/api/files/inline-video/" + storedName;
+    }
+
+    // 동영상은 브라우저의 탐색(seek)을 위해 HTTP Range 요청을 지원해야 한다.
+    public ResponseEntity<byte[]> streamInlineVideo(String storedName, String rangeHeader) {
+        String storagePath = "inline/video/" + storedName;
+        HeadObjectResponse head;
+        try {
+            head = s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(storagePath).build());
+        } catch (Exception e) {
+            throw new BusinessException("동영상을 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
+        }
+        long contentLength = head.contentLength();
+        MediaType mediaType;
+        try {
+            mediaType = head.contentType() != null ? MediaType.parseMediaType(head.contentType()) : MediaType.valueOf("video/mp4");
+        } catch (Exception e) {
+            mediaType = MediaType.valueOf("video/mp4");
+        }
+
+        long start = 0;
+        long end = contentLength - 1;
+        boolean partial = false;
+        if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+            String[] parts = rangeHeader.substring(6).split("-", 2);
+            try {
+                if (!parts[0].isBlank()) start = Long.parseLong(parts[0]);
+                if (parts.length > 1 && !parts[1].isBlank()) end = Long.parseLong(parts[1]);
+                end = Math.min(end, contentLength - 1);
+                partial = true;
+            } catch (NumberFormatException ignored) {
+                start = 0;
+                end = contentLength - 1;
+            }
+        }
+
+        byte[] data = s3Client.getObjectAsBytes(
+            GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(storagePath)
+                .range("bytes=" + start + "-" + end)
+                .build()
+        ).asByteArray();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(mediaType);
+        headers.add(HttpHeaders.ACCEPT_RANGES, "bytes");
+        headers.add("X-Content-Type-Options", "nosniff");
+        headers.setContentLength(data.length);
+
+        if (partial) {
+            headers.add(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + contentLength);
+            return new ResponseEntity<>(data, headers, HttpStatus.PARTIAL_CONTENT);
+        }
+        return new ResponseEntity<>(data, headers, HttpStatus.OK);
     }
 
     /** 인라인 이미지 소형 썸네일 (대시보드용) */
