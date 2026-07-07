@@ -216,39 +216,10 @@
             </div>
           </div>
 
-          <!-- 즐겨찾는 메뉴 -->
-          <div class="sidebar-header sidebar-header--secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"></polygon></svg>
-            <span class="sidebar-section-text">즐겨찾는 메뉴</span>
-            <span class="sidebar-section-line"></span>
-          </div>
-          <nav class="sidebar-tree">
-            <p v-if="!favoriteMenuItems.length" class="sidebar-empty-text">즐겨찾는 메뉴가 없습니다</p>
-            <button
-              v-for="fav in favoriteMenuItems"
-              :key="fav.id"
-              type="button"
-              class="tree-node fav-node"
-              style="padding-left: 10px"
-              @click="navigateMenu(fav)"
-            >
-              <span class="tree-icon">
-                <svg v-if="fav.menuType === 'GROUP'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2z"/></svg>
-                <svg v-else-if="fav.pageType === 'CALENDAR'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line></svg>
-                <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="14 3 14 9 20 9"/></svg>
-              </span>
-              <span class="fav-node-body">
-                <span v-if="favMenuPath(fav)" class="fav-node-path">{{ favMenuPath(fav) }}</span>
-                <span class="tree-label">{{ fav.name }}</span>
-              </span>
-              <svg class="fav-node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </nav>
-
-          <!-- 이번 주 (주간 스트립 + 일정) -->
+          <!-- 주간 일정 (주간 스트립 + 일정) -->
           <div class="week-strip-card">
             <div class="week-strip-header">
-              <span class="week-strip-title">이번 주</span>
+              <span class="week-strip-title">주간 일정</span>
               <span class="week-strip-range">{{ weekRangeLabel }}</span>
             </div>
             <div class="week-strip-grid">
@@ -278,6 +249,35 @@
               </li>
             </ul>
           </div>
+
+          <!-- 즐겨찾는 메뉴 -->
+          <div class="sidebar-header sidebar-header--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"></polygon></svg>
+            <span class="sidebar-section-text">즐겨찾는 메뉴</span>
+            <span class="sidebar-section-line"></span>
+          </div>
+          <nav class="sidebar-tree">
+            <p v-if="!favoriteMenuItems.length" class="sidebar-empty-text">즐겨찾는 메뉴가 없습니다</p>
+            <button
+              v-for="fav in favoriteMenuItems"
+              :key="fav.id"
+              type="button"
+              class="tree-node fav-node"
+              style="padding-left: 10px"
+              @click="navigateMenu(fav)"
+            >
+              <span class="tree-icon">
+                <svg v-if="fav.menuType === 'GROUP'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2z"/></svg>
+                <svg v-else-if="fav.pageType === 'CALENDAR'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line></svg>
+                <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="14 3 14 9 20 9"/></svg>
+              </span>
+              <span class="fav-node-body">
+                <span v-if="favMenuPath(fav)" class="fav-node-path">{{ favMenuPath(fav) }}</span>
+                <span class="tree-label">{{ fav.name }}</span>
+              </span>
+              <svg class="fav-node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </nav>
         </template>
         </template>
       </aside>
