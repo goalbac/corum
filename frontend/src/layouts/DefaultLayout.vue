@@ -28,16 +28,36 @@
 
         <div class="drawer-panels">
           <nav class="drawer-left" aria-label="대메뉴">
-            <button
-              v-for="menu in menuStore.topMenus"
-              :key="menu.id"
-              type="button"
-              class="drawer-left-item"
-              :class="{ active: mobileSelectedTop?.id === menu.id }"
-              @click="selectDrawerTop(menu)"
-            >
-              {{ menu.name }}
-            </button>
+            <div class="drawer-left-scroll">
+              <button
+                v-for="menu in menuStore.topMenus"
+                :key="menu.id"
+                type="button"
+                class="drawer-left-item"
+                :class="{ active: mobileSelectedTop?.id === menu.id }"
+                @click="selectDrawerTop(menu)"
+              >
+                {{ menu.name }}
+              </button>
+            </div>
+
+            <!-- 즐겨찾는 메뉴 (하단 고정) -->
+            <div class="drawer-left-favs">
+              <div class="drawer-left-favs-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"></polygon></svg>
+                <span>즐겨찾는 메뉴</span>
+              </div>
+              <p v-if="!favoriteMenuItems.length" class="drawer-left-favs-empty">없음</p>
+              <button
+                v-for="fav in favoriteMenuItems"
+                :key="fav.id"
+                type="button"
+                class="drawer-fav-item"
+                @click="handleDrawerNav(fav)"
+              >
+                {{ fav.name }}
+              </button>
+            </div>
           </nav>
 
           <div class="drawer-right" ref="drawerRightRef">
@@ -1097,11 +1117,64 @@ onMounted(async () => {
 .drawer-left {
   width: 120px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--surface2);
   border-right: 1px solid var(--border);
+  min-height: 0;
+}
+
+.drawer-left-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px 0;
 }
+
+.drawer-left-favs {
+  flex-shrink: 0;
+  max-height: 40%;
+  overflow-y: auto;
+  padding: 10px 0 8px;
+  border-top: 1px solid var(--border);
+}
+
+.drawer-left-favs-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px 6px;
+  color: var(--t3);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.drawer-left-favs-empty {
+  margin: 0;
+  padding: 4px 14px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.drawer-fav-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  line-height: 1.35;
+  cursor: pointer;
+  word-break: keep-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawer-fav-item:hover { color: var(--t1); background: var(--surface); }
 
 .drawer-left-item {
   width: 100%;
