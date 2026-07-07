@@ -175,72 +175,23 @@
           </template>
         </nav>
 
-        <!-- 홈 사이드바 전용: 오늘 날짜 / 오늘 일정 / 다가오는 일정 / 즐겨찾는 메뉴 -->
+        <!-- 홈 사이드바 전용: 오늘 날짜 / 즐겨찾는 메뉴 / 오늘 일정 / 다가오는 일정 -->
         <template v-if="isDashboard">
-          <!-- TODAY 날짜 카드 -->
+          <!-- TODAY 날짜 카드 (컴팩트 가로형) -->
           <div class="today-card">
             <div class="today-card-decor-1"></div>
-            <div class="today-card-decor-2"></div>
             <div class="today-card-body">
-              <div class="today-card-top">
-                <span class="today-card-weekday">{{ todayCard.weekday }}</span>
-                <span class="today-card-badge">TODAY</span>
-              </div>
-              <div class="today-card-main">
+              <div class="today-card-daybox">
                 <span class="today-card-day">{{ todayCard.day }}</span>
-                <div class="today-card-meta">
-                  <span class="today-card-ym">{{ todayCard.ym }}</span>
-                  <span class="today-card-lunar">{{ todayCard.lunar }}</span>
-                </div>
+                <span class="today-card-weekday">{{ todayCard.weekday }}</span>
+              </div>
+              <span class="today-card-divider"></span>
+              <div class="today-card-meta">
+                <span class="today-card-date">{{ todayCard.dateLabel }}</span>
+                <span class="today-card-sub">{{ todayCard.weekdayFull }} · {{ todayCard.lunar }}</span>
               </div>
             </div>
           </div>
-
-          <!-- 오늘 일정 -->
-          <div class="sidebar-header sidebar-header--secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
-            <span class="sidebar-section-text">오늘 일정</span>
-            <span v-if="todayEvents.length" class="sidebar-section-count">{{ todayEvents.length }}</span>
-            <span class="sidebar-section-line"></span>
-          </div>
-          <ul class="today-events-list">
-            <li v-if="!todayEvents.length" class="sidebar-empty-text">오늘 일정이 없습니다</li>
-            <li
-              v-for="ev in todayEvents"
-              :key="ev.id"
-              class="today-event-item"
-              @click="goToCalendar"
-            >
-              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
-              <div class="today-event-body">
-                <div class="today-event-title">{{ ev.title }}</div>
-                <div class="today-event-time">{{ ev.isAllDay ? '종일' : formatEventTime(ev.startAt) }}</div>
-              </div>
-            </li>
-          </ul>
-
-          <!-- 다가오는 일정 -->
-          <div class="sidebar-header sidebar-header--secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>
-            <span class="sidebar-section-text">다가오는 일정</span>
-            <span class="sidebar-section-line"></span>
-            <button type="button" class="sidebar-more-link" @click="goToCalendar">더보기</button>
-          </div>
-          <ul class="upcoming-events-list">
-            <li v-if="!upcomingEvents.length" class="sidebar-empty-text">다가오는 일정이 없습니다</li>
-            <li
-              v-for="ev in upcomingEvents"
-              :key="ev.id"
-              class="upcoming-event-item"
-              @click="goToCalendar"
-            >
-              <span class="upcoming-event-dday" :class="{ 'is-soon': computeDday(ev.startAt) <= 3 }">D-{{ computeDday(ev.startAt) }}</span>
-              <div class="today-event-body">
-                <div class="today-event-title">{{ ev.title }}</div>
-                <div class="today-event-time">{{ formatEventDate(ev.startAt) }}</div>
-              </div>
-            </li>
-          </ul>
 
           <!-- 즐겨찾는 메뉴 -->
           <div class="sidebar-header sidebar-header--secondary">
@@ -267,6 +218,41 @@
               <svg class="fav-node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </nav>
+
+          <!-- 오늘 일정 -->
+          <div class="sidebar-header sidebar-header--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+            <span class="sidebar-section-text">오늘 일정</span>
+            <span v-if="todayEvents.length" class="sidebar-section-count">{{ todayEvents.length }}</span>
+            <span class="sidebar-section-line"></span>
+          </div>
+          <ul class="today-events-list">
+            <li v-if="!todayEvents.length" class="sidebar-empty-text">오늘 일정이 없습니다</li>
+            <li v-for="ev in todayEvents" :key="ev.id" class="today-event-item">
+              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
+              <div class="today-event-body">
+                <div class="today-event-title">{{ ev.title }}</div>
+                <div class="today-event-time">{{ ev.isAllDay ? '종일' : formatEventTime(ev.startAt) }}</div>
+              </div>
+            </li>
+          </ul>
+
+          <!-- 다가오는 일정 -->
+          <div class="sidebar-header sidebar-header--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>
+            <span class="sidebar-section-text">다가오는 일정</span>
+            <span class="sidebar-section-line"></span>
+          </div>
+          <ul class="upcoming-events-list">
+            <li v-if="!upcomingEvents.length" class="sidebar-empty-text">다가오는 일정이 없습니다</li>
+            <li v-for="ev in upcomingEvents" :key="ev.id" class="upcoming-event-item">
+              <span class="upcoming-event-dday" :class="{ 'is-soon': computeDday(ev.startAt) <= 3 }">D-{{ computeDday(ev.startAt) }}</span>
+              <div class="today-event-body">
+                <div class="today-event-title">{{ ev.title }}</div>
+                <div class="today-event-time">{{ formatEventDate(ev.startAt) }}</div>
+              </div>
+            </li>
+          </ul>
         </template>
         </template>
       </aside>
@@ -370,6 +356,7 @@ const favoriteMenuItems = computed(() =>
 )
 
 const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const WEEKDAY_FULL_LABELS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
 const todayCard = computed(() => {
   const now = new Date()
   const lunarCal = new KoreanLunarCalendar()
@@ -377,9 +364,10 @@ const todayCard = computed(() => {
   const lunar = lunarCal.getLunarCalendar()
   return {
     weekday: WEEKDAY_LABELS[now.getDay()],
-    day: String(now.getDate()).padStart(2, '0'),
-    ym: `${now.getFullYear()}년 ${now.getMonth() + 1}월`,
-    lunar: `음력 ${lunar.month}월 ${lunar.day}일${lunar.intercalation ? ' (윤달)' : ''}`,
+    weekdayFull: WEEKDAY_FULL_LABELS[now.getDay()],
+    day: now.getDate(),
+    dateLabel: `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`,
+    lunar: `음력 ${lunar.month}.${lunar.day}${lunar.intercalation ? ' (윤달)' : ''}`,
   }
 })
 
@@ -421,10 +409,6 @@ function computeDday(dt) {
   const eDay = new Date(e.getFullYear(), e.getMonth(), e.getDate())
   const tDay = new Date(t.getFullYear(), t.getMonth(), t.getDate())
   return Math.round((eDay - tDay) / 86400000)
-}
-
-function goToCalendar() {
-  router.push({ name: 'Calendar' })
 }
 
 watch(isDashboard, (on) => {
@@ -637,19 +621,6 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.sidebar-more-link {
-  flex-shrink: 0;
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--t3);
-  cursor: pointer;
-}
-
-.sidebar-more-link:hover { color: var(--accent); }
-
 .sidebar-empty-text {
   padding: 8px 10px;
   margin: 0;
@@ -657,87 +628,89 @@ onMounted(async () => {
   color: var(--t3);
 }
 
-/* ===== 오늘 날짜 카드 ===== */
+/* ===== 오늘 날짜 카드 (컴팩트 가로형) ===== */
 .today-card {
   position: relative;
   overflow: hidden;
   border-radius: 14px;
   background: var(--accent);
-  padding: 16px 17px;
+  padding: 15px 16px;
+  margin-top: 14px;
   margin-bottom: 4px;
-  box-shadow: 0 6px 18px rgba(47, 95, 214, 0.28);
+  box-shadow: 0 6px 16px rgba(47, 95, 214, 0.26);
 }
 
 .today-card-decor-1 {
   position: absolute;
-  right: -18px;
-  top: -18px;
-  width: 92px;
-  height: 92px;
+  right: -16px;
+  top: -16px;
+  width: 74px;
+  height: 74px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
 }
 
-.today-card-decor-2 {
-  position: absolute;
-  right: 14px;
-  bottom: -24px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.today-card-body { position: relative; }
-
-.today-card-top {
+.today-card-body {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
+  gap: 13px;
 }
 
-.today-card-weekday {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.today-card-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.18);
-  padding: 2px 8px;
-  border-radius: 11px;
-}
-
-.today-card-main {
+.today-card-daybox {
   display: flex;
-  align-items: baseline;
-  gap: 9px;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
 }
 
 .today-card-day {
-  font-size: 44px;
+  font-size: 34px;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: #fff;
-  line-height: 0.9;
+}
+
+.today-card-weekday {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 3px;
+}
+
+.today-card-divider {
+  width: 1px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
 }
 
 .today-card-meta {
   display: flex;
   flex-direction: column;
-  line-height: 1.3;
+  gap: 3px;
+  min-width: 0;
 }
 
-.today-card-ym { font-size: 13px; font-weight: 700; color: #fff; }
-.today-card-lunar { font-size: 11.5px; font-weight: 600; color: rgba(255, 255, 255, 0.78); }
+.today-card-date {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.today-card-sub {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ===== 오늘 일정 / 다가오는 일정 ===== */
 .today-events-list,
@@ -757,12 +730,7 @@ onMounted(async () => {
   gap: 10px;
   padding: 9px 10px;
   border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.12s;
 }
-
-.today-event-item:hover,
-.upcoming-event-item:hover { background: var(--surface2); }
 
 .today-event-dot {
   width: 8px;
@@ -958,7 +926,7 @@ onMounted(async () => {
 
 .main-content {
   flex: 1;
-  padding: 30px 42px 48px;
+  padding: 30px 32px 48px;
   overflow-y: auto;
 }
 
