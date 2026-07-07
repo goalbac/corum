@@ -245,38 +245,39 @@
             </button>
           </nav>
 
-          <!-- 오늘 일정 -->
-          <div class="sidebar-header sidebar-header--secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
-            <span class="sidebar-section-text">오늘 일정</span>
-            <span v-if="todayEvents.length" class="sidebar-section-count">{{ todayEvents.length }}</span>
-            <span class="sidebar-section-line"></span>
+          <!-- 이번 주 (주간 스트립 + 일정) -->
+          <div class="week-strip-card">
+            <div class="week-strip-header">
+              <span class="week-strip-title">이번 주</span>
+              <span class="week-strip-range">{{ weekRangeLabel }}</span>
+            </div>
+            <div class="week-strip-grid">
+              <button
+                v-for="d in weekDays"
+                :key="d.dateKey"
+                type="button"
+                class="week-strip-cell"
+                :class="{ 'is-today': d.isToday, 'is-selected': d.dateKey === selectedWeekDate && !d.isToday }"
+                @click="selectedWeekDate = d.dateKey"
+              >
+                <span class="week-strip-dow" :class="{ sun: d.dow === '일', sat: d.dow === '토' }">{{ d.dow }}</span>
+                <span class="week-strip-day">{{ d.day }}</span>
+                <span class="week-strip-dot" :class="{ 'is-visible': d.hasEvent }"></span>
+              </button>
+            </div>
+            <div class="week-strip-divider"></div>
+            <div class="week-strip-selected-label">{{ selectedDayLabel }}</div>
+            <ul class="today-events-list">
+              <li v-if="!selectedDayEvents.length" class="sidebar-empty-text">일정이 없습니다</li>
+              <li v-for="ev in selectedDayEvents" :key="ev.id" class="today-event-item">
+                <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
+                <div class="today-event-body">
+                  <div class="today-event-title">{{ ev.title }}</div>
+                  <div class="today-event-time">{{ ev.isAllDay ? '종일' : formatEventTime(ev.startAt) }}</div>
+                </div>
+              </li>
+            </ul>
           </div>
-          <ul class="today-events-list">
-            <li v-if="!todayEvents.length" class="sidebar-empty-text">오늘 일정이 없습니다</li>
-            <li v-for="ev in todayEvents" :key="ev.id" class="today-event-item">
-              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
-              <div class="today-event-body">
-                <div class="today-event-title">{{ ev.title }}</div>
-                <div class="today-event-time">{{ ev.isAllDay ? '종일' : formatEventTime(ev.startAt) }}</div>
-              </div>
-            </li>
-          </ul>
-
-          <!-- 다가오는 일정 -->
-          <div class="sidebar-header sidebar-header--secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-section-icon"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>
-            <span class="sidebar-section-text">다가오는 일정</span>
-            <span class="sidebar-section-line"></span>
-          </div>
-          <ul class="upcoming-events-list">
-            <li v-if="!upcomingEvents.length" class="sidebar-empty-text">다가오는 일정이 없습니다</li>
-            <li v-for="ev in upcomingEvents" :key="ev.id" class="upcoming-event-item">
-              <span class="today-event-dot" :style="{ background: ev.calendarColor || 'var(--accent)' }"></span>
-              <span class="upcoming-event-date">{{ formatEventDate(ev.startAt) }}</span>
-              <span class="upcoming-event-title">{{ ev.title }}</span>
-            </li>
-          </ul>
         </template>
         </template>
       </aside>
@@ -406,24 +407,22 @@ const todayCard = computed(() => {
   }
 })
 
-const todayEvents = ref([])
-const upcomingEvents = ref([])
+const WEEKDAY_LABELS_KO = ['일', '월', '화', '수', '목', '금', '토']
 
-async function fetchTodayEvents() {
-  try {
-    const res = await api.get('/dashboard/today-events')
-    todayEvents.value = res.data.data || []
-  } catch {
-    todayEvents.value = []
-  }
+function toDateKey(dt) {
+  const d = new Date(dt)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-async function fetchUpcomingEvents() {
+const weekEvents = ref([])
+const selectedWeekDate = ref(toDateKey(new Date()))
+
+async function fetchWeekEvents() {
   try {
-    const res = await api.get('/dashboard/upcoming-events', { params: { limit: 5 } })
-    upcomingEvents.value = res.data.data || []
+    const res = await api.get('/dashboard/week-events')
+    weekEvents.value = res.data.data || []
   } catch {
-    upcomingEvents.value = []
+    weekEvents.value = []
   }
 }
 
@@ -432,17 +431,54 @@ function formatEventTime(dt) {
   return new Date(dt).toTimeString().slice(0, 5)
 }
 
-function formatEventDate(dt) {
-  const weekLabels = ['일', '월', '화', '수', '목', '금', '토']
-  const d = new Date(dt)
-  return `${d.getMonth() + 1}/${d.getDate()}(${weekLabels[d.getDay()]})`
-}
+// 이번 주 일(공휴일 포함) ~ 토 날짜 목록
+const weekDates = computed(() => {
+  const now = new Date()
+  const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sunday)
+    d.setDate(sunday.getDate() + i)
+    return d
+  })
+})
+
+const weekRangeLabel = computed(() => {
+  const first = weekDates.value[0]
+  const last = weekDates.value[6]
+  return `${first.getMonth() + 1}.${first.getDate()} – ${last.getMonth() + 1}.${last.getDate()}`
+})
+
+const weekDays = computed(() => {
+  const todayKey = toDateKey(new Date())
+  const eventKeys = new Set(weekEvents.value.map(ev => toDateKey(ev.startAt)))
+  return weekDates.value.map((d, i) => {
+    const dateKey = toDateKey(d)
+    return {
+      dateKey,
+      dow: WEEKDAY_LABELS_KO[i],
+      day: d.getDate(),
+      month: d.getMonth() + 1,
+      isToday: dateKey === todayKey,
+      hasEvent: eventKeys.has(dateKey),
+    }
+  })
+})
+
+const selectedDayLabel = computed(() => {
+  const d = weekDays.value.find(w => w.dateKey === selectedWeekDate.value)
+  if (!d) return ''
+  return d.isToday ? `오늘 · ${d.month}월 ${d.day}일` : `${d.month}월 ${d.day}일 (${d.dow})`
+})
+
+const selectedDayEvents = computed(() =>
+  weekEvents.value
+    .filter(ev => toDateKey(ev.startAt) === selectedWeekDate.value)
+    .slice()
+    .sort((a, b) => new Date(a.startAt) - new Date(b.startAt))
+)
 
 watch(isDashboard, (on) => {
-  if (on) {
-    fetchTodayEvents()
-    fetchUpcomingEvents()
-  }
+  if (on) fetchWeekEvents()
 }, { immediate: true })
 
 // ===== 마이페이지 사이드바 =====
@@ -645,16 +681,6 @@ onMounted(async () => {
   color: var(--t3);
 }
 
-.sidebar-section-count {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--accent);
-  background: var(--accent-bg);
-  padding: 1px 7px;
-  border-radius: 9px;
-  flex-shrink: 0;
-}
-
 .sidebar-empty-text {
   padding: 8px 10px;
   margin: 0;
@@ -746,9 +772,107 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
-/* ===== 오늘 일정 / 다가오는 일정 ===== */
-.today-events-list,
-.upcoming-events-list {
+/* ===== 이번 주 (주간 스트립 + 일정) ===== */
+.week-strip-card {
+  margin-top: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 13px;
+  box-shadow: var(--shadow-sm);
+}
+
+.week-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.week-strip-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--t1);
+}
+
+.week-strip-range {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.week-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.week-strip-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 0;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.week-strip-cell:hover { background: var(--surface2); }
+
+.week-strip-cell.is-today { background: var(--accent); }
+.week-strip-cell.is-today:hover { background: var(--accent); }
+
+.week-strip-cell.is-selected { background: var(--accent-bg); }
+
+.week-strip-dow {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--t3);
+}
+.week-strip-dow.sun { color: var(--new); }
+.week-strip-dow.sat { color: var(--accent); }
+.week-strip-cell.is-today .week-strip-dow,
+.week-strip-cell.is-today .week-strip-dow.sun,
+.week-strip-cell.is-today .week-strip-dow.sat {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.week-strip-day {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--t1);
+}
+.week-strip-cell.is-today .week-strip-day { color: #fff; }
+.week-strip-cell.is-selected .week-strip-day { color: var(--accent); }
+
+.week-strip-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+}
+.week-strip-dot.is-visible { background: var(--accent); }
+.week-strip-cell.is-today .week-strip-dot.is-visible { background: rgba(255, 255, 255, 0.9); }
+
+.week-strip-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 2px 9px;
+}
+
+.week-strip-selected-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  padding: 0 2px 7px;
+}
+
+.today-events-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -761,15 +885,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
-}
-
-.upcoming-event-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 10px;
+  padding: 5px 10px;
   border-radius: 10px;
 }
 
@@ -796,25 +912,6 @@ onMounted(async () => {
   font-size: 11.5px;
   color: var(--t3);
   margin-top: 1px;
-}
-
-.upcoming-event-date {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--t3);
-}
-
-.upcoming-event-title {
-  min-width: 0;
-  flex: 1;
-  font-size: 13.5px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--t1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ===== 즐겨찾는 메뉴 ===== */

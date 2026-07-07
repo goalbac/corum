@@ -421,12 +421,13 @@ public class DashboardWidgetService {
                 .toList();
     }
 
-    /** 오늘 하루 동안의 열람 권한 있는 일정 (홈 사이드바 '오늘 일정' 위젯용) */
+    /** 이번 주(일~토) 열람 권한 있는 일정 (홈 사이드바 '주간 스트립' 위젯용) */
     @Transactional(readOnly = true)
-    public List<DashboardCalendarEventResponse> getTodayEvents(Long memberId) {
-        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+    public List<DashboardCalendarEventResponse> getWeekEvents(Long memberId) {
+        LocalDate sunday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
+        LocalDateTime weekStart = sunday.atStartOfDay();
         // PostgreSQL timestamp는 마이크로초 단위라 minusNanos(1)이 반올림되어 다음날 자정과 같아짐 → minusSeconds(1) 사용
-        LocalDateTime todayEnd = todayStart.plusDays(1).minusSeconds(1);
+        LocalDateTime weekEnd = sunday.plusDays(7).atStartOfDay().minusSeconds(1);
 
         List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
         List<CalendarEntity> calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
@@ -437,37 +438,11 @@ public class DashboardWidgetService {
         Map<Long, CalendarEntity> calMap = calendarList.stream()
                 .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
 
-        return calendarService.getEvents(todayStart, todayEnd, memberId, null)
+        return calendarService.getEvents(weekStart, weekEnd, memberId, null)
                 .stream()
                 .filter(dto -> calMap.containsKey(dto.getCalendarId()))
                 .map(dto -> new DashboardCalendarEventResponse(dto, calMap.get(dto.getCalendarId())))
                 .sorted(java.util.Comparator.comparing(DashboardCalendarEventResponse::getStartAt))
-                .toList();
-    }
-
-    /** 내일부터 60일 이내의 열람 권한 있는 일정 (홈 사이드바 '다가오는 일정' 위젯용) */
-    @Transactional(readOnly = true)
-    public List<DashboardCalendarEventResponse> getUpcomingEvents(Long memberId, int limit) {
-        LocalDate today = LocalDate.now();
-        LocalDateTime rangeStart = today.plusDays(1).atStartOfDay();
-        // PostgreSQL timestamp는 마이크로초 단위라 minusNanos(1)이 반올림되어 다음날 자정과 같아짐 → minusSeconds(1) 사용
-        LocalDateTime rangeEnd = today.plusDays(61).atStartOfDay().minusSeconds(1);
-
-        List<Long> readableIds = calendarService.getReadableCalendarIds(memberId);
-        List<CalendarEntity> calendarList = calendarRepository.findByIsActiveTrueOrderBySortOrderAscIdAsc().stream()
-                .filter(c -> readableIds.contains(c.getId()) || "HOLIDAY".equals(c.getCalendarType()))
-                .collect(Collectors.toList());
-        if (calendarList.isEmpty()) return List.of();
-
-        Map<Long, CalendarEntity> calMap = calendarList.stream()
-                .collect(Collectors.toMap(CalendarEntity::getId, c -> c));
-
-        return calendarService.getEvents(rangeStart, rangeEnd, memberId, null)
-                .stream()
-                .filter(dto -> calMap.containsKey(dto.getCalendarId()))
-                .map(dto -> new DashboardCalendarEventResponse(dto, calMap.get(dto.getCalendarId())))
-                .sorted(java.util.Comparator.comparing(DashboardCalendarEventResponse::getStartAt))
-                .limit(Math.max(1, limit))
                 .toList();
     }
 

@@ -54,20 +54,11 @@ public class DashboardController {
         return ApiResponse.ok(dashboardWidgetService.getStats());
     }
 
-    /** 오늘 일정 (홈 사이드바 '오늘 일정' 위젯용, 열람 권한 필터링됨) */
-    @GetMapping("/today-events")
-    public ApiResponse<List<DashboardCalendarEventResponse>> getTodayEvents(
+    /** 이번 주 일정 (홈 사이드바 '주간 스트립' 위젯용, 열람 권한 필터링됨) */
+    @GetMapping("/week-events")
+    public ApiResponse<List<DashboardCalendarEventResponse>> getWeekEvents(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        return ApiResponse.ok(dashboardWidgetService.getTodayEvents(memberId));
-    }
-
-    /** 다가오는 일정 (홈 사이드바 '다가오는 일정' 위젯용, 열람 권한 필터링됨) */
-    @GetMapping("/upcoming-events")
-    public ApiResponse<List<DashboardCalendarEventResponse>> getUpcomingEvents(
-            @RequestParam(defaultValue = "5") int limit,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        return ApiResponse.ok(dashboardWidgetService.getUpcomingEvents(memberId, limit));
+        return ApiResponse.ok(dashboardWidgetService.getWeekEvents(memberId));
     }
 }
