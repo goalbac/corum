@@ -28,40 +28,43 @@
 
         <div class="drawer-panels">
           <nav class="drawer-left" aria-label="대메뉴">
-            <div class="drawer-left-scroll">
-              <button
-                v-for="menu in menuStore.topMenus"
-                :key="menu.id"
-                type="button"
-                class="drawer-left-item"
-                :class="{ active: mobileSelectedTop?.id === menu.id }"
-                @click="selectDrawerTop(menu)"
-              >
-                {{ menu.name }}
-              </button>
-            </div>
+            <button
+              v-for="menu in menuStore.topMenus"
+              :key="menu.id"
+              type="button"
+              class="drawer-left-item"
+              :class="{ active: mobileSelectedTop?.id === menu.id }"
+              @click="selectDrawerTop(menu)"
+            >
+              {{ menu.name }}
+            </button>
 
-            <!-- 즐겨찾는 메뉴 (하단 고정) -->
-            <div class="drawer-left-favs">
-              <div class="drawer-left-favs-title">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"></polygon></svg>
-                <span>즐겨찾는 메뉴</span>
-              </div>
-              <p v-if="!favoriteMenuItems.length" class="drawer-left-favs-empty">없음</p>
+            <button
+              type="button"
+              class="drawer-left-item drawer-left-item--fav"
+              :class="{ active: mobileSelectedTop?.id === FAVORITES_TAB_ID }"
+              @click="selectDrawerFavorites"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.6 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.6 12 2"></polygon></svg>
+              즐겨찾는 메뉴
+            </button>
+          </nav>
+
+          <div class="drawer-right" ref="drawerRightRef">
+            <template v-if="mobileSelectedTop?.id === FAVORITES_TAB_ID">
+              <p v-if="!favoriteMenuItems.length" class="drawer-fav-empty">즐겨찾는 메뉴가 없습니다</p>
               <button
                 v-for="fav in favoriteMenuItems"
                 :key="fav.id"
                 type="button"
-                class="drawer-fav-item"
+                class="drawer-fav-leaf"
                 @click="handleDrawerNav(fav)"
               >
-                {{ fav.name }}
+                <span v-if="favMenuPath(fav)" class="drawer-fav-path">{{ favMenuPath(fav) }}</span>
+                <span class="drawer-fav-name">{{ fav.name }}</span>
               </button>
-            </div>
-          </nav>
-
-          <div class="drawer-right" ref="drawerRightRef">
-            <template v-if="mobileSelectedTop">
+            </template>
+            <template v-else-if="mobileSelectedTop">
               <template v-if="mobileSelectedTop.children?.length">
                 <template v-for="group in mobileSelectedTop.children" :key="group.id">
                   <template v-if="group.children?.length">
@@ -234,7 +237,10 @@
                 <svg v-else-if="fav.pageType === 'CALENDAR'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line></svg>
                 <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="14 3 14 9 20 9"/></svg>
               </span>
-              <span class="tree-label">{{ fav.name }}</span>
+              <span class="fav-node-body">
+                <span v-if="favMenuPath(fav)" class="fav-node-path">{{ favMenuPath(fav) }}</span>
+                <span class="tree-label">{{ fav.name }}</span>
+              </span>
               <svg class="fav-node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </nav>
@@ -372,6 +378,17 @@ const favoriteMenuItems = computed(() =>
     .map(id => menuStore.findMenuById(id))
     .filter(Boolean)
 )
+
+// 동명 메뉴 구분용 경로 표시 (예: "한울인 안내 > 게시판")
+function favMenuPath(menu) {
+  const parts = []
+  let current = menu?.parent
+  while (current) {
+    parts.unshift(current.name)
+    current = current.parent
+  }
+  return parts.join(' > ')
+}
 
 const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 const WEEKDAY_FULL_LABELS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
@@ -522,6 +539,8 @@ function handleSideClick(menu) {
 }
 
 // ===== 모바일 드로어 =====
+const FAVORITES_TAB_ID = '__favorites__'
+
 function selectDrawerTop(menu) {
   if (menu.children?.length) {
     mobileSelectedTop.value = menu
@@ -529,6 +548,11 @@ function selectDrawerTop(menu) {
   } else {
     handleDrawerNav(menu)
   }
+}
+
+function selectDrawerFavorites() {
+  mobileSelectedTop.value = { id: FAVORITES_TAB_ID, name: '즐겨찾는 메뉴' }
+  nextTick(() => { if (drawerRightRef.value) drawerRightRef.value.scrollTop = 0 })
 }
 
 function handleDrawerNav(menu) {
@@ -794,6 +818,25 @@ onMounted(async () => {
 }
 
 /* ===== 즐겨찾는 메뉴 ===== */
+.fav-node { align-items: center; }
+
+.fav-node-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fav-node-path {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .fav-node-chevron {
   flex-shrink: 0;
   opacity: 0.5;
@@ -1117,64 +1160,11 @@ onMounted(async () => {
 .drawer-left {
   width: 120px;
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
   background: var(--surface2);
   border-right: 1px solid var(--border);
-  min-height: 0;
-}
-
-.drawer-left-scroll {
-  flex: 1;
-  min-height: 0;
   overflow-y: auto;
   padding: 8px 0;
 }
-
-.drawer-left-favs {
-  flex-shrink: 0;
-  max-height: 40%;
-  overflow-y: auto;
-  padding: 10px 0 8px;
-  border-top: 1px solid var(--border);
-}
-
-.drawer-left-favs-title {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 14px 6px;
-  color: var(--t3);
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-.drawer-left-favs-empty {
-  margin: 0;
-  padding: 4px 14px;
-  font-size: 12px;
-  color: var(--t3);
-}
-
-.drawer-fav-item {
-  display: block;
-  width: 100%;
-  padding: 10px 14px;
-  border: none;
-  background: transparent;
-  color: var(--t2);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-align: left;
-  line-height: 1.35;
-  cursor: pointer;
-  word-break: keep-all;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.drawer-fav-item:hover { color: var(--t1); background: var(--surface); }
 
 .drawer-left-item {
   width: 100%;
@@ -1196,6 +1186,52 @@ onMounted(async () => {
   font-weight: 800;
   background: var(--surface);
   border-right: 2px solid var(--accent);
+}
+
+.drawer-left-item--fav {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+
+.drawer-fav-empty {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.drawer-fav-leaf {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.drawer-fav-leaf:hover { background: var(--surface2); }
+
+.drawer-fav-path {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-fav-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .drawer-right {
