@@ -466,7 +466,9 @@ function buildFcData(rawEvents, wid) {
   return rawEvents
     .filter(ev => ev.calendarType !== 'HOLIDAY' && !ev.isHoliday)
     .map(ev => ({
-      id: String(ev.id),
+      // 반복 일정은 같은 DB id로 여러 occurrence가 생성되는데, FullCalendar는 id가
+      // 같은 이벤트를 병합(merge)해버려 월간 위젯에서 반복 일정이 하나만 남는 문제가 있었음
+      id: `${ev.id}_${ev.startAt}`,
       title: ev.title,
       start: ev.startAt,
       // FullCalendar all-day end는 exclusive → 백엔드 inclusive end에 +1일

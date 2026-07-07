@@ -558,7 +558,10 @@ async function fetchEvents(info, successCallback, failureCallback) {
     const events = allData.filter(e => !holidayCalIds.has(e.calendarId)).map(e => {
       const cal = calendars.value.find(c => c.id === e.calendarId)
       return {
-        id: String(e.id),
+        // 반복 일정은 같은 DB id로 여러 occurrence가 생성되는데, FullCalendar는 id가
+        // 같은 이벤트를 병합(merge)해버려 반복 일정이 하나만 남는 문제가 있었음 →
+        // 렌더링용 id는 occurrence별로 유니크하게 만들고, 실제 DB id는 extendedProps.realId로 보관
+        id: `${e.id}_${e.startAt}`,
         title: e.title,
         start: e.startAt,
         // FullCalendar은 all-day end를 exclusive로 처리하므로 하루 추가
@@ -573,6 +576,7 @@ async function fetchEvents(info, successCallback, failureCallback) {
         borderColor: cal?.color || '#2563EB',
         textColor: '#ffffff',
         extendedProps: {
+          realId: e.id,
           description: e.description,
           location: e.location,
           calendarId: e.calendarId,
@@ -805,7 +809,7 @@ async function saveEvent() {
       recurrenceRule: buildRecurrenceRule(),
     }
     if (editingEvent.value) {
-      await api.put(`/calendars/events/${editingEvent.value.id}`, payload)
+      await api.put(`/calendars/events/${editingEvent.value.extendedProps.realId}`, payload)
     } else {
       await api.post('/calendars/events', payload)
     }
@@ -817,7 +821,7 @@ async function saveEvent() {
 
 async function deleteEvent() {
   await ElMessageBox.confirm('일정을 삭제하시겠습니까?', '삭제', { type: 'warning' })
-  await api.delete(`/calendars/events/${editingEvent.value.id}`)
+  await api.delete(`/calendars/events/${editingEvent.value.extendedProps.realId}`)
   showForm.value = false
   calApi.value?.refetchEvents()
   ElMessage.success('삭제되었습니다.')
