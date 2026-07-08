@@ -5,7 +5,9 @@ import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.notification.*;
 import com.corum.backend.dto.notification.NotificationResponse;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.mail.MailTemplateService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +24,11 @@ public class NotificationService {
     private final NotificationDefaultRepository defaultRepository;
     private final MemberRepository memberRepository;
     private final MailService mailService;
+    private final MailTemplateService mailTemplateService;
     private final WebPushService webPushService;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     // ===== 알림 생성 =====
     @Transactional
@@ -76,10 +82,11 @@ public class NotificationService {
         try {
             memberRepository.findById(memberId).ifPresent(member -> {
                 if (member.getEmail() == null) return;
-                String body = "<p><b>" + title + "</b></p>"
-                        + (content != null ? "<p>" + content + "</p>" : "")
-                        + (linkUrl != null ? "<p><a href='http://localhost:5173" + linkUrl + "'>바로가기</a></p>" : "");
-                mailService.sendAsync(memberId, member.getEmail(), "[Corum] " + title, body, "NOTIFICATION");
+                String ctaUrl = linkUrl != null ? frontendUrl + linkUrl : null;
+                String html = mailTemplateService.render(MailTemplateService.ICON_COMMENT, MailTemplateService.TINT_GREEN, MailTemplateService.STROKE_GREEN,
+                        title, content, null,
+                        ctaUrl != null ? "바로가기" : null, ctaUrl);
+                mailService.sendAsync(memberId, member.getEmail(), "[Corum] " + title, html, "NOTIFICATION");
             });
         } catch (Exception ignored) { }
     }

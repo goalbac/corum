@@ -25,6 +25,7 @@ import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.group.GroupService;
 import com.corum.backend.service.log.OperationLogService;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.mail.MailTemplateService;
 import com.corum.backend.service.notification.NotificationService;
 import com.corum.backend.service.terms.TermsService;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,6 +53,7 @@ public class AuthService {
     private final GroupService groupService;
     private final MemberGroupRepository memberGroupRepository;
     private final MailService mailService;
+    private final MailTemplateService mailTemplateService;
     private final OperationLogService operationLogService;
     private final TermsService termsService;
     private final SiteSettingRepository siteSettingRepository;
@@ -164,9 +166,10 @@ public class AuthService {
         memberRepository.findByEmail(request.getEmail()).ifPresent(member -> {
             String token = jwtProvider.createPurposeToken(member.getId(), member.getUsername(), "PASSWORD_RESET", 1000L * 60 * 30);
             String link = frontendUrl + "/reset-password?token=" + token;
-            mailService.send(member.getId(), member.getEmail(), "[Corum] 비밀번호 재설정",
-                    "<p>아래 링크에서 비밀번호를 재설정해주세요.</p><p><a href=\"" + link + "\">비밀번호 재설정</a></p>",
-                    "PASSWORD_RESET");
+            String html = mailTemplateService.render(MailTemplateService.ICON_LOCK, MailTemplateService.TINT_ORANGE, MailTemplateService.STROKE_ORANGE,
+                    "비밀번호 재설정", "아래 버튼을 눌러 새 비밀번호를 설정해주세요.<br>(30분간 유효)", null,
+                    "비밀번호 재설정하기", link);
+            mailService.send(member.getId(), member.getEmail(), "[Corum] 비밀번호 재설정", html, "PASSWORD_RESET");
         });
     }
 
@@ -184,11 +187,10 @@ public class AuthService {
         String token = jwtProvider.createPurposeToken(member.getId(), member.getUsername(), "PASSWORD_RESET", 1000L * 60 * 30);
         String link = frontendUrl + "/reset-password?token=" + token;
         String memberName = member.getName() != null ? member.getName() : member.getUsername();
-        mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 비밀번호 재설정 안내",
-                "<p>" + memberName + "님의 비밀번호가 관리자에 의해 초기화되었습니다.</p>" +
-                "<p>아래 링크에서 새 비밀번호를 설정해주세요. (30분간 유효)</p>" +
-                "<p><a href=\"" + link + "\">비밀번호 재설정</a></p>",
-                "PASSWORD_RESET");
+        String html = mailTemplateService.render(MailTemplateService.ICON_LOCK, MailTemplateService.TINT_ORANGE, MailTemplateService.STROKE_ORANGE,
+                "비밀번호가 초기화되었습니다", memberName + "님의 비밀번호가 관리자에 의해 초기화되었습니다.<br>아래 버튼에서 새 비밀번호를 설정해주세요. (30분간 유효)", null,
+                "비밀번호 재설정하기", link);
+        mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 비밀번호 재설정 안내", html, "PASSWORD_RESET");
         operationLogService.audit(adminId, "UPDATE", "members", memberId, null, "password_reset_by_admin", httpRequest);
     }
 
@@ -282,11 +284,12 @@ public class AuthService {
     private void sendVerificationEmail(Member member) {
         String token = jwtProvider.createPurposeToken(member.getId(), member.getUsername(), "EMAIL_VERIFY", 1000L * 60 * 60 * 24);
         String link = frontendUrl + "/verify-email?token=" + token;
+        String html = mailTemplateService.render(MailTemplateService.ICON_CHECK, MailTemplateService.TINT_GREEN, MailTemplateService.STROKE_GREEN,
+                "이메일 인증", "아래 버튼을 눌러 이메일 인증을 완료해주세요.", null,
+                "이메일 인증하기", link);
         // 비동기 + 예외 무시 — 메일 발송 실패가 register()의 회원 저장 트랜잭션까지
         // 롤백시키지 않도록 한다 (SMTP 장애 시에도 계정은 정상 생성되어야 함)
-        mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 이메일 인증",
-                "<p>아래 링크를 눌러 이메일 인증을 완료해주세요.</p><p><a href=\"" + link + "\">이메일 인증</a></p>",
-                "EMAIL_VERIFY");
+        mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 이메일 인증", html, "EMAIL_VERIFY");
     }
 
     private void validatePurpose(String token, String purpose) {

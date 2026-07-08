@@ -14,10 +14,12 @@ import com.corum.backend.dto.message.MessageResponse;
 import com.corum.backend.dto.message.MessageSendRequest;
 import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.mail.MailTemplateService;
 import com.corum.backend.service.notification.NotificationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -36,9 +38,13 @@ public class MessageService {
     private final MessageRecipientRepository messageRecipientRepository;
     private final MemberRepository memberRepository;
     private final MailService mailService;
+    private final MailTemplateService mailTemplateService;
     private final NotificationService notificationService;
     private final FileStorageService fileStorageService;
     private final ObjectMapper objectMapper;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     // ===== 쪽지 발송 (파일 포함, 컨트롤러 진입점) =====
     @Transactional
@@ -78,9 +84,12 @@ public class MessageService {
         String notifContent = messagePreview(safeContent, hasFiles, 50);
 
         memberRepository.findAllById(recipientIds).forEach(member -> {
-            mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다",
-                        "<p><strong>" + saved.getTitle() + "</strong></p><p>Corum에서 쪽지를 확인해주세요.</p>",
-                        "MESSAGE_NOTIFY");
+            String card = "<div style=\"font-size:13px;font-weight:700;margin-bottom:6px;\">" + senderName + "</div>"
+                    + "<div style=\"font-size:14px;color:#3a4252;line-height:1.65;\">" + saved.getTitle() + "</div>";
+            String html = mailTemplateService.render(MailTemplateService.ICON_MAIL, MailTemplateService.TINT_BLUE, MailTemplateService.STROKE_BLUE,
+                    "새 쪽지가 도착했어요", senderName + "님이 쪽지를 보냈습니다.", card,
+                    "쪽지 확인하기", frontendUrl + "/messages");
+            mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 새 쪽지가 도착했습니다", html, "MESSAGE_NOTIFY");
             try {
                 notificationService.create(member.getId(), "MESSAGE",
                         senderName + "님이 쪽지를 보냈습니다", notifContent, "/messages");

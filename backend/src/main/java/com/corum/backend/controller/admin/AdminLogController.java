@@ -8,6 +8,7 @@ import com.corum.backend.dto.log.VisitLogResponse;
 import com.corum.backend.dto.mail.SmtpTestRequest;
 import com.corum.backend.service.log.AdminLogService;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.mail.MailTemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class AdminLogController {
 
     private final AdminLogService adminLogService;
     private final MailService mailService;
+    private final MailTemplateService mailTemplateService;
 
     @GetMapping("/audit")
     public ApiResponse<Page<AuditLogResponse>> getAuditLogs(@RequestParam(defaultValue = "0") int page,
@@ -53,7 +55,9 @@ public class AdminLogController {
 
     @PostMapping("/smtp/test")
     public ApiResponse<Void> sendTestMail(@Valid @RequestBody SmtpTestRequest request) {
-        mailService.send(null, request.getToEmail(), "[Corum] SMTP 테스트", "<p>SMTP 테스트 메일입니다.</p>", "TEST");
+        String html = mailTemplateService.render(MailTemplateService.ICON_CHECK, MailTemplateService.TINT_BLUE, MailTemplateService.STROKE_BLUE,
+                "SMTP 테스트", "이 메일이 보인다면 SMTP 설정이 정상적으로 동작하고 있는 것입니다.", null, null, null);
+        mailService.send(null, request.getToEmail(), "[Corum] SMTP 테스트", html, "TEST");
         return ApiResponse.ok("테스트 메일을 발송했습니다.");
     }
 }

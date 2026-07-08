@@ -11,9 +11,11 @@ import com.corum.backend.dto.inquiry.InquiryCreateRequest;
 import com.corum.backend.dto.inquiry.InquiryMemoResponse;
 import com.corum.backend.dto.inquiry.InquiryResponse;
 import com.corum.backend.service.mail.MailService;
+import com.corum.backend.service.mail.MailTemplateService;
 import com.corum.backend.service.notification.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -32,8 +34,12 @@ public class InquiryService {
     private final InquiryMemoRepository inquiryMemoRepository;
     private final MemberRepository memberRepository;
     private final MailService mailService;
+    private final MailTemplateService mailTemplateService;
     private final MemberGroupRepository memberGroupRepository;
     private final NotificationService notificationService;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     // ===== 문의 접수 (비로그인 가능) =====
     @Transactional
@@ -58,9 +64,12 @@ public class InquiryService {
 
         Inquiry saved = inquiryRepository.save(inquiry);
         try {
-            mailService.sendToAdmin("[Corum] 새 문의가 접수되었습니다",
-                    "<p><strong>" + saved.getTitle() + "</strong></p><p>" + saved.getContent() + "</p>",
-                    "INQUIRY_NOTIFY");
+            String card = "<div style=\"font-size:13px;font-weight:700;margin-bottom:6px;\">" + saved.getTitle() + "</div>"
+                    + "<div style=\"font-size:14px;color:#3a4252;line-height:1.65;\">" + saved.getContent() + "</div>";
+            String html = mailTemplateService.render(MailTemplateService.ICON_MEGAPHONE, MailTemplateService.TINT_ORANGE, MailTemplateService.STROKE_ORANGE,
+                    "새 문의가 접수되었습니다", (saved.getWriterName() != null ? saved.getWriterName() : "익명") + "님이 문의를 남겼습니다.", card,
+                    "문의 확인하기", frontendUrl + "/admin/inquiries");
+            mailService.sendToAdmin("[Corum] 새 문의가 접수되었습니다", html, "INQUIRY_NOTIFY");
         } catch (Exception ignored) { }
         // 관리자 그룹 회원들에게 알림
         try {
