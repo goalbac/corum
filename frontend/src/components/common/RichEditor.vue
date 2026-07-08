@@ -22,7 +22,6 @@
             <i class="ti ti-strikethrough"></i>
           </button>
         </div>
-        <span class="toolbar-group-label">텍스트</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 제목 -->
@@ -41,7 +40,6 @@
             H3
           </button>
         </div>
-        <span class="toolbar-group-label">제목</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 정렬 -->
@@ -60,7 +58,6 @@
             <i class="ti ti-align-right"></i>
           </button>
         </div>
-        <span class="toolbar-group-label">정렬</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 목록/인용/코드 -->
@@ -101,7 +98,6 @@
             <i class="ti ti-separator"></i>
           </button>
         </div>
-        <span class="toolbar-group-label">목록/서식</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 링크/미디어 -->
@@ -131,7 +127,6 @@
             <i class="ti ti-brand-youtube"></i>
           </button>
         </div>
-        <span class="toolbar-group-label">링크/미디어</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 글자 크기 -->
@@ -147,7 +142,6 @@
             <option v-for="size in FONT_SIZES" :key="size" :value="`${size}px`">{{ size }}px</option>
           </select>
         </div>
-        <span class="toolbar-group-label">글자 크기</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- 글자색 -->
@@ -168,7 +162,6 @@
             <i class="ti ti-highlight-off"></i>
           </button>
         </div>
-        <span class="toolbar-group-label">색상</span>
       </div>
       <div class="toolbar-sep"></div>
       <!-- undo/redo -->
@@ -181,7 +174,6 @@
             <i class="ti ti-arrow-forward-up"></i>
           </button>
         </div>
-        <span class="toolbar-group-label">실행 취소</span>
       </div>
     </div>
 
@@ -442,53 +434,41 @@ onBeforeUnmount(() => { editor.destroy() })
   border-bottom: 0.5px solid var(--border);
   background: var(--surface2);
 }
-.toolbar-group-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 3px 0;
-}
-.toolbar-group-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--t3);
-  white-space: nowrap;
-}
+.toolbar-group-wrap { display: flex; align-items: center; }
 .toolbar-group { display: flex; align-items: center; gap: 2px; }
 .toolbar-sep {
   width: 1px;
-  height: 38px;
+  height: 26px;
   background: var(--border);
-  margin: 2px 2px 0;
-  align-self: flex-start;
+  margin: 0 2px;
+  align-self: center;
 }
 .editor-toolbar button,
 .color-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--t2);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   font-family: inherit;
   font-weight: 600;
   transition: var(--transition);
   padding: 0;
   line-height: 1;
+  flex-shrink: 0;
 }
 .editor-toolbar button:hover,
 .color-btn:hover { background: var(--surface); color: var(--t1); }
 .editor-toolbar button.active { background: var(--accent-bg); color: var(--accent); }
 
 .font-size-select {
-  height: 34px;
+  height: 30px;
   padding: 0 6px;
   border: none;
   border-radius: 6px;
@@ -497,11 +477,12 @@ onBeforeUnmount(() => { editor.destroy() })
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .font-size-select:hover { background: var(--surface); color: var(--t1); }
 
 .quote-style-select {
-  height: 34px;
+  height: 30px;
   padding: 0 6px;
   border: none;
   border-radius: 6px;
@@ -510,6 +491,7 @@ onBeforeUnmount(() => { editor.destroy() })
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .quote-style-select:hover { background: var(--surface); color: var(--t1); }
 
@@ -690,5 +672,18 @@ onBeforeUnmount(() => { editor.destroy() })
   font-size: 12px;
   color: var(--t4);
   border-top: 1px solid var(--border);
+}
+
+/* ===== 모바일: 줄바꿈 대신 한 줄 가로 스크롤로 화면 차지 최소화 ===== */
+@media (max-width: 640px) {
+  .editor-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 6px 8px;
+  }
+  .editor-toolbar::-webkit-scrollbar { display: none; }
+  .toolbar-sep { flex-shrink: 0; }
 }
 </style>
