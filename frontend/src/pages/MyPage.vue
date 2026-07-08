@@ -192,6 +192,23 @@
             </div>
             <p v-if="pushError" class="push-error">{{ pushError }}</p>
           </div>
+
+          <!-- 구독 중인 게시판 -->
+          <div class="board-subs-section">
+            <h3>구독 중인 게시판</h3>
+            <p class="push-desc">게시판 페이지 상단의 🔔 아이콘으로 새 글/댓글 알림을 구독할 수 있습니다.</p>
+            <p v-if="!boardSubs.length" class="board-subs-empty">구독 중인 게시판이 없습니다.</p>
+            <div v-else class="mp-table">
+              <div v-for="sub in boardSubs" :key="sub.boardId" class="mp-table-row board-subs-row">
+                <router-link :to="sub.menuId ? `/menu/${sub.menuId}` : '#'" class="board-subs-name">{{ sub.boardName }}</router-link>
+                <div class="board-subs-checks">
+                  <el-checkbox v-model="sub.notifyNewPost" @change="updateBoardSub(sub)">새 글</el-checkbox>
+                  <el-checkbox v-model="sub.notifyNewComment" @change="updateBoardSub(sub)">댓글</el-checkbox>
+                </div>
+                <button type="button" class="board-subs-unsub-btn" @click="unsubscribeBoard(sub)">구독 해제</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- 내 문의 내역 -->
@@ -638,6 +655,40 @@ async function saveNotifPrefs() {
   }
 }
 
+// ===== 구독 중인 게시판 =====
+const boardSubs = ref([])
+
+async function fetchBoardSubs() {
+  const res = await api.get('/notifications/board-subscriptions')
+  boardSubs.value = res.data.data || []
+}
+
+async function updateBoardSub(sub) {
+  try {
+    const res = await api.put(`/boards/${sub.boardId}/notification-subscription`, {
+      notifyNewPost: sub.notifyNewPost,
+      notifyNewComment: sub.notifyNewComment,
+    })
+    if (!res.data.data.notifyNewPost && !res.data.data.notifyNewComment) {
+      boardSubs.value = boardSubs.value.filter(s => s.boardId !== sub.boardId)
+    }
+  } catch {
+    ElMessage.error('알림 설정 저장 중 오류가 발생했습니다.')
+  }
+}
+
+async function unsubscribeBoard(sub) {
+  try {
+    await api.put(`/boards/${sub.boardId}/notification-subscription`, {
+      notifyNewPost: false,
+      notifyNewComment: false,
+    })
+    boardSubs.value = boardSubs.value.filter(s => s.boardId !== sub.boardId)
+  } catch {
+    ElMessage.error('구독 해제 중 오류가 발생했습니다.')
+  }
+}
+
 async function togglePush(val) {
   pushLoading.value = true
   pushError.value = ''
@@ -836,6 +887,7 @@ async function handleUploadPhoto() {
 onMounted(() => {
   fetchMember()
   fetchNotifPrefs()
+  fetchBoardSubs()
   notifStore.checkPushSubscribed()
   if (activeTab.value === 'inquiries') fetchMyInquiries()
   if (activeTab.value === 'reports')   fetchMyReports()
@@ -843,7 +895,7 @@ onMounted(() => {
 
 // 기존 watch와 통합 (new-inquiry/new-report는 위의 watch에서 처리)
 watch(activeTab, (tab) => {
-  if (tab === 'notif')     fetchNotifPrefs()
+  if (tab === 'notif')     { fetchNotifPrefs(); fetchBoardSubs() }
   if (tab === 'inquiries') fetchMyInquiries()
   if (tab === 'reports')   fetchMyReports()
 }, { immediate: false })
@@ -1280,6 +1332,28 @@ watch(activeTab, (tab) => {
   font-size: 13px;
   color: var(--danger);
 }
+
+.board-subs-section {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.board-subs-section h3 { margin: 0 0 6px; font-size: 15px; }
+.board-subs-empty { font-size: 13px; color: var(--t3); }
+.board-subs-row { gap: 12px; }
+.board-subs-name { flex: 1; font-size: 14px; color: var(--t1); text-decoration: none; }
+.board-subs-name:hover { text-decoration: underline; }
+.board-subs-checks { display: flex; gap: 16px; align-items: center; }
+.board-subs-unsub-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  color: var(--t3);
+  cursor: pointer;
+}
+.board-subs-unsub-btn:hover { color: var(--danger); border-color: var(--danger); }
 
 @media (max-width: 768px) {
   .mp-stat-card { padding: 16px; }

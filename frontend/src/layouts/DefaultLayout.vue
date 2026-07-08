@@ -321,6 +321,37 @@
                   @click="favoriteMenuStore.toggleFavorite(routeMenu.id)"
                 >⭐</button>
               </el-tooltip>
+              <el-popover
+                v-if="isBoardPage && authStore.isLoggedIn"
+                trigger="click"
+                placement="bottom"
+                width="200"
+              >
+                <template #reference>
+                  <button
+                    type="button"
+                    class="board-notif-bell-btn"
+                    :class="{ 'is-subscribed': boardSub.notifyNewPost || boardSub.notifyNewComment }"
+                    title="게시판 알림 설정"
+                  >🔔</button>
+                </template>
+                <div class="board-notif-popover-body">
+                  <label class="board-notif-check-row">
+                    <el-checkbox
+                      :model-value="boardSub.notifyNewPost"
+                      @change="v => boardNotificationStore.update(currentBoardId, { notifyNewPost: v })"
+                    />
+                    새 글 알림
+                  </label>
+                  <label class="board-notif-check-row">
+                    <el-checkbox
+                      :model-value="boardSub.notifyNewComment"
+                      @change="v => boardNotificationStore.update(currentBoardId, { notifyNewComment: v })"
+                    />
+                    댓글 알림
+                  </label>
+                </div>
+              </el-popover>
             </div>
             <h1 class="page-title">{{ routeMenu.name }}</h1>
             <p v-if="routeMenu.description" class="page-desc">{{ routeMenu.description }}</p>
@@ -348,6 +379,7 @@ import AppFooter from '@/components/common/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { useFavoriteMenuStore } from '@/stores/favoriteMenu'
+import { useBoardNotificationStore } from '@/stores/boardNotification'
 import KoreanLunarCalendar from 'korean-lunar-calendar'
 import api from '@/api/axios'
 
@@ -356,6 +388,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
 const favoriteMenuStore = useFavoriteMenuStore()
+const boardNotificationStore = useBoardNotificationStore()
 const mobileMenuOpen = ref(false)
 const openMenuIds = ref([])
 const mobileSelectedTop = ref(null)
@@ -365,6 +398,9 @@ const routeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
 const activeTopMenu = computed(() => menuStore.findTopMenu(route.params.menuId))
 const isDetailPage = computed(() => !!route.params.postId)
 const isWritePage = computed(() => route.path.endsWith('/write'))
+const isBoardPage = computed(() => routeMenu.value?.pageType === 'BOARD')
+const currentBoardId = computed(() => routeMenu.value?.targetId ? Number(routeMenu.value.targetId) : null)
+const boardSub = computed(() => boardNotificationStore.get(currentBoardId.value))
 // 안내 페이지·캘린더는 본문 max-width에 맞춰 헤더(브레드크럼/제목)도 좁게 정렬
 const isNarrowContentPage = computed(() => ['CONTENT', 'CALENDAR1'].includes(routeMenu.value?.pageType))
 const sideMenus = computed(() => activeTopMenu.value?.children || [])
@@ -611,6 +647,12 @@ watch(mobileMenuOpen, (open) => {
 
 watch(activeTopMenu, menu => {
   menuStore.setActiveTopMenu(menu?.id ?? null)
+}, { immediate: true })
+
+watch([isBoardPage, currentBoardId], ([isBoard, boardId]) => {
+  if (isBoard && boardId && authStore.isLoggedIn) {
+    boardNotificationStore.fetch(boardId)
+  }
 }, { immediate: true })
 
 watch(routeMenu, menu => {
@@ -1130,6 +1172,36 @@ onMounted(async () => {
 .favorite-star-btn:hover { transform: scale(1.12); }
 
 .favorite-star-btn.is-favorite { filter: none; }
+
+.board-notif-bell-btn {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 4px;
+  filter: grayscale(1) opacity(0.55);
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.board-notif-bell-btn:hover { transform: scale(1.12); }
+
+.board-notif-bell-btn.is-subscribed { filter: none; }
+
+.board-notif-popover-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.board-notif-check-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
 
 .bc-wrap {
   display: flex;

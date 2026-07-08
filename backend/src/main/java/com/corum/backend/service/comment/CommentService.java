@@ -11,6 +11,7 @@ import com.corum.backend.domain.group.GroupRepository;
 import com.corum.backend.domain.group.MemberGroup;
 import com.corum.backend.domain.group.MemberGroupRepository;
 import com.corum.backend.domain.member.MemberRepository;
+import com.corum.backend.domain.notification.BoardNotificationSubscriptionRepository;
 import com.corum.backend.domain.post.Post;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.comment.CommentCreateRequest;
@@ -45,6 +46,7 @@ public class CommentService {
     private final BoardGroupPermissionRepository boardGroupPermissionRepository;
     private final BoardService boardService;
     private final NotificationService notificationService;
+    private final BoardNotificationSubscriptionRepository boardNotificationSubscriptionRepository;
 
     private static final int MAX_DEPTH = 2; // 0-based (0,1,2 = 3뎁스)
     private static final List<String> EMOJI_ORDER =
@@ -242,6 +244,22 @@ public class CommentService {
                 }
             });
         }
+
+        // 해당 게시판의 댓글 알림을 구독한 회원에게 알림 (작성자 본인 제외)
+        try {
+            List<Long> boardCommentSubscriberIds = boardNotificationSubscriptionRepository
+                    .findMemberIdsByBoardIdAndNotifyNewCommentTrue(targetPost.getBoardId()).stream()
+                    .filter(id -> !id.equals(memberId))
+                    .collect(Collectors.toList());
+            if (!boardCommentSubscriberIds.isEmpty()) {
+                notificationService.createForMembers(
+                        boardCommentSubscriberIds, "NEW_COMMENT_ON_SUBSCRIBED_BOARD",
+                        "'" + truncate(targetPost.getTitle(), 30) + "'에 새 댓글",
+                        writerName + ": " + truncate(request.getContent(), 50),
+                        link
+                );
+            }
+        } catch (Exception ignored) { }
 
         return new CommentResponse(saved);
     }

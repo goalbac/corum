@@ -20,6 +20,7 @@ import com.corum.backend.dto.post.PostResponse;
 import com.corum.backend.dto.post.PostSummaryResponse;
 import com.corum.backend.dto.post.ReactionResult;
 import com.corum.backend.domain.comment.CommentRepository;
+import com.corum.backend.domain.notification.BoardNotificationSubscriptionRepository;
 import com.corum.backend.service.board.BoardService;
 import com.corum.backend.service.file.FileStorageService;
 import com.corum.backend.service.notification.NotificationService;
@@ -57,6 +58,7 @@ public class PostService {
     private final BoardRepository boardRepository;
     private final BoardService boardService;
     private final NotificationService notificationService;
+    private final BoardNotificationSubscriptionRepository boardNotificationSubscriptionRepository;
 
     // 24시간 내 동일 게시글 중복 조회 방지 (key: "postId:u{memberId}" or "postId:i{ip}")
     private static final long VIEW_THROTTLE_MS = 24 * 60 * 60 * 1000L;
@@ -253,6 +255,20 @@ public class PostService {
             if (!managerIds.isEmpty()) {
                 notificationService.createForMembers(
                         managerIds, "NEW_POST_ON_MANAGED_BOARD",
+                        "새 게시글: " + truncate(request.getTitle(), 30),
+                        writerName + "님이 게시글을 작성했습니다.",
+                        "/board/" + boardId + "/posts/" + saved.getId()
+                );
+            }
+
+            // 해당 게시판을 구독한 회원에게 새 게시글 알림 (작성자 및 이미 알림 받은 관리자 제외)
+            List<Long> subscriberIds = boardNotificationSubscriptionRepository
+                    .findMemberIdsByBoardIdAndNotifyNewPostTrue(boardId).stream()
+                    .filter(id -> !id.equals(memberId) && !managerIds.contains(id))
+                    .collect(Collectors.toList());
+            if (!subscriberIds.isEmpty()) {
+                notificationService.createForMembers(
+                        subscriberIds, "NEW_POST_ON_SUBSCRIBED_BOARD",
                         "새 게시글: " + truncate(request.getTitle(), 30),
                         writerName + "님이 게시글을 작성했습니다.",
                         "/board/" + boardId + "/posts/" + saved.getId()

@@ -702,6 +702,18 @@ CREATE TABLE member_favorite_menus (
 CREATE UNIQUE INDEX idx_member_favorite_menus_unique   ON member_favorite_menus(member_id, menu_id);
 CREATE INDEX idx_member_favorite_menus_member_id       ON member_favorite_menus(member_id);
 
+-- 게시판 단위 알림 구독 (종모양 아이콘) — 새 글/댓글 알림을 개별 on/off
+CREATE TABLE board_notification_subscriptions (
+    id                 BIGSERIAL PRIMARY KEY,
+    member_id          BIGINT    NOT NULL,
+    board_id           BIGINT    NOT NULL,
+    notify_new_post    BOOLEAN   NOT NULL DEFAULT TRUE,
+    notify_new_comment BOOLEAN   NOT NULL DEFAULT FALSE,
+    created_at         TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX idx_board_notif_subs_unique ON board_notification_subscriptions(member_id, board_id);
+CREATE INDEX idx_board_notif_subs_board_id      ON board_notification_subscriptions(board_id);
+
 -- =============================================
 -- 기본 데이터 삽입
 -- =============================================
@@ -746,13 +758,18 @@ INSERT INTO calendars (name, color, description, calendar_type, is_active) VALUE
     ('대한민국의 휴일', '#dc2626', '대한민국 공휴일 및 기념일', 'HOLIDAY', TRUE);
 
 -- 알림 기본 설정
+-- notif_type 문자열은 실제 발송 코드(NotificationService.create 호출부)와 반드시 일치해야
+-- 마이페이지 알림 설정 탭에서 회원이 끄고 켤 수 있다.
 INSERT INTO notification_defaults (notif_type, system_enabled, email_enabled, label) VALUES
-    ('NEW_MESSAGE',   TRUE, FALSE, '새 쪽지'),
-    ('NEW_COMMENT',   TRUE, FALSE, '내 글에 댓글'),
-    ('NEW_REPLY',     TRUE, FALSE, '댓글에 답글'),
-    ('SYSTEM_NOTICE', TRUE, FALSE, '시스템 공지'),
-    ('INQUIRY',       TRUE, FALSE, '새 문의 접수 (관리자)'),
-    ('INQUIRY_REPLY', TRUE, FALSE, '내 문의 답변');
+    ('MESSAGE',                         TRUE, FALSE, '새 쪽지'),
+    ('COMMENT_ON_MY_POST',              TRUE, FALSE, '내 글에 댓글'),
+    ('REPLY_ON_MY_COMMENT',             TRUE, FALSE, '댓글에 답글'),
+    ('NEW_POST_ON_MANAGED_BOARD',       TRUE, FALSE, '관리 게시판 새 글'),
+    ('CALENDAR_EVENT',                  TRUE, FALSE, '캘린더 일정 알림'),
+    ('INQUIRY',                         TRUE, FALSE, '새 문의 접수 (관리자)'),
+    ('INQUIRY_REPLY',                   TRUE, FALSE, '내 문의 답변'),
+    ('NEW_POST_ON_SUBSCRIBED_BOARD',    TRUE, FALSE, '구독한 게시판 새 글'),
+    ('NEW_COMMENT_ON_SUBSCRIBED_BOARD', TRUE, FALSE, '구독한 게시판 새 댓글');
 
 -- 관리자 메뉴 시드
 INSERT INTO admin_menus (parent_id, name, url, icon, sort_order, is_active) VALUES
