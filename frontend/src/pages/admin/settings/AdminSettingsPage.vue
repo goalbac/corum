@@ -110,6 +110,10 @@
         <el-form-item>
           <el-switch v-model="form.allowConcurrentLogin" active-text="동시 로그인 허용" inactive-text="동시 로그인 제한" />
         </el-form-item>
+        <el-form-item>
+          <el-switch v-model="form.requireLoginSiteWide" active-text="로그인해야 사이트 이용 가능" inactive-text="비로그인 이용 허용" />
+          <p class="section-desc" style="margin:6px 0 0">켜면 로그인/가입 등 일부 화면을 제외한 사이트 전체가 비로그인 접근 시 로그인 화면으로 이동합니다.</p>
+        </el-form-item>
       </section>
 
       <!-- ⑤ 파일 정책 -->
@@ -123,6 +127,19 @@
             <el-input v-model="form.fileAllowedExtensions" placeholder="jpg,png,pdf,docx" />
           </el-form-item>
         </div>
+      </section>
+
+      <!-- ⑤-1 메뉴 기본값 -->
+      <section class="settings-section">
+        <h3>메뉴 기본값</h3>
+        <el-form-item label="새 메뉴 추가 시 기본 접근 권한">
+          <el-select v-model="form.defaultMenuAccessType" style="width:240px">
+            <el-option label="모든 사용자" value="ALL" />
+            <el-option label="로그인 사용자" value="LOGIN" />
+            <el-option label="그룹 지정" value="GROUP" />
+          </el-select>
+          <p class="section-desc" style="margin:6px 0 0">메뉴 관리에서 새 메뉴를 추가할 때 접근 권한 필드의 초기값으로 사용됩니다. (강제 적용 아님, 추가 후 개별 변경 가능)</p>
+        </el-form-item>
       </section>
 
       <!-- ⑥ 푸터 커스텀 HTML (고급) -->
@@ -275,7 +292,9 @@ const form = ref({
   smtpPasswordEnc: '',
   smtpUseTls: true,
   footerHtml: '',
-  notificationRetentionDays: 30
+  notificationRetentionDays: 30,
+  defaultMenuAccessType: 'ALL',
+  requireLoginSiteWide: false
 })
 
 async function fetchSettings() {

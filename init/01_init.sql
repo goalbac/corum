@@ -198,6 +198,8 @@ CREATE TABLE site_settings (
     contact_phone               VARCHAR(100),
     admin_email                 VARCHAR(200),
     notification_retention_days INT          NOT NULL DEFAULT 30,
+    default_menu_access_type    VARCHAR(20)  NOT NULL DEFAULT 'ALL',
+    require_login_site_wide     BOOLEAN      NOT NULL DEFAULT FALSE,
     vapid_public_key            TEXT,
     vapid_private_key           TEXT,
     updated_at                  TIMESTAMP    NOT NULL DEFAULT NOW(),

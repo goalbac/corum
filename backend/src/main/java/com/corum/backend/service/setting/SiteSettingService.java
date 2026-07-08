@@ -54,6 +54,8 @@ public class SiteSettingService {
                 request.getContactPhone(),
                 request.getAdminEmail(),
                 request.getNotificationRetentionDays(),
+                request.getDefaultMenuAccessType(),
+                request.getRequireLoginSiteWide(),
                 updatedBy
         );
         return new SiteSettingResponse(setting);

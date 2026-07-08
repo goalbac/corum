@@ -22,7 +22,7 @@ public class SiteInfoController {
     public ApiResponse<SitePublicInfo> getPublicInfo() {
         SiteSetting s = siteSettingRepository.findTopByOrderByIdAsc().orElse(null);
         if (s == null) return ApiResponse.ok(new SitePublicInfo(
-                null, null, null, null, false, null, null, null, null, null, null));
+                null, null, null, null, false, null, null, null, null, null, null, false));
         boolean inMaintenance = Boolean.TRUE.equals(s.getMaintenanceMode()) &&
                 (s.getMaintenanceUntil() == null || s.getMaintenanceUntil().isAfter(LocalDateTime.now()));
         return ApiResponse.ok(new SitePublicInfo(
@@ -36,7 +36,8 @@ public class SiteInfoController {
                 s.getFooterHtml(),
                 s.getContactAddress(),
                 s.getContactPhone(),
-                s.getAdminEmail()
+                s.getAdminEmail(),
+                Boolean.TRUE.equals(s.getRequireLoginSiteWide())
         ));
     }
 
@@ -53,11 +54,13 @@ public class SiteInfoController {
         private final String contactAddress;
         private final String contactPhone;
         private final String adminEmail;
+        private final boolean requireLoginSiteWide;
 
         public SitePublicInfo(String siteName, String siteDescription, String logoUrl, String faviconUrl,
                               boolean maintenanceMode, String maintenanceMessage,
                               LocalDateTime maintenanceUntil, String footerHtml,
-                              String contactAddress, String contactPhone, String adminEmail) {
+                              String contactAddress, String contactPhone, String adminEmail,
+                              boolean requireLoginSiteWide) {
             this.siteName = siteName;
             this.siteDescription = siteDescription;
             this.logoUrl = logoUrl;
@@ -69,6 +72,7 @@ public class SiteInfoController {
             this.contactAddress = contactAddress;
             this.contactPhone = contactPhone;
             this.adminEmail = adminEmail;
+            this.requireLoginSiteWide = requireLoginSiteWide;
         }
     }
 }

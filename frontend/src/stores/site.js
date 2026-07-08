@@ -7,16 +7,28 @@ export const useSiteStore = defineStore('site', () => {
   const siteName = ref('Corum')
   const faviconUrl = ref(null)
   const logoUrl = ref(null)
+  const requireLoginSiteWide = ref(false)
+
+  // 라우터 가드가 매 네비게이션마다 호출해도 실제 fetch는 한 번만 일어나도록
+  // (동시에 여러 번 불려도 같은 진행중 Promise를 공유)
+  let loadPromise = null
 
   async function fetchSettings() {
-    try {
-      const res = await api.get('/site/public')
-      const d = res.data.data
-      siteName.value = d.siteName || 'Corum'
-      faviconUrl.value = resolveFileUrl(d.faviconUrl) || null
-      logoUrl.value = resolveFileUrl(d.logoUrl) || null
-      applyToDocument()
-    } catch { /* ignore */ }
+    if (loadPromise) return loadPromise
+    loadPromise = (async () => {
+      try {
+        const res = await api.get('/site/public')
+        const d = res.data.data
+        siteName.value = d.siteName || 'Corum'
+        faviconUrl.value = resolveFileUrl(d.faviconUrl) || null
+        logoUrl.value = resolveFileUrl(d.logoUrl) || null
+        requireLoginSiteWide.value = !!d.requireLoginSiteWide
+        applyToDocument()
+      } catch {
+        loadPromise = null // 실패 시 다음 네비게이션에서 재시도할 수 있게
+      }
+    })()
+    return loadPromise
   }
 
   function applyToDocument() {
@@ -34,5 +46,5 @@ export const useSiteStore = defineStore('site', () => {
     document.head.appendChild(link)
   }
 
-  return { siteName, faviconUrl, logoUrl, fetchSettings, applyToDocument }
+  return { siteName, faviconUrl, logoUrl, requireLoginSiteWide, fetchSettings, applyToDocument }
 })

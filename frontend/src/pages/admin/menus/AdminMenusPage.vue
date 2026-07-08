@@ -382,11 +382,22 @@ const rootSortable = ref(null)
 const childRefs    = ref({})
 const sortableInstances = []
 
+// 사이트 설정에서 미리 정해둔 기본 접근 권한 — 새 메뉴 추가 폼의 초기값으로만 쓰이고
+// 서버에서 강제하지는 않는다(추가 후 개별 변경 가능)
+const defaultAccessType = ref('ALL')
+
+async function fetchDefaultAccessType() {
+  try {
+    const res = await api.get('/admin/settings')
+    defaultAccessType.value = res.data.data?.defaultMenuAccessType || 'ALL'
+  } catch { /* ignore */ }
+}
+
 const defaultForm = () => ({
   name: '', menuType: 'PAGE', pageType: 'BOARD', url: '', targetId: null,
   targetCalendarIds: [], showHoliday: true,
   urlAuto: true, newWindow: false, description: '',
-  accessType: 'ALL', sortOrder: 0,
+  accessType: defaultAccessType.value, sortOrder: 0,
   isHidden: false, hideIfNoPermission: true, isActive: true,
   allowedGroupIds: [],
 })
@@ -775,7 +786,7 @@ provide('menuTreeActions', {
   resourceButtonLabel,
 })
 
-onMounted(() => { fetchMenus(); fetchBoards(); fetchCalendars(); fetchGroups() })
+onMounted(() => { fetchMenus(); fetchBoards(); fetchCalendars(); fetchGroups(); fetchDefaultAccessType() })
 onBeforeUnmount(() => {
   sortableInstances.forEach(s => s.destroy())
 })

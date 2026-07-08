@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import { useSiteStore } from '@/stores/site'
 import api from '@/api/axios'
 
 const routes = [
@@ -223,7 +224,16 @@ function redirectLegacyBoardRoute(to, menuStore) {
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const menuStore = useMenuStore()
+  const siteStore = useSiteStore()
+
+  await siteStore.fetchSettings()
+
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    return next({ name: 'Login', query: { redirect: to.fullPath } })
+  }
+  // 사이트 전체 로그인 필수 모드 — 로그인/가입/이메일인증/비번찾기 등 게스트 전용
+  // 페이지(meta.guest)는 그렇지 않으면 아무도 로그인할 방법이 없으므로 예외로 둔다
+  if (siteStore.requireLoginSiteWide && !to.meta.guest && !authStore.isLoggedIn) {
     return next({ name: 'Login', query: { redirect: to.fullPath } })
   }
   if (authStore.isLoggedIn && !authStore.member) {

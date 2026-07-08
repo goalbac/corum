@@ -31,6 +31,8 @@ public class SiteSettingResponse {
     private final String contactPhone;
     private final String adminEmail;
     private final Integer notificationRetentionDays;
+    private final String defaultMenuAccessType;
+    private final Boolean requireLoginSiteWide;
     private final String vapidPublicKey;
     private final LocalDateTime updatedAt;
     private final Long updatedBy;
@@ -59,6 +61,8 @@ public class SiteSettingResponse {
         this.contactPhone = setting.getContactPhone();
         this.adminEmail = setting.getAdminEmail();
         this.notificationRetentionDays = setting.getNotificationRetentionDays();
+        this.defaultMenuAccessType = setting.getDefaultMenuAccessType();
+        this.requireLoginSiteWide = setting.getRequireLoginSiteWide();
         this.vapidPublicKey = setting.getVapidPublicKey();
         this.updatedAt = setting.getUpdatedAt();
         this.updatedBy = setting.getUpdatedBy();
