@@ -776,6 +776,7 @@ onMounted(async () => {
   color: var(--t2);
   margin: 0 0 22px;
 }
+.post-content :deep(blockquote p:last-child) { margin-bottom: 0; }
 .post-content :deep(blockquote[data-variant="box"]) {
   border-left: none;
   border-radius: 10px;

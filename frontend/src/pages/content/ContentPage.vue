@@ -90,6 +90,7 @@ onMounted(async () => {
   color: var(--t2);
   margin: 0.8em 0;
 }
+.content-body :deep(blockquote p:last-child) { margin-bottom: 0; }
 .content-body :deep(blockquote[data-variant="box"]) {
   border-left: none;
   background: var(--surface2);

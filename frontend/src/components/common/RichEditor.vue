@@ -538,6 +538,7 @@ onBeforeUnmount(() => { editor.destroy() })
   margin: 0.8em 0;
   font-size: v-bind(blockquoteFontSize);
 }
+.editor-body :deep(.ProseMirror blockquote p:last-child) { margin-bottom: 0; }
 .editor-body :deep(.ProseMirror blockquote[data-variant="box"]) {
   border-left: none;
   background: var(--surface2);
