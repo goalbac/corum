@@ -2,8 +2,14 @@
   <div class="mypage" v-loading="loading">
     <div class="mp-layout">
       <main class="mp-content">
+
+        <div class="mp-title-row">
+          <h1>{{ currentTab?.label }}</h1>
+          <p>{{ currentTabSub }}</p>
+        </div>
+
         <!-- 프로필 통계 카드 -->
-        <div class="mp-stat-card">
+        <div v-if="activeTab === 'info'" class="mp-stat-card">
           <div class="mp-stat-avatar-wrap">
             <div class="mp-stat-avatar">
               <img
@@ -46,11 +52,6 @@
               <div class="mp-stat-num-label">가입</div>
             </div>
           </div>
-        </div>
-
-        <div class="mp-title-row">
-          <h1>{{ currentTab?.label }}</h1>
-          <p>{{ currentTabSub }}</p>
         </div>
 
         <!-- 내 정보 -->
