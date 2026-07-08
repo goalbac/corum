@@ -17,7 +17,7 @@
           <!-- IMAGE 타입 -->
           <template v-if="popup.contentType === 'IMAGE'">
             <a v-if="popup.linkUrl" :href="popup.linkUrl" :target="popup.linkNewWindow ? '_blank' : '_self'">
-              <img :src="popup.imageUrl" :alt="popup.title" class="popup-img" />
+              <img :src="resolveFileUrl(popup.imageUrl)" :alt="popup.title" class="popup-img" />
             </a>
             <img v-else :src="popup.imageUrl" :alt="popup.title" class="popup-img" />
             <div v-if="popup.content" class="popup-body">{{ popup.content }}</div>
@@ -52,6 +52,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api/axios'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const route = useRoute()
 const allPopups = ref([])

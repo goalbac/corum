@@ -71,7 +71,7 @@
           <div class="gallery-thumb">
             <template v-if="displayUrls(post).length > 0">
               <div class="carousel-track" :style="{ transform: `translateX(-${getImgIdx(post.id, displayUrls(post).length) * 100}%)` }">
-                <img v-for="(url, i) in displayUrls(post)" :key="i" :src="url" :alt="post.title" class="carousel-img" />
+                <img v-for="(url, i) in displayUrls(post)" :key="i" :src="resolveFileUrl(url)" :alt="post.title" class="carousel-img" />
               </div>
               <template v-if="displayUrls(post).length > 1">
                 <button class="carousel-btn prev" @click.stop="prevImg(post.id, displayUrls(post).length)">
@@ -86,7 +86,7 @@
               </template>
             </template>
             <template v-else-if="post.thumbnailUrl">
-              <img :src="post.thumbnailUrl" :alt="post.title" class="thumb-img" />
+              <img :src="resolveFileUrl(post.thumbnailUrl)" :alt="post.title" class="thumb-img" />
             </template>
             <div v-else class="no-thumb">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -167,7 +167,7 @@
       <div v-loading="loading" class="webzine-list card">
         <article v-for="post in posts" :key="post.id" :class="['webzine-item', { notice: post.isNotice }]" @click="goDetail(post)">
           <div class="webzine-thumb">
-            <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title" class="thumb-img" />
+            <img v-if="post.thumbnailUrl" :src="resolveFileUrl(post.thumbnailUrl)" :alt="post.title" class="thumb-img" />
             <div v-else class="no-thumb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
           </div>
           <div class="webzine-body">
@@ -195,7 +195,7 @@
     <template v-else-if="isListBoard">
       <div v-loading="loading" class="list-view card">
         <div v-for="post in posts" :key="post.id" :class="['lv-item', { notice: post.isNotice }]" @click="goDetail(post)">
-          <div v-if="post.thumbnailUrl" class="lv-thumb"><img :src="post.thumbnailUrl" :alt="post.title" /></div>
+          <div v-if="post.thumbnailUrl" class="lv-thumb"><img :src="resolveFileUrl(post.thumbnailUrl)" :alt="post.title" /></div>
           <div class="lv-body">
             <div class="lv-kicker">
               <span v-if="post.isNotice" class="notice-tag">공지</span>
@@ -305,6 +305,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const route = useRoute()
 const router = useRouter()

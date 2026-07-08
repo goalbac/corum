@@ -1,8 +1,11 @@
 import axios from 'axios'
 import { ElMessage, ElNotification } from 'element-plus'
 
+// 로컬 개발(Vite 프록시)·nginx 동일 오리진 배포는 상대경로 '/api'로 충분하지만,
+// 프론트(Cloudflare Pages)와 백엔드(Cloudflare Tunnel)가 서로 다른 도메인에 떠 있는
+// 배포에서는 절대 URL이 필요하다. 빌드 시점에 VITE_API_BASE_URL을 주입하면 그걸 쓴다.
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

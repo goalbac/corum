@@ -122,6 +122,7 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const authStore = useAuthStore()
 
@@ -141,7 +142,7 @@ onMounted(async () => {
     const d = res.data.data
     siteName.value       = d.siteName || ''
     siteDescription.value = d.siteDescription || ''
-    logoUrl.value        = d.logoUrl || ''
+    logoUrl.value        = resolveFileUrl(d.logoUrl) || ''
     footerHtml.value     = d.footerHtml || ''
     contactAddress.value = d.contactAddress || ''
     contactPhone.value   = d.contactPhone || ''

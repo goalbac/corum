@@ -35,6 +35,10 @@ storage:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  cors:
+    # 콤마로 구분된 추가 허용 오리진(예: Cloudflare Pages 도메인). 로컬 개발용 오리진은
+    # WebMvcConfig에 기본 포함되어 있어 여기서 따로 넣지 않아도 된다.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 
 logging:
   level:

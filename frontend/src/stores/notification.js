@@ -90,7 +90,8 @@ export const useNotificationStore = defineStore('notification', () => {
 
   function connect(token) {
     closeStream()
-    const url = `/api/notifications/stream?token=${encodeURIComponent(token)}`
+    const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
+    const url = `${apiBase}/notifications/stream?token=${encodeURIComponent(token)}`
     eventSource = new EventSource(url)
 
     eventSource.addEventListener('notification', (e) => {

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/api/axios'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 export const useSiteStore = defineStore('site', () => {
   const siteName = ref('Corum')
@@ -12,8 +13,8 @@ export const useSiteStore = defineStore('site', () => {
       const res = await api.get('/site/public')
       const d = res.data.data
       siteName.value = d.siteName || 'Corum'
-      faviconUrl.value = d.faviconUrl || null
-      logoUrl.value = d.logoUrl || null
+      faviconUrl.value = resolveFileUrl(d.faviconUrl) || null
+      logoUrl.value = resolveFileUrl(d.logoUrl) || null
       applyToDocument()
     } catch { /* ignore */ }
   }

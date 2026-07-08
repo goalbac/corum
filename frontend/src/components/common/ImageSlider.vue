@@ -21,7 +21,7 @@
           :style="{ cursor: slide.url ? 'pointer' : 'default' }"
           @click.prevent="slide.url ? openLink(slide) : null"
         >
-          <img :src="slide.imageUrl" :alt="slide.title || ''" class="slide-img" />
+          <img :src="resolveFileUrl(slide.imageUrl)" :alt="slide.title || ''" class="slide-img" />
           <div v-if="slide.title" class="slide-caption">
             <span class="slide-caption-text">{{ slide.title }}</span>
           </div>
@@ -64,6 +64,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const props = defineProps({
   slides:   { type: Array, default: () => [] },

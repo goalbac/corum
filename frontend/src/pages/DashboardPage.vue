@@ -107,7 +107,7 @@
                   <template v-if="post.thumbnailUrl">
                     <div class="gw-spinner"><div class="gw-ring"></div></div>
                     <img
-                      :src="post.thumbnailUrl"
+                      :src="resolveFileUrl(post.thumbnailUrl)"
                       :alt="post.title"
                       class="gw-img"
                       @load="e => { e.target.classList.add('loaded'); e.target.previousElementSibling.style.display='none' }"
@@ -252,7 +252,7 @@
                 v-bind="img.linkUrl ? { href: img.linkUrl, target: img.newWindow ? '_blank' : undefined } : {}"
                 class="img-grid-item"
               >
-                <img v-if="img.imageUrl" :src="toSmallThumb(img.imageUrl)" :alt="img.title || ''" loading="lazy" class="img-grid-photo" />
+                <img v-if="img.imageUrl" :src="resolveFileUrl(toSmallThumb(img.imageUrl))" :alt="img.title || ''" loading="lazy" class="img-grid-photo" />
                 <div v-else class="img-grid-placeholder"><i class="ti ti-photo"></i></div>
                 <div v-if="img.title || img.desc" class="img-grid-overlay">
                   <span v-if="img.title" class="img-grid-title">{{ img.title }}</span>
@@ -362,6 +362,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { resolveFileUrl } from '@/utils/fileUrl'
 import ImageSlider from '@/components/common/ImageSlider.vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'

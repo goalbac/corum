@@ -10,6 +10,22 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
   }
 })
 
+// 게시글 본문 등에 저장된 이미지/동영상 경로(/api/files/...)는 프론트와 백엔드가
+// 같은 오리진일 때만 그대로 동작한다. 프론트(Cloudflare Pages)와 백엔드(Tunnel)가
+// 서로 다른 도메인인 배포에서는 파일 서버 오리진을 붙여줘야 한다.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+const FILE_ORIGIN = API_BASE.replace(/\/api\/?$/, '')
+
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (!FILE_ORIGIN) return
+  for (const attr of ['src', 'href']) {
+    const value = node.getAttribute?.(attr)
+    if (value && value.startsWith('/api/')) {
+      node.setAttribute(attr, FILE_ORIGIN + value)
+    }
+  }
+})
+
 // TipTap 위지윅 콘텐츠를 v-html로 렌더링하기 전 정제한다.
 // 백엔드에서도 저장 시점에 sanitize하지만, 과거 저장된 데이터나
 // 다른 경로로 들어온 데이터에 대한 방어선을 하나 더 둔다.
