@@ -246,6 +246,17 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   minHeight: { type: String, default: '360px' },
   maxHeight: { type: String, default: '70vh' },
+  // 게시글 조회 화면(.post-content)과 편집 화면의 글자 크기가 일치하도록 하는 기본값.
+  // 이 컴포넌트는 게시판 글쓰기 외에 안내 페이지 편집(AdminContentPagesPage)에서도 재사용되는데,
+  // 안내 페이지 조회 화면(ContentPage.vue .content-body)은 글자 크기 체계가 달라
+  // 그쪽에서 사용할 때는 아래 값들을 .content-body 기준으로 덮어써서 넘겨준다.
+  bodyFontSize: { type: String, default: '15px' },
+  bodyLineHeight: { type: String, default: '1.8' },
+  h1Size: { type: String, default: '1.8em' },
+  h2Size: { type: String, default: '1.4em' },
+  h3Size: { type: String, default: '1.15em' },
+  blockquoteFontSize: { type: String, default: '14.5px' },
+  blockquoteAccentFontSize: { type: String, default: '16.275px' },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -527,14 +538,14 @@ onBeforeUnmount(() => { editor.destroy() })
 .editor-body :deep(.ProseMirror) {
   outline: none;
   color: var(--t1);
-  font-size: 15px;
-  line-height: 1.8;
+  font-size: v-bind(bodyFontSize);
+  line-height: v-bind(bodyLineHeight);
   min-height: v-bind(minHeight);
 }
 .editor-body :deep(.ProseMirror p) { margin: 0 0 0.6em; }
-.editor-body :deep(.ProseMirror h1) { font-size: 1.8em; font-weight: 800; margin: 1em 0 0.4em; }
-.editor-body :deep(.ProseMirror h2) { font-size: 1.4em; font-weight: 700; margin: 0.9em 0 0.4em; }
-.editor-body :deep(.ProseMirror h3) { font-size: 1.15em; font-weight: 700; margin: 0.8em 0 0.3em; }
+.editor-body :deep(.ProseMirror h1) { font-size: v-bind(h1Size); font-weight: 800; margin: 1em 0 0.4em; }
+.editor-body :deep(.ProseMirror h2) { font-size: v-bind(h2Size); font-weight: 700; margin: 0.9em 0 0.4em; }
+.editor-body :deep(.ProseMirror h3) { font-size: v-bind(h3Size); font-weight: 700; margin: 0.8em 0 0.3em; }
 .editor-body :deep(.ProseMirror ul) { padding-left: 1.5em; margin: 0.4em 0; }
 .editor-body :deep(.ProseMirror ol) { padding-left: 1.5em; margin: 0.4em 0; }
 .editor-body :deep(.ProseMirror li) { margin: 0.2em 0; }
@@ -543,7 +554,7 @@ onBeforeUnmount(() => { editor.destroy() })
   padding-left: 16px;
   color: var(--t2);
   margin: 0.8em 0;
-  font-size: 14.5px;
+  font-size: v-bind(blockquoteFontSize);
 }
 .editor-body :deep(.ProseMirror blockquote[data-variant="box"]) {
   border-left: none;
@@ -559,10 +570,10 @@ onBeforeUnmount(() => { editor.destroy() })
   position: relative;
   color: var(--t1);
   font-style: italic;
-  /* 조회 화면(.post-content, 기준 15.5px)의 1.05em 결과값(16.275px)과 동일하게 맞춤 —
-     이 규칙이 기본 blockquote font-size(14.5px)보다 우선 적용되어 em이 에디터 자체
-     폰트 크기(15px) 기준으로 계산되므로 그냥 1.05em으로 두면 조회 화면과 어긋난다 */
-  font-size: 16.275px;
+  /* 조회 화면의 1.05em 결과값과 동일하게 맞춤 — 이 규칙이 기본 blockquote font-size보다
+     우선 적용되어 em이 에디터 자체 폰트 크기 기준으로 계산되므로 그냥 1.05em으로 두면
+     조회 화면과 어긋난다 (부모 prop 값 기준 미리 계산된 절대값을 사용) */
+  font-size: v-bind(blockquoteAccentFontSize);
 }
 .editor-body :deep(.ProseMirror blockquote[data-variant="accent"])::before {
   content: '\201C';

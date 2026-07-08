@@ -143,6 +143,13 @@
               v-model="form.content"
               placeholder="안내 페이지 내용을 입력하세요."
               min-height="520px"
+              body-font-size="17px"
+              body-line-height="1.9"
+              h1-size="2em"
+              h2-size="1.5em"
+              h3-size="1.17em"
+              blockquote-font-size="17px"
+              blockquote-accent-font-size="17.85px"
             />
           </div>
 
