@@ -121,7 +121,6 @@
     <div class="write-actions">
       <button type="button" class="cancel-btn" @click="router.push(basePath)">취소</button>
       <div class="action-right">
-        <button type="button" class="draft-btn">임시저장</button>
         <button type="button" class="submit-btn" :disabled="loading" @click="handleSubmit">
           <span v-if="loading">처리 중...</span>
           <span v-else>{{ isEdit ? '수정하기' : '등록하기' }}</span>
@@ -604,20 +603,6 @@ onMounted(async () => {
   transition: all 0.15s;
 }
 .cancel-btn:hover { background: var(--surface-2); }
-
-.draft-btn {
-  padding: 10px 18px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--t1);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 9px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.draft-btn:hover { background: var(--surface-2); }
 
 .submit-btn {
   padding: 10px 24px;

@@ -543,6 +543,7 @@ onBeforeUnmount(() => { editor.destroy() })
   padding-left: 16px;
   color: var(--t2);
   margin: 0.8em 0;
+  font-size: 14.5px;
 }
 .editor-body :deep(.ProseMirror blockquote[data-variant="box"]) {
   border-left: none;
@@ -558,7 +559,10 @@ onBeforeUnmount(() => { editor.destroy() })
   position: relative;
   color: var(--t1);
   font-style: italic;
-  font-size: 1.05em;
+  /* 조회 화면(.post-content, 기준 15.5px)의 1.05em 결과값(16.275px)과 동일하게 맞춤 —
+     이 규칙이 기본 blockquote font-size(14.5px)보다 우선 적용되어 em이 에디터 자체
+     폰트 크기(15px) 기준으로 계산되므로 그냥 1.05em으로 두면 조회 화면과 어긋난다 */
+  font-size: 16.275px;
 }
 .editor-body :deep(.ProseMirror blockquote[data-variant="accent"])::before {
   content: '\201C';

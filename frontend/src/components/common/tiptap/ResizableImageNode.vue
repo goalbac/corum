@@ -5,7 +5,7 @@
         :src="node.attrs.src"
         :alt="node.attrs.alt || ''"
         :title="node.attrs.title || ''"
-        :style="{ width: node.attrs.width || undefined }"
+        :style="{ width: node.attrs.width || undefined, height: node.attrs.height || undefined }"
         draggable="false"
       />
 
@@ -25,7 +25,9 @@
             <i class="ti ti-letter-case"></i>
           </button>
         </div>
-        <div class="resize-handle" @mousedown.stop.prevent="startResize"></div>
+        <div class="resize-handle resize-handle-corner" title="비율 유지 리사이즈" @mousedown.stop.prevent="startResize"></div>
+        <div class="resize-handle resize-handle-right" title="가로만 조절" @mousedown.stop.prevent="startResizeWidth"></div>
+        <div class="resize-handle resize-handle-bottom" title="세로만 조절" @mousedown.stop.prevent="startResizeHeight"></div>
       </template>
     </div>
   </NodeViewWrapper>
@@ -44,7 +46,7 @@ const wrapperStyle = computed(() => {
   const align = props.node.attrs.align
   if (align === 'left') return { float: 'left', display: 'block', margin: '4px 16px 8px 0' }
   if (align === 'right') return { float: 'right', display: 'block', margin: '4px 0 8px 16px' }
-  if (align === 'inline') return { display: 'inline-block', verticalAlign: 'middle', margin: '0 4px' }
+  if (align === 'inline') return { display: 'inline-block', verticalAlign: 'bottom', margin: '0 4px' }
   return { display: 'table', margin: '0.6em auto' }
 })
 
@@ -73,6 +75,8 @@ function setAlign(align) {
   }).run()
 }
 
+// 코너 핸들 — 비율 유지 리사이즈. 이전에 가로/세로 개별 조절로 잠겨있던 height를
+// 초기화해서(null) 다시 원본 비율(height:auto)을 따르도록 되돌린다.
 function startResize(e) {
   const wrapper = e.currentTarget.closest('.resizable-image-inner')
   const img = wrapper?.querySelector('img')
@@ -81,11 +85,64 @@ function startResize(e) {
   const startX = e.clientX
   const startWidth = img.offsetWidth
   const dir = props.node.attrs.align === 'right' ? -1 : 1
+  props.updateAttributes({ height: null })
 
   function onMove(ev) {
     const delta = (ev.clientX - startX) * dir
     const newWidth = Math.max(60, Math.round(startWidth + delta))
     props.updateAttributes({ width: `${newWidth}px` })
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
+// 오른쪽 핸들 — 가로만 조절. 세로가 잠겨있지 않으면 현재 높이를 고정시켜
+// 가로만 바뀌어도 세로가 같이 늘어나지 않게 한다.
+function startResizeWidth(e) {
+  const wrapper = e.currentTarget.closest('.resizable-image-inner')
+  const img = wrapper?.querySelector('img')
+  if (!img) return
+
+  const startX = e.clientX
+  const startWidth = img.offsetWidth
+  const dir = props.node.attrs.align === 'right' ? -1 : 1
+  if (!props.node.attrs.height) {
+    props.updateAttributes({ height: `${img.offsetHeight}px` })
+  }
+
+  function onMove(ev) {
+    const delta = (ev.clientX - startX) * dir
+    const newWidth = Math.max(60, Math.round(startWidth + delta))
+    props.updateAttributes({ width: `${newWidth}px` })
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
+// 아래쪽 핸들 — 세로만 조절. 가로가 잠겨있지 않으면 현재 너비를 고정시킨다.
+function startResizeHeight(e) {
+  const wrapper = e.currentTarget.closest('.resizable-image-inner')
+  const img = wrapper?.querySelector('img')
+  if (!img) return
+
+  const startY = e.clientY
+  const startHeight = img.offsetHeight
+  if (!props.node.attrs.width) {
+    props.updateAttributes({ width: `${img.offsetWidth}px` })
+  }
+
+  function onMove(ev) {
+    const delta = ev.clientY - startY
+    const newHeight = Math.max(40, Math.round(startHeight + delta))
+    props.updateAttributes({ height: `${newHeight}px` })
   }
   function onUp() {
     window.removeEventListener('mousemove', onMove)
@@ -160,14 +217,31 @@ function startResize(e) {
 
 .resize-handle {
   position: absolute;
-  right: -6px;
-  bottom: -6px;
   width: 14px;
   height: 14px;
   background: var(--accent);
   border: 2px solid var(--surface);
   border-radius: 50%;
-  cursor: nwse-resize;
   z-index: 5;
+}
+
+.resize-handle-corner {
+  right: -6px;
+  bottom: -6px;
+  cursor: nwse-resize;
+}
+
+.resize-handle-right {
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.resize-handle-bottom {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
 }
 </style>

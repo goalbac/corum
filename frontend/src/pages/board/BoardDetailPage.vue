@@ -73,7 +73,7 @@
           <div class="attach-list">
             <div v-for="f in post.files" :key="f.id" class="attach-item">
               <span class="ext-badge" :style="extStyle(f.originalName)">{{ extLabel(f.originalName) }}</span>
-              <span class="attach-name">{{ f.originalName }}</span>
+              <a :href="f.downloadUrl" target="_blank" class="attach-name">{{ f.originalName }}</a>
               <span class="attach-size">{{ formatFileSize(f.fileSize) }}</span>
               <a :href="f.downloadUrl" target="_blank" class="dl-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -725,7 +725,9 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
 }
+.attach-name:hover { color: var(--accent); text-decoration: underline; }
 
 .attach-size {
   font-size: 12px;
@@ -826,6 +828,29 @@ onMounted(async () => {
 }
 .post-content :deep(th) { background: var(--surface-2); font-weight: 700; }
 .post-content :deep(iframe) { max-width: 100%; border-radius: 12px; border: none; }
+/* 유튜브 래퍼(div[data-youtube-video])의 리사이즈 폭(style width)이 실제로 반영되도록
+   16:9 비율 박스 안에 iframe을 꽉 채운다. iframe 자체의 width/height 속성은 무시된다.
+   padding-top 트릭은 % 값이 자신이 아닌 containing block 폭 기준으로 계산되어
+   리사이즈된 폭보다 부모가 넓을 때 비율이 깨지므로 aspect-ratio를 사용한다. */
+.post-content :deep([data-youtube-video]) {
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.post-content :deep([data-youtube-video] iframe) {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  border: none;
+}
+/* 자체 업로드 동영상 - 크기 조절을 안 했으면 원본 해상도로 화면을 넘어가지 않도록 제한 */
+.post-content :deep(video) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
 .post-content :deep(ul[data-type="taskList"]) { list-style: none; padding-left: 0.2em; }
 .post-content :deep(ul[data-type="taskList"] li) { display: flex; align-items: flex-start; gap: 6px; }
 .post-content :deep(ul[data-type="taskList"] li > label) { margin-top: 0.3em; }

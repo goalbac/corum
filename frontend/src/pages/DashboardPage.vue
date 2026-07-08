@@ -1376,6 +1376,10 @@ onMounted(async () => {
 .custom-body :deep(strong) { font-weight: 700; }
 .custom-body :deep(em) { font-style: italic; }
 .custom-body :deep(img) { max-width: 100%; height: auto; display: block; border-radius: 4px; }
+/* padding-top 트릭은 containing block 폭 기준이라 리사이즈된 폭에서 비율이 깨짐 — aspect-ratio 사용 */
+.custom-body :deep([data-youtube-video]) { max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px; }
+.custom-body :deep([data-youtube-video] iframe) { width: 100%; height: 100%; border-radius: 4px; border: none; }
+.custom-body :deep(video) { display: block; max-width: 100%; height: auto; border-radius: 4px; }
 
 /* ===== 회원 현황 ===== */
 .mstats-grid {

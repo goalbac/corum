@@ -12,6 +12,12 @@ function imageAttributes() {
       // 실제 style 렌더링은 align 속성에서 width까지 합쳐 한 번에 처리한다
       renderHTML: () => ({}),
     },
+    height: {
+      default: null,
+      parseHTML: element => element.style.height || null,
+      // width와 마찬가지로 실제 style 렌더링은 align 속성에서 처리한다
+      renderHTML: () => ({}),
+    },
     align: {
       default: null,
       parseHTML: element => {

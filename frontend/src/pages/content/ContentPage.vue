@@ -158,6 +158,29 @@ onMounted(async () => {
 }
 
 .content-body :deep(iframe) { max-width: 100%; border-radius: var(--radius-xs); border: none; }
+/* 유튜브 래퍼(div[data-youtube-video])의 리사이즈 폭(style width)이 실제로 반영되도록
+   16:9 비율 박스 안에 iframe을 꽉 채운다. iframe 자체의 width/height 속성은 무시된다.
+   padding-top 트릭은 % 값이 자신이 아닌 containing block 폭 기준으로 계산되어
+   리사이즈된 폭보다 부모가 넓을 때 비율이 깨지므로 aspect-ratio를 사용한다. */
+.content-body :deep([data-youtube-video]) {
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+}
+.content-body :deep([data-youtube-video] iframe) {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-xs);
+  border: none;
+}
+/* 자체 업로드 동영상 - 크기 조절을 안 했으면 원본 해상도로 화면을 넘어가지 않도록 제한 */
+.content-body :deep(video) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-xs);
+}
 .content-body :deep(ul[data-type="taskList"]) { list-style: none; padding-left: 0.2em; }
 .content-body :deep(ul[data-type="taskList"] li) { display: flex; align-items: flex-start; gap: 6px; }
 .content-body :deep(ul[data-type="taskList"] li > label) { margin-top: 0.3em; }

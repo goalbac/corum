@@ -236,13 +236,11 @@
         <div v-for="post in noticePosts" :key="`n-${post.id}`" class="pt-row notice-row" @click="goDetail(post)">
           <div class="tc"><span class="notice-tag">공지</span></div>
           <div class="pt-title-cell">
-            <div class="pt-badges">
-              <span class="notice-tag pt-badges-notice">공지</span>
-              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
-            </div>
+            <span class="notice-tag pt-badges-notice">공지</span>
+            <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
             <span class="pt-title notice-title">{{ post.title }}</span>
             <span v-if="post.commentCount > 0" class="comment-count">[{{ post.commentCount }}]</span>
+            <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             <svg v-if="post.hasFile" class="file-clip" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
           </div>
           <span class="tc pt-meta">{{ post.writerName }}</span>
@@ -262,12 +260,10 @@
         <div v-for="post in normalPosts" :key="post.id" class="pt-row" @click="goDetail(post)">
           <div class="tc pt-num">{{ post.rowNum }}</div>
           <div class="pt-title-cell">
-            <div class="pt-badges" v-if="(post.categoryName && selectedCategoryId === null) || isNew(post.createdAt)">
-              <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
-              <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
-            </div>
+            <span v-if="post.categoryName && selectedCategoryId === null" class="cat-name-chip">{{ post.categoryName }}</span>
             <span class="pt-title">{{ post.title }}</span>
             <span v-if="post.commentCount > 0" class="comment-count">[{{ post.commentCount }}]</span>
+            <span v-if="isNew(post.createdAt)" class="new-badge">N</span>
             <svg v-if="post.hasFile" class="file-clip" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 16.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
           </div>
           <span class="tc pt-meta">{{ post.writerName }}</span>
