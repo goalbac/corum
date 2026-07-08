@@ -15,4 +15,8 @@ public interface MenuRepository extends JpaRepository<Menu, Long> {
     List<Menu> findByIsActiveTrueOrderBySortOrderAsc();
 
     List<Menu> findByPageType(String pageType);
+
+    boolean existsByUrl(String url);
+
+    boolean existsByUrlAndIdNot(String url, Long id);
 }

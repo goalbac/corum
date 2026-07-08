@@ -375,8 +375,8 @@ const route = useRoute()
 
 // null = 홈 대시보드, number = 메뉴 연결 대시보드
 const dashboardMenuId = computed(() => {
-  const id = route.params?.menuId
-  return id ? Number(id) : null
+  const menu = menuStore.findMenuByRouteParams(route.params)
+  return menu ? Number(menu.id) : null
 })
 
 // layouts: 빠른 메타데이터 (즉시 표시)

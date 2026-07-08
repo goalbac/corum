@@ -110,7 +110,10 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="!form.urlAuto || form.menuType === 'LINK'" label="URL">
-              <el-input v-model="form.url" :placeholder="form.menuType === 'LINK' ? 'https://...' : '/notice'" />
+              <el-input v-model="form.url" :placeholder="form.menuType === 'LINK' ? 'https://...' : 'notice'" />
+              <div v-if="form.menuType === 'PAGE'" class="form-hint" style="margin-top:5px">
+                예: notice 입력 시 사이트주소/notice 로 접속됩니다. 하위 경로(/), 다른 메뉴와 중복되는 URL은 사용할 수 없습니다.
+              </div>
             </el-form-item>
           </template>
         </template>

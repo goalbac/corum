@@ -75,8 +75,24 @@ export const useMenuStore = defineStore('menu', () => {
     if (!menu) return null
     if (menu.menuType === 'LINK') return menu.url || null
     if (menu.menuType === 'GROUP') return resolveMenuPath(firstNavigableMenu(menu))
-    if (menu.pageType === 'DASHBOARD') return `/menu/${menu.id}`
-    return `/menu/${menu.id}`
+    // menu.url은 백엔드 Menu.resolveUrl() 결과 — 자동 넘버링이면 /{id}, 직접 지정이면 그 값.
+    // 라우터의 ':customSlug' 한 단계 경로가 이 값을 그대로 받아 findByUrl로 되찾는다.
+    return menu.url || `/menu/${menu.id}`
+  }
+
+  // 커스텀 URL(예: /notice) 또는 자동 넘버링(예: /12) 경로로 접속했을 때
+  // 어떤 메뉴인지 찾기 위한 매칭 (menu.url과 정확히 일치해야 함)
+  function findByUrl(path) {
+    if (!path) return null
+    return flatMenus.value.find(menu => menu.menuType === 'PAGE' && menu.url === path) || null
+  }
+
+  // '/menu/:menuId'와 ':customSlug' 두 라우트 모두에서 현재 메뉴를 찾기 위한 공용 헬퍼
+  function findMenuByRouteParams(params) {
+    if (!params) return null
+    if (params.menuId != null) return findMenuById(params.menuId)
+    if (params.customSlug) return findByUrl(`/${params.customSlug}`)
+    return null
   }
 
   function setActiveTopMenu(menuId) {
@@ -96,6 +112,8 @@ export const useMenuStore = defineStore('menu', () => {
     findMenuById,
     findTopMenu,
     findBoardMenu,
+    findByUrl,
+    findMenuByRouteParams,
     firstNavigableMenu,
     resolveMenuPath,
     setActiveTopMenu

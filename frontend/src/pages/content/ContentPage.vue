@@ -22,15 +22,15 @@ import { sanitizeHtml } from '@/utils/sanitize'
 
 const route = useRoute()
 const menuStore = useMenuStore()
-const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
+const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
 const page = ref(null)
 const loading = ref(false)
 
 async function fetchPage() {
-  if (!route.params.menuId) return
+  if (!activeMenu.value) return
   loading.value = true
   try {
-    const res = await api.get(`/content-pages/menus/${route.params.menuId}`)
+    const res = await api.get(`/content-pages/menus/${activeMenu.value.id}`)
     page.value = res.data.data
   } catch {
     page.value = null
@@ -39,7 +39,7 @@ async function fetchPage() {
   }
 }
 
-watch(() => route.params.menuId, fetchPage)
+watch(activeMenu, fetchPage)
 
 onMounted(async () => {
   await menuStore.fetchMenus()

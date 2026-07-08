@@ -352,7 +352,7 @@ const hasHolidayCalendar = computed(() => holidayCalendars.value.length > 0)
 
 // 메뉴에 캘린더가 고정된 경우 (필터 UI 숨김)
 const isSingleCalendar = computed(() => {
-  const activeMenu = menuStore.findMenuById(route.params?.menuId)
+  const activeMenu = menuStore.findMenuByRouteParams(route.params)
   return !!(activeMenu?.targetCalendarIds?.length || activeMenu?.targetId)
 })
 
@@ -882,11 +882,11 @@ function onClickOutside(e) {
 onMounted(async () => {
   try {
     // 메뉴 데이터가 로드되어 있어야 targetCalendarIds를 정확히 찾을 수 있음
-    if (route.params?.menuId) await menuStore.fetchMenus()
+    if (route.params?.menuId || route.params?.customSlug) await menuStore.fetchMenus()
     const res = await api.get('/calendars')
     const all = res.data.data || []
     // 메뉴에 연결된 캘린더가 있으면 해당 캘린더만 표시 (다중 지원)
-    const activeMenu = menuStore.findMenuById(route.params?.menuId)
+    const activeMenu = menuStore.findMenuByRouteParams(route.params)
     const linkedIds = activeMenu?.targetCalendarIds?.length
       ? activeMenu.targetCalendarIds.map(Number)
       : (activeMenu?.targetId ? [Number(activeMenu.targetId)] : [])

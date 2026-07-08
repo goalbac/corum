@@ -233,7 +233,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
 
-const activeMenu = computed(() => menuStore.findMenuById(route.params.menuId))
+const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
 const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
 const postId = computed(() => route.params.postId)
 const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
@@ -293,7 +293,7 @@ const canComment = computed(() => {
 async function fetchPost() {
   if (!postId.value) return
   if (!boardId.value) {
-    if (route.params.menuId && menuStore.loaded) showAccessDenied()
+    if ((route.params.menuId || route.params.customSlug) && menuStore.loaded) showAccessDenied()
     return
   }
   loading.value = true
@@ -470,8 +470,8 @@ function extLabel(name) {
 
 watch([boardId, postId], fetchPost)
 onMounted(async () => {
-  if (route.params.menuId) await menuStore.fetchMenus()
-  if (route.params.menuId && !activeMenu.value) {
+  if (route.params.menuId || route.params.customSlug) await menuStore.fetchMenus()
+  if ((route.params.menuId || route.params.customSlug) && !activeMenu.value) {
     showAccessDenied()
     return
   }

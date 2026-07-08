@@ -40,6 +40,13 @@ public class MenuService {
     private final PostRepository postRepository;
     private final CalendarRepository calendarRepository;
 
+    // 프론트 라우터에 이미 정의된 최상위 경로 — 메뉴 커스텀 URL로 지정 시 라우팅이 충돌해
+    // 메뉴가 아예 도달 불가능해지므로 차단한다 (frontend/src/router/index.js 기준)
+    private static final Set<String> RESERVED_TOP_PATHS = Set.of(
+            "login", "register", "verify-email", "reset-password", "terms", "terms-agreement",
+            "mypage", "messages", "inquiry", "report", "calendar", "menu", "board", "admin"
+    );
+
     // ===== 전체 메뉴 트리 (관리자용 — 숨김 포함) =====
     @Transactional(readOnly = true)
     public List<MenuResponse> getFullMenuTree() {
@@ -75,6 +82,9 @@ public class MenuService {
     // ===== 메뉴 생성 =====
     @Transactional
     public MenuResponse createMenu(MenuCreateRequest request) {
+        String normalizedUrl = normalizeAndValidateUrl(
+                request.getMenuType(), request.getUrlAuto(), request.getUrl(), null);
+
         Menu menu = Menu.builder()
                 .parentId(request.getParentId())
                 .name(request.getName())
@@ -82,7 +92,7 @@ public class MenuService {
                 .menuType(request.getMenuType())
                 .pageType(request.getPageType())
                 .targetId(request.getTargetId())
-                .url(request.getUrl())
+                .url(normalizedUrl)
                 .urlAuto(request.getUrlAuto())
                 .newWindow(request.getNewWindow())
                 .sortOrder(request.getSortOrder())
@@ -194,9 +204,12 @@ public class MenuService {
                     .count();
         }
 
+        String normalizedUrl = normalizeAndValidateUrl(
+                menu.getMenuType(), request.getUrlAuto(), request.getUrl(), id);
+
         menu.update(
                 request.getName(), request.getDescription(), menu.getMenuType(),
-                menu.getPageType(), request.getTargetId(), request.getUrl(),
+                menu.getPageType(), request.getTargetId(), normalizedUrl,
                 request.getUrlAuto(), request.getNewWindow(), sortOrder,
                 request.getIsHidden(), request.getHideIfNoPermission(),
                 request.getAccessType(), request.getIsActive(), request.getShowHoliday()
@@ -270,6 +283,40 @@ public class MenuService {
                     .existsByMenuIdAndGroupIdIn(menu.getId(), memberGroupIds);
         }
         return false;
+    }
+
+    // 직접 지정 URL 정규화 + 검증 (PAGE 타입 & 자동 넘버링 아닐 때만 적용 — LINK/GROUP/자동 넘버링은 그대로 통과)
+    private String normalizeAndValidateUrl(String menuType, Boolean urlAuto, String rawUrl, Long excludeId) {
+        if (!"PAGE".equals(menuType) || !Boolean.FALSE.equals(urlAuto)) {
+            return rawUrl;
+        }
+        if (rawUrl == null || rawUrl.isBlank()) {
+            throw new BusinessException("직접 지정 URL을 입력해주세요.");
+        }
+
+        String url = rawUrl.trim();
+        if (!url.startsWith("/")) url = "/" + url;
+        if (url.contains(" ") || url.length() < 2) {
+            throw new BusinessException("올바른 형식의 URL이 아닙니다. (예: notice)");
+        }
+        // 프론트 라우터가 한 단계 경로(/notice)만 지원하므로 하위 경로는 허용하지 않는다
+        if (url.substring(1).contains("/")) {
+            throw new BusinessException("URL은 하위 경로 없이 한 단계로만 지정할 수 있습니다. (예: notice)");
+        }
+
+        String firstSegment = url.substring(1);
+        if (firstSegment.isEmpty() || RESERVED_TOP_PATHS.contains(firstSegment)) {
+            throw new BusinessException("'" + firstSegment + "'는 시스템에서 사용 중인 경로라 지정할 수 없습니다.");
+        }
+
+        boolean duplicate = (excludeId == null)
+                ? menuRepository.existsByUrl(url)
+                : menuRepository.existsByUrlAndIdNot(url, excludeId);
+        if (duplicate) {
+            throw new BusinessException("이미 사용 중인 URL입니다: " + url);
+        }
+
+        return url;
     }
 
     // ===== 내부 메서드 =====

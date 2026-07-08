@@ -123,6 +123,13 @@ const routes = [
         name: 'BoardEdit',
         component: () => import('@/pages/board/BoardWritePage.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        // 메뉴의 직접 지정 URL(예: /notice) 및 자동 넘버링(예: /12) 한 단계 경로.
+        // 정적 라우트(위 항목들)가 항상 우선 매치되므로 예약어와 충돌하지 않는다.
+        path: ':customSlug',
+        name: 'CustomMenuPage',
+        component: () => import('@/pages/MenuPage.vue')
       }
     ]
   },
