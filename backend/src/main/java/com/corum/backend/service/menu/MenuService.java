@@ -296,17 +296,15 @@ public class MenuService {
 
         String url = rawUrl.trim();
         if (!url.startsWith("/")) url = "/" + url;
-        if (url.contains(" ") || url.length() < 2) {
-            throw new BusinessException("올바른 형식의 URL이 아닙니다. (예: notice)");
-        }
-        // 프론트 라우터가 한 단계 경로(/notice)만 지원하므로 하위 경로는 허용하지 않는다
-        if (url.substring(1).contains("/")) {
-            throw new BusinessException("URL은 하위 경로 없이 한 단계로만 지정할 수 있습니다. (예: notice)");
+        if (url.contains(" ") || url.contains("//") || url.length() < 2 || url.endsWith("/")) {
+            throw new BusinessException("올바른 형식의 URL이 아닙니다. (예: notice 또는 news/notice)");
         }
 
-        String firstSegment = url.substring(1);
+        // 첫 번째 경로 조각만 예약어 체크 — 프론트 라우터에서 /board/*, /menu/*, /admin/* 등
+        // 정적 라우트가 항상 먼저 매치되므로, 그 경로로 시작하는 메뉴 URL은 도달 불가능해진다
+        String firstSegment = url.substring(1).split("/", 2)[0];
         if (firstSegment.isEmpty() || RESERVED_TOP_PATHS.contains(firstSegment)) {
-            throw new BusinessException("'" + firstSegment + "'는 시스템에서 사용 중인 경로라 지정할 수 없습니다.");
+            throw new BusinessException("'" + firstSegment + "'로 시작하는 URL은 시스템에서 사용 중인 경로라 지정할 수 없습니다.");
         }
 
         boolean duplicate = (excludeId == null)

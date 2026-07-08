@@ -87,11 +87,15 @@ export const useMenuStore = defineStore('menu', () => {
     return flatMenus.value.find(menu => menu.menuType === 'PAGE' && menu.url === path) || null
   }
 
-  // '/menu/:menuId'와 ':customSlug' 두 라우트 모두에서 현재 메뉴를 찾기 위한 공용 헬퍼
+  // '/menu/:menuId'와 ':customSlug+' 두 라우트 모두에서 현재 메뉴를 찾기 위한 공용 헬퍼
+  // customSlug는 반복 가능한(+) 파라미터라 여러 단계 경로(예: news/notice)에서는 배열로 온다
   function findMenuByRouteParams(params) {
     if (!params) return null
     if (params.menuId != null) return findMenuById(params.menuId)
-    if (params.customSlug) return findByUrl(`/${params.customSlug}`)
+    if (params.customSlug) {
+      const segments = Array.isArray(params.customSlug) ? params.customSlug : [params.customSlug]
+      return findByUrl(`/${segments.join('/')}`)
+    }
     return null
   }
 
