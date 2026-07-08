@@ -39,7 +39,14 @@ api.interceptors.response.use(
     const hasToken = !!localStorage.getItem('accessToken')
 
     if (status === 401) {
-      redirectToLogin()
+      // 토큰을 들고 있었는데 401이 왔다면 세션 만료 — 로그인으로 이동.
+      // 토큰이 없는 상태의 401은 이메일 인증/비밀번호 재설정 링크처럼 로그인 세션과
+      // 무관한 API 자체의 비즈니스 로직상 실패이므로 강제 이동시키지 않고 호출부가 처리하게 둔다.
+      if (hasToken) {
+        redirectToLogin()
+        return Promise.reject(error)
+      }
+      if (message) ElMessage.error(message)
       return Promise.reject(error)
     }
 

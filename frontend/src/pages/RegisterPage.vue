@@ -6,7 +6,7 @@
           <el-icon><ArrowLeft /></el-icon> 로그인으로
         </router-link>
         <h2 class="register-title">회원가입</h2>
-        <p class="register-sub">가입 후 관리자 승인을 받으면 서비스를 이용할 수 있습니다.</p>
+        <p class="register-sub">가입 후 이메일 인증을 완료하면 서비스를 이용할 수 있습니다.</p>
       </div>
 
       <el-form
@@ -154,9 +154,15 @@ async function handleRegister() {
       const msgBuffer = new TextEncoder().encode(rest.username + rest.password)
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
       const hashedPassword = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
-      const payload = { ...rest, password: hashedPassword }
+      const payload = {
+        ...rest,
+        password: hashedPassword,
+        // 미선택 시 빈 문자열('')이 아닌 null로 보내야 백엔드 LocalDate 파싱이 깨지지 않는다
+        birthDate: rest.birthDate || null,
+        gender: rest.gender || null,
+      }
       await api.post('/auth/register', payload)
-      ElMessage.success('가입이 완료되었습니다. 관리자 승인 후 이용 가능합니다.')
+      ElMessage.success('가입이 완료되었습니다. 이메일로 발송된 인증 링크를 클릭해주세요.')
       router.push('/login')
     } catch (e) {
       ElMessage.error(e.response?.data?.message || '가입에 실패했습니다.')

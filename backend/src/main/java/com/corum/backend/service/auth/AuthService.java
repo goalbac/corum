@@ -81,6 +81,10 @@ public class AuthService {
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
+                .phone(request.getPhone())
+                .gender(request.getGender())
+                .birthDate(request.getBirthDate())
+                .newsletterYn(request.getNewsletterYn() != null ? request.getNewsletterYn() : false)
                 .isActive(false)
                 .build();
 
@@ -144,6 +148,15 @@ public class AuthService {
         member.activate();
         tokenSessionService.invalidateToken(token);
         operationLogService.audit(memberId, "UPDATE", "members", memberId, "inactive", "active", httpRequest);
+    }
+
+    // 인증 메일을 놓쳤거나 24시간 만료로 링크가 죽었을 때 재발송. 존재하지 않는 이메일이거나
+    // 이미 인증된 계정이어도 동일하게 조용히 반환해 계정 존재 여부가 노출되지 않도록 한다.
+    @Transactional
+    public void resendVerificationEmail(PasswordResetRequest request) {
+        memberRepository.findByEmail(request.getEmail())
+                .filter(member -> !Boolean.TRUE.equals(member.getIsActive()))
+                .ifPresent(this::sendVerificationEmail);
     }
 
     @Transactional
@@ -269,7 +282,9 @@ public class AuthService {
     private void sendVerificationEmail(Member member) {
         String token = jwtProvider.createPurposeToken(member.getId(), member.getUsername(), "EMAIL_VERIFY", 1000L * 60 * 60 * 24);
         String link = frontendUrl + "/verify-email?token=" + token;
-        mailService.send(member.getId(), member.getEmail(), "[Corum] 이메일 인증",
+        // 비동기 + 예외 무시 — 메일 발송 실패가 register()의 회원 저장 트랜잭션까지
+        // 롤백시키지 않도록 한다 (SMTP 장애 시에도 계정은 정상 생성되어야 함)
+        mailService.sendAsync(member.getId(), member.getEmail(), "[Corum] 이메일 인증",
                 "<p>아래 링크를 눌러 이메일 인증을 완료해주세요.</p><p><a href=\"" + link + "\">이메일 인증</a></p>",
                 "EMAIL_VERIFY");
     }

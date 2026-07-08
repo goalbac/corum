@@ -30,6 +30,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             "POST:/api/auth/login", new Limit(10, 5 * 60_000L),
             "POST:/api/auth/register", new Limit(5, 60 * 60_000L),
             "POST:/api/auth/signup", new Limit(5, 60 * 60_000L),
+            "POST:/api/auth/resend-verification-email", new Limit(5, 30 * 60_000L),
             "POST:/api/auth/request-password-reset", new Limit(5, 30 * 60_000L),
             "POST:/api/inquiries", new Limit(5, 10 * 60_000L)
     );

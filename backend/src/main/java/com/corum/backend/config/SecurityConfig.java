@@ -64,7 +64,8 @@ public class SecurityConfig {
                                 "/api/auth/signup",
                                 "/api/auth/check",
                                 "/api/auth/request-password-reset",
-                                "/api/auth/reset-password"
+                                "/api/auth/reset-password",
+                                "/api/auth/resend-verification-email"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/auth/verify-email",

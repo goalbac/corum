@@ -56,6 +56,12 @@ public class AuthController {
         return ApiResponse.ok("이메일 인증이 완료되었습니다.");
     }
 
+    @PostMapping("/resend-verification-email")
+    public ApiResponse<Void> resendVerificationEmail(@Valid @RequestBody PasswordResetRequest request) {
+        authService.resendVerificationEmail(request);
+        return ApiResponse.ok("계정이 존재하고 미인증 상태라면 인증 메일을 재발송했습니다.");
+    }
+
     @PostMapping("/request-password-reset")
     public ApiResponse<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
         authService.requestPasswordReset(request);

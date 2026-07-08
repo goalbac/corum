@@ -60,10 +60,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
-        // SSE EventSource는 Authorization 헤더를 보낼 수 없으므로 쿼리파라미터 fallback
-        String queryToken = request.getParameter("token");
-        if (StringUtils.hasText(queryToken)) {
-            return queryToken;
+        // SSE EventSource는 Authorization 헤더를 보낼 수 없으므로 해당 경로에 한해서만
+        // 쿼리파라미터 fallback을 허용한다. 이메일 인증/비밀번호 재설정처럼 ?token=을
+        // 자체 목적(용도 전용 JWT)으로 쓰는 다른 공개 API까지 로그인 세션 토큰으로
+        // 오인해 필터 단계에서 가로채면 안 되므로 경로를 명시적으로 한정한다.
+        if ("/api/notifications/stream".equals(request.getRequestURI())) {
+            String queryToken = request.getParameter("token");
+            if (StringUtils.hasText(queryToken)) {
+                return queryToken;
+            }
         }
         return null;
     }

@@ -22,4 +22,9 @@ public class RegisterRequest {
 
     @NotBlank(message = "이름을 입력해주세요.")
     private String name;
+
+    private String phone;
+    private String gender;
+    private java.time.LocalDate birthDate;
+    private Boolean newsletterYn;
 }
