@@ -69,28 +69,33 @@ public class BoardMigrationRunner implements CommandLineRunner {
 
     // 이관된 게시판 목록. 새 게시판은 이 목록에 한 줄만 추가하면 됨.
     // 전체 이력/결과는 docs/migration/게시판_이관_가이드.md 참고.
+    //
+    // ⚠️ board_id는 prod DB(corum-prod) 기준이다. 로컬 개발 DB는 메뉴 구성이 달라
+    // 같은 경로라도 board_id가 다르다 (예: 알려드려요 = 로컬 13 / prod 27).
+    // 이 러너는 반드시 prod 데이터소스를 바라보는 프로파일로만 실행할 것 — local DB 대상으로
+    // 실행하면 엉뚱한 게시판에 데이터가 들어간다. 2026-07-09 prod board_id로 전량 교체함.
     private static final List<BoardMigrationSpec> SPECS = List.of(
-            new BoardMigrationSpec("JwaNotice", "JwaNoticeC", 29L),
-            new BoardMigrationSpec("JwaCondition", "JwaConditionc", 30L),
-            new BoardMigrationSpec("JwaNanoom", "JwaNanoomC", 31L),
+            new BoardMigrationSpec("JwaNotice", "JwaNoticeC", 48L),
+            new BoardMigrationSpec("JwaCondition", "JwaConditionc", 49L),
+            new BoardMigrationSpec("JwaNanoom", "JwaNanoomC", 50L),
             // 한울인 나눔방 > 알려드려요
-            new BoardMigrationSpec("notice", "noticec", 13L),
+            new BoardMigrationSpec("notice", "noticec", 27L),
             // 한울인 나눔방 > 나눔마당 > 러브레터 (게시글 4835건)
-            new BoardMigrationSpec("NanoomLove", "NanoomLoveC", 14L),
+            new BoardMigrationSpec("NanoomLove", "NanoomLoveC", 28L),
             // 한울인 나눔방 > 나눔마당 > 제안과 추천
-            new BoardMigrationSpec("NanoomProposal", "NanoomProposalC", 15L),
+            new BoardMigrationSpec("NanoomProposal", "NanoomProposalC", 29L),
             // 수련과 수도 > 일상 수련기 > 일상 수련기 (사용자는 한울인 나눔방으로 언급했으나 DB엔 이 경로만 존재)
-            new BoardMigrationSpec("Ilsang", "IlsangC", 44L),
+            new BoardMigrationSpec("Ilsang", "IlsangC", 47L),
             // 수련과 수도 > 법문 속으로
-            new BoardMigrationSpec("InBubmoon", "InBubmoonC", 28L),
+            new BoardMigrationSpec("InBubmoon", "InBubmoonC", 45L),
             // 수련과 수도 > 통지되는 수련 > 공지사항/조건/나눔 및 수련
-            new BoardMigrationSpec("TongjiNotice", "TongjiNoticeC", 32L),
-            new BoardMigrationSpec("TongjiCondition", "TongjiConditionC", 33L),
-            new BoardMigrationSpec("TongjiNanoom", "TongjiNanoomC", 34L),
+            new BoardMigrationSpec("TongjiNotice", "TongjiNoticeC", 51L),
+            new BoardMigrationSpec("TongjiCondition", "TongjiConditionC", 52L),
+            new BoardMigrationSpec("TongjiNanoom", "TongjiNanoomC", 53L),
             // 수련과 수도 > 계시록 수련 > 공지사항/조건/나눔 및 수련
-            new BoardMigrationSpec("GyesiNotice", "GyesiNoticeC", 35L),
-            new BoardMigrationSpec("GyesiCondition", "GyesiConditionC", 36L),
-            new BoardMigrationSpec("GyesiNanoom", "GyesiNanoomC", 37L)
+            new BoardMigrationSpec("GyesiNotice", "GyesiNoticeC", 54L),
+            new BoardMigrationSpec("GyesiCondition", "GyesiConditionC", 55L),
+            new BoardMigrationSpec("GyesiNanoom", "GyesiNanoomC", 56L)
     );
 
     private static final Pattern INLINE_IMG = Pattern.compile(
