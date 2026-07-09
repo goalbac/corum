@@ -80,8 +80,10 @@ public class AdminBoardPermissionController {
 
         if (!boardRepository.existsById(boardId)) throw BusinessException.notFound("게시판을 찾을 수 없습니다.");
 
-        // 기존 권한 전부 삭제
+        // 기존 권한 전부 삭제 — 같은 트랜잭션에서 바로 재삽입하면 Hibernate가 삽입을
+        // 삭제보다 먼저 플러시해서 (board_id, group_id) 유니크 제약에 걸리므로 즉시 flush
         boardGroupPermissionRepository.deleteByBoardId(boardId);
+        boardGroupPermissionRepository.flush();
 
         // 새 권한 저장 (체크된 것만)
         for (Map<String, Object> row : body) {

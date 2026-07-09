@@ -216,12 +216,16 @@ public class MenuService {
         );
         menu.move(newParentId, sortOrder);
 
-        // 그룹 권한 재설정
+        // 그룹 권한 재설정 — 삭제와 재삽입을 같은 트랜잭션에서 하면 Hibernate가 삽입을
+        // 삭제보다 먼저 플러시해서 (menu_id, group_id) 유니크 제약에 걸리므로, 삭제를
+        // 먼저 즉시 반영한다
         menuGroupPermissionRepository.deleteByMenuId(id);
+        menuGroupPermissionRepository.flush();
         saveGroupPermissions(id, request.getAllowedGroupIds());
 
         // 다중 캘린더 연결 재설정
         menuCalendarTargetRepository.deleteByMenuId(id);
+        menuCalendarTargetRepository.flush();
         saveCalendarTargets(id, request.getTargetCalendarIds());
 
         List<Long> groupIds = request.getAllowedGroupIds() != null

@@ -108,7 +108,10 @@ public class BoardService {
                 request.getNoticeCountLimit(), request.getFileMaxSizeMb(),
                 request.getFileAllowedExtensions(), request.getFileMaxCount(),
                 request.getIsActive(), request.getUseAllCategory(), request.getUseAliasWriter());
+        // 삭제와 재삽입을 같은 트랜잭션에서 하면 Hibernate가 삽입을 삭제보다 먼저
+        // 플러시해서 (board_id, group_id) 유니크 제약에 걸리므로 즉시 flush
         boardGroupPermissionRepository.deleteByBoardId(id);
+        boardGroupPermissionRepository.flush();
         savePermissions(id, request.getPermissions());
         saveCategories(id, request.getCategories());
         saveIdentities(id, request.getWriterIdentities());

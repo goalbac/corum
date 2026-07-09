@@ -421,7 +421,10 @@ public class CalendarService {
         if (request.getIsActive() != null) {
             calendar.updateActive(request.getIsActive());
         }
+        // 삭제와 재삽입을 같은 트랜잭션에서 하면 Hibernate가 삽입을 삭제보다 먼저
+        // 플러시해서 (calendar_id, group_id) 유니크 제약에 걸리므로 즉시 flush
         permissionRepository.deleteByCalendarId(id);
+        permissionRepository.flush();
         savePermissions(id, request.getPermissions());
         return new CalendarResponse(calendar, permissionRepository.findByCalendarId(id));
     }
