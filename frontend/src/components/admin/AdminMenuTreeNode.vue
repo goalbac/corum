@@ -72,8 +72,15 @@ function typeIcon(t) {
 .child-item { background: var(--surface2); }
 .sub-item { background: var(--bg); }
 
-.child-sortable { min-height: 6px; margin-left: 20px; border-left: 3px solid transparent; }
+.child-sortable { min-height: 4px; margin-left: 20px; border-left: 3px solid transparent; }
 .child-sortable.has-children { border-left-color: var(--accent); }
+
+/* 하위 메뉴가 없어도 드래그 드롭 영역은 항상 존재해야 하지만, 배경색이 페이지
+   바탕색(흰색)으로 남아있으면 바로 위 줄과 이어지지 않고 흰 틈처럼 보인다.
+   바로 위 tree-item과 같은 배경색을 입혀 이어붙인 것처럼 보이게 한다. */
+.tree-item.root-item + .child-sortable  { background: var(--surface); }
+.tree-item.child-item + .child-sortable { background: var(--surface2); }
+.tree-item.sub-item + .child-sortable   { background: var(--bg); }
 
 .drag-handle {
   font-size: 15px;
