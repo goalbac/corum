@@ -75,6 +75,10 @@ public class SecurityConfig {
                                 "/api/calendars",
                                 "/api/calendars/events"
                         ).permitAll()
+                        // 게시판 읽기는 여기서 익명 통과만 허용하고, 실제 열람 가능 여부는
+                        // BoardService.hasPermission()이 게시판별 그룹 권한으로 판단한다
+                        // (권한 미설정 게시판은 공개, 설정된 게시판은 로그인+그룹 권한 필요)
+                        .requestMatchers(HttpMethod.GET, "/api/boards/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/page-view").permitAll()
                         // 문의 접수는 비로그인 가능(POST)하지만 목록/상세/처리(GET 등)는 관리자 전용
                         .requestMatchers(HttpMethod.POST, "/api/inquiries").permitAll()
