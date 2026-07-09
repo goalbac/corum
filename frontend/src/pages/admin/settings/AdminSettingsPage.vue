@@ -36,7 +36,7 @@
           <el-form-item label="사이트 로고">
             <div class="asset-upload">
               <div class="asset-preview logo-preview">
-                <img v-if="form.logoUrl" :src="form.logoUrl" alt="로고" class="preview-img" />
+                <img v-if="form.logoUrl" :src="resolveFileUrl(form.logoUrl)" alt="로고" class="preview-img" />
                 <span v-else class="preview-empty"><i class="ti ti-photo"></i></span>
               </div>
               <div class="asset-actions">
@@ -57,7 +57,7 @@
           <el-form-item label="파비콘">
             <div class="asset-upload">
               <div class="asset-preview favicon-preview">
-                <img v-if="form.faviconUrl" :src="form.faviconUrl" alt="파비콘" class="preview-img favicon-img" />
+                <img v-if="form.faviconUrl" :src="resolveFileUrl(form.faviconUrl)" alt="파비콘" class="preview-img favicon-img" />
                 <span v-else class="preview-empty"><i class="ti ti-photo"></i></span>
               </div>
               <div class="asset-actions">
@@ -279,6 +279,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 import { useSiteStore } from '@/stores/site'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const siteStore = useSiteStore()
 

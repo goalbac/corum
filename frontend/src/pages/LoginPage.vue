@@ -4,9 +4,7 @@
       <div class="auth-brand">
         <img v-if="logoUrl" :src="logoUrl" :alt="siteName" class="auth-brand-img" />
         <div v-else class="auth-brand-mark">{{ brandLetter }}</div>
-        <span class="auth-brand-name">{{ siteName }}</span>
       </div>
-      <p class="auth-brand-sub">사단법인 통합 관리 시스템</p>
 
       <div class="auth-card">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="auth-form" @submit.prevent="handleLogin">
@@ -153,45 +151,30 @@ async function requestReset() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 11px;
-  margin-bottom: 8px;
+  margin-bottom: 30px;
 }
 
 .auth-brand-img {
-  height: 40px;
+  height: 48px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
 }
 
 .auth-brand-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background: var(--accent);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 21px;
+  font-size: 24px;
   letter-spacing: -0.04em;
   box-shadow: var(--shadow-sm);
   flex-shrink: 0;
-}
-
-.auth-brand-name {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--t1);
-}
-
-.auth-brand-sub {
-  text-align: center;
-  font-size: 13.5px;
-  color: var(--t3);
-  margin: 0 0 30px;
 }
 
 /* ===== 카드 ===== */
