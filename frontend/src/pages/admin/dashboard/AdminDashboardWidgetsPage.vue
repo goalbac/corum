@@ -82,7 +82,7 @@
                   v-for="(s,i) in parseConfig(w).slides.slice(0,4)"
                   :key="i"
                   class="wp-slide"
-                  :style="s.imageUrl ? `background-image:url(${s.imageUrl})` : ''"
+                  :style="s.imageUrl ? `background-image:url(${resolveFileUrl(s.imageUrl)})` : ''"
                 >
                   <span v-if="!s.imageUrl">{{ s.title || `슬라이드 ${i+1}` }}</span>
                 </div>
@@ -137,7 +137,7 @@
                   v-for="(img,i) in parseConfig(w).images.slice(0,4)"
                   :key="i"
                   class="wp-slide"
-                  :style="img.imageUrl ? `background-image:url(${img.imageUrl})` : ''"
+                  :style="img.imageUrl ? `background-image:url(${resolveFileUrl(img.imageUrl)})` : ''"
                 >
                   <span v-if="!img.imageUrl">{{ img.title || `이미지 ${i+1}` }}</span>
                 </div>
@@ -328,7 +328,7 @@
               <div class="img-upload-row">
                 <div
                   class="img-upload-preview"
-                  :style="s.imageUrl ? `background-image:url(${s.imageUrl})` : ''"
+                  :style="s.imageUrl ? `background-image:url(${resolveFileUrl(s.imageUrl)})` : ''"
                   @click="triggerSliderUpload(i)"
                   :title="s.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
                 >
@@ -377,7 +377,7 @@
               <div class="img-upload-row">
                 <div
                   class="img-upload-preview"
-                  :style="img.imageUrl ? `background-image:url(${img.imageUrl})` : ''"
+                  :style="img.imageUrl ? `background-image:url(${resolveFileUrl(img.imageUrl)})` : ''"
                   @click="triggerImgUpload(i)"
                   :title="img.imageUrl ? '클릭해서 이미지 변경' : '클릭해서 이미지 업로드'"
                 >
@@ -514,6 +514,7 @@ import RichEditor from '@/components/common/RichEditor.vue'
 import { useMenuStore } from '@/stores/menu'
 import api from '@/api/axios'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const menuStore = useMenuStore()
 

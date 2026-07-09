@@ -65,8 +65,8 @@ public class FileStorageService {
     private String bucket;
 
     private static final int THUMB_WIDTH = 600;
-    private static final int SMALL_THUMB_WIDTH = 300;
-    private static final double SMALL_THUMB_QUALITY = 0.50;
+    private static final int SMALL_THUMB_WIDTH = 480;
+    private static final double SMALL_THUMB_QUALITY = 0.75;
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
     );
