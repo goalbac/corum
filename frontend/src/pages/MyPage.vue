@@ -124,11 +124,6 @@
 
         <!-- 비밀번호 변경 -->
         <section v-else-if="activeTab === 'password'">
-          <div v-if="isForcedPasswordChange" class="forced-pw-banner">
-            <i class="ti ti-shield-lock"></i>
-            관리자에 의해 비밀번호가 초기화되었습니다. 임시 비밀번호로 로그인하셨습니다.
-            <strong>보안을 위해 지금 바로 새 비밀번호로 변경해주세요.</strong>
-          </div>
           <el-form
             ref="pwFormRef"
             :model="pwForm"
@@ -448,8 +443,7 @@ const router = useRouter()
 const route  = useRoute()
 const authStore = useAuthStore()
 const notifStore = useNotificationStore()
-const isForcedPasswordChange = computed(() => !!authStore.member?.mustChangePassword)
-const activeTab = ref(isForcedPasswordChange.value ? 'password' : (route.query.tab || 'info'))
+const activeTab = ref(route.query.tab || 'info')
 const loading = ref(false)
 const saving = ref(false)
 const pwSaving = ref(false)
@@ -478,10 +472,6 @@ const currentTabSub = computed(() => {
 // 왼쪽 고정 사이드바(DefaultLayout)에서 탭을 바꾸면 쿼리스트링(route.query.tab)으로 전달됨
 watch(() => route.query.tab, (tab) => {
   if (!tab) return
-  if (isForcedPasswordChange.value && tab !== 'password') {
-    router.replace({ name: 'MyPage', query: { tab: 'password' } })
-    return
-  }
   activeTab.value = tab
 })
 
@@ -785,11 +775,8 @@ async function handleUpdatePassword() {
       })
       ElMessage.success('비밀번호가 변경되었습니다.')
       pwForm.value = { currentPassword: '', newPassword: '', newPasswordConfirm: '' }
-      // 강제 변경 플래그 해제 후 re-fetch
       await authStore.fetchMe()
-      if (!authStore.member?.mustChangePassword) {
-        activeTab.value = 'info'
-      }
+      activeTab.value = 'info'
     } catch (e) {
       ElMessage.error(e.response?.data?.message || '변경에 실패했습니다.')
     } finally {
@@ -1133,15 +1120,6 @@ watch(activeTab, (tab) => {
 }
 
 .mp-section-actions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
-
-.forced-pw-banner {
-  display: flex; align-items: flex-start; gap: 10px;
-  background: #fff7ed; border: 1px solid #f97316; border-radius: 8px;
-  padding: 14px 16px; margin-bottom: 20px; max-width: 480px;
-  font-size: 13px; line-height: 1.6; color: #9a3412;
-}
-.forced-pw-banner i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-.forced-pw-banner strong { display: block; margin-top: 2px; font-weight: 700; }
 
 /* 제보 유형 탭 */
 .report-type-tabs { display: flex; gap: 8px; margin-bottom: 20px; }

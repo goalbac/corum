@@ -74,10 +74,6 @@ public class Member extends BaseEntity {
     @Column(name = "locked_at")
     private LocalDateTime lockedAt;
 
-    @Column(name = "must_change_password", nullable = false)
-    @Builder.Default
-    private Boolean mustChangePassword = false;
-
     @Column(name = "joined_at", nullable = false)
     @Builder.Default
     private LocalDateTime joinedAt = LocalDateTime.now();
@@ -115,14 +111,6 @@ public class Member extends BaseEntity {
 
     public void updatePassword(String passwordHash) {
         this.passwordHash = passwordHash;
-    }
-
-    public void requirePasswordChange() {
-        this.mustChangePassword = true;
-    }
-
-    public void clearMustChangePassword() {
-        this.mustChangePassword = false;
     }
 
     public void updateProfile(String name, String phone, String address,

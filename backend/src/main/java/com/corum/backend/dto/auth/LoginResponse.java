@@ -33,7 +33,6 @@ public class LoginResponse {
         private final List<GroupResponse> groups;
         private final boolean requiresTermsAgreement;
         private final List<TermsResponse> requiredTerms;
-        private final boolean mustChangePassword;
 
         public MemberInfo(Member member, List<GroupResponse> groups, List<TermsResponse> requiredTerms) {
             this.id = member.getId();
@@ -46,7 +45,6 @@ public class LoginResponse {
                     .anyMatch(g -> "ADMIN".equals(g.getType()));
             this.requiredTerms = requiredTerms;
             this.requiresTermsAgreement = requiredTerms != null && !requiredTerms.isEmpty();
-            this.mustChangePassword = Boolean.TRUE.equals(member.getMustChangePassword());
         }
     }
 }

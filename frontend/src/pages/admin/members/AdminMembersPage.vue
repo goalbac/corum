@@ -109,9 +109,6 @@
               <i :class="['ti', resetingPassword ? 'ti-loader-2 spinning' : 'ti-key']"></i>
               {{ resetingPassword ? '처리 중...' : '비밀번호 초기화' }}
             </button>
-            <span v-if="detail?.mustChangePassword" class="adm-badge badge-warning" style="align-self:center">
-              <i class="ti ti-alert-circle"></i> 비밀번호 변경 필요
-            </span>
           </div>
           <button class="adm-btn ghost" @click="showDetail = false">닫기</button>
         </div>

@@ -54,7 +54,7 @@ const routes = [
         path: 'mypage',
         name: 'MyPage',
         component: () => import('@/pages/MyPage.vue'),
-        meta: { requiresAuth: true, title: '마이페이지', allowPendingPasswordChange: true }
+        meta: { requiresAuth: true, title: '마이페이지' }
       },
       {
         path: 'messages',
@@ -252,9 +252,6 @@ router.beforeEach(async (to, from, next) => {
   }
   if (authStore.isLoggedIn && authStore.member?.requiresTermsAgreement && !to.meta.allowPendingTerms) {
     return next({ name: 'TermsAgreement' })
-  }
-  if (authStore.isLoggedIn && authStore.member?.mustChangePassword && !to.meta.allowPendingPasswordChange) {
-    return next({ name: 'MyPage', query: { tab: 'password', forced: '1' } })
   }
 
   // 직접 지정 URL(/news/notice/write, /news/notice/10177/edit 등)로 들어온 글쓰기/수정은
