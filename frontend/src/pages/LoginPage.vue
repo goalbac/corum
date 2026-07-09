@@ -1,50 +1,52 @@
 <template>
-  <div class="login-wrap">
-    <div class="login-card">
-      <!-- 그라디언트 헤더 (LNB 스타일과 통일) -->
-      <div class="login-hero">
-        <div class="hero-overlay"></div>
-        <span class="hero-logo">{{ siteStore.siteName }}</span>
-        <p class="hero-sub">사단법인 통합 관리 시스템</p>
+  <div class="auth-page">
+    <div class="auth-container">
+      <div class="auth-brand">
+        <img v-if="logoUrl" :src="logoUrl" :alt="siteName" class="auth-brand-img" />
+        <div v-else class="auth-brand-mark">{{ brandLetter }}</div>
+        <span class="auth-brand-name">{{ siteName }}</span>
       </div>
+      <p class="auth-brand-sub">사단법인 통합 관리 시스템</p>
 
-      <div class="login-body">
-        <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent="handleLogin">
-          <el-form-item prop="username">
+      <div class="auth-card">
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="auth-form" @submit.prevent="handleLogin">
+          <el-form-item label="아이디" prop="username">
             <el-input
               v-model="form.username"
-              placeholder="아이디"
+              placeholder="아이디를 입력하세요"
               size="large"
-              prefix-icon="User"
               autocomplete="username"
               autocapitalize="none"
               autocorrect="off"
               spellcheck="false"
             />
           </el-form-item>
-          <el-form-item prop="password">
+          <el-form-item label="비밀번호" prop="password">
             <el-input
               v-model="form.password"
               type="password"
-              placeholder="비밀번호"
+              placeholder="비밀번호를 입력하세요"
               size="large"
-              prefix-icon="Lock"
               show-password
               autocomplete="current-password"
               @keyup.enter="handleLogin"
             />
           </el-form-item>
-          <el-button type="primary" size="large" :loading="loading" class="login-submit" @click="handleLogin">
+
+          <div class="auth-row-end">
+            <button type="button" class="link-btn" @click="showReset = true">비밀번호 찾기</button>
+          </div>
+
+          <el-button type="primary" size="large" :loading="loading" class="auth-submit" @click="handleLogin">
             로그인
           </el-button>
         </el-form>
 
-        <div class="login-footer">
-          <router-link to="/register">회원가입</router-link>
-          <span class="dot">·</span>
-          <button type="button" class="link-btn" @click="showReset = true">비밀번호 찾기</button>
-        </div>
+        <div class="auth-divider"><span></span><span>또는</span><span></span></div>
+        <router-link to="/register" class="auth-secondary-btn">회원가입</router-link>
       </div>
+
+      <div class="auth-caption">가입 후 이메일 인증을 완료하면 서비스를 이용할 수 있습니다</div>
     </div>
 
     <el-dialog v-model="showReset" title="비밀번호 찾기" :width="dialogWidth">
@@ -70,6 +72,9 @@ import { ElMessage } from 'element-plus'
 import api from '@/api/axios'
 
 const siteStore = useSiteStore()
+const siteName = computed(() => siteStore.siteName || '코럼')
+const logoUrl = computed(() => siteStore.logoUrl)
+const brandLetter = computed(() => siteName.value.charAt(0))
 
 const router = useRouter()
 const route = useRoute()
@@ -128,125 +133,154 @@ async function requestReset() {
 </script>
 
 <style scoped>
-/* ===== 전체 배경 ===== */
-.login-wrap {
+.auth-page {
   min-height: 100vh;
   min-height: 100dvh; /* iOS Safari 주소창 포함 오버플로우 방지 */
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg);
-  padding: 24px 16px;
+  padding: 40px 20px;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* ===== 브랜드 로고 ===== */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  margin-bottom: 8px;
+}
+
+.auth-brand-img {
+  height: 40px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.auth-brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 21px;
+  letter-spacing: -0.04em;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.auth-brand-name {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--t1);
+}
+
+.auth-brand-sub {
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--t3);
+  margin: 0 0 30px;
 }
 
 /* ===== 카드 ===== */
-.login-card {
-  width: 100%;
-  max-width: 400px;
+.auth-card {
   background: var(--surface);
   border: 0.5px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 18px;
+  padding: 32px 30px;
   box-shadow: var(--shadow);
-  overflow: hidden;
 }
 
-/* ===== 그라디언트 헤더 (LNB 스타일 통일) ===== */
-.login-hero {
-  position: relative;
-  padding: 36px 32px 30px;
-  background: linear-gradient(135deg, #4f6ef7 0%, #7c4ff7 50%, #e05fc4 100%);
-  text-align: center;
-  overflow: hidden;
-}
-
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18) 0%, transparent 50%),
-    radial-gradient(circle at 10% 80%, rgba(255,255,255,0.10) 0%, transparent 40%);
-  pointer-events: none;
-}
-
-.hero-logo {
-  position: relative;
-  z-index: 1;
-  display: block;
-  font-size: 32px;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: -0.5px;
-}
-
-.hero-sub {
-  position: relative;
-  z-index: 1;
+.auth-form :deep(.el-form-item) { margin-bottom: 16px; }
+.auth-form :deep(.el-form-item__label) {
   font-size: 13px;
-  color: rgba(255,255,255,0.78);
-  margin-top: 6px;
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--t2);
+  padding-bottom: 7px;
+  line-height: 1.3;
 }
 
-/* ===== 폼 영역 ===== */
-.login-body {
-  padding: 28px 28px 32px;
+.auth-row-end {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 16px;
 }
 
-.login-submit {
+.auth-submit {
   width: 100%;
-  margin-top: 4px;
   border-radius: 10px;
   font-weight: 700;
   height: 46px;
 }
 
-/* ===== 하단 링크 ===== */
-.login-footer {
+.auth-divider {
   display: flex;
-  justify-content: center;
   align-items: center;
   gap: 12px;
-  margin-top: 20px;
-  font-size: 14px;
+  margin: 22px 0;
+}
+.auth-divider span:first-child,
+.auth-divider span:last-child {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.auth-divider span:nth-child(2) {
+  font-size: 12px;
   color: var(--t3);
 }
 
-.login-footer a,
-.link-btn {
-  color: var(--t2);
-  transition: color 0.15s;
-  border: none;
-  background: transparent;
+.auth-secondary-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  border: 0.5px solid var(--border2);
+  background: var(--surface);
+  color: var(--t1);
+  font-weight: 600;
   font-size: 14px;
+  padding: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  padding: 0;
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+.auth-secondary-btn:hover { background: var(--surface2); }
+
+.auth-caption {
+  text-align: center;
+  font-size: 12px;
+  color: var(--t3);
+  margin-top: 22px;
 }
 
-.login-footer a:hover,
+.link-btn {
+  border: none;
+  background: transparent;
+  color: var(--t3);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
 .link-btn:hover { color: var(--accent); }
-.dot { color: var(--border); }
 
 /* ===== 모바일: 입력창 줌 방지 (iOS font-size < 16px 시 자동 확대) ===== */
 @media (max-width: 768px) {
-  :deep(.el-input__inner) {
-    font-size: 16px !important;
-  }
-  :deep(.el-input__wrapper) {
-    font-size: 16px !important;
-  }
-
-  .login-hero {
-    padding: 28px 24px 24px;
-  }
-
-  .hero-logo { font-size: 28px; }
-
-  .login-body { padding: 22px 20px 28px; }
-}
-
-@media (max-width: 400px) {
-  .login-card {
-    border-radius: var(--radius-sm);
-  }
+  :deep(.el-input__inner) { font-size: 16px !important; }
+  :deep(.el-input__wrapper) { font-size: 16px !important; }
+  .auth-card { padding: 26px 22px; }
 }
 </style>
