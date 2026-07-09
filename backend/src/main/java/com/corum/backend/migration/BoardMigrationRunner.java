@@ -95,7 +95,43 @@ public class BoardMigrationRunner implements CommandLineRunner {
             // 수련과 수도 > 계시록 수련 > 공지사항/조건/나눔 및 수련
             new BoardMigrationSpec("GyesiNotice", "GyesiNoticeC", 54L),
             new BoardMigrationSpec("GyesiCondition", "GyesiConditionC", 55L),
-            new BoardMigrationSpec("GyesiNanoom", "GyesiNanoomC", 56L)
+            new BoardMigrationSpec("GyesiNanoom", "GyesiNanoomC", 56L),
+
+            // ===== 큰스승님 홈페이지 (2026-07-09 매핑 추가, 아직 미실행) =====
+            // 우주천주머릿말씀 > 본문편/해설편
+            new BoardMigrationSpec("woojoochunjoo1", "woojoochunjoo1C", 63L),
+            new BoardMigrationSpec("woojoochunjoo2", "woojoochunjoo2C", 64L),
+            // 자랄말씀 > 앞으로 빛이되어(board 65)는 대응하는 레거시 테이블을 아직 전달받지 못해 제외
+            new BoardMigrationSpec("Meditation1", "Meditation1C", 66L), // 자랄말씀 > 명상 1
+            new BoardMigrationSpec("Meditation2", "Meditation2C", 67L), // 자랄말씀 > 명상 2
+            new BoardMigrationSpec("Voicelaw", "VoicelawC", 68L), // 자랄말씀 > 육성법문
+            new BoardMigrationSpec("Law", "LawC", 69L), // 자랄말씀 > 법문편
+            // ⚠️ 확인 필요: Gijido/Jaral/WJYoungData 3개 테이블이 전부 "세상자제도 > 자랄 말씀"(board 71)로
+            // 매핑됨 — 사용자가 준 경로 설명이 3개 다 동일해서 그대로 따랐으나, 서로 다른 레거시 테이블이
+            // 같은 board로 합쳐지는 게 맞는지 실행 전 재확인 필요.
+            new BoardMigrationSpec("Gijido", "GijidoC", 71L),
+            new BoardMigrationSpec("Jaral", "JaralC", 71L),
+            new BoardMigrationSpec("WJYoungData", "WJYoungDataC", 71L),
+            // ⚠️ 확인 필요: GijidoCase/GijidoJogun 둘 다 "세상자제도 > 기지도"(board 72)에 하위 구분
+            // 메뉴가 없어 같은 board로 합침 — 의도한 게 맞는지 확인 필요.
+            new BoardMigrationSpec("GijidoCase", "GijidoCaseC", 72L),
+            new BoardMigrationSpec("GijidoJogun", "GijidoJogunC", 72L),
+            new BoardMigrationSpec("Woojooyoung", "WoojooyoungC", 73L), // 세상자제도 > 우주○ 초대
+            new BoardMigrationSpec("Sangmyung2", "Sangmyung2C", 74L), // 세상자제도 > 생명장 조정
+            new BoardMigrationSpec("ModeunNotice", "ModeunNoticeC", 76L), // 모든 세상자 > 공지사항
+            new BoardMigrationSpec("Modeun", "ModeunC", 77L), // 모든 세상자 > 모든 세상자
+            // ⚠️ 확인 필요: 테이블명은 "좌제도 지도"를 뜻하는 JwaJedoJido인데, 사용자가 준 경로 설명은
+            // "모든세상자-모든 세상자"(Modeun과 동일 텍스트)였음 — 설명이 아니라 테이블명・board 77과
+            // 겹치지 않는 board 78("모든 세상자 > 좌제도 지도")로 매핑함. 실행 전 재확인 필요.
+            new BoardMigrationSpec("JwaJedoJido", "JwaJedoJidoC", 78L),
+            new BoardMigrationSpec("SeonPil", "SeonPilC", 79L), // 자료실 > 선필
+            new BoardMigrationSpec("Photo", "PhotoC", 80L), // 자료실 > 사진
+            new BoardMigrationSpec("GoldHistory", "GoldHistoryC", 83L), // 자료실 > 금모으기 운동 역사의 현장
+            new BoardMigrationSpec("Sesangjedo", "SesangjedoC", 62L), // 세상제도 돌아보기
+            // ⚠️ 확인 필요: "세상제도 지난기록 돌아보기"에 대응하는 prod 메뉴/게시판이 아직 없음.
+            // 임시로 Sesangjedo와 같은 board 62에 합쳐뒀으나, 별도 게시판이 필요하면 메뉴부터
+            // 새로 만들고 board_id를 교체해야 함.
+            new BoardMigrationSpec("SesangjedoOld", "SesangjedoOldC", 62L)
     );
 
     private static final Pattern INLINE_IMG = Pattern.compile(
