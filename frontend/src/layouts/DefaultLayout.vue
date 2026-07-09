@@ -396,7 +396,9 @@ const drawerRightRef = ref(null)
 
 const routeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
 const activeTopMenu = computed(() => routeMenu.value?.top || null)
-const isDetailPage = computed(() => !!route.params.postId)
+// 직접 지정 URL(:customSlug+)로 들어온 게시글 상세/수정은 route.params.postId가 없고
+// customSlug 배열 안에 글번호가 들어있으므로 parseCustomRoute로도 확인해야 한다
+const isDetailPage = computed(() => !!route.params.postId || !!menuStore.parseCustomRoute(route.params).postId)
 const isWritePage = computed(() => route.path.endsWith('/write'))
 const isBoardPage = computed(() => routeMenu.value?.pageType === 'BOARD')
 const currentBoardId = computed(() => routeMenu.value?.targetId ? Number(routeMenu.value.targetId) : null)
