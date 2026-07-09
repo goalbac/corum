@@ -116,7 +116,35 @@ public class BoardMigrationRunner implements CommandLineRunner {
             new BoardMigrationSpec("SeonPil", "SeonPilC", 79L), // 자료실 > 선필
             new BoardMigrationSpec("Photo", "PhotoC", 80L), // 자료실 > 사진
             new BoardMigrationSpec("GoldHistory", "GoldHistoryC", 83L), // 자료실 > 금모으기 운동 역사의 현장
-            new BoardMigrationSpec("Sesangjedo", "SesangjedoC", 62L) // 세상제도 돌아보기
+            new BoardMigrationSpec("Sesangjedo", "SesangjedoC", 62L), // 세상제도 돌아보기
+
+            // ===== 한울인 소식/안내, 한울예술, 집중수련및소양교육, 나눔마당(2026-07-10 매핑) =====
+            new BoardMigrationSpec("HRecent", "HRecentC", 1L), // 한울인 소식 > 한울인 동정
+            new BoardMigrationSpec("ForOnline", "ForOnlineC", 2L), // 한울인 안내 > 온라인 회원을 위하여
+            new BoardMigrationSpec("HLifeRules", "HLifeRulesC", 3L), // 한울인 안내 > 한울인 생활수칙
+            new BoardMigrationSpec("RemainNotice", "RemainNoticeC", 4L), // 문화유적답사 > 공지사항
+            new BoardMigrationSpec("RemainRecord", "RemainRecordC", 5L), // 문화유적답사 > 문화유적 답사기
+            new BoardMigrationSpec("RemainData", "RemainDataC", 6L), // 문화유적답사 > 문화유적 자료실
+            // 한울예술 > 한울글 (○계무술/한울춤/한울글/한울기공 "지도" 4개는 prod에 대응 board가
+            // 아직 없어 이번 배치에서 제외 — YMooJido/HDanceJido/HGeulJido/HGigongJido)
+            new BoardMigrationSpec("HGeulStudy", "HGeulStudyC", 11L), // 한울글 > 한울글 공부
+            new BoardMigrationSpec("HGeulNotice", "HGeulNoticeC", 13L), // 한울글 > 알림방
+            new BoardMigrationSpec("HGeulNanoom", "HGeulNanoomC", 14L), // 한울글 > 나눔방
+            new BoardMigrationSpec("HGeulStory", "HGeulStoryC", 15L), // 한울글 > 한울글 이야기
+            new BoardMigrationSpec("HGeulGallery", "HGeulGalleryC", 16L), // 한울글 > 한울글 갤러리
+            new BoardMigrationSpec("HDanceStudy", "HDanceStudyC", 17L), // 한울춤 > 한울춤 공부
+            new BoardMigrationSpec("HDanceNotice", "HDanceNoticeC", 18L), // 한울춤 > 알림방
+            new BoardMigrationSpec("HDanceNanoom", "HDanceNanoomC", 19L), // 한울춤 > 나눔방
+            new BoardMigrationSpec("HDanceStory", "HDanceStoryC", 20L), // 한울춤 > 한울춤 이야기
+            new BoardMigrationSpec("HGigongStudy", "HGigongStudyC", 21L), // 한울기공 > 한울기공 공부
+            new BoardMigrationSpec("HGigongNotice", "HGigongNoticeC", 22L), // 한울기공 > 알림방
+            new BoardMigrationSpec("HGigongNanoom", "HGigongNanoomC", 23L), // 한울기공 > 나눔방
+            new BoardMigrationSpec("Haksa", "HaksaC", 33L), // 한울인 나눔방 > 나눔마당 > 법사·학사·강사
+            // ⚠️ 테이블명은 "조건"을 뜻하는 Condition이지만, 집중수련및소양교육 섹션엔 "조건" board가
+            // 없고 "강의"(58) board만 존재 — 사용자가 준 경로 설명("강의")을 그대로 따름
+            new BoardMigrationSpec("JipjoongNotice", "JipjoongNoticeC", 57L), // 집중수련 및 소양교육 > 공지사항
+            new BoardMigrationSpec("JipjoongCondition", "JipjoongConditionC", 58L), // 집중수련 및 소양교육 > 강의
+            new BoardMigrationSpec("JipjoongNanoom", "JipjoongNanoomC", 59L) // 집중수련 및 소양교육 > 나눔 및 수련
     );
 
     private static final Pattern INLINE_IMG = Pattern.compile(
