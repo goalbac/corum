@@ -647,11 +647,13 @@ function boardListPath(widget, post = null) {
   const boardId = widget.targetBoardId || post?.boardId
   if (!boardId) return null
   const menu = menuStore.findBoardMenu(boardId)
-  return menu ? `/menu/${menu.id}` : `/board/${boardId}`
+  return menu?.url || (menu ? `/menu/${menu.id}` : `/board/${boardId}`)
 }
 function postPath(widget, post) {
   const basePath = boardListPath(widget, post)
-  return basePath ? `${basePath}/posts/${post.id}` : '/'
+  if (!basePath) return '/'
+  const menu = menuStore.findBoardMenu(widget.targetBoardId || post?.boardId)
+  return menu?.url ? `${basePath}/${post.id}` : `${basePath}/posts/${post.id}`
 }
 function parseConfig(widget) {
   try { return widget.extraConfig ? JSON.parse(widget.extraConfig) : {} }

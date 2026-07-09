@@ -257,6 +257,16 @@ router.beforeEach(async (to, from, next) => {
     return next({ name: 'MyPage', query: { tab: 'password', forced: '1' } })
   }
 
+  // 직접 지정 URL(/news/notice/write, /news/notice/10177/edit 등)로 들어온 글쓰기/수정은
+  // 'menu/:menuId/write' 라우트의 meta.requiresAuth와 동일하게 로그인을 강제한다
+  if (to.name === 'CustomMenuPage') {
+    await menuStore.fetchMenus()
+    const resolved = menuStore.parseCustomRoute(to.params)
+    if ((resolved.isWrite || resolved.isEdit) && !authStore.isLoggedIn) {
+      return next({ name: 'Login', query: { redirect: to.fullPath } })
+    }
+  }
+
   if (to.path.startsWith('/admin')) {
     if (!authStore.member?.isAdmin && !authStore.member?.admin) {
       return next({ name: 'Dashboard' })

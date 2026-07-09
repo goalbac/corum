@@ -1,5 +1,7 @@
 <template>
-  <BoardListPage v-if="activeMenu?.pageType === 'BOARD'" />
+  <BoardWritePage v-if="isBoardWrite" />
+  <BoardDetailPage v-else-if="isBoardDetail" />
+  <BoardListPage v-else-if="activeMenu?.pageType === 'BOARD'" />
   <CalendarPage v-else-if="activeMenu?.pageType === 'CALENDAR'" />
   <DashboardPage v-else-if="activeMenu?.pageType === 'DASHBOARD'" />
   <ContentPage v-else-if="activeMenu?.pageType === 'CONTENT'" />
@@ -15,6 +17,8 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
 import BoardListPage from '@/pages/board/BoardListPage.vue'
+import BoardDetailPage from '@/pages/board/BoardDetailPage.vue'
+import BoardWritePage from '@/pages/board/BoardWritePage.vue'
 import CalendarPage from '@/pages/calendar/CalendarPage.vue'
 import ContentPage from '@/pages/content/ContentPage.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
@@ -24,8 +28,12 @@ const route = useRoute()
 const router = useRouter()
 const menuStore = useMenuStore()
 
-// '/menu/:menuId'(숫자 ID) 또는 ':customSlug'(직접 지정 URL/자동 넘버링) 둘 다 지원
-const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
+// '/menu/:menuId'(숫자 ID)는 항상 목록/조회 모드. ':customSlug+'(직접 지정 URL/자동
+// 넘버링)는 마지막 경로 조각이 글번호/write/edit인지에 따라 조회·작성·수정 모드까지 해석된다.
+const resolved = computed(() => menuStore.parseCustomRoute(route.params))
+const activeMenu = computed(() => resolved.value.menu)
+const isBoardDetail = computed(() => activeMenu.value?.pageType === 'BOARD' && !!resolved.value.postId && !resolved.value.isEdit)
+const isBoardWrite = computed(() => activeMenu.value?.pageType === 'BOARD' && (resolved.value.isWrite || resolved.value.isEdit))
 
 // GROUP 타입 메뉴에 직접 진입 시 첫 번째 탐색 가능 하위 메뉴로 리다이렉트
 watch(activeMenu, menu => {

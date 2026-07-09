@@ -146,10 +146,15 @@ const router = useRouter()
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
 
-const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
+const resolved = computed(() => menuStore.parseCustomRoute(route.params))
+const activeMenu = computed(() => resolved.value.menu)
 const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
-const postId = computed(() => route.params.postId)
-const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
+const postId = computed(() => route.params.postId || resolved.value.postId)
+// activeMenu.url이 있으면(직접 지정 URL/자동 넘버링 둘 다) 그 경로를 그대로 쓴다 —
+// /menu/{id} 접두어 없이 접속한 경로를 게시글 상세/글쓰기 링크에서도 유지하기 위함
+const basePath = computed(() => activeMenu.value?.url || (route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`))
+// 직접 지정 URL/자동 넘버링 경로에서는 /posts/ 없이 바로 글번호가 붙는다(예: /notice/10177)
+const postBasePath = computed(() => activeMenu.value?.url ? basePath.value : `${basePath.value}/posts`)
 const isEdit = computed(() => !!postId.value)
 const isAdmin = computed(() => authStore.member?.isAdmin)
 
@@ -262,7 +267,7 @@ async function handleSubmit() {
       await api.post(`/posts/${savedPostId}/files`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     }
     ElMessage.success(isEdit.value ? '수정되었습니다.' : '등록되었습니다.')
-    router.push(`${basePath.value}/posts/${savedPostId}`)
+    router.push(`${postBasePath.value}/${savedPostId}`)
   } finally {
     loading.value = false
   }

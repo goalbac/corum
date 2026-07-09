@@ -53,7 +53,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
               공유
             </button>
-            <button v-if="canEdit" class="meta-btn" @click="router.push(`${basePath}/posts/${postId}/edit`)">
+            <button v-if="canEdit" class="meta-btn" @click="router.push(`${postBasePath}/${postId}/edit`)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               수정
             </button>
@@ -123,7 +123,7 @@
         <div v-if="adjacent" class="adjacent-nav">
           <component
             :is="adjacent.next ? 'router-link' : 'div'"
-            v-bind="adjacent.next ? { to: `${basePath}/posts/${adjacent.next.id}` } : {}"
+            v-bind="adjacent.next ? { to: `${postBasePath}/${adjacent.next.id}` } : {}"
             :class="['adj-item', { empty: !adjacent.next }]"
           >
             <span class="adj-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg> 다음 글</span>
@@ -132,7 +132,7 @@
           </component>
           <component
             :is="adjacent.prev ? 'router-link' : 'div'"
-            v-bind="adjacent.prev ? { to: `${basePath}/posts/${adjacent.prev.id}` } : {}"
+            v-bind="adjacent.prev ? { to: `${postBasePath}/${adjacent.prev.id}` } : {}"
             :class="['adj-item', { empty: !adjacent.prev }]"
           >
             <span class="adj-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg> 이전 글</span>
@@ -233,10 +233,15 @@ const router = useRouter()
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
 
-const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
+const resolved = computed(() => menuStore.parseCustomRoute(route.params))
+const activeMenu = computed(() => resolved.value.menu)
 const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
-const postId = computed(() => route.params.postId)
-const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
+const postId = computed(() => route.params.postId || resolved.value.postId)
+// activeMenu.url이 있으면(직접 지정 URL/자동 넘버링 둘 다) 그 경로를 그대로 쓴다 —
+// /menu/{id} 접두어 없이 접속한 경로를 게시글 상세/글쓰기 링크에서도 유지하기 위함
+const basePath = computed(() => activeMenu.value?.url || (route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`))
+// 직접 지정 URL/자동 넘버링 경로에서는 /posts/ 없이 바로 글번호가 붙는다(예: /notice/10177)
+const postBasePath = computed(() => activeMenu.value?.url ? basePath.value : `${basePath.value}/posts`)
 
 const post = ref(null)
 const board = ref(null)
@@ -393,7 +398,7 @@ async function sendPostMessage() {
         description: sharePreviewDescription.value,
         boardName: board.value?.name || '게시판',
         writerName: post.value?.writerName || '',
-        path: router.resolve(`${basePath.value}/posts/${postId.value}`).href
+        path: router.resolve(`${postBasePath.value}/${postId.value}`).href
       }
     }))
     await api.post('/messages', form, { headers: { 'Content-Type': undefined } })

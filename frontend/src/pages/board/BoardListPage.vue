@@ -314,7 +314,11 @@ const authStore = useAuthStore()
 
 const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
 const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
-const basePath = computed(() => route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`)
+// activeMenu.url이 있으면(직접 지정 URL/자동 넘버링 둘 다) 그 경로를 그대로 쓴다 —
+// /menu/{id} 접두어 없이 접속한 경로를 게시글 상세/글쓰기 링크에서도 유지하기 위함
+const basePath = computed(() => activeMenu.value?.url || (route.params.menuId ? `/menu/${route.params.menuId}` : `/board/${boardId.value}`))
+// 직접 지정 URL/자동 넘버링 경로에서는 /posts/ 없이 바로 글번호가 붙는다(예: /notice/10177)
+const postBasePath = computed(() => activeMenu.value?.url ? basePath.value : `${basePath.value}/posts`)
 
 const board = ref(null)
 const posts = ref([])
@@ -436,7 +440,7 @@ function selectCategory(id) {
 }
 
 function goWrite() { router.push(`${basePath.value}/write`) }
-function goDetail(row) { router.push(`${basePath.value}/posts/${row.id}`) }
+function goDetail(row) { router.push(`${postBasePath.value}/${row.id}`) }
 
 function formatDate(d) {
   if (!d) return ''
