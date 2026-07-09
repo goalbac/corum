@@ -4,6 +4,7 @@ import com.corum.backend.domain.comment.CommentRepository;
 import com.corum.backend.domain.dashboard.VisitStats;
 import com.corum.backend.domain.dashboard.VisitStatsRepository;
 import com.corum.backend.domain.inquiry.InquiryRepository;
+import com.corum.backend.domain.log.VisitLogRepository;
 import com.corum.backend.domain.member.MemberRepository;
 import com.corum.backend.domain.post.PostRepository;
 import com.corum.backend.dto.stats.DailyStatRow;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 public class StatService {
 
     private final VisitStatsRepository visitStatsRepository;
+    private final VisitLogRepository visitLogRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
@@ -76,10 +78,13 @@ public class StatService {
 
     private DailyStatRow buildSummary(LocalDate from, LocalDate to,
                                       Map<LocalDate, VisitStats> visitMap, String label) {
-        int visitors = 0, pageViews = 0;
+        // 방문자(uniqueVisits)는 날짜별 값을 그대로 더하면 같은 사람이 기간 내 여러 날
+        // 방문했을 때 그만큼 중복 집계된다. 기간 전체 기준 distinct IP 수를 따로 구한다.
+        int visitors = (int) visitLogRepository.countDistinctIpByVisitDateBetween(from, to);
+        int pageViews = 0;
         for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
             VisitStats vs = visitMap.get(d);
-            if (vs != null) { visitors += vs.getUniqueVisits(); pageViews += vs.getTotalVisits(); }
+            if (vs != null) { pageViews += vs.getTotalVisits(); }
         }
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.plusDays(1).atStartOfDay();

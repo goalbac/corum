@@ -124,6 +124,9 @@ public class AuthService {
         }
 
         if (!member.getIsActive()) {
+            if (member.getWithdrawnAt() != null) {
+                throw BusinessException.unauthorized("탈퇴한 계정입니다.");
+            }
             throw BusinessException.unauthorized("이메일 인증이 필요합니다.");
         }
 

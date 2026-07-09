@@ -85,6 +85,7 @@
               <tr>
                 <th>일자</th>
                 <th>방문자</th>
+                <th>페이지뷰</th>
                 <th>신규회원</th>
                 <th>게시글</th>
                 <th>댓글</th>
@@ -95,6 +96,7 @@
               <tr v-for="row in dailyRows" :key="row.date" :class="{ today: isToday(row.date) }">
                 <td class="date-col">{{ formatDate(row.date) }}</td>
                 <td>{{ row.visitors }}</td>
+                <td>{{ row.pageViews }}</td>
                 <td>{{ row.newMembers }}</td>
                 <td>{{ row.newPosts }}</td>
                 <td>{{ row.newComments }}</td>
@@ -105,6 +107,7 @@
               <tr v-if="weekRow" class="summary-row">
                 <td class="date-col">최근 7일</td>
                 <td>{{ weekRow.visitors }}명</td>
+                <td>{{ weekRow.pageViews }}</td>
                 <td>{{ weekRow.newMembers }}명</td>
                 <td>{{ weekRow.newPosts }}</td>
                 <td>{{ weekRow.newComments }}</td>
@@ -113,6 +116,7 @@
               <tr v-if="monthRow" class="summary-row">
                 <td class="date-col">이번달</td>
                 <td>{{ monthRow.visitors }}명</td>
+                <td>{{ monthRow.pageViews }}</td>
                 <td>{{ monthRow.newMembers }}명</td>
                 <td>{{ monthRow.newPosts }}</td>
                 <td>{{ monthRow.newComments }}</td>

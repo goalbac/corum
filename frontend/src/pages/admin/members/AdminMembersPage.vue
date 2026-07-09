@@ -104,7 +104,7 @@
               class="adm-btn ghost"
               :disabled="resetingPassword"
               @click="resetPassword"
-              title="임시 비밀번호를 생성해 이메일로 발송하고, 다음 로그인 시 비밀번호 변경을 강제합니다"
+              title="본인만 열 수 있는 비밀번호 재설정 링크를 이메일로 발송합니다 (30분간 유효)"
             >
               <i :class="['ti', resetingPassword ? 'ti-loader-2 spinning' : 'ti-key']"></i>
               {{ resetingPassword ? '처리 중...' : '비밀번호 초기화' }}
