@@ -4,6 +4,9 @@ import com.corum.backend.domain.setting.SiteSetting;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 public class SiteSettingResponse {
@@ -32,6 +35,7 @@ public class SiteSettingResponse {
     private final String adminEmail;
     private final Integer notificationRetentionDays;
     private final String defaultMenuAccessType;
+    private final List<Long> defaultMenuGroupIds;
     private final Boolean requireLoginSiteWide;
     private final String vapidPublicKey;
     private final LocalDateTime updatedAt;
@@ -62,9 +66,19 @@ public class SiteSettingResponse {
         this.adminEmail = setting.getAdminEmail();
         this.notificationRetentionDays = setting.getNotificationRetentionDays();
         this.defaultMenuAccessType = setting.getDefaultMenuAccessType();
+        this.defaultMenuGroupIds = parseIds(setting.getDefaultMenuGroupIds());
         this.requireLoginSiteWide = setting.getRequireLoginSiteWide();
         this.vapidPublicKey = setting.getVapidPublicKey();
         this.updatedAt = setting.getUpdatedAt();
         this.updatedBy = setting.getUpdatedBy();
+    }
+
+    private static List<Long> parseIds(String csv) {
+        if (csv == null || csv.isBlank()) return List.of();
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
     }
 }

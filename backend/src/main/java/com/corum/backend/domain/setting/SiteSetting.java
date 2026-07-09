@@ -98,6 +98,10 @@ public class SiteSetting {
     @Builder.Default
     private String defaultMenuAccessType = "ALL";
 
+    // defaultMenuAccessType=GROUP일 때 접근 허용 그룹의 초기값(콤마 구분 ID 목록, 예: "3,5")
+    @Column(name = "default_menu_group_ids", length = 500)
+    private String defaultMenuGroupIds;
+
     // 켜면 로그인/가입 등 게스트 전용 페이지를 제외한 사이트 전체가 비로그인 접근 시
     // 로그인 화면으로 리다이렉트된다 (프론트 라우터 가드에서 적용)
     @Column(name = "require_login_site_wide", nullable = false)
@@ -139,6 +143,7 @@ public class SiteSetting {
             String adminEmail,
             Integer notificationRetentionDays,
             String defaultMenuAccessType,
+            String defaultMenuGroupIds,
             Boolean requireLoginSiteWide,
             Long updatedBy
     ) {
@@ -164,6 +169,7 @@ public class SiteSetting {
         this.adminEmail = adminEmail;
         this.notificationRetentionDays = notificationRetentionDays != null ? notificationRetentionDays : 30;
         this.defaultMenuAccessType = defaultMenuAccessType != null ? defaultMenuAccessType : "ALL";
+        this.defaultMenuGroupIds = defaultMenuGroupIds;
         this.requireLoginSiteWide = requireLoginSiteWide != null ? requireLoginSiteWide : false;
         this.updatedBy = updatedBy;
         this.updatedAt = LocalDateTime.now();

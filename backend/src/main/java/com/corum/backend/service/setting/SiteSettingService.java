@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -55,10 +58,16 @@ public class SiteSettingService {
                 request.getAdminEmail(),
                 request.getNotificationRetentionDays(),
                 request.getDefaultMenuAccessType(),
+                joinIds(request.getDefaultMenuGroupIds()),
                 request.getRequireLoginSiteWide(),
                 updatedBy
         );
         return new SiteSettingResponse(setting);
+    }
+
+    private String joinIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return null;
+        return ids.stream().map(String::valueOf).collect(Collectors.joining(","));
     }
 
     @Transactional

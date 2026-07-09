@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -61,5 +62,6 @@ public class SiteSettingUpdateRequest {
     private Integer notificationRetentionDays;
 
     private String defaultMenuAccessType;
+    private List<Long> defaultMenuGroupIds;
     private Boolean requireLoginSiteWide;
 }

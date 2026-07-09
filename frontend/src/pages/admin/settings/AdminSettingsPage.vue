@@ -140,6 +140,23 @@
           </el-select>
           <p class="section-desc" style="margin:6px 0 0">메뉴 관리에서 새 메뉴를 추가할 때 접근 권한 필드의 초기값으로 사용됩니다. (강제 적용 아님, 추가 후 개별 변경 가능)</p>
         </el-form-item>
+        <el-form-item v-if="form.defaultMenuAccessType === 'GROUP'" label="기본 허용 그룹">
+          <el-select
+            v-model="form.defaultMenuGroupIds"
+            multiple
+            filterable
+            style="width:100%"
+            placeholder="기본으로 선택될 그룹을 선택하세요"
+          >
+            <el-option
+              v-for="g in subGroupOptions"
+              :key="g.id"
+              :value="g.id"
+              :label="g.label"
+            />
+          </el-select>
+          <p class="section-desc" style="margin:6px 0 0">최상위 그룹은 표시되지 않습니다.</p>
+        </el-form-item>
       </section>
 
       <!-- ⑥ 푸터 커스텀 HTML (고급) -->
@@ -256,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
@@ -294,8 +311,35 @@ const form = ref({
   footerHtml: '',
   notificationRetentionDays: 30,
   defaultMenuAccessType: 'ALL',
+  defaultMenuGroupIds: [],
   requireLoginSiteWide: false
 })
+
+const groups = ref([])
+
+// 접근 허용 그룹 선택용: 최상위·시스템 그룹 제외, "상위 - 하위" 레이블 형식
+// (AdminMenusPage.vue의 subGroupOptions와 동일한 패턴)
+const subGroupOptions = computed(() => {
+  const result = []
+  const walk = (nodes = [], parentLabel = '') => {
+    nodes.forEach(g => {
+      const label = parentLabel ? `${parentLabel} - ${g.name}` : g.name
+      if (parentLabel && !g.isSystem) {
+        result.push({ id: g.id, label })
+      }
+      if (g.children?.length) walk(g.children, label)
+    })
+  }
+  walk(groups.value)
+  return result
+})
+
+async function fetchGroups() {
+  try {
+    const res = await api.get('/groups')
+    groups.value = res.data.data || []
+  } catch {}
+}
 
 async function fetchSettings() {
   loading.value = true
@@ -406,6 +450,7 @@ async function generateVapid() {
 onMounted(() => {
   fetchSettings()
   fetchNotifDefaults()
+  fetchGroups()
 })
 </script>
 
