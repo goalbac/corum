@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -19,10 +20,14 @@ public class PageViewController {
 
     @PostMapping("/page-view")
     public ResponseEntity<Void> record(
+            @RequestBody(required = false) PageViewRequest body,
             HttpServletRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        operationLogService.recordPageView(memberId, request);
+        operationLogService.recordPageView(memberId, body != null ? body.pagePath() : null, request);
         return ResponseEntity.ok().build();
+    }
+
+    public record PageViewRequest(String pagePath, String pageTitle) {
     }
 }

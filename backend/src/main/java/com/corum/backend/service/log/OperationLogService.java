@@ -59,9 +59,9 @@ public class OperationLogService {
 
     /** POST /api/page-view 전용 — URI 필터 없이 바로 집계 */
     @Transactional
-    public void recordPageView(Long memberId, HttpServletRequest request) {
+    public void recordPageView(Long memberId, String pagePath, HttpServletRequest request) {
         String referer = request.getHeader("Referer");
-        String pageUri = trim(referer, 1000);
+        String pageUri = normalizePagePath(pagePath, referer);
         doVisit(memberId, request, pageUri != null ? pageUri : "/");
     }
 
@@ -102,5 +102,13 @@ public class OperationLogService {
     private String trim(String value, int max) {
         if (value == null) return null;
         return value.length() <= max ? value : value.substring(0, max);
+    }
+
+    private String normalizePagePath(String pagePath, String referer) {
+        if (pagePath != null && !pagePath.isBlank()) {
+            String normalized = pagePath.trim();
+            return trim(normalized.startsWith("/") ? normalized : "/" + normalized, 1000);
+        }
+        return trim(referer, 1000);
     }
 }
