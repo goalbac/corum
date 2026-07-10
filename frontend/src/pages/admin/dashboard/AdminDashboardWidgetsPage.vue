@@ -45,11 +45,10 @@
             <span
               v-if="hasSizePicker(w.widgetType)"
               class="wsize-indicator"
-              :title="getSize(w) === 'full' ? '1칸 (전체 너비)' : '반칸 (절반 너비)'"
+              :title="sizeLabel(getSize(w))"
             >
-              <span :class="['wsize-block', 'block-l', getSize(w) === 'full' ? 'active' : '']"></span>
-              <span :class="['wsize-block', 'block-r', getSize(w) === 'full' ? 'active' : '']"></span>
-              <span class="wsize-label">{{ getSize(w) === 'full' ? '1칸' : '반칸' }}</span>
+              <span class="wsize-bar"><span class="wsize-fill" :style="{ width: sizePercent(getSize(w)) + '%' }"></span></span>
+              <span class="wsize-label">{{ sizeShortLabel(getSize(w)) }}</span>
             </span>
             <span v-if="!w.isActive" class="wbadge-inactive">비활성</span>
           </div>
@@ -263,6 +262,10 @@
               <button type="button" :class="['size-opt', config.size === 'half' ? 'active' : '']" @click="config.size = 'half'">
                 <div class="size-preview half-preview"><div class="sp-block"></div><div class="sp-empty"></div></div>
                 <span>반칸 (절반 너비)</span>
+              </button>
+              <button type="button" :class="['size-opt', config.size === 'third' ? 'active' : '']" @click="config.size = 'third'">
+                <div class="size-preview third-preview"><div class="sp-block"></div><div class="sp-empty"></div><div class="sp-empty"></div></div>
+                <span>1/3칸 (1/3 너비)</span>
               </button>
             </div>
           </div>
@@ -559,6 +562,9 @@ function parseConfig(w) {
   catch { return {} }
 }
 function getSize(w) { return parseConfig(w).size || 'half' }
+function sizeLabel(size) { return size === 'full' ? '1칸 (전체 너비)' : size === 'third' ? '1/3칸 (1/3 너비)' : '반칸 (절반 너비)' }
+function sizeShortLabel(size) { return size === 'full' ? '1칸' : size === 'third' ? '1/3칸' : '반칸' }
+function sizePercent(size) { return size === 'full' ? 100 : size === 'third' ? 33 : 50 }
 function typeLabel(t) {
   const MAP = {
     WELCOME:         '웰컴 카드',
@@ -881,11 +887,11 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy(); destro
   padding: 3px 8px 3px 5px; border: 1px solid var(--border);
   border-radius: 5px; background: var(--surface);
 }
-.wsize-block {
-  display: inline-block; width: 10px; height: 10px;
-  border-radius: 2px; background: var(--border); transition: background 0.15s;
+.wsize-bar {
+  display: inline-block; width: 26px; height: 8px;
+  border-radius: 3px; background: var(--border); overflow: hidden;
 }
-.wsize-block.active { background: var(--accent); }
+.wsize-fill { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .wsize-label { font-size: 11px; font-weight: 700; color: var(--t3); margin-left: 3px; }
 
 .wbadge-inactive {
@@ -969,6 +975,7 @@ onBeforeUnmount(() => { if (sortableInstance) sortableInstance.destroy(); destro
 .sp-empty { height: 100%; background: var(--border); border-radius: 3px; }
 .full-preview .sp-block { flex: 1; }
 .half-preview .sp-block, .half-preview .sp-empty { flex: 1; }
+.third-preview .sp-block, .third-preview .sp-empty { flex: 1; }
 
 .sub-item {
   background: var(--surface2); border: 0.5px solid var(--border2);

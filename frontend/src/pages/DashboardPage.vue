@@ -7,7 +7,7 @@
         <!-- widget = 로드 완료 시 실제 데이터, 아니면 레이아웃 메타 -->
         <!-- 위젯 콘텐츠 로딩 중이면 스켈레톤 카드 -->
         <template v-if="widgetLoading[layout.id]">
-          <div :class="parseConfig(layout).size === 'full' || isFullWidget(layout.widgetType) ? 'widget-full' : 'widget-half'">
+          <div :class="skeletonSizeClass(layout)">
             <div class="wcard wcard-loading">
               <div class="wcard-head">
                 <span class="wcard-title skeleton-text">{{ layout.title || layout.targetBoardName || widgetTypeLabel(layout.widgetType) }}</span>
@@ -58,7 +58,7 @@
 
         <!-- 최신 글 (텍스트 목록) -->
         <div v-else-if="widget.widgetType === 'RECENT_POSTS'"
-             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+             :class="widgetSizeClass(widget)">
           <div class="wcard">
             <div class="wcard-head">
               <span class="wcard-title"><i class="ti ti-news wcard-icon"></i>{{ widget.title || widget.targetBoardName || '최신글' }}</span>
@@ -87,7 +87,7 @@
 
         <!-- 갤러리 최신 글 (썸네일 그리드) -->
         <div v-else-if="widget.widgetType === 'RECENT_GALLERY'"
-             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+             :class="widgetSizeClass(widget)">
           <div class="wcard">
             <div class="wcard-head">
               <span class="wcard-title"><i class="ti ti-photo wcard-icon"></i>{{ widget.title || widget.targetBoardName || '갤러리' }}</span>
@@ -125,7 +125,7 @@
 
         <!-- 캘린더 주간 위젯 -->
         <div v-else-if="widget.widgetType === 'CALENDAR_WEEKLY'"
-             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+             :class="widgetSizeClass(widget)">
           <div class="wcard">
             <div class="wcard-head">
               <div class="wcard-head-left">
@@ -157,7 +157,7 @@
 
         <!-- 캘린더 월간 위젯 -->
         <div v-else-if="widget.widgetType === 'CALENDAR_MONTHLY'"
-             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+             :class="widgetSizeClass(widget)">
           <div class="wcard">
             <div class="wcard-head">
               <div class="wcard-head-left">
@@ -189,7 +189,7 @@
 
         <!-- 링크 모음 -->
         <div v-else-if="widget.widgetType === 'LINK_LIST'"
-             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+             :class="widgetSizeClass(widget)">
           <div class="wcard">
             <div class="wcard-head">
               <span class="wcard-title"><i class="ti ti-link wcard-icon"></i>{{ widget.title || '링크 모음' }}</span>
@@ -213,7 +213,7 @@
 
         <!-- 바로가기 -->
         <div v-else-if="widget.widgetType === 'QUICK_LINKS'"
-             :class="parseConfig(widget).size === 'full' ? 'widget-full' : 'widget-half'">
+             :class="widgetSizeClass(widget)">
           <div class="wcard">
             <div class="wcard-head">
               <span class="wcard-title"><i class="ti ti-bolt wcard-icon"></i>{{ widget.title || '바로가기' }}</span>
@@ -266,7 +266,7 @@
 
         <!-- 커스텀 -->
         <div v-else-if="widget.widgetType === 'CUSTOM'"
-             :class="parseConfig(widget).size === 'half' ? 'widget-half' : 'widget-full'">
+             :class="widgetSizeClass(widget, 'full')">
           <div class="wcard">
             <div class="wcard-head">
               <span class="wcard-title"><i class="ti ti-file-text wcard-icon"></i>{{ widget.title || '' }}</span>
@@ -635,6 +635,19 @@ function isFullWidget(t) {
   return ['IMAGE_SLIDER', 'IMAGE_GRID', 'WELCOME'].includes(t)
 }
 
+// 위젯 크기(전체/절반/1-3) → 그리드 클래스. CUSTOM은 크기 도입 이전부터 있던
+// 위젯이라 size가 저장되어 있지 않으면 기존처럼 전체 너비를 기본값으로 유지한다
+function widgetSizeClass(widget, defaultSize = 'half') {
+  const size = parseConfig(widget).size || defaultSize
+  if (size === 'full') return 'widget-full'
+  if (size === 'third') return 'widget-third'
+  return 'widget-half'
+}
+function skeletonSizeClass(layout) {
+  if (isFullWidget(layout.widgetType)) return 'widget-full'
+  return widgetSizeClass(layout, layout.widgetType === 'CUSTOM' ? 'full' : 'half')
+}
+
 function parseCalendarId(widget) {
   try {
     const cfg = widget.extraConfig ? JSON.parse(widget.extraConfig) : {}
@@ -817,11 +830,13 @@ onMounted(async () => {
 /* ===== 위젯 그리드 ===== */
 .widget-area {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 전체/절반/1-3 너비를 한 그리드에서 표현하기 위해 6열(2,3의 최소공배수) 기준으로 나눈다 */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 18px;
 }
 .widget-full  { grid-column: 1 / -1; min-width: 0; }
-.widget-half  { grid-column: span 1; min-width: 0; }
+.widget-half  { grid-column: span 3; min-width: 0; }
+.widget-third { grid-column: span 2; min-width: 0; }
 
 /* ===== 공통 위젯 카드 ===== */
 .wcard {
@@ -1513,6 +1528,7 @@ onMounted(async () => {
        위젯이 이중으로 좁아짐 - 패딩 제거 */
   }
   .widget-half { grid-column: 1; }
+  .widget-third { grid-column: 1; }
 
   /* 이미지 슬라이더만 화면 끝까지 꽉 차게 (다른 위젯은 페이지 여백 유지) */
   .widget-slider-wrap {
