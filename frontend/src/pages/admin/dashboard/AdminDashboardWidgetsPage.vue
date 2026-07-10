@@ -493,7 +493,19 @@
           </div>
           <div class="dlg-field">
             <label>본문 내용</label>
-            <RichEditor v-model="config.content" placeholder="위젯에 표시될 내용을 입력하세요." />
+            <!-- 실제 대시보드 위젯(.custom-body, DashboardPage.vue) 글자 크기 체계에 맞춰서
+                 편집 화면과 실제 표시 화면의 크기가 어긋나지 않도록 한다 -->
+            <RichEditor
+              v-model="config.content"
+              placeholder="위젯에 표시될 내용을 입력하세요."
+              body-font-size="14.5px"
+              body-line-height="1.7"
+              h1-size="20px"
+              h2-size="17px"
+              h3-size="15px"
+              blockquote-font-size="14.5px"
+              blockquote-accent-font-size="14.5px"
+            />
           </div>
         </template>
       </div>
