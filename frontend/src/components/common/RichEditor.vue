@@ -147,10 +147,34 @@
       <!-- 글자색 -->
       <div class="toolbar-group-wrap">
         <div class="toolbar-group">
-          <label class="color-btn" title="글자색">
-            <i class="ti ti-palette"></i>
-            <input type="color" class="color-input" @input="setColor" />
-          </label>
+          <div class="color-picker-wrap" ref="colorWrapRef">
+            <button type="button" class="color-btn" title="글자색" @click="showColorPopover = !showColorPopover">
+              <i class="ti ti-palette"></i>
+            </button>
+            <div v-if="showColorPopover" class="color-popover">
+              <div class="color-popover-label">사이트 색상</div>
+              <div class="color-swatch-row">
+                <button
+                  v-for="c in SITE_COLORS" :key="c.value" type="button" class="color-swatch"
+                  :style="{ background: c.value }" :title="c.label" @click="applyColor(c.value)"
+                ></button>
+              </div>
+              <template v-if="recentColors.length">
+                <div class="color-popover-label">최근 사용한 색</div>
+                <div class="color-swatch-row">
+                  <button
+                    v-for="c in recentColors" :key="c" type="button" class="color-swatch"
+                    :style="{ background: c }" :title="c" @click="applyColor(c)"
+                  ></button>
+                </div>
+              </template>
+              <label class="color-custom-btn" title="직접 선택">
+                <i class="ti ti-color-picker"></i>
+                <span>직접 선택</span>
+                <input type="color" class="color-input" @input="onCustomColor" />
+              </label>
+            </div>
+          </div>
           <button type="button" title="색상 초기화" @click="editor?.chain().focus().unsetColor().run()">
             <i class="ti ti-color-swatch-off"></i>
           </button>
@@ -207,7 +231,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import { StarterKit } from '@tiptap/starter-kit'
 import { Link } from '@tiptap/extension-link'
@@ -399,15 +423,67 @@ function setFontSize(value) {
   }
 }
 
-function setColor(e) {
-  editor.chain().focus().setColor(e.target.value).run()
-}
-
 function setHighlight(e) {
   editor.chain().focus().setHighlight({ color: e.target.value }).run()
 }
 
-onBeforeUnmount(() => { editor.destroy() })
+// 사이트 style.css 브랜드 색상(--t1, --accent, --green, --warn, --danger)과 동일한 값을
+// 고정 hex로 넣어둔다. CSS 변수 대신 hex를 쓰는 이유는 저장되는 건 게시글 본문의 인라인
+// style이라 사이트 테마가 나중에 바뀌어도 과거 글 색상은 그대로 보존돼야 하기 때문.
+const SITE_COLORS = [
+  { label: '기본 텍스트', value: '#1a1e27' },
+  { label: '강조', value: '#2f5fd6' },
+  { label: '초록', value: '#1f9d6b' },
+  { label: '주황', value: '#c47f1c' },
+  { label: '빨강', value: '#d6453f' },
+  { label: '검정', value: '#000000' },
+]
+
+const RECENT_COLORS_KEY = 'corum-editor-recent-colors'
+const MAX_RECENT_COLORS = 8
+
+const showColorPopover = ref(false)
+const colorWrapRef = ref(null)
+const recentColors = ref(loadRecentColors())
+
+function loadRecentColors() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(RECENT_COLORS_KEY) || '[]')
+    return Array.isArray(arr) ? arr.slice(0, MAX_RECENT_COLORS) : []
+  } catch {
+    return []
+  }
+}
+
+function pushRecentColor(color) {
+  const next = [color, ...recentColors.value.filter(c => c !== color)].slice(0, MAX_RECENT_COLORS)
+  recentColors.value = next
+  try {
+    localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(next))
+  } catch {}
+}
+
+function applyColor(color) {
+  editor.chain().focus().setColor(color).run()
+  pushRecentColor(color)
+  showColorPopover.value = false
+}
+
+function onCustomColor(e) {
+  applyColor(e.target.value)
+}
+
+function onDocumentClick(e) {
+  if (showColorPopover.value && colorWrapRef.value && !colorWrapRef.value.contains(e.target)) {
+    showColorPopover.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', onDocumentClick, true))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick, true)
+  editor.destroy()
+})
 </script>
 
 <style scoped>
@@ -505,6 +581,52 @@ onBeforeUnmount(() => { editor.destroy() })
 }
 .color-btn:hover .color-input { pointer-events: auto; }
 .color-btn i { pointer-events: none; }
+
+.color-picker-wrap { position: relative; }
+.color-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  z-index: 30;
+  width: 178px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow);
+  padding: 10px;
+}
+.color-popover-label {
+  font-size: 11px;
+  color: var(--t3);
+  margin-bottom: 6px;
+}
+.color-popover-label:not(:first-child) { margin-top: 10px; }
+.color-swatch-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.color-swatch:hover { transform: scale(1.12); }
+.color-custom-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--t2);
+  cursor: pointer;
+  position: relative;
+}
+.color-custom-btn:hover { color: var(--t1); }
+.color-custom-btn .color-input { pointer-events: auto; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.8s linear infinite; display: inline-block; }
