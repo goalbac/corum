@@ -26,7 +26,7 @@
           <div class="at-col" style="width:100px;text-align:center">
             <i :class="row.requireReagree ? 'ti ti-check green' : 'ti ti-minus muted'"></i>
           </div>
-          <div class="at-col muted wrap" style="flex:1;font-size:12px">{{ row.content?.substring(0, 80) }}...</div>
+          <div class="at-col muted wrap" style="flex:1;font-size:12px">{{ stripHtml(row.content).substring(0, 80) }}...</div>
           <div class="at-col muted" style="width:120px;font-size:12px">{{ fmtDate(row.createdAt) }}</div>
           <div class="at-col at-actions" style="width:90px">
             <button class="act-btn" @click="openEdit(row)"><i class="ti ti-edit"></i> 수정</button>
@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <el-dialog v-model="showForm" :title="editing ? '약관 수정' : '약관 추가'" width="680px" destroy-on-close>
+    <el-dialog v-model="showForm" :title="editing ? '약관 수정' : '약관 추가'" width="800px" destroy-on-close>
       <div class="dlg-form">
         <div class="dlg-row">
           <div class="dlg-field">
@@ -54,7 +54,7 @@
         </div>
         <div class="dlg-field">
           <label>내용</label>
-          <el-input v-model="form.content" type="textarea" :rows="12" resize="none" />
+          <RichEditor v-model="form.content" placeholder="약관 내용을 입력하세요." min-height="360px" />
         </div>
         <div class="dlg-checks">
           <label class="chk-item"><el-checkbox v-model="form.isActive" />활성화</label>
@@ -75,6 +75,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import RichEditor from '@/components/common/RichEditor.vue'
 import api from '@/api/axios'
 
 const terms = ref([]); const loading = ref(false); const saving = ref(false)
@@ -97,6 +98,7 @@ async function saveTerm() {
 }
 async function deleteTerm(id) { await ElMessageBox.confirm('약관을 삭제하시겠습니까?', '삭제', { type: 'warning', confirmButtonText: '삭제', cancelButtonText: '취소' }); await api.delete(`/admin/terms/${id}`); ElMessage.success('삭제되었습니다.'); fetchTerms() }
 function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('ko-KR') }
+function stripHtml(html) { if (!html) return ''; return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() }
 onMounted(fetchTerms)
 </script>
 
