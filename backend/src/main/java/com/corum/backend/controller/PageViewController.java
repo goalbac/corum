@@ -24,10 +24,15 @@ public class PageViewController {
             HttpServletRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
-        operationLogService.recordPageView(memberId, body != null ? body.pagePath() : null, request);
+        operationLogService.recordPageView(
+                memberId,
+                body != null ? body.pagePath() : null,
+                body != null ? body.previousPath() : null,
+                request
+        );
         return ResponseEntity.ok().build();
     }
 
-    public record PageViewRequest(String pagePath, String pageTitle) {
+    public record PageViewRequest(String pagePath, String previousPath, String pageTitle) {
     }
 }

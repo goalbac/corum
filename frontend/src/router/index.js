@@ -292,10 +292,11 @@ router.beforeEach(async (to, from, next) => {
 })
 
 // 페이지 이동 시 방문 집계 (관리자 경로 제외)
-router.afterEach((to) => {
+router.afterEach((to, from) => {
   if (to.path.startsWith('/admin')) return
   api.post('/page-view', {
     pagePath: to.fullPath,
+    previousPath: from?.fullPath || null,
     pageTitle: typeof document !== 'undefined' ? document.title : null
   }).catch(() => {})
 })

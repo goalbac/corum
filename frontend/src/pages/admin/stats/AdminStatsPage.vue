@@ -37,7 +37,7 @@
           <div class="at-col" style="flex:1;min-width:260px">
             <div class="uri-cell">
             <strong>{{ displayPath(row.requestUri) }}</strong>
-            <span v-if="row.referer && row.referer !== row.requestUri">{{ displayPath(row.referer) }}</span>
+            <span v-if="row.referer && displayPath(row.referer) !== displayPath(row.requestUri)">이전: {{ displayPath(row.referer) }}</span>
             </div>
           </div>
           <div class="at-col mono muted" style="width:145px;font-size:12px">{{ row.ipAddress || '-' }}</div>
