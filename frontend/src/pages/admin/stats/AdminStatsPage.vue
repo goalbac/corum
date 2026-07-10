@@ -23,92 +23,102 @@
         </button>
       </div>
 
-      <div v-if="tab === 'visit'" class="log-table" v-loading="loading">
-        <div class="log-head visit-grid">
-          <div>시각</div>
-          <div>회원</div>
-          <div>화면</div>
-          <div>IP</div>
-          <div>환경</div>
+      <div v-if="tab === 'visit'" class="at-wrap log-table" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:150px">시각</div>
+          <div class="at-col" style="width:170px">회원</div>
+          <div class="at-col" style="flex:1;min-width:260px">화면</div>
+          <div class="at-col" style="width:145px">IP</div>
+          <div class="at-col" style="width:170px">환경</div>
         </div>
-        <div v-for="row in rows" :key="row.id" class="log-row visit-grid">
-          <div class="muted">{{ fmtDt(row.createdAt) }}</div>
-          <div><MemberCell :row="row" /></div>
-          <div class="uri-cell">
+        <div v-for="row in rows" :key="row.id" class="at-row log-row">
+          <div class="at-col muted" style="width:150px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+          <div class="at-col" style="width:170px"><MemberCell :row="row" /></div>
+          <div class="at-col" style="flex:1;min-width:260px">
+            <div class="uri-cell">
             <strong>{{ displayPath(row.requestUri) }}</strong>
             <span v-if="row.referer && row.referer !== row.requestUri">{{ displayPath(row.referer) }}</span>
+            </div>
           </div>
-          <div class="mono muted">{{ row.ipAddress || '-' }}</div>
-          <div class="ua-cell" :title="row.userAgent || ''">{{ shortUserAgent(row.userAgent) }}</div>
+          <div class="at-col mono muted" style="width:145px;font-size:12px">{{ row.ipAddress || '-' }}</div>
+          <div class="at-col muted" style="width:170px" :title="row.userAgent || ''">
+            <span class="single-line">{{ shortUserAgent(row.userAgent) }}</span>
+          </div>
         </div>
         <EmptyLog v-if="!rows.length && !loading" icon="ti-eye" text="방문 로그가 없습니다." />
       </div>
 
-      <div v-if="tab === 'search'" class="log-table" v-loading="loading">
-        <div class="log-head search-grid">
-          <div>시각</div>
-          <div>회원</div>
-          <div>검색어</div>
-          <div>유형</div>
-          <div>결과</div>
-          <div>IP</div>
+      <div v-if="tab === 'search'" class="at-wrap log-table" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:150px">시각</div>
+          <div class="at-col" style="width:170px">회원</div>
+          <div class="at-col" style="flex:1;min-width:220px">검색어</div>
+          <div class="at-col" style="width:100px">유형</div>
+          <div class="at-col" style="width:70px;text-align:center">결과</div>
+          <div class="at-col" style="width:145px">IP</div>
         </div>
-        <div v-for="row in rows" :key="row.id" class="log-row search-grid">
-          <div class="muted">{{ fmtDt(row.createdAt) }}</div>
-          <div><MemberCell :row="row" /></div>
-          <div class="keyword">{{ row.keyword }}</div>
-          <div class="muted">{{ searchTypeLabel(row.searchType) }}</div>
-          <div>{{ row.resultCount?.toLocaleString?.() ?? 0 }}</div>
-          <div class="mono muted">{{ row.ipAddress || '-' }}</div>
+        <div v-for="row in rows" :key="row.id" class="at-row log-row">
+          <div class="at-col muted" style="width:150px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+          <div class="at-col" style="width:170px"><MemberCell :row="row" /></div>
+          <div class="at-col bold" style="flex:1;min-width:220px">{{ row.keyword }}</div>
+          <div class="at-col muted" style="width:100px">{{ searchTypeLabel(row.searchType) }}</div>
+          <div class="at-col" style="width:70px;text-align:center">{{ row.resultCount?.toLocaleString?.() ?? 0 }}</div>
+          <div class="at-col mono muted" style="width:145px;font-size:12px">{{ row.ipAddress || '-' }}</div>
         </div>
         <EmptyLog v-if="!rows.length && !loading" icon="ti-search" text="검색 로그가 없습니다." />
       </div>
 
-      <div v-if="tab === 'audit'" class="log-table" v-loading="loading">
-        <div class="log-head audit-grid">
-          <div>시각</div>
-          <div>실행 회원</div>
-          <div>동작</div>
-          <div>대상</div>
-          <div>변경 내용</div>
-          <div>IP</div>
+      <div v-if="tab === 'audit'" class="at-wrap log-table" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:150px">시각</div>
+          <div class="at-col" style="width:170px">실행 회원</div>
+          <div class="at-col" style="width:90px;text-align:center">동작</div>
+          <div class="at-col" style="width:210px">대상</div>
+          <div class="at-col" style="flex:1;min-width:240px">변경 내용</div>
+          <div class="at-col" style="width:145px">IP</div>
         </div>
-        <div v-for="row in rows" :key="row.id" class="log-row audit-grid">
-          <div class="muted">{{ fmtDt(row.createdAt) }}</div>
-          <div><MemberCell :row="row" /></div>
-          <div><span :class="['adm-badge', auditBadge(row.actionType)]">{{ actionLabel(row.actionType) }}</span></div>
-          <div class="target-cell">
+        <div v-for="row in rows" :key="row.id" class="at-row log-row">
+          <div class="at-col muted" style="width:150px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+          <div class="at-col" style="width:170px"><MemberCell :row="row" /></div>
+          <div class="at-col" style="width:90px;text-align:center"><span :class="['adm-badge', auditBadge(row.actionType)]">{{ actionLabel(row.actionType) }}</span></div>
+          <div class="at-col" style="width:210px">
+            <div class="target-cell">
             <strong>{{ targetLabel(row) }}</strong>
             <span>{{ row.targetTable || '-' }} #{{ row.targetId || '-' }}</span>
+            </div>
           </div>
-          <div class="change-cell">
+          <div class="at-col muted" style="flex:1;min-width:240px" :title="changeText(row)">
+            <span class="single-line">
             <span v-if="row.beforeValue || row.afterValue">{{ compactValue(row.beforeValue) }} → {{ compactValue(row.afterValue) }}</span>
             <span v-else class="muted">-</span>
+            </span>
           </div>
-          <div class="mono muted">{{ row.ipAddress || '-' }}</div>
+          <div class="at-col mono muted" style="width:145px;font-size:12px">{{ row.ipAddress || '-' }}</div>
         </div>
         <EmptyLog v-if="!rows.length && !loading" icon="ti-clipboard-list" text="감사 로그가 없습니다." />
       </div>
 
-      <div v-if="tab === 'smtp'" class="log-table" v-loading="loading">
-        <div class="log-head smtp-grid">
-          <div>시각</div>
-          <div>요청 회원</div>
-          <div>수신자</div>
-          <div>제목</div>
-          <div>유형</div>
-          <div>결과</div>
+      <div v-if="tab === 'smtp'" class="at-wrap log-table" v-loading="loading">
+        <div class="at-head">
+          <div class="at-col" style="width:150px">시각</div>
+          <div class="at-col" style="width:170px">요청 회원</div>
+          <div class="at-col" style="width:220px">수신자</div>
+          <div class="at-col" style="flex:1;min-width:240px">제목</div>
+          <div class="at-col" style="width:120px">유형</div>
+          <div class="at-col" style="width:80px;text-align:center">결과</div>
         </div>
-        <div v-for="row in rows" :key="row.id" class="log-row smtp-grid">
-          <div class="muted">{{ fmtDt(row.createdAt) }}</div>
-          <div><MemberCell :row="row" /></div>
-          <div class="mono">{{ row.toEmail }}</div>
-          <div class="subject-cell">
+        <div v-for="row in rows" :key="row.id" class="at-row log-row">
+          <div class="at-col muted" style="width:150px;font-size:12px">{{ fmtDt(row.createdAt) }}</div>
+          <div class="at-col" style="width:170px"><MemberCell :row="row" /></div>
+          <div class="at-col mono" style="width:220px;font-size:12px">{{ row.toEmail }}</div>
+          <div class="at-col" style="flex:1;min-width:240px">
+            <div class="subject-cell">
             <strong>{{ row.subject || '-' }}</strong>
             <span v-if="row.errorMessage" class="error-text">{{ row.errorMessage }}</span>
+            </div>
           </div>
-          <div class="muted">{{ sendTypeLabel(row.sendType) }}</div>
-          <div>
+          <div class="at-col muted" style="width:120px">{{ sendTypeLabel(row.sendType) }}</div>
+          <div class="at-col" style="width:80px;text-align:center">
             <span :class="['adm-badge', row.success ? 'badge-success' : 'badge-danger']">
               {{ row.success ? '성공' : '실패' }}
             </span>
@@ -265,6 +275,11 @@ function compactValue(value) {
   return text.length > 42 ? `${text.slice(0, 42)}...` : text
 }
 
+function changeText(row) {
+  if (!row.beforeValue && !row.afterValue) return ''
+  return `${compactValue(row.beforeValue)} → ${compactValue(row.afterValue)}`
+}
+
 function auditBadge(type) {
   return { LOGIN: 'badge-info', LOGOUT: 'badge-muted', CREATE: 'badge-success', UPDATE: 'badge-warning', DELETE: 'badge-danger' }[type] || 'badge-muted'
 }
@@ -315,38 +330,11 @@ onMounted(() => fetchRows())
   min-height: 560px;
 }
 
-.log-head,
-.log-row {
-  display: grid;
-  gap: 12px;
-  align-items: center;
-}
-
-.log-head {
-  min-height: 38px;
-  padding: 0 18px;
-  background: var(--adm-bg);
-  border-bottom: 1px solid var(--adm-border);
-  color: var(--adm-muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .log-row {
   min-height: 58px;
-  padding: 10px 18px;
-  border-bottom: 1px solid var(--adm-border);
-  font-size: 13px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
-
-.log-row:hover {
-  background: rgba(47, 95, 214, 0.035);
-}
-
-.visit-grid { grid-template-columns: 150px 170px minmax(280px, 1fr) 150px 170px; }
-.search-grid { grid-template-columns: 150px 170px minmax(220px, 1fr) 100px 70px 150px; }
-.audit-grid { grid-template-columns: 150px 170px 90px 210px minmax(240px, 1fr) 150px; }
-.smtp-grid { grid-template-columns: 150px 170px 220px minmax(240px, 1fr) 120px 80px; }
 
 .member-cell,
 .uri-cell,
@@ -362,19 +350,20 @@ onMounted(() => fetchRows())
 .uri-cell strong,
 .target-cell strong,
 .subject-cell strong {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--adm-text);
+  color: var(--t1);
 }
 
 .member-cell span,
 .uri-cell span,
 .target-cell span,
 .subject-cell span,
-.ua-cell,
 .muted {
-  color: var(--adm-muted);
+  color: var(--t4);
+  font-size: 12px;
 }
 
 .mono,
@@ -382,29 +371,19 @@ onMounted(() => fetchRows())
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.keyword,
-.change-cell,
-.ua-cell {
-  min-width: 0;
+.single-line {
+  display: block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .error-text {
-  color: var(--adm-danger, #dc2626);
+  color: #dc2626;
 }
 
 @media (max-width: 1100px) {
-  .log-head {
-    display: none;
-  }
-
-  .log-row {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-  }
-
   .smtp-test {
     width: 100%;
     justify-content: flex-start;
