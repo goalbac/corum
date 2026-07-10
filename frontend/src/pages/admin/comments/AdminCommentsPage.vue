@@ -32,7 +32,7 @@
 
           <!-- 아바타 -->
           <div class="cc-avatar">
-            <img v-if="c.profileImageUrl" :src="c.profileImageUrl" class="avatar-img" @error="e => e.target.style.display='none'" />
+            <img v-if="c.profileImageUrl" :src="resolveFileUrl(c.profileImageUrl)" class="avatar-img" @error="e => e.target.style.display='none'" />
             <span v-else class="avatar-fallback">{{ (c.writerName || '?').charAt(0) }}</span>
           </div>
 
@@ -104,6 +104,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const comments = ref([])
 const loading = ref(false)

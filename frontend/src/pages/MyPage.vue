@@ -14,7 +14,7 @@
             <div class="mp-stat-avatar">
               <img
                 v-if="member?.profileImageUrl && !myAvatarError"
-                :src="member.profileImageUrl"
+                :src="resolveFileUrl(member.profileImageUrl)"
                 class="avatar-img"
                 alt="프로필 사진"
                 @error="myAvatarError = true"
@@ -438,6 +438,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import api from '@/api/axios'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const router = useRouter()
 const route  = useRoute()

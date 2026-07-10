@@ -19,7 +19,7 @@
             <a v-if="popup.linkUrl" :href="popup.linkUrl" :target="popup.linkNewWindow ? '_blank' : '_self'">
               <img :src="resolveFileUrl(popup.imageUrl)" :alt="popup.title" class="popup-img" />
             </a>
-            <img v-else :src="popup.imageUrl" :alt="popup.title" class="popup-img" />
+            <img v-else :src="resolveFileUrl(popup.imageUrl)" :alt="popup.title" class="popup-img" />
             <div v-if="popup.content" class="popup-body">{{ popup.content }}</div>
           </template>
 

@@ -120,7 +120,7 @@
         <template v-if="isMypage">
           <div class="sidebar-mypage-profile">
             <div class="sidebar-mypage-avatar">
-              <img v-if="authStore.member?.profileImageUrl" :src="authStore.member.profileImageUrl" alt="프로필 사진" />
+              <img v-if="authStore.member?.profileImageUrl" :src="resolveFileUrl(authStore.member.profileImageUrl)" alt="프로필 사진" />
               <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
             </div>
             <div class="sidebar-mypage-meta">
@@ -382,6 +382,7 @@ import { useFavoriteMenuStore } from '@/stores/favoriteMenu'
 import { useBoardNotificationStore } from '@/stores/boardNotification'
 import KoreanLunarCalendar from 'korean-lunar-calendar'
 import api from '@/api/axios'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const route = useRoute()
 const router = useRouter()

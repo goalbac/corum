@@ -19,7 +19,7 @@
         <div class="cs-avatar">
           <img
             v-if="authStore.member?.profileImageUrl && !avatarError"
-            :src="authStore.member.profileImageUrl"
+            :src="resolveFileUrl(authStore.member.profileImageUrl)"
             alt=""
             @error="avatarError = true"
           />
@@ -87,6 +87,7 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 import CommentItem from './CommentItem.vue'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const props = defineProps({
   boardId:    { type: [String, Number], required: true },

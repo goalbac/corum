@@ -176,7 +176,7 @@
                 <div class="avatar">
                   <img
                     v-if="authStore.member?.profileImageUrl && !headerAvatarError"
-                    :src="authStore.member.profileImageUrl"
+                    :src="resolveFileUrl(authStore.member.profileImageUrl)"
                     class="avatar-img"
                     alt=""
                     @error="headerAvatarError = true"
@@ -196,7 +196,7 @@
                     <div class="menu-avatar">
                       <img
                         v-if="authStore.member?.profileImageUrl && !headerAvatarError"
-                        :src="authStore.member.profileImageUrl"
+                        :src="resolveFileUrl(authStore.member.profileImageUrl)"
                         alt=""
                       />
                       <span v-else>{{ authStore.member?.name?.charAt(0) || 'U' }}</span>
@@ -299,6 +299,7 @@ import { useNotificationStore } from '@/stores/notification'
 import { useFavoriteMenuStore } from '@/stores/favoriteMenu'
 import { useSiteStore } from '@/stores/site'
 import { useRouter } from 'vue-router'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const emit = defineEmits(['toggle-mobile-menu'])
 const authStore = useAuthStore()

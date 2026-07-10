@@ -26,7 +26,7 @@
           <div class="conv-avatar">
             <img
               v-if="conv.partnerProfileImageUrl && !convAvatarErrors[conv.partnerId]"
-              :src="conv.partnerProfileImageUrl"
+              :src="resolveFileUrl(conv.partnerProfileImageUrl)"
               :alt="conv.partnerName"
               @error="convAvatarErrors[conv.partnerId] = true"
             />
@@ -77,7 +77,7 @@
             <div class="chat-avatar">
               <img
                 v-if="activePartner?.partnerProfileImageUrl && !chatAvatarErr"
-                :src="activePartner.partnerProfileImageUrl"
+                :src="resolveFileUrl(activePartner.partnerProfileImageUrl)"
                 :alt="activePartner.partnerName"
                 @error="chatAvatarErr = true"
               />
@@ -107,7 +107,7 @@
                 <div v-if="!msg.isMine" class="bubble-avatar">
                   <img
                     v-if="activePartner?.partnerProfileImageUrl && !chatAvatarErr"
-                    :src="activePartner.partnerProfileImageUrl"
+                    :src="resolveFileUrl(activePartner.partnerProfileImageUrl)"
                     alt=""
                     @error="chatAvatarErr = true"
                   />
@@ -136,13 +136,13 @@
                       <template v-for="f in msg.files" :key="f.id">
                         <img
                           v-if="f.mimeType && f.mimeType.startsWith('image/')"
-                          :src="`/api/files/${f.id}/view`"
+                          :src="resolveFileUrl(`/api/files/${f.id}/view`)"
                           class="bubble-image"
-                          @click="openImage(`/api/files/${f.id}/view`)"
+                          @click="openImage(resolveFileUrl(`/api/files/${f.id}/view`))"
                         />
                         <a
                           v-else
-                          :href="`/api/files/${f.id}/download`"
+                          :href="resolveFileUrl(`/api/files/${f.id}/download`)"
                           class="bubble-file-link"
                           target="_blank"
                           @click.stop
@@ -236,7 +236,7 @@
             @click="startNewConversation(m)"
           >
             <div class="sr-avatar">
-              <img v-if="m.profileImageUrl" :src="m.profileImageUrl" alt="" />
+              <img v-if="m.profileImageUrl" :src="resolveFileUrl(m.profileImageUrl)" alt="" />
               <span v-else class="conv-avatar-fallback xs">{{ m.name?.charAt(0) }}</span>
             </div>
             <div class="sr-info">
@@ -258,6 +258,7 @@ import { Loading, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api/axios'
 import { useNotificationStore } from '@/stores/notification'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const route = useRoute()
 const router = useRouter()

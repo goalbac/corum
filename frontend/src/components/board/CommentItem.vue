@@ -8,7 +8,7 @@
       <div class="comment-avatar">
         <img
           v-if="comment.writerProfileImageUrl && !avatarError"
-          :src="comment.writerProfileImageUrl"
+          :src="resolveFileUrl(comment.writerProfileImageUrl)"
           class="c-avatar-img"
           alt=""
           @error="avatarError = true"
@@ -140,6 +140,7 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
 import UserProfileModal from '@/components/common/UserProfileModal.vue'
 import EmojiReactionBar from '@/components/common/EmojiReactionBar.vue'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const props = defineProps({
   comment:    { type: Object, required: true },

@@ -13,7 +13,7 @@
         <div class="prof-avatar-wrap">
           <img
             v-if="profile.profileImageUrl && !avatarErr"
-            :src="profile.profileImageUrl"
+            :src="resolveFileUrl(profile.profileImageUrl)"
             class="prof-avatar"
             alt=""
             @error="avatarErr = true"
@@ -46,6 +46,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axios'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const props = defineProps({
   memberId: { type: Number, default: null },

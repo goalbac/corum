@@ -103,7 +103,7 @@
             <label>이미지</label>
             <div class="img-upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="onImageDrop">
               <template v-if="popupForm.imageUrl">
-                <img :src="popupForm.imageUrl" class="img-preview" />
+                <img :src="resolveFileUrl(popupForm.imageUrl)" class="img-preview" />
                 <div class="img-overlay">
                   <span><i class="ti ti-refresh"></i> 변경</span>
                 </div>
@@ -127,7 +127,7 @@
             <div class="popup-preview-box">
               <div class="popup-preview-popup">
                 <div class="popup-preview-header">팝업</div>
-                <img v-if="popupForm.imageUrl" :src="popupForm.imageUrl" style="max-width:100%;display:block" />
+                <img v-if="popupForm.imageUrl" :src="resolveFileUrl(popupForm.imageUrl)" style="max-width:100%;display:block" />
                 <div v-if="popupForm.content" class="popup-preview-body">{{ popupForm.content }}</div>
               </div>
             </div>
@@ -286,6 +286,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import api from '@/api/axios'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const tab = ref('popups')
 const popups = ref([]); const banners = ref([])
