@@ -282,7 +282,7 @@
           <div class="dlg-row">
             <div class="dlg-field">
               <label>대상 게시판</label>
-              <el-select v-model="form.targetBoardId" clearable placeholder="전체" style="width:100%">
+              <el-select v-model="form.targetBoardId" clearable filterable placeholder="전체" style="width:100%">
                 <el-option v-for="b in boards" :key="b.id" :value="b.id" :label="boardLabel(b)" />
               </el-select>
             </div>
@@ -633,7 +633,10 @@ const menuPathMap = computed(() => {
 })
 function boardLabel(b) {
   const path = b.menuId ? menuPathMap.value[b.menuId] : null
-  return path ? `${path} > ${b.name}` : b.name
+  if (!path) return b.name
+  // 메뉴 추가 시 자동 생성된 게시판은 경로의 마지막 항목(메뉴명)과 게시판명이
+  // 같아서 그대로 이어붙이면 중복 표시되므로, 이미 포함되어 있으면 생략한다
+  return path === b.name || path.endsWith(` > ${b.name}`) ? path : `${path} > ${b.name}`
 }
 
 function triggerImgUpload(idx) {
