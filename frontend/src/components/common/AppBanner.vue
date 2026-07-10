@@ -76,10 +76,9 @@ function closeSession(id) {
 .banner-inner {
   display: flex;
   align-items: center;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 10px 20px;
-  gap: 12px;
+  width: 100%;
+  padding: 10px 32px 10px calc(var(--sidebar-width) + 32px);
+  gap: 16px;
 }
 
 .banner-content {
@@ -92,10 +91,9 @@ function closeSession(id) {
   font-weight: 600;
   color: #fff;
   text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: block;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 a.banner-text:hover { text-decoration: underline; }
@@ -135,5 +133,41 @@ span.banner-text:hover { text-decoration: none; cursor: default; }
   overflow: hidden;
 }
 .banner-slide-enter-from, .banner-slide-leave-to { max-height: 0; opacity: 0; }
-.banner-slide-enter-to, .banner-slide-leave-from { max-height: 60px; opacity: 1; }
+.banner-slide-enter-to, .banner-slide-leave-from { max-height: 120px; opacity: 1; }
+
+@media (max-width: 900px) {
+  .banner-inner {
+    padding: 10px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .banner-inner {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .banner-content {
+    text-align: left !important;
+  }
+
+  .banner-text {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .banner-actions {
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .banner-btn {
+    height: 30px;
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+}
 </style>
