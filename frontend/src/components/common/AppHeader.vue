@@ -1073,7 +1073,7 @@ async function handleLogout() {
   .user-name { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .hamburger { display: flex; }
   .top-nav { display: none; }
   .user-name { display: none; }
