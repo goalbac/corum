@@ -17,11 +17,13 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
+import { useLoadingStore } from '@/stores/loading'
 import api from '@/api/axios'
 import { sanitizeHtml } from '@/utils/sanitize'
 
 const route = useRoute()
 const menuStore = useMenuStore()
+const loadingStore = useLoadingStore()
 const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
 const page = ref(null)
 const loading = ref(false)
@@ -29,6 +31,7 @@ const loading = ref(false)
 async function fetchPage() {
   if (!activeMenu.value) return
   loading.value = true
+  loadingStore.start()
   try {
     const res = await api.get(`/content-pages/menus/${activeMenu.value.id}`)
     page.value = res.data.data
@@ -36,6 +39,7 @@ async function fetchPage() {
     page.value = null
   } finally {
     loading.value = false
+    loadingStore.finish()
   }
 }
 
