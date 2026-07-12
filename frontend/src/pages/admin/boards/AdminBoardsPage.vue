@@ -172,7 +172,12 @@
         <div class="dlg-section-title">그룹 권한</div>
         <div class="perm-hint">
           <i class="ti ti-info-circle"></i>
-          <span><strong>관리</strong> 권한이 있는 그룹은 해당 게시판의 모든 글을 수정·삭제할 수 있습니다.</span>
+          <span>
+            <strong>어떤 그룹도 체크하지 않은 항목은 전체 공개로 동작합니다</strong> — 조회·댓글·다운로드는 비로그인 방문자도 가능하고, 쓰기는 로그인한 사용자면 누구나 가능합니다.
+            특정 항목에 그룹을 체크하는 순간 그 항목만 <strong>체크된 그룹으로 제한</strong>되며, 다른 항목(예: 조회)에는 영향을 주지 않습니다.
+            아래 열 제목의 배지로 현재 각 항목이 공개 상태인지 확인할 수 있습니다.
+            <strong>관리</strong> 권한이 있는 그룹은 해당 게시판의 모든 글을 수정·삭제할 수 있습니다.
+          </span>
         </div>
 
         <div class="perm-add-row">
@@ -193,10 +198,30 @@
         <div v-loading="permLoading">
           <div v-if="boardPermRows.length" class="perm-grid">
             <div class="pg-cell pg-head pg-name">그룹</div>
-            <div class="pg-cell pg-head pg-chk" title="게시물 목록·내용을 볼 수 있습니다">조회</div>
-            <div class="pg-cell pg-head pg-chk" title="게시물을 작성할 수 있습니다">쓰기</div>
-            <div class="pg-cell pg-head pg-chk" title="게시물에 댓글을 작성할 수 있습니다">댓글</div>
-            <div class="pg-cell pg-head pg-chk" title="첨부파일을 다운로드할 수 있습니다">다운로드</div>
+            <div class="pg-cell pg-head pg-chk pg-head-col" title="게시물 목록·내용을 볼 수 있습니다">
+              <span>조회</span>
+              <el-tooltip :content="columnBadgeTooltip('canRead')" placement="top">
+                <span class="pg-badge" :class="'tone-' + columnBadge('canRead').tone">{{ columnBadge('canRead').text }}</span>
+              </el-tooltip>
+            </div>
+            <div class="pg-cell pg-head pg-chk pg-head-col" title="게시물을 작성할 수 있습니다">
+              <span>쓰기</span>
+              <el-tooltip :content="columnBadgeTooltip('canWrite')" placement="top">
+                <span class="pg-badge" :class="'tone-' + columnBadge('canWrite').tone">{{ columnBadge('canWrite').text }}</span>
+              </el-tooltip>
+            </div>
+            <div class="pg-cell pg-head pg-chk pg-head-col" title="게시물에 댓글을 작성할 수 있습니다">
+              <span>댓글</span>
+              <el-tooltip :content="columnBadgeTooltip('canComment')" placement="top">
+                <span class="pg-badge" :class="'tone-' + columnBadge('canComment').tone">{{ columnBadge('canComment').text }}</span>
+              </el-tooltip>
+            </div>
+            <div class="pg-cell pg-head pg-chk pg-head-col" title="첨부파일을 다운로드할 수 있습니다">
+              <span>다운로드</span>
+              <el-tooltip :content="columnBadgeTooltip('canDownload')" placement="top">
+                <span class="pg-badge" :class="'tone-' + columnBadge('canDownload').tone">{{ columnBadge('canDownload').text }}</span>
+              </el-tooltip>
+            </div>
             <div class="pg-cell pg-head pg-chk pg-manage" title="게시판의 모든 글을 수정·삭제할 수 있습니다">관리</div>
             <div class="pg-cell pg-head pg-del"></div>
             <template v-for="row in boardPermRows" :key="row.groupId">
@@ -233,7 +258,7 @@
               </div>
             </template>
           </div>
-          <div v-else class="perm-empty-msg">위에서 그룹을 선택해 권한을 추가하세요.</div>
+          <div v-else class="perm-empty-msg">그룹을 하나도 추가하지 않으면 이 게시판은 전체 공개(쓰기는 로그인 시 가능)로 동작합니다. 특정 항목을 그룹으로 제한하려면 위에서 그룹을 추가하세요.</div>
         </div>
       </div>
 
@@ -393,6 +418,31 @@ function removePermRow(groupId) {
   boardPermRows.value = boardPermRows.value.filter(r => r.groupId !== groupId)
 }
 
+// 조회/댓글/다운로드/쓰기 각각 독립적으로 "체크된 그룹이 하나도 없으면 공개"로 동작하는
+// 백엔드 BoardService.hasPermission() 규칙을 관리자 화면에도 그대로 보여주기 위한 배지
+const WRITE_DEFAULT_LABEL = '로그인 시 가능'
+function columnGrantedGroups(field) {
+  return boardPermRows.value.filter(r => r[field]).map(r => r.label)
+}
+function columnBadge(field) {
+  const granted = columnGrantedGroups(field)
+  if (!granted.length) {
+    return field === 'canWrite'
+      ? { text: WRITE_DEFAULT_LABEL, tone: 'neutral' }
+      : { text: '전체공개', tone: 'public' }
+  }
+  return { text: `${granted.length}개 그룹만`, tone: 'restricted' }
+}
+function columnBadgeTooltip(field) {
+  const granted = columnGrantedGroups(field)
+  if (!granted.length) {
+    return field === 'canWrite'
+      ? '체크된 그룹이 없어 로그인한 사용자면 누구나 쓸 수 있습니다.'
+      : '체크된 그룹이 없어 비로그인 방문자도 가능합니다.'
+  }
+  return `${granted.join(', ')} 그룹만 가능합니다.`
+}
+
 async function fetchBoards() {
   loading.value = true
   try { const res = await api.get('/boards'); boards.value = res.data.data || [] }
@@ -529,6 +579,20 @@ onMounted(() => { fetchBoards(); fetchGroups(); menuStore.fetchMenus() })
   font-size: 11px; font-weight: 700; color: var(--t3);
   border-bottom: 1px solid var(--border) !important;
 }
+.pg-head-col { flex-direction: column; gap: 3px; }
+.pg-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 5px;
+  line-height: 1.5;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  cursor: default;
+}
+.pg-badge.tone-public { background: var(--green-bg); color: var(--green); }
+.pg-badge.tone-neutral { background: var(--surface-3); color: var(--t3); }
+.pg-badge.tone-restricted { background: var(--accent-bg); color: var(--accent); }
 .pg-name { justify-content: flex-start; padding-left: 10px; font-weight: 500; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pg-head.pg-name { font-weight: 700; color: var(--t3); }
 .pg-cell:not(.pg-head).pg-manage { background: color-mix(in srgb, var(--color-danger) 5%, transparent); }

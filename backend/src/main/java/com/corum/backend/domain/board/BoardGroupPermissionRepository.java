@@ -16,12 +16,6 @@ public interface BoardGroupPermissionRepository extends JpaRepository<BoardGroup
     @Query("DELETE FROM BoardGroupPermission p WHERE p.boardId = :boardId")
     void deleteByBoardId(Long boardId);
 
-    @Query("""
-        SELECT p FROM BoardGroupPermission p
-        WHERE p.boardId = :boardId AND p.groupId IN :groupIds
-        """)
-    List<BoardGroupPermission> findByBoardIdAndGroupIds(Long boardId, List<Long> groupIds);
-
     /** 게시판에 대해 해당 그룹들 중 can_manage = true 인 행이 존재하는지 */
     @Query("""
         SELECT COUNT(p) > 0 FROM BoardGroupPermission p

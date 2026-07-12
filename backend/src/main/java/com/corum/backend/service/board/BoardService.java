@@ -132,34 +132,48 @@ public class BoardService {
     }
 
     // ===== 권한 확인 =====
-    // 게시판에 board_group_permissions 행이 하나도 없으면 "공개 게시판"으로 간주한다
-    // (calendar_group_permissions와 동일한 관례). WRITE만 로그인을 요구하고
-    // READ/COMMENT/DOWNLOAD는 비로그인도 허용. 행이 존재하면 그 그룹 설정을 그대로 따른다.
+    // read/write/comment/download 네 유형을 서로 독립적으로 판단한다: 어떤 그룹에도
+    // 해당 유형이 명시적으로 허용(true)된 행이 하나도 없으면 그 유형만 공개로 간주한다
+    // (WRITE는 로그인만 되어 있으면 허용하는 기존 관례 유지). 예를 들어 "쓰기만 특정
+    // 그룹으로 제한"하려고 그 그룹에 can_write=true 행 하나만 추가해도, 다른 그룹에
+    // can_read=true인 행이 전혀 없다면 읽기는 계속 공개로 남는다 — 예전에는 게시판에
+    // 행이 "하나라도" 있으면 read/write/comment/download 전부 그룹 화이트리스트로
+    // 전환돼서 "읽기는 공개 + 쓰기만 제한" 조합이 불가능했던 문제를 해결한다.
     @Transactional(readOnly = true)
     public boolean hasPermission(Long boardId, Long memberId, String permType) {
         if (memberId != null && memberGroupRepository.existsSuperAdminGroupByMemberId(memberId)) {
             return true;
         }
         List<BoardGroupPermission> allPerms = boardGroupPermissionRepository.findByBoardId(boardId);
-        if (allPerms.isEmpty()) {
-            return !"WRITE".equals(permType) || memberId != null;
-        }
-        if (memberId == null) return false;
-        List<Long> groupIds = memberGroupRepository.findGroupIdsByMemberId(memberId);
-        if (groupIds.isEmpty()) return false;
-        List<BoardGroupPermission> perms = boardGroupPermissionRepository
-                .findByBoardIdAndGroupIds(boardId, groupIds);
+
+        List<Long> myGroupIds = memberId != null
+                ? memberGroupRepository.findGroupIdsByMemberId(memberId)
+                : List.of();
+        List<BoardGroupPermission> myPerms = allPerms.stream()
+                .filter(p -> myGroupIds.contains(p.getGroupId()))
+                .toList();
         // 게시판 관리(can_manage) 권한이 있으면 READ/WRITE/COMMENT/DOWNLOAD 전부 허용
-        if (perms.stream().anyMatch(BoardGroupPermission::getCanManage)) {
+        if (myPerms.stream().anyMatch(BoardGroupPermission::getCanManage)) {
             return true;
         }
-        return perms.stream().anyMatch(p -> switch (permType) {
+
+        boolean anyGroupGrantsThisType = allPerms.stream().anyMatch(p -> matchesPermType(p, permType));
+        if (!anyGroupGrantsThisType) {
+            return !"WRITE".equals(permType) || memberId != null;
+        }
+
+        if (memberId == null || myGroupIds.isEmpty()) return false;
+        return myPerms.stream().anyMatch(p -> matchesPermType(p, permType));
+    }
+
+    private boolean matchesPermType(BoardGroupPermission p, String permType) {
+        return switch (permType) {
             case "READ"     -> Boolean.TRUE.equals(p.getCanRead());
             case "WRITE"    -> Boolean.TRUE.equals(p.getCanWrite());
             case "COMMENT"  -> Boolean.TRUE.equals(p.getCanComment());
             case "DOWNLOAD" -> Boolean.TRUE.equals(p.getCanDownload());
             default -> false;
-        });
+        };
     }
 
     /**
