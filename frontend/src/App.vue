@@ -7,6 +7,7 @@
       :until="maintenance.until"
     />
     <template v-else>
+      <AppProgress />
       <AppPopup v-if="!route.path.startsWith('/login') && !route.path.startsWith('/register')" />
       <router-view />
     </template>
@@ -20,6 +21,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import MaintenancePage from '@/pages/MaintenancePage.vue'
 import AppPopup from '@/components/common/AppPopup.vue'
+import AppProgress from '@/components/common/AppProgress.vue'
 import api from '@/api/axios'
 
 const themeStore = useThemeStore()

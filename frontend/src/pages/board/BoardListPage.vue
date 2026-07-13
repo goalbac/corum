@@ -304,6 +304,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
 import { useAuthStore } from '@/stores/auth'
+import { useLoadingStore } from '@/stores/loading'
 import api from '@/api/axios'
 import { resolveFileUrl } from '@/utils/fileUrl'
 
@@ -311,6 +312,7 @@ const route = useRoute()
 const router = useRouter()
 const menuStore = useMenuStore()
 const authStore = useAuthStore()
+const loadingStore = useLoadingStore()
 
 const activeMenu = computed(() => menuStore.findMenuByRouteParams(route.params))
 const boardId = computed(() => route.params.boardId || activeMenu.value?.targetId)
@@ -411,6 +413,7 @@ function restoreCategory() {
 async function fetchPosts() {
   if (!boardId.value) return
   loading.value = true
+  loadingStore.start()
   try {
     const pageSize = isVisualBoard.value ? gallerySize.value : size.value
     const params = { page: page.value - 1, size: pageSize }
@@ -421,6 +424,7 @@ async function fetchPosts() {
     total.value = res.data.data?.totalElements || 0
   } finally {
     loading.value = false
+    loadingStore.finish()
   }
 }
 

@@ -222,6 +222,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import { useLoadingStore } from '@/stores/loading'
 import api from '@/api/axios'
 import { sanitizeHtml } from '@/utils/sanitize'
 import CommentSection from '@/components/board/CommentSection.vue'
@@ -232,6 +233,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const menuStore = useMenuStore()
+const loadingStore = useLoadingStore()
 
 const resolved = computed(() => menuStore.parseCustomRoute(route.params))
 const activeMenu = computed(() => resolved.value.menu)
@@ -302,6 +304,7 @@ async function fetchPost() {
     return
   }
   loading.value = true
+  loadingStore.start()
   accessDenied.value = false
   try {
     const [postRes, boardRes, adjRes] = await Promise.all([
@@ -321,6 +324,7 @@ async function fetchPost() {
     throw error
   } finally {
     loading.value = false
+    loadingStore.finish()
   }
 }
 

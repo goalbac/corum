@@ -263,11 +263,13 @@ import koLocale from '@fullcalendar/core/locales/ko'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
+import { useLoadingStore } from '@/stores/loading'
 import { useRoute } from 'vue-router'
 import api from '@/api/axios'
 
 const authStore  = useAuthStore()
 const menuStore  = useMenuStore()
+const loadingStore = useLoadingStore()
 const route      = useRoute()
 const isMobile   = computed(() => window.innerWidth <= 768)
 const calRef     = ref()
@@ -518,6 +520,7 @@ const calOptions = computed(() => {
 })
 
 async function fetchEvents(info, successCallback, failureCallback) {
+  loadingStore.start()
   try {
     await calendarsReady
 
@@ -590,6 +593,8 @@ async function fetchEvents(info, successCallback, failureCallback) {
   } catch (e) {
     console.error('캘린더 일정 로드 실패', e)
     failureCallback(e)
+  } finally {
+    loadingStore.finish()
   }
 }
 

@@ -1137,12 +1137,17 @@ onMounted(async () => {
 /* ===== 페이지 헤더 (브레드크럼 + 제목) ===== */
 .page-header {
   margin-bottom: 28px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  /* 안내 페이지(좁음) ↔ 게시판(넓음) 전환 시 너비가 뚝 끊기지 않고 부드럽게 늘어나거나
+     줄어들도록. max-width가 항상 구체적인 값(100% ↔ 864px)이어야 애니메이션된다 —
+     한쪽이 none/auto면 브라우저가 보간하지 못하고 그냥 스냅해버린다 */
+  transition: max-width 0.25s ease;
 }
 
 .page-header--narrow {
   max-width: 864px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .page-header-top {
