@@ -17,14 +17,15 @@ const loading = useLoadingStore()
   top: var(--header-height);
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   z-index: 99;
   pointer-events: none;
 }
 
 .progress-track {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #7c4ff7 60%, #e05fc4 100%);
+  /* 튀지 않도록 --primary를 옅게 섞어서 은은하게 */
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
   animation: progress-slide 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   transform-origin: left center;
 }
