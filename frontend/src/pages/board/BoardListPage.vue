@@ -287,12 +287,18 @@
 
     <!-- ===== 페이지네이션 ===== -->
     <div v-if="totalPages > 1" class="pagination">
-      <button class="pg-btn" :disabled="page <= 1" @click="changePage(page - 1)">
+      <button class="pg-btn" :disabled="page <= 1" @click="changePage(1)" title="첫 페이지">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 18 11 12 17 6"/><polyline points="11 18 5 12 11 6"/></svg>
+      </button>
+      <button class="pg-btn" :disabled="page <= 1" @click="changePage(page - 1)" title="이전 페이지">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <button v-for="n in pageNums" :key="n" :class="['pg-btn', n === page ? 'active' : '']" @click="changePage(n)">{{ n }}</button>
-      <button class="pg-btn" :disabled="page >= totalPages" @click="changePage(page + 1)">
+      <button class="pg-btn" :disabled="page >= totalPages" @click="changePage(page + 1)" title="다음 페이지">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button class="pg-btn" :disabled="page >= totalPages" @click="changePage(totalPages)" title="마지막 페이지">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 18 13 12 7 6"/><polyline points="13 18 19 12 13 6"/></svg>
       </button>
     </div>
 
