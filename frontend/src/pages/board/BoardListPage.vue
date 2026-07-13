@@ -10,12 +10,18 @@
       <!-- 카테고리 없을 때: 검색+정렬을 툴바 오른쪽에 인라인 배치 -->
       <template v-if="!boardCategories.length">
         <div class="toolbar-right">
+          <select v-if="!isDocumentBoard && !isGalleryBoard" v-model="searchType" class="search-type-select" @change="handleSearch">
+            <option value="all">전체</option>
+            <option value="title">제목</option>
+            <option value="writer">작성자</option>
+            <option value="content">내용</option>
+          </select>
           <div class="search-box">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               v-model="keyword"
               class="search-input"
-              :placeholder="isDocumentBoard ? '파일명 검색' : isGalleryBoard ? '제목 검색' : '제목·작성자 검색'"
+              :placeholder="isDocumentBoard ? '파일명 검색' : isGalleryBoard ? '제목 검색' : '검색어 입력'"
               @keyup.enter="handleSearch"
             />
             <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
@@ -49,12 +55,18 @@
       </div>
 
       <div class="filter-right">
+        <select v-if="!isDocumentBoard && !isGalleryBoard" v-model="searchType" class="search-type-select" @change="handleSearch">
+          <option value="all">전체</option>
+          <option value="title">제목</option>
+          <option value="writer">작성자</option>
+          <option value="content">내용</option>
+        </select>
         <div class="search-box">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input
             v-model="keyword"
             class="search-input"
-            :placeholder="isDocumentBoard ? '파일명 검색' : isGalleryBoard ? '제목 검색' : '제목·작성자 검색'"
+            :placeholder="isDocumentBoard ? '파일명 검색' : isGalleryBoard ? '제목 검색' : '검색어 입력'"
             @keyup.enter="handleSearch"
           />
           <button v-if="keyword" class="search-clear" @click="keyword=''; handleSearch()">
@@ -594,6 +606,20 @@ onMounted(async () => {
 .cat-chip.active { border-color: var(--primary); background: var(--primary); color: #fff; }
 
 .filter-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.search-type-select {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--t2);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.search-type-select:hover { background: var(--surface-2); }
 
 .search-box {
   display: flex;
